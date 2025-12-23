@@ -307,15 +307,23 @@ export const GanttTimelineBarItem: FC<GanttTimelineBarProps> = ({
 
   // Find nearest valid drop row - memoized callback
   const findNearestValidRow = useCallback((targetRow: number): number => {
+    // The bar's own row is always valid (it can stay where it is)
+    if (targetRow === currentVisualRow) {
+      return targetRow;
+    }
+
     if (!gantt.validDropRows || gantt.validDropRows.length === 0) {
       return targetRow;
     }
     const firstRow = gantt.validDropRows[0];
     if (firstRow === undefined) return targetRow;
 
+    // Also consider current row as valid option
+    const validRowsWithCurrent = [...gantt.validDropRows, currentVisualRow];
+
     let nearestRow = firstRow;
     let minDistance = Math.abs(targetRow - nearestRow);
-    for (const validRow of gantt.validDropRows) {
+    for (const validRow of validRowsWithCurrent) {
       const distance = Math.abs(targetRow - validRow);
       if (distance < minDistance) {
         minDistance = distance;
@@ -323,7 +331,7 @@ export const GanttTimelineBarItem: FC<GanttTimelineBarProps> = ({
       }
     }
     return nearestRow;
-  }, [gantt.validDropRows]);
+  }, [gantt.validDropRows, currentVisualRow]);
 
   // Drag handlers - memoized
   const handleItemDragStart = useCallback(() => {
@@ -356,6 +364,21 @@ export const GanttTimelineBarItem: FC<GanttTimelineBarProps> = ({
     const targetRow = findNearestValidRow(rawTargetRow);
     const newWidth = getWidth(newStartDate, newEndDate, gantt);
     const newOffset = getOffset(newStartDate, timelineStartDate, gantt);
+
+    // DEBUG: Log timeline bar drag values
+    console.log('=== Timeline Bar Drag DEBUG ===');
+    console.log('mousePosition.x:', mousePosition.x);
+    console.log('mousePosition.y:', mousePosition.y);
+    console.log('scrollX:', scrollX);
+    console.log('yDelta:', yDelta);
+    console.log('rowsMoved:', rowsMoved);
+    console.log('rawTargetRow:', rawTargetRow);
+    console.log('targetRow (snapped):', targetRow);
+    console.log('newOffset (indicator left):', newOffset);
+    console.log('newWidth:', newWidth);
+    console.log('currentVisualRow:', currentVisualRow);
+    console.log('==============================');
+
     setDropTarget({ rowIndex: targetRow, width: newWidth, offset: newOffset });
 
     setStartAt(newStartDate);

@@ -264,7 +264,17 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     const targetRow = Math.max(0, Math.floor(timelineY / rowHeight));
 
     // Calculate the X position for the drop indicator
+    // Add scrollX to convert viewport coordinates to content coordinates
+    // The indicator is positioned in content space, mouse is in viewport space
     const timelineX = currentX - containerRect.left - sidebarWidth + scrollX;
+
+    // DEBUG: Log all coordinate values
+    console.log('=== handleDragMove DEBUG ===');
+    console.log('currentX (viewport):', currentX);
+    console.log('containerRect.left:', containerRect.left);
+    console.log('sidebarWidth:', sidebarWidth);
+    console.log('scrollX:', scrollX);
+    console.log('timelineX (content):', timelineX);
 
     // Store both row AND timelineX in ref so handleDragEnd uses EXACT same values
     // This ensures the drop position matches exactly what the user saw highlighted
@@ -275,6 +285,13 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     // Calculate which column the mouse is in
     const columnIndex = Math.floor(timelineX / adjustedColumnWidth);
     const snappedOffset = columnIndex * adjustedColumnWidth;
+
+    // DEBUG: Log snapping values
+    console.log('adjustedColumnWidth:', adjustedColumnWidth);
+    console.log('columnIndex:', columnIndex);
+    console.log('snappedOffset (indicator left):', snappedOffset);
+    console.log('targetRow:', targetRow);
+    console.log('========================');
 
     // Update drop target indicator - show full column width
     setDropTarget({
