@@ -365,6 +365,11 @@ export const GanttTimelineBarItem: FC<GanttTimelineBarProps> = ({
     const newWidth = getWidth(newStartDate, newEndDate, gantt);
     const newOffset = getOffset(newStartDate, timelineStartDate, gantt);
 
+    // Determine if the raw target row is a valid drop zone
+    // Valid if: it's the current row OR it's in the validDropRows list
+    const isValidDrop = rawTargetRow === currentVisualRow ||
+      (gantt.validDropRows?.includes(rawTargetRow) ?? true);
+
     // DEBUG: Log timeline bar drag values
     console.log('=== Timeline Bar Drag DEBUG ===');
     console.log('mousePosition.x:', mousePosition.x);
@@ -377,9 +382,10 @@ export const GanttTimelineBarItem: FC<GanttTimelineBarProps> = ({
     console.log('newOffset (indicator left):', newOffset);
     console.log('newWidth:', newWidth);
     console.log('currentVisualRow:', currentVisualRow);
+    console.log('isValidDrop:', isValidDrop);
     console.log('==============================');
 
-    setDropTarget({ rowIndex: targetRow, width: newWidth, offset: newOffset });
+    setDropTarget({ rowIndex: targetRow, width: newWidth, offset: newOffset, isValid: isValidDrop });
 
     setStartAt(newStartDate);
     setEndAt(newEndDate);

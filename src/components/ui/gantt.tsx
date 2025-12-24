@@ -390,7 +390,7 @@ export const GanttSidebarGroup: FC<GanttSidebarGroupProps> = ({
   <div className={cn('flex flex-col', isFullscreen && 'flex-1', className)}>
     {/* Tasks column - no group name column */}
     <div className={cn(
-      'flex-1 divide-y divide-gray-200 dark:divide-[var(--border-color)]',
+      'flex-1',
       isFullscreen && 'flex flex-col'
     )}>{children}</div>
   </div>
@@ -426,7 +426,6 @@ export const GanttSidebar: FC<GanttSidebarProps> = ({
     )}
     <GanttSidebarHeader />
     <div className={cn(
-      'divide-y divide-gray-200 dark:divide-[var(--border-color)]',
       isFullscreen && 'flex-1 overflow-auto flex flex-col'
     )}>{children}</div>
   </div>
@@ -617,15 +616,20 @@ export const GanttDropZoneIndicator: FC<GanttDropZoneIndicatorProps> = ({
   const [dropTarget] = useGanttDropTarget();
   const gantt = useContext(GanttContext);
 
+  const isValid = dropTarget?.isValid !== false; // default to valid if not specified
+
   return (
     <AnimatePresence>
       {dropTarget && (
         <motion.div
           data-drop-indicator
           data-target-row={dropTarget.rowIndex}
+          data-valid={isValid}
           className={cn(
-            'pointer-events-none absolute z-40',
-            'bg-blue-100/80 dark:bg-blue-900/40 border-2 border-blue-400 dark:border-blue-500 border-dashed rounded-md',
+            'pointer-events-none absolute z-40 border-2 border-dashed rounded-md',
+            isValid
+              ? 'bg-blue-100/80 dark:bg-blue-900/40 border-blue-400 dark:border-blue-500'
+              : 'bg-red-100/80 dark:bg-red-900/40 border-red-400 dark:border-red-500',
             className
           )}
           style={{
@@ -638,11 +642,17 @@ export const GanttDropZoneIndicator: FC<GanttDropZoneIndicatorProps> = ({
           animate={{
             opacity: 1,
             scale: 1,
-            boxShadow: [
-              '0 0 0 0 rgba(59, 130, 246, 0)',
-              '0 0 0 3px rgba(59, 130, 246, 0.2)',
-              '0 0 0 0 rgba(59, 130, 246, 0)'
-            ]
+            boxShadow: isValid
+              ? [
+                  '0 0 0 0 rgba(59, 130, 246, 0)',
+                  '0 0 0 3px rgba(59, 130, 246, 0.2)',
+                  '0 0 0 0 rgba(59, 130, 246, 0)'
+                ]
+              : [
+                  '0 0 0 0 rgba(239, 68, 68, 0)',
+                  '0 0 0 3px rgba(239, 68, 68, 0.2)',
+                  '0 0 0 0 rgba(239, 68, 68, 0)'
+                ]
           }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{

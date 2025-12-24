@@ -11,6 +11,7 @@ export type DropTargetInfo = {
   rowIndex: number;
   width: number;
   offset: number;
+  isValid?: boolean; // false = invalid drop zone (show red indicator)
 } | null;
 
 // Drag source tracking for cross-zone drag-and-drop

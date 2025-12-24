@@ -286,11 +286,15 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     const columnIndex = Math.floor(timelineX / adjustedColumnWidth);
     const snappedOffset = columnIndex * adjustedColumnWidth;
 
+    // Determine if this is a valid drop zone
+    const isValidDrop = !validDropRows || validDropRows.includes(targetRow);
+
     // DEBUG: Log snapping values
     console.log('adjustedColumnWidth:', adjustedColumnWidth);
     console.log('columnIndex:', columnIndex);
     console.log('snappedOffset (indicator left):', snappedOffset);
     console.log('targetRow:', targetRow);
+    console.log('isValidDrop:', isValidDrop);
     console.log('========================');
 
     // Update drop target indicator - show full column width
@@ -298,8 +302,9 @@ export const GanttProvider: FC<GanttProviderProps> = ({
       rowIndex: targetRow,
       offset: Math.max(0, snappedOffset),
       width: adjustedColumnWidth,
+      isValid: isValidDrop,
     });
-  }, [columnWidth, headerHeight, rowHeight, scrollX, setDropTarget, sidebarWidth, zoom]);
+  }, [columnWidth, headerHeight, rowHeight, scrollX, setDropTarget, sidebarWidth, validDropRows, zoom]);
 
   // Handle drag end - use dnd-kit's event.over for proper row targeting
   const handleDragEnd = useCallback((event: DragEndEvent) => {
