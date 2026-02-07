@@ -12,7 +12,7 @@ interface FeatureActions {
   add: (feature: GanttFeature) => void;
   update: (id: FeatureId, updates: Partial<GanttFeature>) => void;
   remove: (id: FeatureId) => void;
-  move: (id: FeatureId, startAt: Date, endAt: Date, targetRow?: number) => void;
+  move: (id: FeatureId, startAt: Date, endAt: Date) => void;
   updateMultiple: (updates: Array<{ id: FeatureId; changes: Partial<GanttFeature> }>) => void;
   reorderGroup: (groupName: GroupName, featureIds: FeatureId[]) => void;
   initialize: (features: GanttFeature[]) => void;
@@ -23,17 +23,15 @@ interface FeatureActions {
  * Actions are stable references and don't cause re-renders
  */
 export function useFeatureActions(): FeatureActions {
-  return useConstructionStore(
-    useShallow((state) => ({
-      add: state.addFeature,
-      update: state.updateFeature,
-      remove: state.removeFeature,
-      move: state.moveFeature,
-      updateMultiple: state.updateMultipleFeatures,
-      reorderGroup: state.reorderGroup,
-      initialize: state.initializeFeatures,
-    }))
-  );
+  return useConstructionStore((state) => ({
+    add: state.addFeature,
+    update: state.updateFeature,
+    remove: state.removeFeature,
+    move: state.moveFeature,
+    updateMultiple: state.updateMultipleFeatures,
+    reorderGroup: state.reorderGroup,
+    initialize: state.initializeFeatures,
+  }));
 }
 
 /**

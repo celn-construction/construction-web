@@ -127,9 +127,9 @@ function SignInForm() {
                 />
                 <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-gray-800 dark:text-[var(--accent-purple)] hover:underline">
+              <Link href="/forgot-password" className="text-sm text-gray-800 dark:text-[var(--accent-purple)] hover:underline">
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             <Button

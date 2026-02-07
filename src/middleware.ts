@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get("better-auth.session_token");
   const pathname = request.nextUrl.pathname;
 
-  const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
+  const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up") || pathname.startsWith("/forgot-password") || pathname.startsWith("/reset-password");
   const isApiRoute = pathname.startsWith("/api");
   const isLandingPage = pathname === "/";
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Zap, Clipboard } from 'lucide-react';
+import { Home, LayoutGrid, Zap, Clipboard, GanttChart } from 'lucide-react';
 import { navItems } from './navItems';
 
 export default function Sidebar() {
@@ -14,6 +14,7 @@ export default function Sidebar() {
       case 'LayoutGrid': return LayoutGrid;
       case 'Zap': return Zap;
       case 'Clipboard': return Clipboard;
+      case 'GanttChart': return GanttChart;
       default: return Home;
     }
   };
