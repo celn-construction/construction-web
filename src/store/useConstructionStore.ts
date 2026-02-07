@@ -73,46 +73,64 @@ const DEFAULT_STATUSES: Record<string, GanttStatus> = {
   planned: PLANNED_STATUS,
 };
 
-// Sample unscheduled issues - shown in sidebar but no timeline bars
+// Realistic construction timeline (~4 months, Feb-Jun 2025)
 const DEFAULT_FEATURES: GanttFeature[] = [
   // Foundation & Site Work
   {
     id: 'task-1',
     name: 'Site Clearing & Grading',
-    status: PLANNED_STATUS,
+    status: COMPLETED_STATUS,
     group: 'Foundation & Site Work',
+    startAt: new Date('2025-02-01'),
+    endAt: new Date('2025-02-14'),
+    progress: 100,
   },
   {
     id: 'task-2',
     name: 'Foundation Excavation',
-    status: PLANNED_STATUS,
+    status: COMPLETED_STATUS,
     group: 'Foundation & Site Work',
+    startAt: new Date('2025-02-10'),
+    endAt: new Date('2025-02-28'),
+    progress: 100,
   },
   {
     id: 'task-3',
     name: 'Concrete Pouring',
-    status: PLANNED_STATUS,
+    status: IN_PROGRESS_STATUS,
     group: 'Foundation & Site Work',
+    startAt: new Date('2025-02-24'),
+    endAt: new Date('2025-03-14'),
+    progress: 65,
   },
 
   // Structural Work
   {
     id: 'task-4',
     name: 'Steel Frame Erection',
-    status: PLANNED_STATUS,
+    status: IN_PROGRESS_STATUS,
     group: 'Structural Work',
+    startAt: new Date('2025-03-10'),
+    endAt: new Date('2025-04-04'),
+    progress: 30,
   },
   {
     id: 'task-5',
     name: 'Roof Truss Installation',
     status: PLANNED_STATUS,
     group: 'Structural Work',
+    startAt: new Date('2025-03-28'),
+    endAt: new Date('2025-04-18'),
+    progress: 0,
   },
   {
     id: 'task-6',
     name: 'Exterior Wall Framing',
     status: PLANNED_STATUS,
     group: 'Structural Work',
+    startAt: new Date('2025-04-07'),
+    endAt: new Date('2025-04-25'),
+    progress: 0,
   },
 
   // MEP (Mechanical, Electrical, Plumbing)
@@ -121,18 +139,27 @@ const DEFAULT_FEATURES: GanttFeature[] = [
     name: 'Rough Plumbing',
     status: PLANNED_STATUS,
     group: 'MEP (Mechanical, Electrical, Plumbing)',
+    startAt: new Date('2025-04-01'),
+    endAt: new Date('2025-04-18'),
+    progress: 0,
   },
   {
     id: 'task-8',
     name: 'Electrical Wiring',
     status: PLANNED_STATUS,
     group: 'MEP (Mechanical, Electrical, Plumbing)',
+    startAt: new Date('2025-04-10'),
+    endAt: new Date('2025-05-02'),
+    progress: 0,
   },
   {
     id: 'task-9',
     name: 'HVAC Installation',
     status: PLANNED_STATUS,
     group: 'MEP (Mechanical, Electrical, Plumbing)',
+    startAt: new Date('2025-04-21'),
+    endAt: new Date('2025-05-16'),
+    progress: 0,
   },
 
   // Finishing & Inspection
@@ -141,18 +168,27 @@ const DEFAULT_FEATURES: GanttFeature[] = [
     name: 'Drywall Installation',
     status: PLANNED_STATUS,
     group: 'Finishing & Inspection',
+    startAt: new Date('2025-05-05'),
+    endAt: new Date('2025-05-23'),
+    progress: 0,
   },
   {
     id: 'task-11',
     name: 'Interior Painting',
     status: PLANNED_STATUS,
     group: 'Finishing & Inspection',
+    startAt: new Date('2025-05-19'),
+    endAt: new Date('2025-06-06'),
+    progress: 0,
   },
   {
     id: 'task-12',
     name: 'Final Inspection',
     status: PLANNED_STATUS,
     group: 'Finishing & Inspection',
+    startAt: new Date('2025-06-02'),
+    endAt: new Date('2025-06-06'),
+    progress: 0,
   },
 ];
 
@@ -276,6 +312,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
       })),
       {
         name: 'construction-storage',
+        version: 1, // Bump version to force migration to new defaults with dates
         partialize: (state) => ({
           features: state.features,
         }),
@@ -289,6 +326,15 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
               endAt: feature.endAt ? new Date(feature.endAt) : undefined,
             }));
           }
+        },
+        migrate: (persistedState: unknown, version: number) => {
+          // Force reset to new defaults with dates for all versions < 1
+          if (version < 1) {
+            return {
+              features: DEFAULT_FEATURES,
+            };
+          }
+          return persistedState as { features: GanttFeature[] };
         },
       }
     ),
