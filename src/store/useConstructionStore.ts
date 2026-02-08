@@ -56,10 +56,9 @@ interface ConstructionSelectors {
 // ============================================================================
 
 const DEFAULT_GROUPS: GroupName[] = [
-  'Foundation & Site Work',
-  'Structural Work',
-  'MEP (Mechanical, Electrical, Plumbing)',
-  'Finishing & Inspection',
+  'Design',
+  'Development',
+  'Testing',
 ];
 
 // Define statuses as strongly typed constants
@@ -73,121 +72,50 @@ const DEFAULT_STATUSES: Record<string, GanttStatus> = {
   planned: PLANNED_STATUS,
 };
 
-// Realistic construction timeline (~4 months, Feb-Jun 2025)
 const DEFAULT_FEATURES: GanttFeature[] = [
-  // Foundation & Site Work
   {
     id: 'task-1',
-    name: 'Site Clearing & Grading',
+    name: 'Project Planning',
     status: COMPLETED_STATUS,
-    group: 'Foundation & Site Work',
-    startAt: new Date('2025-02-01'),
-    endAt: new Date('2025-02-14'),
+    group: 'Design',
+    startAt: new Date('2026-02-01'),
+    endAt: new Date('2026-02-14'),
     progress: 100,
   },
   {
     id: 'task-2',
-    name: 'Foundation Excavation',
-    status: COMPLETED_STATUS,
-    group: 'Foundation & Site Work',
-    startAt: new Date('2025-02-10'),
-    endAt: new Date('2025-02-28'),
-    progress: 100,
+    name: 'UI Design',
+    status: IN_PROGRESS_STATUS,
+    group: 'Design',
+    startAt: new Date('2026-02-10'),
+    endAt: new Date('2026-02-28'),
+    progress: 60,
   },
   {
     id: 'task-3',
-    name: 'Concrete Pouring',
-    status: IN_PROGRESS_STATUS,
-    group: 'Foundation & Site Work',
-    startAt: new Date('2025-02-24'),
-    endAt: new Date('2025-03-14'),
-    progress: 65,
+    name: 'Frontend Development',
+    status: PLANNED_STATUS,
+    group: 'Development',
+    startAt: new Date('2026-02-24'),
+    endAt: new Date('2026-03-21'),
+    progress: 0,
   },
-
-  // Structural Work
   {
     id: 'task-4',
-    name: 'Steel Frame Erection',
-    status: IN_PROGRESS_STATUS,
-    group: 'Structural Work',
-    startAt: new Date('2025-03-10'),
-    endAt: new Date('2025-04-04'),
-    progress: 30,
+    name: 'Backend API',
+    status: PLANNED_STATUS,
+    group: 'Development',
+    startAt: new Date('2026-03-01'),
+    endAt: new Date('2026-03-28'),
+    progress: 0,
   },
   {
     id: 'task-5',
-    name: 'Roof Truss Installation',
+    name: 'Integration Testing',
     status: PLANNED_STATUS,
-    group: 'Structural Work',
-    startAt: new Date('2025-03-28'),
-    endAt: new Date('2025-04-18'),
-    progress: 0,
-  },
-  {
-    id: 'task-6',
-    name: 'Exterior Wall Framing',
-    status: PLANNED_STATUS,
-    group: 'Structural Work',
-    startAt: new Date('2025-04-07'),
-    endAt: new Date('2025-04-25'),
-    progress: 0,
-  },
-
-  // MEP (Mechanical, Electrical, Plumbing)
-  {
-    id: 'task-7',
-    name: 'Rough Plumbing',
-    status: PLANNED_STATUS,
-    group: 'MEP (Mechanical, Electrical, Plumbing)',
-    startAt: new Date('2025-04-01'),
-    endAt: new Date('2025-04-18'),
-    progress: 0,
-  },
-  {
-    id: 'task-8',
-    name: 'Electrical Wiring',
-    status: PLANNED_STATUS,
-    group: 'MEP (Mechanical, Electrical, Plumbing)',
-    startAt: new Date('2025-04-10'),
-    endAt: new Date('2025-05-02'),
-    progress: 0,
-  },
-  {
-    id: 'task-9',
-    name: 'HVAC Installation',
-    status: PLANNED_STATUS,
-    group: 'MEP (Mechanical, Electrical, Plumbing)',
-    startAt: new Date('2025-04-21'),
-    endAt: new Date('2025-05-16'),
-    progress: 0,
-  },
-
-  // Finishing & Inspection
-  {
-    id: 'task-10',
-    name: 'Drywall Installation',
-    status: PLANNED_STATUS,
-    group: 'Finishing & Inspection',
-    startAt: new Date('2025-05-05'),
-    endAt: new Date('2025-05-23'),
-    progress: 0,
-  },
-  {
-    id: 'task-11',
-    name: 'Interior Painting',
-    status: PLANNED_STATUS,
-    group: 'Finishing & Inspection',
-    startAt: new Date('2025-05-19'),
-    endAt: new Date('2025-06-06'),
-    progress: 0,
-  },
-  {
-    id: 'task-12',
-    name: 'Final Inspection',
-    status: PLANNED_STATUS,
-    group: 'Finishing & Inspection',
-    startAt: new Date('2025-06-02'),
-    endAt: new Date('2025-06-06'),
+    group: 'Testing',
+    startAt: new Date('2026-03-21'),
+    endAt: new Date('2026-04-04'),
     progress: 0,
   },
 ];
