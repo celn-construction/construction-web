@@ -36,6 +36,11 @@ interface SVARGanttChartProps {
 
 // Custom tooltip content component
 function TooltipContent({ data }: { data: any }) {
+  // Guard against null or undefined data
+  if (!data || !data.start) {
+    return null;
+  }
+
   const startDate = data.start instanceof Date ? data.start : new Date(data.start);
   const endDate = new Date(startDate.getTime() + data.duration * 24 * 60 * 60 * 1000);
   const progressPercent = Math.round((data.progress || 0) * 100);
