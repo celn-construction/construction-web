@@ -115,7 +115,7 @@ export default function DashboardPage() {
     targetRow?: number
   ) => {
     if (!endAt) return;
-    moveFeature(id, startAt, endAt, targetRow);
+    moveFeature(id, startAt, endAt);
   }, [moveFeature]);
 
   const handleCoverImageChange = useCallback((featureId: string, coverImage: string | undefined) => {

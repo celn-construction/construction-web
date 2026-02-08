@@ -7,7 +7,7 @@ export type GanttStatus = {
   color: string;
 };
 
-export type GanttTimelineBar = {
+export type GanttFeature = {
   id: string;
   name: string;
   startAt?: Date | null; // Optional - unscheduled issues won't have dates
@@ -17,9 +17,6 @@ export type GanttTimelineBar = {
   coverImage?: string; // Base64 data URL or blob URL for cover image
   progress?: number; // 0-100 percentage, auto-calculated if not set
 };
-
-// Backwards compatibility alias
-export type GanttFeature = GanttTimelineBar;
 
 export type GanttMarkerProps = {
   id: string;

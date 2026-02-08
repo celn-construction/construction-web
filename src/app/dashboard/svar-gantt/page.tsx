@@ -39,7 +39,17 @@ export default function SVARGanttPage() {
   const { move: moveFeature, update: updateFeature } = useFeatureActions();
   const groups = useGroups();
 
-  // SVAR Gantt v2.x uses Willow theme wrapper, custom CSS no longer injected here
+  // Re-inject custom CSS on top of Willow theme
+  useEffect(() => {
+    const linkId = 'svar-gantt-custom-css';
+    if (!document.getElementById(linkId)) {
+      const link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      link.href = '/css/svar-gantt-custom.css';
+      document.head.appendChild(link);
+    }
+  }, []);
 
   // Transform features to SVAR Gantt format
   const ganttTasks = useMemo(() => {

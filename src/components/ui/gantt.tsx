@@ -27,7 +27,6 @@ import type {
 
 // Import types from extracted modules
 import type {
-  GanttTimelineBar,
   GanttFeature,
   GanttMarkerProps,
   Range,
@@ -53,24 +52,15 @@ import { GanttDroppableRow } from './gantt/components';
 
 // Import extracted components
 import {
-  // New TimelineBar naming
-  GanttTimelineBarItem,
-  GanttTimelineBarCard,
-  GanttTimelineBarDragHelper,
-  // Backwards compatibility aliases
   GanttFeatureItem,
   GanttFeatureItemCard,
   GanttFeatureDragHelper,
-  // Staging zone components
   GanttStagingZone,
 } from './gantt/components';
 
-// Re-export types (new TimelineBar naming + backwards compatibility)
+// Re-export types
 export type {
   GanttStatus,
-  // New TimelineBar type
-  GanttTimelineBar,
-  // Backwards compatibility alias
   GanttFeature,
   GanttMarkerProps,
   Range,
@@ -82,29 +72,17 @@ export type {
 export { GanttProvider, useGanttDragging, useGanttScrollX, useGanttDropTarget } from './gantt/context';
 export type { GanttProviderProps } from './gantt/context';
 
-// Re-export extracted components (new TimelineBar naming + backwards compatibility)
+// Re-export extracted components
 export {
-  // New TimelineBar naming
-  GanttTimelineBarItem,
-  GanttTimelineBarCard,
-  GanttTimelineBarDragHelper,
-  // Backwards compatibility aliases
   GanttFeatureItem,
   GanttFeatureItemCard,
   GanttFeatureDragHelper,
-  // Staging zone components
   GanttStagingZone,
 } from './gantt/components';
 export type {
-  // New TimelineBar types
-  GanttTimelineBarProps,
-  GanttTimelineBarCardProps,
-  GanttTimelineBarDragHelperProps,
-  // Backwards compatibility aliases
   GanttFeatureItemProps,
   GanttFeatureItemCardProps,
   GanttFeatureDragHelperProps,
-  // Staging zone types
   GanttStagingZoneProps,
 } from './gantt/components';
 

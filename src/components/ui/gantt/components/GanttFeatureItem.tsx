@@ -23,7 +23,7 @@ import type { FC, ReactNode } from 'react';
 
 import { Card } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import type { GanttTimelineBar, GanttFeature } from '../types';
+import type { GanttFeature } from '../types';
 import {
   getDifferenceIn,
   getInnerDifferenceIn,
@@ -35,19 +35,16 @@ import {
 import { GanttContext, useGanttDragging, useGanttScrollX, useGanttDropTarget } from '../context';
 
 // ============================================
-// GanttTimelineBarDragHelper - Resize handles
+// GanttFeatureDragHelper - Resize handles
 // ============================================
 
-export type GanttTimelineBarDragHelperProps = {
-  timelineBarId: GanttTimelineBar['id'];
+export type GanttFeatureDragHelperProps = {
+  timelineBarId: GanttFeature['id'];
   direction: 'left' | 'right';
   date: Date | null;
 };
 
-// Backwards compatibility alias
-export type GanttFeatureDragHelperProps = GanttTimelineBarDragHelperProps;
-
-export const GanttTimelineBarDragHelper: FC<GanttTimelineBarDragHelperProps> = ({
+export const GanttFeatureDragHelper: FC<GanttFeatureDragHelperProps> = ({
   direction,
   timelineBarId,
   date,
@@ -101,24 +98,18 @@ export const GanttTimelineBarDragHelper: FC<GanttTimelineBarDragHelperProps> = (
   );
 };
 
-// Backwards compatibility alias for the component
-export const GanttFeatureDragHelper = GanttTimelineBarDragHelper;
-
 // ============================================
-// GanttTimelineBarCard - Draggable card wrapper
+// GanttFeatureItemCard - Draggable card wrapper
 // ============================================
 
-export type GanttTimelineBarCardProps = Pick<GanttTimelineBar, 'id'> & {
+export type GanttFeatureItemCardProps = Pick<GanttFeature, 'id'> & {
   children?: ReactNode;
   popoverContent?: ReactNode;
   popoverOpen?: boolean;
   onPopoverOpenChange?: (open: boolean) => void;
 };
 
-// Backwards compatibility alias
-export type GanttFeatureItemCardProps = GanttTimelineBarCardProps;
-
-export const GanttTimelineBarCard: FC<GanttTimelineBarCardProps> = ({
+export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
   id,
   children,
   popoverContent,
@@ -224,14 +215,11 @@ export const GanttTimelineBarCard: FC<GanttTimelineBarCardProps> = ({
   return cardContent;
 };
 
-// Backwards compatibility alias for the card component
-export const GanttFeatureItemCard = GanttTimelineBarCard;
-
 // ============================================
-// GanttTimelineBar - Main timeline bar component
+// GanttFeatureItem - Main timeline bar component
 // ============================================
 
-export type GanttTimelineBarProps = GanttTimelineBar & {
+export type GanttFeatureItemProps = GanttFeature & {
   onMove?: (id: string, startDate: Date, endDate: Date | null, targetRow?: number) => void;
   rowIndex?: number;
   totalRows?: number;
@@ -241,10 +229,7 @@ export type GanttTimelineBarProps = GanttTimelineBar & {
   popoverContent?: ReactNode;
 };
 
-// Backwards compatibility alias
-export type GanttFeatureItemProps = GanttTimelineBarProps;
-
-export const GanttTimelineBarItem: FC<GanttTimelineBarProps> = ({
+export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
   onMove,
   children,
   className,
@@ -370,21 +355,6 @@ export const GanttTimelineBarItem: FC<GanttTimelineBarProps> = ({
     const isValidDrop = rawTargetRow === currentVisualRow ||
       (gantt.validDropRows?.includes(rawTargetRow) ?? true);
 
-    // DEBUG: Log timeline bar drag values
-    console.log('=== Timeline Bar Drag DEBUG ===');
-    console.log('mousePosition.x:', mousePosition.x);
-    console.log('mousePosition.y:', mousePosition.y);
-    console.log('scrollX:', scrollX);
-    console.log('yDelta:', yDelta);
-    console.log('rowsMoved:', rowsMoved);
-    console.log('rawTargetRow:', rawTargetRow);
-    console.log('targetRow (snapped):', targetRow);
-    console.log('newOffset (indicator left):', newOffset);
-    console.log('newWidth:', newWidth);
-    console.log('currentVisualRow:', currentVisualRow);
-    console.log('isValidDrop:', isValidDrop);
-    console.log('==============================');
-
     setDropTarget({ rowIndex: targetRow, width: newWidth, offset: newOffset, isValid: isValidDrop });
 
     setStartAt(newStartDate);
@@ -503,13 +473,13 @@ export const GanttTimelineBarItem: FC<GanttTimelineBarProps> = ({
           }}
         >
           {onMove && (
-            <GanttTimelineBarDragHelper
+            <GanttFeatureDragHelper
               direction="left"
               timelineBarId={feature.id}
               date={startAt}
             />
           )}
-          <GanttTimelineBarCard
+          <GanttFeatureItemCard
             id={feature.id}
             popoverContent={popoverContent}
             popoverOpen={popoverOpen}
@@ -518,9 +488,9 @@ export const GanttTimelineBarItem: FC<GanttTimelineBarProps> = ({
             {children ?? (
               <p className="flex-1 truncate text-xs">{feature.name}</p>
             )}
-          </GanttTimelineBarCard>
+          </GanttFeatureItemCard>
           {onMove && (
-            <GanttTimelineBarDragHelper
+            <GanttFeatureDragHelper
               direction="right"
               timelineBarId={feature.id}
               date={rightDragHelperDate}
@@ -531,6 +501,3 @@ export const GanttTimelineBarItem: FC<GanttTimelineBarProps> = ({
     </div>
   );
 };
-
-// Backwards compatibility alias for the main component
-export const GanttFeatureItem = GanttTimelineBarItem;
