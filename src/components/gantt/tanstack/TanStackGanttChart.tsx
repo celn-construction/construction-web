@@ -4,13 +4,15 @@ import { useRef, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useGroupedFeaturesWithRows } from "@/store/hooks/useGanttFeatures";
 import { useGroups } from "@/store/hooks/useGanttFeatures";
-import { useMoveFeature } from "@/store/hooks/useFeatureActions";
+import { useMoveFeature, useAddFeature } from "@/store/hooks/useFeatureActions";
 import type { ZoomLevel } from "./types";
 import { useGanttTimeline } from "./hooks/useGanttTimeline";
 import { useRowBuilder } from "./hooks/useRowBuilder";
+import { useTimelineDrop } from "./hooks/useTimelineDrop";
 import { GanttTimelineHeader } from "./GanttTimelineHeader";
 import { GanttRow } from "./components/GanttRow";
 import { GanttGridBackground } from "./components/GanttGridBackground";
+import { DropPreviewOverlay } from "./components/DropPreviewOverlay";
 import { ROW_HEIGHT, LEFT_PANEL_WIDTH } from "./constants";
 
 interface Props {
@@ -29,6 +31,7 @@ export function TanStackGanttChart({ zoom }: Props) {
   });
 
   const moveFeature = useMoveFeature();
+  const addFeature = useAddFeature();
   const handleBarDrag = useCallback(
     (id: string, newStart: Date, newEnd: Date) => moveFeature(id, newStart, newEnd),
     [moveFeature],
@@ -38,6 +41,14 @@ export function TanStackGanttChart({ zoom }: Props) {
     Array.from(featureMap.values()),
     zoom,
   );
+
+  const { dropHandlers, dropPreview } = useTimelineDrop({
+    scrollRef,
+    rows,
+    xToDate,
+    dateToX,
+    addFeature,
+  });
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -62,7 +73,11 @@ export function TanStackGanttChart({ zoom }: Props) {
       </div>
 
       {/* Scrollable body */}
-      <div ref={scrollRef} className="flex-1 overflow-auto relative">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-auto relative"
+        {...dropHandlers}
+      >
         <div
           style={{
             height: virtualizer.getTotalSize(),
@@ -77,6 +92,9 @@ export function TanStackGanttChart({ zoom }: Props) {
             columnWidth={columnWidth}
             height={virtualizer.getTotalSize()}
           />
+
+          {/* Drop preview overlay */}
+          <DropPreviewOverlay preview={dropPreview} dateToX={dateToX} />
 
           {/* Virtualized rows */}
           {virtualizer.getVirtualItems().map((vRow) => {

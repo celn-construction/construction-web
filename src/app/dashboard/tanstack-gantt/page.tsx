@@ -3,6 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
+import { DragPill } from "@/components/gantt/tanstack/components/DragPill";
 import type { ZoomLevel } from "@/components/gantt/tanstack/types";
 
 const TanStackGanttChart = dynamic(
@@ -34,7 +35,10 @@ export default function TanStackGanttPage() {
       <div className="flex flex-col h-[calc(100vh-4rem)] gap-4 p-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-white">Virtual Gantt</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-white">Virtual Gantt</h1>
+            <DragPill />
+          </div>
           <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-0.5">
             {ZOOM_OPTIONS.map((opt) => (
               <button
