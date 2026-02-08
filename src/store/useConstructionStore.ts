@@ -240,9 +240,10 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
       })),
       {
         name: 'construction-storage',
-        version: 1, // Bump version to force migration to new defaults with dates
+        version: 2, // Bumped to force reset with simplified data
         partialize: (state) => ({
           features: state.features,
+          groups: state.groups,
         }),
         // Rehydrate dates from localStorage (JSON serializes them as strings)
         onRehydrateStorage: () => (state) => {
@@ -256,13 +257,14 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
           }
         },
         migrate: (persistedState: unknown, version: number) => {
-          // Force reset to new defaults with dates for all versions < 1
-          if (version < 1) {
+          // Force reset to new defaults for version 2 (simplified data)
+          if (version < 2) {
             return {
               features: DEFAULT_FEATURES,
+              groups: DEFAULT_GROUPS,
             };
           }
-          return persistedState as { features: GanttFeature[] };
+          return persistedState as { features: GanttFeature[]; groups: GroupName[] };
         },
       }
     ),
