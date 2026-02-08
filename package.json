@@ -40,7 +40,6 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.25",
-    "frappe-gantt": "^1.0.4",
     "immer": "^11.0.1",
     "lodash.throttle": "^4.1.1",
     "lucide-react": "^0.555.0",
