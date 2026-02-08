@@ -1,19 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
-import Gantt from 'frappe-gantt';
-
-// Load frappe-gantt CSS dynamically
-if (typeof window !== 'undefined') {
-  const linkId = 'frappe-gantt-css';
-  if (!document.getElementById(linkId)) {
-    const link = document.createElement('link');
-    link.id = linkId;
-    link.rel = 'stylesheet';
-    link.href = '/css/frappe-gantt.css';
-    document.head.appendChild(link);
-  }
-}
+import { useMemo, useState, useEffect, useRef } from 'react';
 
 export interface SVARGanttTask {
   id: number;
@@ -27,30 +14,11 @@ export interface SVARGanttTask {
   group?: string;
 }
 
-interface ContextMenu {
-  x: number;
-  y: number;
-  taskId: string;
-}
-
 interface SVARGanttChartProps {
   tasks: SVARGanttTask[];
   groups?: string[];
   onTaskUpdate?: (task: { featureId: string; start: Date; end: Date }) => void;
   onGroupChange?: (featureId: string, newGroup: string) => void;
-}
-
-type ViewMode = 'Day' | 'Week' | 'Month';
-
-// Convert SVARGanttTask to Frappe Gantt format
-interface FrappeTask {
-  id: string;
-  name: string;
-  start: string;
-  end: string;
-  progress: number;
-  featureId: string;
-  group?: string;
 }
 
 export default function SVARGanttChart({
@@ -59,171 +27,134 @@ export default function SVARGanttChart({
   onTaskUpdate,
   onGroupChange,
 }: SVARGanttChartProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const ganttRef = useRef<Gantt | null>(null);
-  const tasksRef = useRef(tasks);
-  const onTaskUpdateRef = useRef(onTaskUpdate);
-  const [viewMode, setViewMode] = useState<ViewMode>('Month');
-  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [GanttComponent, setGanttComponent] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const loadAttempted = useRef(false);
 
-  tasksRef.current = tasks;
-  onTaskUpdateRef.current = onTaskUpdate;
-
-  // Initialize Frappe Gantt
+  // Load SVAR Gantt only on client side
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    if (loadAttempted.current) return;
+    loadAttempted.current = true;
 
-    // Clear previous content
-    container.innerHTML = '';
-
-    // Add a small delay to ensure DOM is ready
-    const timeoutId = setTimeout(() => {
+    const loadGantt = async () => {
       try {
-        // Convert tasks to Frappe Gantt format
-        const frappeTasks: FrappeTask[] = tasks.map((task) => ({
-          id: String(task.id),
-          name: task.text,
-          start: task.start.toISOString().slice(0, 10),
-          end: task.end.toISOString().slice(0, 10),
-          progress: task.progress,
-          featureId: task.featureId,
-          group: task.group,
-        }));
+        // Dynamically import wx-react-gantt
+        const { Gantt } = await import('wx-react-gantt');
 
-        // Sort tasks by group so they cluster visually
-        const sortedTasks = groups && groups.length > 0
-          ? [...frappeTasks].sort((a, b) => {
-              const aGroup = String(a.group ?? '');
-              const bGroup = String(b.group ?? '');
-              return groups.indexOf(aGroup) - groups.indexOf(bGroup);
-            })
-          : frappeTasks;
-
-        // Frappe Gantt needs at least one task
-        const ganttTasks = sortedTasks.length > 0 ? sortedTasks : [
-          {
-            id: 'placeholder',
-            name: 'No tasks',
-            start: new Date().toISOString().slice(0, 10),
-            end: new Date().toISOString().slice(0, 10),
-            progress: 0,
-            featureId: ''
-          },
+        // Load CSS files
+        const cssFiles = [
+          { id: 'wx-gantt-css', href: '/css/wx-gantt.css' },
+          { id: 'svar-gantt-custom-css', href: '/css/svar-gantt-custom.css' },
         ];
 
-        const chart = new Gantt(container, ganttTasks, {
-          view_mode: viewMode,
-          date_format: 'YYYY-MM-DD',
-          on_date_change: (task: { id: string }, start: Date, end: Date) => {
-            const original = tasksRef.current.find((t) => String(t.id) === task.id);
-            if (original && onTaskUpdateRef.current) {
-              onTaskUpdateRef.current({
-                featureId: original.featureId,
-                start,
-                end,
-              });
-            }
-          },
-          on_progress_change: (task: { id: string }, progress: number) => {
-            // Progress changes could be handled here if needed
-          },
+        cssFiles.forEach(({ id, href }) => {
+          if (!document.getElementById(id)) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            link.id = id;
+            document.head.appendChild(link);
+          }
         });
 
-        ganttRef.current = chart;
-
-        // Attach right-click context menu to bar wrappers
-        const bars = container.querySelectorAll('.bar-wrapper');
-        const handleContextMenu = (e: Event) => {
-          const me = e as MouseEvent;
-          me.preventDefault();
-          const wrapper = (me.currentTarget as Element);
-          const taskId = wrapper.getAttribute('data-id') ?? '';
-          if (!taskId) return;
-          setContextMenu({ x: me.clientX, y: me.clientY, taskId });
-        };
-        bars.forEach((bar) => bar.addEventListener('contextmenu', handleContextMenu));
-      } catch (error) {
-        console.error('Error initializing Gantt chart:', error);
-      }
-    }, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (ganttRef.current) {
-        ganttRef.current = null;
-      }
-      if (container) {
-        container.innerHTML = '';
+        setGanttComponent(() => Gantt);
+        setIsLoaded(true);
+      } catch (err) {
+        console.error('Failed to load SVAR Gantt:', err);
+        setError('Failed to load Gantt chart library');
       }
     };
-  }, [tasks, viewMode, groups]);
 
-  // Close context menu on outside click
-  useEffect(() => {
-    if (!contextMenu) return;
-    const close = () => setContextMenu(null);
-    window.addEventListener('click', close);
-    return () => window.removeEventListener('click', close);
-  }, [contextMenu]);
+    // Ensure we're in browser
+    if (typeof window !== 'undefined') {
+      loadGantt();
+    }
+  }, []);
 
-  const handleViewChange = (mode: ViewMode) => {
-    setViewMode(mode);
-  };
+  // Transform tasks to SVAR Gantt format
+  const ganttTasks = useMemo(() => {
+    return tasks.map((task) => ({
+      id: task.id,
+      text: task.text,
+      start: task.start,
+      end: task.end,
+      duration: task.duration,
+      progress: task.progress,
+      type: task.type,
+      lazy: false,
+    }));
+  }, [tasks]);
 
-  return (
-    <div className="flex flex-col">
-      {/* View mode buttons */}
-      <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[var(--bg-card)] border-b border-gray-200 dark:border-[var(--border-color)]">
-        {(['Day', 'Week', 'Month'] as ViewMode[]).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => handleViewChange(mode)}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-              viewMode === mode
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            {mode}
-          </button>
-        ))}
-      </div>
+  // Timeline scales configuration
+  const scales = useMemo(() => [
+    { unit: 'month' as const, step: 1, format: 'MMMM yyyy' },
+    { unit: 'day' as const, step: 1, format: 'd' },
+  ], []);
 
-      {/* Gantt container */}
-      <div
-        ref={containerRef}
-        style={{ width: '100%', minHeight: '600px' }}
-        className="rounded-b-lg border border-gray-200 dark:border-[var(--border-color)] overflow-auto bg-white dark:bg-[var(--bg-card)] shadow-sm transition-colors duration-300"
-      />
+  // No links for now
+  const links = useMemo(() => [], []);
 
-      {/* Context menu for moving between groups */}
-      {contextMenu && groups && groups.length > 0 && (
-        <div
-          style={{ position: 'fixed', top: contextMenu.y, left: contextMenu.x, zIndex: 9999 }}
-          className="bg-white dark:bg-[var(--bg-card)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg shadow-lg py-1 min-w-[160px]"
-        >
-          <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-            Move to group
+  // Column configuration
+  const columns = useMemo(() => [
+    {
+      id: 'text',
+      header: 'Task Name',
+      width: 250,
+      flexgrow: 1,
+    },
+    {
+      id: 'start',
+      header: 'Start',
+      width: 100,
+      align: 'center' as const,
+    },
+    {
+      id: 'duration',
+      header: 'Duration',
+      width: 80,
+      align: 'center' as const,
+    },
+  ], []);
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="svar-gantt-wrapper h-full w-full min-h-[600px] flex items-center justify-center bg-white dark:bg-[var(--bg-card)] rounded-lg border border-red-200 dark:border-red-800">
+        <div className="flex flex-col items-center gap-3 text-red-600 dark:text-red-400">
+          <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div className="text-center">
+            <p className="font-semibold">{error}</p>
+            <p className="text-sm mt-1">Please check console for details</p>
           </div>
-          {groups.map((group) => (
-            <button
-              key={group}
-              onClick={(e) => {
-                e.stopPropagation();
-                const original = tasksRef.current.find((t) => String(t.id) === contextMenu.taskId);
-                if (original) {
-                  onGroupChange?.(original.featureId, group);
-                }
-                setContextMenu(null);
-              }}
-              className="w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              {group}
-            </button>
-          ))}
         </div>
-      )}
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (!isLoaded || !GanttComponent) {
+    return (
+      <div className="svar-gantt-wrapper h-full w-full min-h-[600px] flex items-center justify-center bg-white dark:bg-[var(--bg-card)] rounded-lg border border-gray-200 dark:border-[var(--border-color)]">
+        <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm">Loading Gantt Chart...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Render the Gantt component
+  return (
+    <div className="svar-gantt-wrapper h-full w-full min-h-[600px]">
+      <GanttComponent
+        tasks={ganttTasks}
+        links={links}
+        scales={scales}
+        columns={columns}
+      />
     </div>
   );
 }

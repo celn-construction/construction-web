@@ -23,15 +23,17 @@ interface FeatureActions {
  * Actions are stable references and don't cause re-renders
  */
 export function useFeatureActions(): FeatureActions {
-  return useConstructionStore((state) => ({
-    add: state.addFeature,
-    update: state.updateFeature,
-    remove: state.removeFeature,
-    move: state.moveFeature,
-    updateMultiple: state.updateMultipleFeatures,
-    reorderGroup: state.reorderGroup,
-    initialize: state.initializeFeatures,
-  }));
+  return useConstructionStore(
+    useShallow((state) => ({
+      add: state.addFeature,
+      update: state.updateFeature,
+      remove: state.removeFeature,
+      move: state.moveFeature,
+      updateMultiple: state.updateMultipleFeatures,
+      reorderGroup: state.reorderGroup,
+      initialize: state.initializeFeatures,
+    }))
+  );
 }
 
 /**

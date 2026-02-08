@@ -39,15 +39,16 @@ export default function SVARGanttPage() {
   const { move: moveFeature, update: updateFeature } = useFeatureActions();
   const groups = useGroups();
 
-  // Load custom SVAR Gantt CSS
+  // Load custom SVAR Gantt CSS (now included via component import)
   useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/css/svar-gantt-custom.css';
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
+    const linkId = 'svar-gantt-custom-css';
+    if (!document.getElementById(linkId)) {
+      const link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      link.href = '/css/svar-gantt-custom.css';
+      document.head.appendChild(link);
+    }
   }, []);
 
   // Transform features to SVAR Gantt format

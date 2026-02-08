@@ -8,7 +8,6 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'Home', href: '/dashboard' },
   { id: 'svar-gantt', label: 'Gantt Chart', icon: 'GanttChart', href: '/dashboard/svar-gantt' },
-  { id: 'tanstack-gantt', label: 'Virtual Gantt', icon: 'GanttChart', href: '/dashboard/tanstack-gantt' },
   { id: 'projects', label: 'Projects', icon: 'LayoutGrid', href: '/projects' },
   { id: 'tasks', label: 'Tasks', icon: 'Zap', href: '/tasks' },
   { id: 'reports', label: 'Reports', icon: 'Clipboard', href: '/reports' },
