@@ -6,7 +6,7 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
-  transpilePackages: ['wx-react-gantt'],
+  transpilePackages: ['@svar-ui/react-gantt'],
 };
 
 export default config;

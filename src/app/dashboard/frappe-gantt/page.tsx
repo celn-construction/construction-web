@@ -1,12 +1,11 @@
 'use client';
 
-import { useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useCallback } from 'react';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import LayoutWrapper from '@/components/layout/LayoutWrapper';
-import { useSession } from '@/lib/auth-client';
 
 // Zustand store imports
 import {
@@ -15,11 +14,9 @@ import {
   useGroups,
 } from '@/store/hooks';
 
-import { SVARQuickAddToolbar } from '@/components/gantt/SVARQuickAddToolbar';
-
-// Dynamic import to avoid SSR issues with SVAR Gantt
-const SVARGanttChart = dynamic(
-  () => import('@/components/gantt/SVARGanttChart'),
+// Dynamic import to avoid SSR issues with Frappe Gantt
+const FrappeGanttChart = dynamic(
+  () => import('@/components/gantt/FrappeGanttChart'),
   {
     ssr: false,
     loading: () => (
@@ -33,32 +30,27 @@ const SVARGanttChart = dynamic(
   }
 );
 
-export default function SVARGanttPage() {
-  const { data: session } = useSession();
-  const { grouped: groupedFeatures, flatList: allFeaturesWithIndex } = useGroupedFeaturesWithRows();
-  const { move: moveFeature, update: updateFeature } = useFeatureActions();
+export default function FrappeGanttPage() {
+  const { flatList: allFeaturesWithIndex } = useGroupedFeaturesWithRows();
+  const { update: updateFeature } = useFeatureActions();
   const groups = useGroups();
 
-  // SVAR Gantt v2.x uses Willow theme wrapper, custom CSS no longer injected here
-
-  // Transform features to SVAR Gantt format
+  // Transform features to Frappe Gantt format
   const ganttTasks = useMemo(() => {
-    return allFeaturesWithIndex.map((item, idx) => {
+    return allFeaturesWithIndex.map((item) => {
       const feature = item.feature;
       const startDate = feature.startAt ? new Date(feature.startAt) : new Date();
       const endDate = feature.endAt ? new Date(feature.endAt) : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const durationDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
 
       return {
-        id: idx + 1,
-        text: feature.name,
-        start: startDate,
-        end: endDate,
-        duration: durationDays,
+        id: feature.id,
+        name: feature.name,
+        start: startDate.toISOString().slice(0, 10), // 'YYYY-MM-DD'
+        end: endDate.toISOString().slice(0, 10),
         progress: (feature.progress ?? 0) * 100,
-        type: 'task' as const,
         featureId: feature.id,
         group: feature.group ?? '',
+        description: feature.name, // Could be enhanced with more details
       };
     });
   }, [allFeaturesWithIndex]);
@@ -67,7 +59,7 @@ export default function SVARGanttPage() {
   const handleGroupChange = useCallback((featureId: string, newGroup: string) => {
     updateFeature(featureId, { group: newGroup as typeof groups[number] });
     toast.success(`Moved task to ${newGroup}`);
-  }, [updateFeature]);
+  }, [updateFeature, groups]);
 
   // Handle task updates from Gantt
   const handleTaskUpdate = useCallback((task: { featureId: string; start: Date; end: Date }) => {
@@ -79,6 +71,13 @@ export default function SVARGanttPage() {
       });
     }
   }, [allFeaturesWithIndex, updateFeature]);
+
+  // Handle progress changes from Gantt
+  const handleProgressChange = useCallback((featureId: string, progress: number) => {
+    updateFeature(featureId, {
+      progress: progress / 100, // Convert from 0-100 to 0-1
+    });
+  }, [updateFeature]);
 
   return (
     <LayoutWrapper>
@@ -97,7 +96,7 @@ export default function SVARGanttPage() {
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
               <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Gantt Chart
+                Frappe Gantt
               </h1>
             </div>
           </div>
@@ -108,16 +107,15 @@ export default function SVARGanttPage() {
           </div>
         </div>
 
-        {/* Gantt Chart with Quick Add */}
-        <div className="flex-1 p-4 overflow-hidden flex flex-col">
-          <SVARQuickAddToolbar taskCount={allFeaturesWithIndex.length}>
-            <SVARGanttChart
-              tasks={ganttTasks}
-              groups={groups}
-              onTaskUpdate={handleTaskUpdate}
-              onGroupChange={handleGroupChange}
-            />
-          </SVARQuickAddToolbar>
+        {/* Gantt Chart */}
+        <div className="flex-1 p-4 overflow-hidden">
+          <FrappeGanttChart
+            tasks={ganttTasks}
+            groups={groups}
+            onTaskUpdate={handleTaskUpdate}
+            onProgressChange={handleProgressChange}
+            onGroupChange={handleGroupChange}
+          />
         </div>
       </div>
     </LayoutWrapper>
