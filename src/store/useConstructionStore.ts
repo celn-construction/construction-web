@@ -75,49 +75,117 @@ const DEFAULT_STATUSES: Record<string, GanttStatus> = {
 };
 
 const DEFAULT_FEATURES: GanttFeature[] = [
+  // Site Prep - 3 features, 2 sub-rows (Survey+Demolition share row 0, Grading overlaps Demo → row 1)
   {
     id: 'task-1',
-    name: 'Project Planning',
+    name: 'Site Survey',
     status: COMPLETED_STATUS,
-    group: 'Design',
+    group: 'Site Prep',
     startAt: new Date('2026-02-01'),
-    endAt: new Date('2026-02-14'),
+    endAt: new Date('2026-02-07'),
     progress: 100,
   },
   {
     id: 'task-2',
-    name: 'UI Design',
-    status: IN_PROGRESS_STATUS,
-    group: 'Design',
-    startAt: new Date('2026-02-10'),
-    endAt: new Date('2026-02-28'),
-    progress: 60,
+    name: 'Demolition',
+    status: COMPLETED_STATUS,
+    group: 'Site Prep',
+    startAt: new Date('2026-02-08'),
+    endAt: new Date('2026-02-18'),
+    progress: 100,
   },
   {
     id: 'task-3',
-    name: 'Frontend Development',
-    status: PLANNED_STATUS,
-    group: 'Development',
-    startAt: new Date('2026-02-24'),
-    endAt: new Date('2026-03-21'),
-    progress: 0,
+    name: 'Grading & Excavation',
+    status: IN_PROGRESS_STATUS,
+    group: 'Site Prep',
+    startAt: new Date('2026-02-12'),
+    endAt: new Date('2026-02-22'),
+    progress: 65,
   },
+  // Foundation - 3 features, 2 sub-rows (cascading overlaps)
   {
     id: 'task-4',
-    name: 'Backend API',
-    status: PLANNED_STATUS,
-    group: 'Development',
-    startAt: new Date('2026-03-01'),
-    endAt: new Date('2026-03-28'),
-    progress: 0,
+    name: 'Footings',
+    status: IN_PROGRESS_STATUS,
+    group: 'Foundation',
+    startAt: new Date('2026-02-20'),
+    endAt: new Date('2026-03-05'),
+    progress: 40,
   },
   {
     id: 'task-5',
-    name: 'Integration Testing',
+    name: 'Slab Pour',
     status: PLANNED_STATUS,
-    group: 'Testing',
-    startAt: new Date('2026-03-21'),
-    endAt: new Date('2026-04-04'),
+    group: 'Foundation',
+    startAt: new Date('2026-03-03'),
+    endAt: new Date('2026-03-12'),
+    progress: 0,
+  },
+  {
+    id: 'task-6',
+    name: 'Waterproofing',
+    status: PLANNED_STATUS,
+    group: 'Foundation',
+    startAt: new Date('2026-03-10'),
+    endAt: new Date('2026-03-18'),
+    progress: 0,
+  },
+  // Framing - 2 features, 2 sub-rows (overlap)
+  {
+    id: 'task-7',
+    name: 'Structural Steel',
+    status: PLANNED_STATUS,
+    group: 'Framing',
+    startAt: new Date('2026-03-15'),
+    endAt: new Date('2026-04-05'),
+    progress: 0,
+  },
+  {
+    id: 'task-8',
+    name: 'Roof Framing',
+    status: PLANNED_STATUS,
+    group: 'Framing',
+    startAt: new Date('2026-04-01'),
+    endAt: new Date('2026-04-15'),
+    progress: 0,
+  },
+  // MEP Systems - 3 features, 2 sub-rows (cascading)
+  {
+    id: 'task-9',
+    name: 'Electrical Rough-in',
+    status: PLANNED_STATUS,
+    group: 'MEP Systems',
+    startAt: new Date('2026-03-25'),
+    endAt: new Date('2026-04-12'),
+    progress: 0,
+  },
+  {
+    id: 'task-10',
+    name: 'Plumbing Rough-in',
+    status: PLANNED_STATUS,
+    group: 'MEP Systems',
+    startAt: new Date('2026-03-28'),
+    endAt: new Date('2026-04-10'),
+    progress: 0,
+  },
+  {
+    id: 'task-11',
+    name: 'HVAC Install',
+    status: PLANNED_STATUS,
+    group: 'MEP Systems',
+    startAt: new Date('2026-04-08'),
+    endAt: new Date('2026-04-22'),
+    progress: 0,
+  },
+  // Finishing - 1 feature, 1 sub-row
+  {
+    id: 'task-12',
+    name: 'Drywall & Paint',
+    status: PLANNED_STATUS,
+    group: 'Finishing',
+    startAt: new Date('2026-04-18'),
+    endAt: new Date('2026-05-08'),
     progress: 0,
   },
 ];
@@ -242,7 +310,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
       })),
       {
         name: 'construction-storage',
-        version: 2, // Bumped to force reset with simplified data
+        version: 3, // Bumped to force reset with construction-themed data
         partialize: (state) => ({
           features: state.features,
           groups: state.groups,
@@ -259,8 +327,8 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
           }
         },
         migrate: (persistedState: unknown, version: number) => {
-          // Force reset to new defaults for version 2 (simplified data)
-          if (version < 2) {
+          // Force reset to new defaults for version 3 (construction-themed data)
+          if (version < 3) {
             return {
               features: DEFAULT_FEATURES,
               groups: DEFAULT_GROUPS,
