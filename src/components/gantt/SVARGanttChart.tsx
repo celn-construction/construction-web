@@ -99,44 +99,31 @@ export default function SVARGanttChart({
   // Transform tasks to SVAR format with hierarchy support
   const ganttTasks = useMemo(() => {
     if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
-      console.log('[SVARGantt] No tasks to transform');
       return [];
     }
 
-    console.log('[SVARGantt] Transforming tasks:', tasks.length);
+    return tasks.map(t => {
+      const task: any = {
+        id: t.id,
+        text: t.text || 'Untitled',
+        start: t.start || new Date(),
+        duration: t.duration || 1,
+        progress: (t.progress || 0) / 100, // SVAR expects 0-1, not 0-100
+        type: t.type || 'task',
+      };
 
-    try {
-      const transformed = tasks.map(t => {
-        // Ensure all required fields are present
-        if (!t || typeof t.id !== 'number') {
-          console.error('[SVARGantt] Invalid task:', t);
-          return null;
-        }
+      // Only set open on summary tasks — leaf tasks must NOT have open: true
+      if (t.type === 'summary') {
+        task.open = t.open !== undefined ? t.open : true;
+      }
 
-        const task: any = {
-          id: t.id,
-          text: t.text || 'Untitled',
-          start: t.start || new Date(),
-          duration: t.duration || 1,
-          progress: (t.progress || 0) / 100, // SVAR expects 0-1, not 0-100
-          type: t.type || 'task',
-          open: t.open !== undefined ? t.open : true, // Default to expanded
-        };
+      // Only add parent if it's a valid number
+      if (typeof t.parent === 'number') {
+        task.parent = t.parent;
+      }
 
-        // Only add parent if it's a valid number
-        if (typeof t.parent === 'number') {
-          task.parent = t.parent;
-        }
-
-        return task;
-      }).filter(Boolean); // Remove any null tasks
-
-      console.log('[SVARGantt] Transformed tasks:', transformed);
-      return transformed;
-    } catch (error) {
-      console.error('[SVARGantt] Error transforming tasks:', error);
-      return [];
-    }
+      return task;
+    });
   }, [tasks]);
 
   // Column configuration for sidebar grid
@@ -161,21 +148,18 @@ export default function SVARGanttChart({
     },
   ], []);
 
-  // Simplified zoom configuration to avoid null errors
-  const zoomConfig = useMemo(() => {
-    console.log('[SVARGantt] Creating zoom config');
-    return {
-      levels: [
-        {
-          minCellWidth: 60,
-          scales: [
-            { unit: 'month', step: 1, format: 'MMMM yyyy' },
-            { unit: 'day', step: 1, format: 'd' }
-          ]
-        }
-      ]
-    };
-  }, []);
+  // Zoom configuration
+  const zoomConfig = useMemo(() => ({
+    levels: [
+      {
+        minCellWidth: 60,
+        scales: [
+          { unit: 'month', step: 1, format: 'MMMM yyyy' },
+          { unit: 'day', step: 1, format: 'd' }
+        ]
+      }
+    ]
+  }), []);
 
   // Weekend highlighting function
   const highlightWeekends = (date: Date, unit: string) => {
@@ -233,7 +217,6 @@ export default function SVARGanttChart({
 
   // Show loading state if no tasks yet
   if (!ganttTasks || ganttTasks.length === 0) {
-    console.log('[SVARGantt] Rendering empty state');
     return (
       <div className="w-full h-full min-h-[600px] rounded-lg border border-gray-200 dark:border-[var(--border-color)] bg-white dark:bg-[var(--bg-card)] flex items-center justify-center">
         <div className="text-center">
@@ -244,40 +227,24 @@ export default function SVARGanttChart({
     );
   }
 
-  console.log('[SVARGantt] Rendering Gantt with:', {
-    tasks: ganttTasks.length,
-    links: safeLinks.length,
-    columns: columns.length,
-    zoom: zoomConfig,
-    highlightTime: typeof highlightWeekends
-  });
-
-  // Validate all props before rendering
-  if (!Array.isArray(ganttTasks)) {
-    console.error('[SVARGantt] ganttTasks is not an array:', ganttTasks);
-    return <div>Error: Invalid tasks data</div>;
-  }
-
-  if (!Array.isArray(safeLinks)) {
-    console.error('[SVARGantt] safeLinks is not an array:', safeLinks);
-    return <div>Error: Invalid links data</div>;
-  }
-
-  if (!Array.isArray(columns)) {
-    console.error('[SVARGantt] columns is not an array:', columns);
-    return <div>Error: Invalid columns data</div>;
-  }
-
-  // MINIMAL CONFIG - Testing with absolute basics
   return (
     <ThemeWrapper fonts={false}>
       <div className="flex flex-col h-full">
         {api && <Toolbar api={api} />}
-        <Gantt
-          tasks={ganttTasks}
-          links={safeLinks}
-          init={handleInit}
-        />
+        <Tooltip api={api || undefined} content={TooltipContent}>
+          <ContextMenu api={api || undefined}>
+            <Gantt
+              tasks={ganttTasks}
+              links={safeLinks}
+              columns={columns}
+              zoom={zoomConfig}
+              cellHeight={38}
+              cellWidth={50}
+              highlightTime={highlightWeekends}
+              init={handleInit}
+            />
+          </ContextMenu>
+        </Tooltip>
         {api && <Editor api={api} />}
       </div>
     </ThemeWrapper>

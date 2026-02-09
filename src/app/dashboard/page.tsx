@@ -100,6 +100,7 @@ export default function DashboardPage() {
       });
 
       // Add child tasks
+      let prevChildId: number | null = null;
       groupFeatures.forEach((item, idx) => {
         const feature = item.feature;
         const startDate = feature.startAt ? new Date(feature.startAt) : new Date();
@@ -125,15 +126,16 @@ export default function DashboardPage() {
           parent: parentId,
         });
 
-        // Create dependency link to previous task in same group (simple chain)
-        if (idx > 0) {
+        // Create dependency link to previous child task in same group (simple chain)
+        if (prevChildId !== null) {
           links.push({
             id: linkId++,
-            source: childId - 1,
+            source: prevChildId,
             target: childId,
             type: 'e2s' as const, // End to Start dependency
           });
         }
+        prevChildId = childId;
       });
     });
 
