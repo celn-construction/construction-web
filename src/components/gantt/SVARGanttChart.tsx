@@ -268,24 +268,16 @@ export default function SVARGanttChart({
     return <div>Error: Invalid columns data</div>;
   }
 
+  // MINIMAL CONFIG - Testing with absolute basics
   return (
     <ThemeWrapper fonts={false}>
       <div className="flex flex-col h-full">
         {api && <Toolbar api={api} />}
-        <Tooltip api={api || undefined} content={TooltipContent}>
-          <ContextMenu api={api || undefined}>
-            <Gantt
-              tasks={ganttTasks}
-              links={safeLinks}
-              columns={columns}
-              zoom={zoomConfig}
-              cellHeight={38}
-              cellWidth={50}
-              highlightTime={highlightWeekends}
-              init={handleInit}
-            />
-          </ContextMenu>
-        </Tooltip>
+        <Gantt
+          tasks={ganttTasks}
+          links={safeLinks}
+          init={handleInit}
+        />
         {api && <Editor api={api} />}
       </div>
     </ThemeWrapper>
