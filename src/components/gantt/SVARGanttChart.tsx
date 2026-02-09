@@ -113,16 +113,22 @@ export default function SVARGanttChart({
           return null;
         }
 
-        return {
+        const task: any = {
           id: t.id,
           text: t.text || 'Untitled',
           start: t.start || new Date(),
           duration: t.duration || 1,
           progress: (t.progress || 0) / 100, // SVAR expects 0-1, not 0-100
           type: t.type || 'task',
-          parent: t.parent || undefined,
           open: t.open !== undefined ? t.open : true, // Default to expanded
         };
+
+        // Only add parent if it's a valid number
+        if (typeof t.parent === 'number') {
+          task.parent = t.parent;
+        }
+
+        return task;
       }).filter(Boolean); // Remove any null tasks
 
       console.log('[SVARGantt] Transformed tasks:', transformed);
@@ -151,12 +157,6 @@ export default function SVARGanttChart({
       id: 'duration',
       header: 'Duration',
       width: 100,
-      align: 'center' as const,
-    },
-    {
-      id: 'add-task',
-      header: '',
-      width: 50,
       align: 'center' as const,
     },
   ], []);
