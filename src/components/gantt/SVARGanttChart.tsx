@@ -31,6 +31,8 @@ interface SVARGanttChartProps {
   tasks: SVARGanttTask[];
   groups?: string[];
   onTaskUpdate?: (task: { featureId: string; start: Date; end: Date }) => void;
+  onTaskAdd?: (task: { text: string; start: Date; duration: number; progress: number }) => void;
+  onTaskDelete?: (featureId: string) => void;
   onGroupChange?: (featureId: string, newGroup: string) => void;
 }
 
@@ -74,6 +76,8 @@ export default function SVARGanttChart({
   tasks,
   groups,
   onTaskUpdate,
+  onTaskAdd,
+  onTaskDelete,
 }: SVARGanttChartProps) {
   const [api, setApi] = useState<IApi | null>(null);
   const { theme } = useThemeStore();
@@ -158,6 +162,28 @@ export default function SVARGanttChart({
           start: newStart,
           end: newEnd
         });
+      }
+    });
+
+    // Wire up task add events
+    ganttApi.intercept('add-task', (data: any) => {
+      if (onTaskAdd && data.task) {
+        onTaskAdd({
+          text: data.task.text || 'New Task',
+          start: data.task.start || new Date(),
+          duration: data.task.duration || 7,
+          progress: data.task.progress || 0
+        });
+      }
+    });
+
+    // Wire up task delete events
+    ganttApi.intercept('delete-task', (data: any) => {
+      if (onTaskDelete && data.id) {
+        const original = tasks.find(t => t.id === data.id);
+        if (original) {
+          onTaskDelete(original.featureId);
+        }
       }
     });
   };
