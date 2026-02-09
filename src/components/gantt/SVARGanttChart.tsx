@@ -161,43 +161,21 @@ export default function SVARGanttChart({
     },
   ], []);
 
-  // Zoom configuration - multi-level time scales
-  const zoomConfig = useMemo(() => ({
-    level: 2, // Start at month/day view
-    levels: [
-      {
-        minCellWidth: 60,
-        maxCellWidth: 200,
-        scales: [
-          { unit: 'year' as const, step: 1, format: 'yyyy' }
-        ]
-      },
-      {
-        minCellWidth: 60,
-        maxCellWidth: 200,
-        scales: [
-          { unit: 'year' as const, step: 1, format: 'yyyy' },
-          { unit: 'month' as const, step: 1, format: 'MMM' }
-        ]
-      },
-      {
-        minCellWidth: 60,
-        maxCellWidth: 200,
-        scales: [
-          { unit: 'month' as const, step: 1, format: 'MMMM yyyy' },
-          { unit: 'day' as const, step: 1, format: 'd' }
-        ]
-      },
-      {
-        minCellWidth: 50,
-        maxCellWidth: 300,
-        scales: [
-          { unit: 'day' as const, step: 1, format: 'EEEE, MMM d' },
-          { unit: 'hour' as const, step: 6, format: 'HH:mm' }
-        ]
-      },
-    ]
-  }), []);
+  // Simplified zoom configuration to avoid null errors
+  const zoomConfig = useMemo(() => {
+    console.log('[SVARGantt] Creating zoom config');
+    return {
+      levels: [
+        {
+          minCellWidth: 60,
+          scales: [
+            { unit: 'month', step: 1, format: 'MMMM yyyy' },
+            { unit: 'day', step: 1, format: 'd' }
+          ]
+        }
+      ]
+    };
+  }, []);
 
   // Weekend highlighting function
   const highlightWeekends = (date: Date, unit: string) => {
@@ -269,8 +247,26 @@ export default function SVARGanttChart({
   console.log('[SVARGantt] Rendering Gantt with:', {
     tasks: ganttTasks.length,
     links: safeLinks.length,
-    columns: columns.length
+    columns: columns.length,
+    zoom: zoomConfig,
+    highlightTime: typeof highlightWeekends
   });
+
+  // Validate all props before rendering
+  if (!Array.isArray(ganttTasks)) {
+    console.error('[SVARGantt] ganttTasks is not an array:', ganttTasks);
+    return <div>Error: Invalid tasks data</div>;
+  }
+
+  if (!Array.isArray(safeLinks)) {
+    console.error('[SVARGantt] safeLinks is not an array:', safeLinks);
+    return <div>Error: Invalid links data</div>;
+  }
+
+  if (!Array.isArray(columns)) {
+    console.error('[SVARGantt] columns is not an array:', columns);
+    return <div>Error: Invalid columns data</div>;
+  }
 
   return (
     <ThemeWrapper fonts={false}>
