@@ -27,7 +27,8 @@ import {
 } from "date-fns";
 import { atom, useAtom } from "jotai";
 import throttle from "lodash.throttle";
-import { PlusIcon, TrashIcon } from "lucide-react";
+import { PlusIcon, TrashIcon, HardHat, DraftingCompass, Hammer, CircleDot } from "lucide-react";
+import { motion } from "framer-motion";
 import type {
   CSSProperties,
   FC,
@@ -319,12 +320,12 @@ export const GanttContentHeader: FC<GanttContentHeaderProps> = ({
 
   return (
     <div
-      className="sticky top-0 z-20 grid w-full shrink-0 bg-backdrop/90 backdrop-blur-sm"
+      className="sticky top-0 z-20 grid w-full shrink-0 bg-[var(--bg-card)]/95 backdrop-blur-sm"
       style={{ height: "var(--gantt-header-height)" }}
     >
       <div>
         <div
-          className="sticky inline-flex whitespace-nowrap px-3 py-2 text-muted-foreground text-xs"
+          className="sticky inline-flex whitespace-nowrap px-3 py-2 text-[10px] tracking-wider uppercase font-[family-name:var(--font-mono-blueprint)] text-[var(--blueprint-accent)]"
           style={{
             left: "var(--gantt-sidebar-width)",
           }}
@@ -340,7 +341,7 @@ export const GanttContentHeader: FC<GanttContentHeaderProps> = ({
       >
         {Array.from({ length: columns }).map((_, index) => (
           <div
-            className="shrink-0 border-border/50 border-b py-1 text-center text-xs"
+            className="shrink-0 border-[var(--blueprint-line)] border-b py-1 text-center text-[10px] tracking-wider uppercase font-[family-name:var(--font-mono-blueprint)] text-[var(--blueprint-accent)]"
             key={`${id}-${index}`}
           >
             {renderHeaderItem(index)}
@@ -449,7 +450,7 @@ export const GanttHeader: FC<GanttHeaderProps> = ({ className }) => {
   return (
     <div
       className={cn(
-        "-space-x-px flex h-full w-max divide-x divide-border/50",
+        "-space-x-px flex h-full w-max divide-x divide-[var(--blueprint-line)]",
         className
       )}
     >
@@ -514,7 +515,7 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
     >
       {/* <Checkbox onCheckedChange={handleCheck} className="shrink-0" /> */}
       <div
-        className="pointer-events-none h-2 w-2 shrink-0 rounded-full"
+        className="pointer-events-none h-2 w-2 shrink-0 rounded-full ring-1 ring-offset-1"
         style={{
           backgroundColor: feature.status.color,
         }}
@@ -522,19 +523,19 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
       <p className="pointer-events-none flex-1 truncate text-left font-medium">
         {feature.name}
       </p>
-      <p className="pointer-events-none text-muted-foreground">{duration}</p>
+      <p className="pointer-events-none text-muted-foreground font-[family-name:var(--font-mono-blueprint)]">{duration}</p>
     </div>
   );
 };
 
 export const GanttSidebarHeader: FC = () => (
   <div
-    className="sticky top-0 z-10 flex shrink-0 items-end justify-between gap-2.5 border-border/50 border-b bg-backdrop/90 p-2.5 font-medium text-muted-foreground text-xs backdrop-blur-sm"
+    className="sticky top-0 z-10 flex shrink-0 items-end justify-between gap-2.5 border-[var(--blueprint-line)] border-b bg-[var(--bg-card)]/95 p-2.5 font-medium text-[10px] tracking-wider uppercase font-[family-name:var(--font-mono-blueprint)] text-[var(--blueprint-accent)] backdrop-blur-sm"
     style={{ height: "var(--gantt-header-height)" }}
   >
     {/* <Checkbox className="shrink-0" /> */}
-    <p className="flex-1 truncate text-left">Issues</p>
-    <p className="shrink-0">Duration</p>
+    <p className="flex-1 truncate text-left">SCOPE</p>
+    <p className="shrink-0">DURATION</p>
   </div>
 );
 
@@ -548,17 +549,31 @@ export const GanttSidebarGroup: FC<GanttSidebarGroupProps> = ({
   children,
   name,
   className,
-}) => (
-  <div className={className}>
-    <p
-      className="w-full truncate p-2.5 text-left font-medium text-muted-foreground text-xs"
-      style={{ height: "var(--gantt-row-height)" }}
-    >
-      {name}
-    </p>
-    <div className="divide-y divide-border/50">{children}</div>
-  </div>
-);
+}) => {
+  // Map group names to construction icons
+  const getIconForGroup = (groupName: string) => {
+    const lowerName = groupName.toLowerCase();
+    if (lowerName.includes('design') || lowerName.includes('architect')) return DraftingCompass;
+    if (lowerName.includes('build') || lowerName.includes('construct')) return Hammer;
+    if (lowerName.includes('site') || lowerName.includes('safety')) return CircleDot;
+    return HardHat; // Default
+  };
+
+  const Icon = getIconForGroup(name);
+
+  return (
+    <div className={className}>
+      <div
+        className="w-full flex items-center gap-2 p-2.5 text-left font-medium text-[10px] tracking-wider uppercase font-[family-name:var(--font-mono-blueprint)] text-[var(--blueprint-accent)] border-l-2 border-[var(--blueprint-accent)]"
+        style={{ height: "var(--gantt-row-height)" }}
+      >
+        <Icon className="w-3.5 h-3.5 shrink-0" />
+        <p className="truncate">{name}</p>
+      </div>
+      <div className="divide-y divide-[var(--blueprint-line)]">{children}</div>
+    </div>
+  );
+};
 
 export type GanttSidebarProps = {
   children: ReactNode;
@@ -571,7 +586,7 @@ export const GanttSidebar: FC<GanttSidebarProps> = ({
 }) => (
   <div
     className={cn(
-      "sticky left-0 z-30 h-max min-h-full overflow-clip border-border/50 border-r bg-background/90 backdrop-blur-md",
+      "sticky left-0 z-30 h-max min-h-full overflow-clip border-[var(--blueprint-line)] border-r bg-[var(--bg-card)]/95 backdrop-blur-md",
       className
     )}
     data-roadmap-ui="gantt-sidebar"
@@ -657,7 +672,7 @@ export const GanttColumn: FC<GanttColumnProps> = ({
     <div
       className={cn(
         "group relative h-full overflow-hidden",
-        isColumnSecondary?.(index) ? "bg-secondary" : ""
+        isColumnSecondary?.(index) ? "bg-[var(--blueprint-grid)]" : ""
       )}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -683,7 +698,7 @@ export const GanttColumns: FC<GanttColumnsProps> = ({
 
   return (
     <div
-      className="divide grid h-full w-full divide-x divide-border/50"
+      className="divide grid h-full w-full divide-x divide-[var(--blueprint-line)]"
       style={{
         gridTemplateColumns: `repeat(${columns}, var(--gantt-column-width))`,
       }}
@@ -781,7 +796,7 @@ export const GanttFeatureDragHelper: FC<GanttFeatureDragHelperProps> = ({
     >
       <div
         className={cn(
-          "-translate-y-1/2 absolute top-1/2 h-[80%] w-1 rounded-sm bg-muted-foreground opacity-0 transition-all",
+          "-translate-y-1/2 absolute top-1/2 h-[80%] w-1 rounded-sm bg-[var(--blueprint-accent)] opacity-0 transition-all",
           direction === "left" ? "left-2.5" : "right-2.5",
           direction === "left" ? "group-hover:left-0" : "group-hover:right-0",
           isPressed && (direction === "left" ? "left-0" : "right-0"),
@@ -792,7 +807,7 @@ export const GanttFeatureDragHelper: FC<GanttFeatureDragHelperProps> = ({
       {date && (
         <div
           className={cn(
-            "-translate-x-1/2 absolute top-10 hidden whitespace-nowrap rounded-lg border border-border/50 bg-background/90 px-2 py-1 text-foreground text-xs backdrop-blur-lg group-hover:block",
+            "-translate-x-1/2 absolute top-10 hidden whitespace-nowrap rounded-lg border border-[var(--blueprint-line)] bg-[var(--bg-card)]/90 px-2 py-1 text-[var(--blueprint-accent)] font-[family-name:var(--font-mono-blueprint)] text-xs backdrop-blur-lg group-hover:block",
             isPressed && "block"
           )}
         >
@@ -805,11 +820,13 @@ export const GanttFeatureDragHelper: FC<GanttFeatureDragHelperProps> = ({
 
 export type GanttFeatureItemCardProps = Pick<GanttFeature, "id"> & {
   children?: ReactNode;
+  statusColor?: string;
 };
 
 export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
   id,
   children,
+  statusColor,
 }) => {
   const [, setDragging] = useGanttDragging();
   const { attributes, listeners, setNodeRef } = useDraggable({ id });
@@ -818,10 +835,17 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
   useEffect(() => setDragging(isPressed), [isPressed, setDragging]);
 
   return (
-    <Card className="h-full w-full rounded-md bg-background p-2 text-xs shadow-sm">
+    <Card className="h-full w-full rounded-md bg-[var(--bg-card)] border border-[var(--blueprint-line)] p-2 text-xs shadow-sm blueprint-hatch relative overflow-hidden">
+      {/* Left accent bar */}
+      {statusColor && (
+        <div
+          className="absolute left-0 top-0 bottom-0 w-1"
+          style={{ backgroundColor: statusColor }}
+        />
+      )}
       <div
         className={cn(
-          "flex h-full w-full items-center justify-between gap-2 text-left",
+          "flex h-full w-full items-center justify-between gap-2 text-left font-[family-name:var(--font-mono-blueprint)]",
           isPressed && "cursor-grabbing"
         )}
         {...attributes}
@@ -955,7 +979,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           onDragStart={handleItemDragStart}
           sensors={[mouseSensor]}
         >
-          <GanttFeatureItemCard id={feature.id}>
+          <GanttFeatureItemCard id={feature.id} statusColor={feature.status.color}>
             {children ?? (
               <p className="flex-1 truncate text-xs">{feature.name}</p>
             )}
@@ -1132,7 +1156,7 @@ export const GanttMarker: FC<
         <ContextMenuTrigger asChild>
           <div
             className={cn(
-              "group pointer-events-auto sticky top-0 flex select-auto flex-col flex-nowrap items-center justify-center whitespace-nowrap rounded-b-md bg-card px-2 py-1 text-foreground text-xs",
+              "group pointer-events-auto sticky top-0 flex select-auto flex-col flex-nowrap items-center justify-center whitespace-nowrap rounded-b-md bg-[var(--bg-card)] px-2 py-1 text-[var(--blueprint-accent)] font-[family-name:var(--font-mono-blueprint)] text-xs border border-[var(--blueprint-line)]",
               className
             )}
           >
@@ -1154,7 +1178,7 @@ export const GanttMarker: FC<
           ) : null}
         </ContextMenuContent>
       </ContextMenu>
-      <div className={cn("h-full w-px bg-card", className)} />
+      <div className={cn("h-full w-px bg-[var(--blueprint-accent)]", className)} />
     </div>
   );
 });
@@ -1377,7 +1401,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     >
       <div
         className={cn(
-          "gantt relative isolate grid h-full w-full flex-none select-none overflow-auto rounded-sm bg-secondary",
+          "gantt relative isolate grid h-full w-full flex-none select-none overflow-auto rounded-sm bg-[var(--bg-primary)] blueprint-dotgrid",
           range,
           className
         )}
@@ -1445,16 +1469,20 @@ export const GanttToday: FC<GanttTodayProps> = ({ className }) => {
   );
 
   return (
-    <div
+    <motion.div
+      initial={{ scaleY: 0 }}
+      animate={{ scaleY: 1 }}
+      transition={{ duration: 0.6, delay: 0.3 }}
       className="pointer-events-none absolute top-0 left-0 z-20 flex h-full select-none flex-col items-center justify-center overflow-visible"
       style={{
         width: 0,
         transform: `translateX(calc(var(--gantt-column-width) * ${offset} + ${innerOffset}px))`,
+        transformOrigin: 'top',
       }}
     >
       <div
         className={cn(
-          "group pointer-events-auto sticky top-0 flex select-auto flex-col flex-nowrap items-center justify-center whitespace-nowrap rounded-b-md bg-card px-2 py-1 text-foreground text-xs",
+          "group pointer-events-auto sticky top-0 flex select-auto flex-col flex-nowrap items-center justify-center whitespace-nowrap rounded-b-md bg-[var(--blueprint-safety)] text-white px-2 py-1 font-[family-name:var(--font-mono-blueprint)] text-xs blueprint-today-pulse",
           className
         )}
       >
@@ -1463,7 +1491,7 @@ export const GanttToday: FC<GanttTodayProps> = ({ className }) => {
           {formatDate(date, "MMM dd, yyyy")}
         </span>
       </div>
-      <div className={cn("h-full w-px bg-card", className)} />
-    </div>
+      <div className={cn("h-full w-px bg-[var(--blueprint-accent)]", className)} style={{ boxShadow: '0 0 6px var(--blueprint-accent-glow)' }} />
+    </motion.div>
   );
 };

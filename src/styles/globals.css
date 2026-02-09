@@ -29,6 +29,15 @@
   --accent-green: #10b981;
   --accent-orange: #f97316;
   --accent-red: #ef4444;
+
+  --blueprint-grid: rgba(59, 130, 246, 0.06);
+  --blueprint-line: rgba(59, 130, 246, 0.1);
+  --blueprint-accent: #0ea5e9;
+  --blueprint-accent-glow: rgba(14, 165, 233, 0.3);
+  --blueprint-safety: #f97316;
+  --blueprint-safety-glow: rgba(249, 115, 22, 0.25);
+  --blueprint-dot: rgba(59, 130, 246, 0.12);
+  --blueprint-hatch: rgba(59, 130, 246, 0.08);
 }
 
 .dark {
@@ -73,6 +82,15 @@
 
   /* Gantt specific */
   --gantt-hover-bg: rgba(45, 58, 79, 0.8);
+
+  --blueprint-grid: rgba(56, 189, 248, 0.05);
+  --blueprint-line: rgba(56, 189, 248, 0.12);
+  --blueprint-accent: #22d3ee;
+  --blueprint-accent-glow: rgba(34, 211, 238, 0.25);
+  --blueprint-safety: #fb923c;
+  --blueprint-safety-glow: rgba(251, 146, 60, 0.3);
+  --blueprint-dot: rgba(56, 189, 248, 0.08);
+  --blueprint-hatch: rgba(34, 211, 238, 0.12);
 }
 
 body {
@@ -116,3 +134,28 @@ body {
 }
 
 /* Dark mode - native scrollbar is hidden, custom scrollbar handles dark mode via Tailwind */
+
+/* ============================================
+   Blueprint Theme Utilities
+   ============================================ */
+
+.blueprint-dotgrid {
+  background-image: radial-gradient(circle, var(--blueprint-dot) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.blueprint-hatch {
+  background-image: repeating-linear-gradient(
+    -45deg, transparent, transparent 4px,
+    var(--blueprint-hatch) 4px, var(--blueprint-hatch) 5px
+  );
+}
+
+@keyframes blueprint-pulse {
+  0%, 100% { box-shadow: 0 0 4px var(--blueprint-accent-glow); }
+  50% { box-shadow: 0 0 12px var(--blueprint-accent-glow), 0 0 24px var(--blueprint-accent-glow); }
+}
+
+.blueprint-today-pulse {
+  animation: blueprint-pulse 3s ease-in-out infinite;
+}
