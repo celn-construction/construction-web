@@ -99,19 +99,38 @@ export default function SVARGanttChart({
   // Transform tasks to SVAR format with hierarchy support
   const ganttTasks = useMemo(() => {
     if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+      console.log('[SVARGantt] No tasks to transform');
       return [];
     }
 
-    return tasks.map(t => ({
-      id: t.id,
-      text: t.text,
-      start: t.start,
-      duration: t.duration,
-      progress: t.progress / 100, // SVAR expects 0-1, not 0-100
-      type: t.type,
-      parent: t.parent,
-      open: t.open !== undefined ? t.open : true, // Default to expanded
-    }));
+    console.log('[SVARGantt] Transforming tasks:', tasks.length);
+
+    try {
+      const transformed = tasks.map(t => {
+        // Ensure all required fields are present
+        if (!t || typeof t.id !== 'number') {
+          console.error('[SVARGantt] Invalid task:', t);
+          return null;
+        }
+
+        return {
+          id: t.id,
+          text: t.text || 'Untitled',
+          start: t.start || new Date(),
+          duration: t.duration || 1,
+          progress: (t.progress || 0) / 100, // SVAR expects 0-1, not 0-100
+          type: t.type || 'task',
+          parent: t.parent || undefined,
+          open: t.open !== undefined ? t.open : true, // Default to expanded
+        };
+      }).filter(Boolean); // Remove any null tasks
+
+      console.log('[SVARGantt] Transformed tasks:', transformed);
+      return transformed;
+    } catch (error) {
+      console.error('[SVARGantt] Error transforming tasks:', error);
+      return [];
+    }
   }, [tasks]);
 
   // Column configuration for sidebar grid
@@ -236,6 +255,7 @@ export default function SVARGanttChart({
 
   // Show loading state if no tasks yet
   if (!ganttTasks || ganttTasks.length === 0) {
+    console.log('[SVARGantt] Rendering empty state');
     return (
       <div className="w-full h-full min-h-[600px] rounded-lg border border-gray-200 dark:border-[var(--border-color)] bg-white dark:bg-[var(--bg-card)] flex items-center justify-center">
         <div className="text-center">
@@ -245,6 +265,12 @@ export default function SVARGanttChart({
       </div>
     );
   }
+
+  console.log('[SVARGantt] Rendering Gantt with:', {
+    tasks: ganttTasks.length,
+    links: safeLinks.length,
+    columns: columns.length
+  });
 
   return (
     <ThemeWrapper fonts={false}>
