@@ -130,7 +130,7 @@ export default function CustomGanttPage() {
             href="/dashboard"
             className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
           >
-            Back to SVAR Gantt
+            Back to Dashboard
           </Link>
         </div>
 

@@ -5,8 +5,6 @@
 import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
-const config = {
-  transpilePackages: ['@svar-ui/react-gantt'],
-};
+const config = {};
 
 export default config;

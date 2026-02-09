@@ -1,192 +1,18 @@
 'use client';
 
-import { useMemo, useCallback, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { toast } from 'sonner';
 import LayoutWrapper from '@/components/layout/LayoutWrapper';
 import { useSession } from '@/lib/auth-client';
 
 // Zustand store imports
 import {
   useGroupedFeaturesWithRows,
-  useFeatureActions,
-  useGroups,
 } from '@/store/hooks';
-import type { GanttFeature, GanttStatus } from '@/components/gantt/document-modal/gantt-types';
-
-import { SVARQuickAddToolbar } from '@/components/gantt/SVARQuickAddToolbar';
-
-// Dynamic import to avoid SSR issues with SVAR Gantt
-const SVARGanttChart = dynamic(
-  () => import('@/components/gantt/SVARGanttChart'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full min-h-[600px] rounded-lg border border-gray-200 dark:border-[var(--border-color)] bg-white dark:bg-[var(--bg-card)] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
-          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm">Loading Gantt Chart...</span>
-        </div>
-      </div>
-    ),
-  }
-);
 
 export default function DashboardPage() {
   const { data: session } = useSession();
-  const { grouped: groupedFeatures, flatList: allFeaturesWithIndex } = useGroupedFeaturesWithRows();
-  const { move: moveFeature, update: updateFeature, add: addFeature, remove: removeFeature } = useFeatureActions();
-  const groups = useGroups();
-
-  // Re-inject custom CSS on top of Willow theme
-  useEffect(() => {
-    const linkId = 'svar-gantt-custom-css';
-    if (!document.getElementById(linkId)) {
-      const link = document.createElement('link');
-      link.id = linkId;
-      link.rel = 'stylesheet';
-      link.href = '/css/svar-gantt-custom.css';
-      document.head.appendChild(link);
-    }
-  }, []);
-
-  // Transform features to SVAR Gantt format with hierarchy
-  const { ganttTasks, ganttLinks } = useMemo(() => {
-    // Handle empty state
-    if (!allFeaturesWithIndex || allFeaturesWithIndex.length === 0) {
-      return { ganttTasks: [], ganttLinks: [] };
-    }
-
-    // Group features by their group property
-    const groupedByCategory = allFeaturesWithIndex.reduce((acc, item) => {
-      const group = item.feature.group || 'Default';
-      if (!acc[group]) acc[group] = [];
-      acc[group].push(item);
-      return acc;
-    }, {} as Record<string, typeof allFeaturesWithIndex>);
-
-    const tasks: any[] = [];
-    const links: any[] = [];
-    let taskId = 1;
-    let linkId = 1;
-
-    // Create hierarchical structure
-    Object.entries(groupedByCategory).forEach(([groupName, groupFeatures]) => {
-      // Create parent/summary task for the group
-      const groupStartDates = groupFeatures
-        .map(f => f.feature.startAt ? new Date(f.feature.startAt).getTime() : Date.now())
-        .filter(d => !isNaN(d));
-      const groupEndDates = groupFeatures
-        .map(f => f.feature.endAt ? new Date(f.feature.endAt).getTime() : Date.now())
-        .filter(d => !isNaN(d));
-
-      const groupStart = new Date(Math.min(...groupStartDates, Date.now()));
-      const groupEnd = new Date(Math.max(...groupEndDates, Date.now() + 7 * 24 * 60 * 60 * 1000));
-      const groupDuration = Math.max(1, Math.round((groupEnd.getTime() - groupStart.getTime()) / (1000 * 60 * 60 * 24)));
-
-      const parentId = taskId++;
-      tasks.push({
-        id: parentId,
-        text: groupName,
-        start: groupStart,
-        end: groupEnd,
-        duration: groupDuration,
-        progress: 0,
-        type: 'summary' as const,
-        featureId: `group-${groupName}`,
-        group: groupName,
-        open: true,
-      });
-
-      // Add child tasks
-      let prevChildId: number | null = null;
-      groupFeatures.forEach((item, idx) => {
-        const feature = item.feature;
-        const startDate = feature.startAt ? new Date(feature.startAt) : new Date();
-        const endDate = feature.endAt ? new Date(feature.endAt) : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const durationDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-
-        // Determine if this should be a milestone (very short duration tasks)
-        const isMilestone = durationDays <= 1 && (feature.name.toLowerCase().includes('approval') ||
-                                                    feature.name.toLowerCase().includes('review') ||
-                                                    feature.name.toLowerCase().includes('presentation'));
-
-        const childId = taskId++;
-        tasks.push({
-          id: childId,
-          text: feature.name,
-          start: startDate,
-          end: endDate,
-          duration: durationDays,
-          progress: (feature.progress ?? 0) / 100, // SVAR expects 0-1 scale, store has 0-100
-          type: isMilestone ? 'milestone' as const : 'task' as const,
-          featureId: feature.id,
-          group: feature.group ?? '',
-          parent: parentId,
-        });
-
-        // Create dependency link to previous child task in same group (simple chain)
-        if (prevChildId !== null) {
-          links.push({
-            id: linkId++,
-            source: prevChildId,
-            target: childId,
-            type: 'e2s' as const, // End to Start dependency
-          });
-        }
-        prevChildId = childId;
-      });
-    });
-
-    return {
-      ganttTasks: tasks.length > 0 ? tasks : [],
-      ganttLinks: links.length > 0 ? links : []
-    };
-  }, [allFeaturesWithIndex]);
-
-  // Handle moving a task to a different group
-  const handleGroupChange = useCallback((featureId: string, newGroup: string) => {
-    updateFeature(featureId, { group: newGroup as typeof groups[number] });
-    toast.success(`Moved task to ${newGroup}`);
-  }, [updateFeature, groups]);
-
-  // Handle task updates from Gantt
-  const handleTaskUpdate = useCallback((task: { featureId: string; start: Date; end: Date }) => {
-    const feature = allFeaturesWithIndex.find(f => f.feature.id === task.featureId);
-    if (feature) {
-      updateFeature(task.featureId, {
-        startAt: task.start,
-        endAt: task.end,
-      });
-    }
-  }, [allFeaturesWithIndex, updateFeature]);
-
-  // Handle task addition from Gantt
-  const handleTaskAdd = useCallback((task: { text: string; start: Date; duration: number; progress: number }) => {
-    const endDate = new Date(task.start.getTime() + task.duration * 24 * 60 * 60 * 1000);
-    const newFeature: GanttFeature = {
-      id: `feature-${Date.now()}`,
-      name: task.text,
-      startAt: task.start,
-      endAt: endDate,
-      status: { id: 'planned', name: 'Planned', color: '#6b7280' } as GanttStatus,
-      group: groups[0] || 'Default',
-      progress: task.progress,
-    };
-    addFeature(newFeature);
-    toast.success(`Added task: ${task.text}`);
-  }, [addFeature, groups]);
-
-  // Handle task deletion from Gantt
-  const handleTaskDelete = useCallback((featureId: string) => {
-    const feature = allFeaturesWithIndex.find(f => f.feature.id === featureId);
-    if (feature) {
-      removeFeature(featureId);
-      toast.success(`Deleted task: ${feature.feature.name}`);
-    }
-  }, [allFeaturesWithIndex, removeFeature]);
+  const { flatList: allFeaturesWithIndex } = useGroupedFeaturesWithRows();
 
   return (
     <LayoutWrapper>
@@ -207,24 +33,29 @@ export default function DashboardPage() {
               href="/dashboard/custom-gantt"
               className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
             >
-              Custom Gantt
+              View Gantt Chart
             </Link>
           </div>
         </div>
 
-        {/* Gantt Chart with Quick Add */}
-        <div className="flex-1 p-4 overflow-hidden flex flex-col">
-          <SVARQuickAddToolbar taskCount={allFeaturesWithIndex.length}>
-            <SVARGanttChart
-              tasks={ganttTasks}
-              links={ganttLinks}
-              groups={groups}
-              onTaskUpdate={handleTaskUpdate}
-              onTaskAdd={handleTaskAdd}
-              onTaskDelete={handleTaskDelete}
-              onGroupChange={handleGroupChange}
-            />
-          </SVARQuickAddToolbar>
+        {/* Main Content */}
+        <div className="flex-1 p-6 overflow-auto flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <Calendar className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Project Timeline Dashboard
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              View and manage your project timeline with the interactive Gantt chart.
+            </p>
+            <Link
+              href="/dashboard/custom-gantt"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              <Calendar className="w-4 h-4" />
+              Open Gantt Chart
+            </Link>
+          </div>
         </div>
       </div>
     </LayoutWrapper>

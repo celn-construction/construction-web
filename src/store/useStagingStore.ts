@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { addDays } from 'date-fns';
-import type { GanttStatus } from '@/components/ui/gantt/types';
+import type { GanttStatus } from '@/components/gantt/document-modal/gantt-types';
 
 export interface StagedTask {
   id: string;
