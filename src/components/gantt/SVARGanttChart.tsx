@@ -234,6 +234,18 @@ export default function SVARGanttChart({
   // Theme wrapper - dynamically switch between Willow and WillowDark
   const ThemeWrapper = theme === 'dark' ? WillowDark : Willow;
 
+  // Show loading state if no tasks yet
+  if (!ganttTasks || ganttTasks.length === 0) {
+    return (
+      <div className="w-full h-full min-h-[600px] rounded-lg border border-gray-200 dark:border-[var(--border-color)] bg-white dark:bg-[var(--bg-card)] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">No tasks available</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Add tasks to get started</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ThemeWrapper fonts={false}>
       <div className="flex flex-col h-full">
