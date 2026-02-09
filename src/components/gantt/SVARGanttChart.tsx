@@ -22,16 +22,26 @@ export interface SVARGanttTask {
   end: Date;
   duration: number;
   progress: number;
-  type: 'task';
+  type: 'task' | 'milestone' | 'summary';
   featureId: string;
   group?: string;
+  parent?: number;
+  open?: boolean;
+}
+
+export interface SVARGanttLink {
+  id: number;
+  source: number;
+  target: number;
+  type: 'e2s' | 'e2e' | 's2s' | 's2e';
 }
 
 interface SVARGanttChartProps {
   tasks: SVARGanttTask[];
+  links?: SVARGanttLink[];
   groups?: string[];
   onTaskUpdate?: (task: { featureId: string; start: Date; end: Date }) => void;
-  onTaskAdd?: (task: { text: string; start: Date; duration: number; progress: number }) => void;
+  onTaskAdd?: (task: { text: string; start: Date; duration: number; progress: number; parent?: number }) => void;
   onTaskDelete?: (featureId: string) => void;
   onGroupChange?: (featureId: string, newGroup: string) => void;
 }
@@ -74,6 +84,7 @@ function TooltipContent({ data }: { data: any }) {
 
 export default function SVARGanttChart({
   tasks,
+  links = [],
   groups,
   onTaskUpdate,
   onTaskAdd,
@@ -82,7 +93,7 @@ export default function SVARGanttChart({
   const [api, setApi] = useState<IApi | null>(null);
   const { theme } = useThemeStore();
 
-  // Transform tasks to SVAR format (id, text, start, duration, progress, type)
+  // Transform tasks to SVAR format with hierarchy support
   const ganttTasks = useMemo(() => tasks.map(t => ({
     id: t.id,
     text: t.text,
@@ -90,14 +101,36 @@ export default function SVARGanttChart({
     duration: t.duration,
     progress: t.progress / 100, // SVAR expects 0-1, not 0-100
     type: t.type,
+    parent: t.parent,
+    open: t.open !== undefined ? t.open : true, // Default to expanded
   })), [tasks]);
 
   // Column configuration for sidebar grid
   const columns: IColumnConfig[] = useMemo(() => [
-    { id: 'text', header: 'Task Name', flexgrow: 1 },
-    { id: 'start', header: 'Start', width: 100, align: 'center' as const },
-    { id: 'duration', header: 'Duration', width: 80, align: 'center' as const },
-    { id: 'progress', header: 'Progress', width: 90, align: 'center' as const },
+    {
+      id: 'text',
+      header: 'Task Name',
+      flexgrow: 1,
+      tree: true, // Enable tree/hierarchy display
+    },
+    {
+      id: 'start',
+      header: 'Start date',
+      width: 120,
+      align: 'left' as const,
+    },
+    {
+      id: 'duration',
+      header: 'Duration',
+      width: 100,
+      align: 'center' as const,
+    },
+    {
+      id: 'add-task',
+      header: '',
+      width: 50,
+      align: 'center' as const,
+    },
   ], []);
 
   // Zoom configuration - multi-level time scales
@@ -172,7 +205,8 @@ export default function SVARGanttChart({
           text: data.task.text || 'New Task',
           start: data.task.start || new Date(),
           duration: data.task.duration || 7,
-          progress: data.task.progress || 0
+          progress: data.task.progress || 0,
+          parent: data.task.parent,
         });
       }
     });
@@ -199,7 +233,7 @@ export default function SVARGanttChart({
           <ContextMenu api={api || undefined}>
             <Gantt
               tasks={ganttTasks}
-              links={[]}
+              links={links}
               columns={columns}
               zoom={zoomConfig}
               cellHeight={38}

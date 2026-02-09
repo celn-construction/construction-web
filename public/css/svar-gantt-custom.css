@@ -99,7 +99,49 @@
   margin: 2px;
 }
 
-/* Status-based task bar colors (default blue if no status) */
+/* ============================================
+   Task Type Styling (Summary, Task, Milestone)
+   ============================================ */
+
+/* Summary/Project tasks - green with thicker bar */
+.wx-gantt .wx-task-bar[data-type="summary"],
+.wx-gantt .wx-bar[data-type="summary"],
+.wx-gantt .wx-summary-bar {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+/* Regular tasks - blue */
+.wx-gantt .wx-task-bar[data-type="task"],
+.wx-gantt .wx-bar[data-type="task"] {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+/* Milestones - diamond shape with purple color */
+.wx-gantt .wx-task-bar[data-type="milestone"],
+.wx-gantt .wx-bar[data-type="milestone"],
+.wx-gantt .wx-milestone {
+  background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%) !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  transform: rotate(45deg);
+  border-radius: 4px;
+  margin-top: 9px;
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+  z-index: 10;
+}
+
+.wx-gantt .wx-task-bar[data-type="milestone"] .wx-bar-text,
+.wx-gantt .wx-bar[data-type="milestone"] .wx-bar-text,
+.wx-gantt .wx-milestone .wx-bar-text {
+  display: none; /* Hide text inside milestone diamond */
+}
+
+/* Status-based task bar colors (fallback if no type) */
 .wx-gantt .wx-task-bar,
 .wx-gantt .wx-bar {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
@@ -297,7 +339,118 @@
 }
 
 /* ============================================
-   Additional Polish & Refinements
+   Links/Dependencies Styling
+   ============================================ */
+
+/* Dependency link lines */
+.wx-gantt .wx-link,
+.wx-gantt .wx-link-line {
+  stroke: var(--text-muted);
+  stroke-width: 2;
+  fill: none;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.wx-gantt .wx-link:hover,
+.wx-gantt .wx-link-line:hover {
+  stroke: var(--accent-purple);
+  stroke-width: 3;
+  opacity: 1;
+  z-index: 15;
+}
+
+/* Link arrows */
+.wx-gantt .wx-link-arrow {
+  fill: var(--text-muted);
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.wx-gantt .wx-link:hover .wx-link-arrow {
+  fill: var(--accent-purple);
+  opacity: 1;
+}
+
+/* Different link types */
+.wx-gantt .wx-link[data-type="e2s"] {
+  stroke: var(--text-muted);
+}
+
+.wx-gantt .wx-link[data-type="e2e"] {
+  stroke: var(--accent-blue);
+}
+
+.wx-gantt .wx-link[data-type="s2s"] {
+  stroke: var(--accent-purple);
+}
+
+.wx-gantt .wx-link[data-type="s2e"] {
+  stroke: var(--accent-red);
+}
+
+/* ============================================
+   Tree Hierarchy Styling
+   ============================================ */
+
+/* Tree expand/collapse icon */
+.wx-gantt .wx-tree-icon,
+.wx-gantt .wx-grid-tree-icon {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-right: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wx-gantt .wx-tree-icon:hover,
+.wx-gantt .wx-grid-tree-icon:hover {
+  color: var(--accent-purple);
+  transform: scale(1.2);
+}
+
+/* Expanded icon */
+.wx-gantt .wx-tree-icon.wx-expanded,
+.wx-gantt .wx-grid-tree-icon.wx-expanded {
+  transform: rotate(90deg);
+}
+
+.wx-gantt .wx-tree-icon.wx-expanded:hover,
+.wx-gantt .wx-grid-tree-icon.wx-expanded:hover {
+  transform: rotate(90deg) scale(1.2);
+}
+
+/* Parent task rows - summary/project rows */
+.wx-gantt .wx-grid-row[data-type="summary"],
+.wx-gantt .wx-row[data-type="summary"] {
+  background: rgba(16, 185, 129, 0.05);
+  font-weight: 600;
+}
+
+.dark .wx-gantt .wx-grid-row[data-type="summary"],
+.dark .wx-gantt .wx-row[data-type="summary"] {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+/* Child task indentation */
+.wx-gantt .wx-grid-cell[data-id="text"] .wx-tree-level-1 {
+  padding-left: 24px;
+}
+
+.wx-gantt .wx-grid-cell[data-id="text"] .wx-tree-level-2 {
+  padding-left: 48px;
+}
+
+.wx-gantt .wx-grid-cell[data-id="text"] .wx-tree-level-3 {
+  padding-left: 72px;
+}
+
+/* Additional Polish & Refinements
    ============================================ */
 
 /* Grid lines - subtle and clean */

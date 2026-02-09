@@ -51,26 +51,88 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Transform features to SVAR Gantt format
-  const ganttTasks = useMemo(() => {
-    return allFeaturesWithIndex.map((item, idx) => {
-      const feature = item.feature;
-      const startDate = feature.startAt ? new Date(feature.startAt) : new Date();
-      const endDate = feature.endAt ? new Date(feature.endAt) : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const durationDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+  // Transform features to SVAR Gantt format with hierarchy
+  const { ganttTasks, ganttLinks } = useMemo(() => {
+    // Group features by their group property
+    const groupedByCategory = allFeaturesWithIndex.reduce((acc, item) => {
+      const group = item.feature.group || 'Default';
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(item);
+      return acc;
+    }, {} as Record<string, typeof allFeaturesWithIndex>);
 
-      return {
-        id: idx + 1,
-        text: feature.name,
-        start: startDate,
-        end: endDate,
-        duration: durationDays,
-        progress: (feature.progress ?? 0) * 100,
-        type: 'task' as const,
-        featureId: feature.id,
-        group: feature.group ?? '',
-      };
+    const tasks: any[] = [];
+    const links: any[] = [];
+    let taskId = 1;
+    let linkId = 1;
+
+    // Create hierarchical structure
+    Object.entries(groupedByCategory).forEach(([groupName, groupFeatures]) => {
+      // Create parent/summary task for the group
+      const groupStartDates = groupFeatures
+        .map(f => f.feature.startAt ? new Date(f.feature.startAt).getTime() : Date.now())
+        .filter(d => !isNaN(d));
+      const groupEndDates = groupFeatures
+        .map(f => f.feature.endAt ? new Date(f.feature.endAt).getTime() : Date.now())
+        .filter(d => !isNaN(d));
+
+      const groupStart = new Date(Math.min(...groupStartDates, Date.now()));
+      const groupEnd = new Date(Math.max(...groupEndDates, Date.now() + 7 * 24 * 60 * 60 * 1000));
+      const groupDuration = Math.max(1, Math.round((groupEnd.getTime() - groupStart.getTime()) / (1000 * 60 * 60 * 24)));
+
+      const parentId = taskId++;
+      tasks.push({
+        id: parentId,
+        text: groupName,
+        start: groupStart,
+        end: groupEnd,
+        duration: groupDuration,
+        progress: 0,
+        type: 'summary' as const,
+        featureId: `group-${groupName}`,
+        group: groupName,
+        open: true,
+      });
+
+      // Add child tasks
+      groupFeatures.forEach((item, idx) => {
+        const feature = item.feature;
+        const startDate = feature.startAt ? new Date(feature.startAt) : new Date();
+        const endDate = feature.endAt ? new Date(feature.endAt) : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const durationDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+        // Determine if this should be a milestone (very short duration tasks)
+        const isMilestone = durationDays <= 1 && (feature.name.toLowerCase().includes('approval') ||
+                                                    feature.name.toLowerCase().includes('review') ||
+                                                    feature.name.toLowerCase().includes('presentation'));
+
+        const childId = taskId++;
+        tasks.push({
+          id: childId,
+          text: feature.name,
+          start: startDate,
+          end: endDate,
+          duration: durationDays,
+          progress: (feature.progress ?? 0) * 100,
+          type: isMilestone ? 'milestone' as const : 'task' as const,
+          featureId: feature.id,
+          group: feature.group ?? '',
+          parent: parentId,
+        });
+
+        // Create dependency link to previous task in same group (simple chain)
+        if (idx > 0) {
+          links.push({
+            id: linkId++,
+            source: childId - 1,
+            target: childId,
+            type: 'e2s' as const, // End to Start dependency
+          });
+        }
+      });
     });
+
+    return { ganttTasks: tasks, ganttLinks: links };
   }, [allFeaturesWithIndex]);
 
   // Handle moving a task to a different group
@@ -138,6 +200,7 @@ export default function DashboardPage() {
           <SVARQuickAddToolbar taskCount={allFeaturesWithIndex.length}>
             <SVARGanttChart
               tasks={ganttTasks}
+              links={ganttLinks}
               groups={groups}
               onTaskUpdate={handleTaskUpdate}
               onTaskAdd={handleTaskAdd}
