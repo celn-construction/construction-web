@@ -97,16 +97,22 @@ export default function SVARGanttChart({
   const safeLinks = useMemo(() => links || [], [links]);
 
   // Transform tasks to SVAR format with hierarchy support
-  const ganttTasks = useMemo(() => tasks.map(t => ({
-    id: t.id,
-    text: t.text,
-    start: t.start,
-    duration: t.duration,
-    progress: t.progress / 100, // SVAR expects 0-1, not 0-100
-    type: t.type,
-    parent: t.parent,
-    open: t.open !== undefined ? t.open : true, // Default to expanded
-  })), [tasks]);
+  const ganttTasks = useMemo(() => {
+    if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+      return [];
+    }
+
+    return tasks.map(t => ({
+      id: t.id,
+      text: t.text,
+      start: t.start,
+      duration: t.duration,
+      progress: t.progress / 100, // SVAR expects 0-1, not 0-100
+      type: t.type,
+      parent: t.parent,
+      open: t.open !== undefined ? t.open : true, // Default to expanded
+    }));
+  }, [tasks]);
 
   // Column configuration for sidebar grid
   const columns: IColumnConfig[] = useMemo(() => [

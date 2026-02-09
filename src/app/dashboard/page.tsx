@@ -53,6 +53,11 @@ export default function DashboardPage() {
 
   // Transform features to SVAR Gantt format with hierarchy
   const { ganttTasks, ganttLinks } = useMemo(() => {
+    // Handle empty state
+    if (!allFeaturesWithIndex || allFeaturesWithIndex.length === 0) {
+      return { ganttTasks: [], ganttLinks: [] };
+    }
+
     // Group features by their group property
     const groupedByCategory = allFeaturesWithIndex.reduce((acc, item) => {
       const group = item.feature.group || 'Default';
