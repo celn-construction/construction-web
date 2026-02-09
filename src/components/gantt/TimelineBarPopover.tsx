@@ -1,7 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import type { GanttFeature } from '@/components/ui/gantt';
+import type { GanttFeature } from '@/components/gantt/document-modal/gantt-types';
 import { SplitViewModal } from './document-modal/variants/SplitViewModal';
 import { earthworkCategory } from './document-modal/mockData';
 

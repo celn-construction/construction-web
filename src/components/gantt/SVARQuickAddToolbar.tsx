@@ -12,7 +12,7 @@ import type { DragEndEvent, DragMoveEvent } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useFeatureActions, useGroups, useStatuses } from '@/store/hooks';
-import type { GanttFeature, GanttStatus } from '@/components/ui/gantt/types';
+import type { GanttFeature, GanttStatus } from '@/components/gantt/document-modal/gantt-types';
 
 interface StagedTask {
   id: string;

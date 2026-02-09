@@ -2,7 +2,7 @@
 
 import { useShallow } from 'zustand/shallow';
 import { useConstructionStore } from '../useConstructionStore';
-import type { GanttFeature } from '@/components/ui/gantt/types';
+import type { GanttFeature } from '@/components/gantt/document-modal/gantt-types';
 
 type FeatureId = string;
 type GroupName = string;

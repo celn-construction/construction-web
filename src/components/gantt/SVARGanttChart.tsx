@@ -153,6 +153,7 @@ export default function SVARGanttChart({
     levels: [
       {
         minCellWidth: 60,
+        maxCellWidth: 120,
         scales: [
           { unit: 'month', step: 1, format: 'MMMM yyyy' },
           { unit: 'day', step: 1, format: 'd' }

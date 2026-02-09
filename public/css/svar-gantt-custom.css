@@ -798,12 +798,7 @@
    Animations & Transitions
    ============================================ */
 
-/* Smooth transitions for all interactive elements */
-.wx-gantt * {
-  transition-property: background-color, border-color, color, transform, box-shadow;
-  transition-duration: 0.2s;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* Smooth transitions for interactive elements - removed wildcard selector to prevent scroll jank */
 
 /* Fade in animation */
 @keyframes fadeIn {

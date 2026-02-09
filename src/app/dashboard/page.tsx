@@ -119,7 +119,7 @@ export default function DashboardPage() {
           start: startDate,
           end: endDate,
           duration: durationDays,
-          progress: (feature.progress ?? 0) * 100,
+          progress: (feature.progress ?? 0) / 100, // SVAR expects 0-1 scale, store has 0-100
           type: isMilestone ? 'milestone' as const : 'task' as const,
           featureId: feature.id,
           group: feature.group ?? '',
