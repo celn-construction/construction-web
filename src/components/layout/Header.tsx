@@ -1,39 +1,48 @@
 'use client';
 
 import { Search, Moon, Sun, Plus } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
 
 export default function Header() {
   const { theme, toggleTheme } = useThemeStore();
+  const pathname = usePathname();
+
+  const getPageTitle = () => {
+    if (pathname === '/dashboard') return 'Dashboard';
+    if (pathname === '/timeline') return 'Timeline';
+    if (pathname === '/documents') return 'Documents';
+    if (pathname === '/projects') return 'Projects';
+    if (pathname === '/tasks') return 'Tasks';
+    if (pathname === '/reports') return 'Reports';
+    return 'BuildTrack';
+  };
 
   return (
-    <header className="bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] px-6 py-4 flex items-center justify-between border-b border-[var(--border-color)] transition-colors duration-300">
+    <header className="bg-[var(--bg-primary)] px-6 py-2.5 flex items-center justify-between border-b border-[var(--border-light)] transition-colors duration-150">
       <div className="flex items-center gap-4">
-        <div className="w-10 h-10 bg-gray-800 dark:bg-gray-700 rounded-full flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-white rounded-full"></div>
-        </div>
-        <span className="text-[var(--text-primary)] font-medium">BuildTrack Pro</span>
+        <span className="text-[var(--text-primary)] font-medium">{getPageTitle()}</span>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <button
           onClick={toggleTheme}
-          className="w-10 h-10 bg-[var(--bg-secondary)] dark:bg-[var(--bg-input)] rounded-full flex items-center justify-center hover:bg-[var(--bg-hover)] dark:hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+          className="flex items-center justify-center hover:opacity-70 transition-opacity cursor-pointer"
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-yellow-400" />
+            <Sun className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
           ) : (
-            <Moon className="w-5 h-5 text-[var(--text-secondary)]" />
+            <Moon className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
           )}
         </button>
-        <button className="w-10 h-10 bg-[var(--bg-secondary)] dark:bg-[var(--bg-input)] rounded-full flex items-center justify-center hover:bg-[var(--bg-hover)] dark:hover:bg-[var(--bg-hover)] transition-colors cursor-pointer">
-          <Search className="w-5 h-5 text-[var(--text-secondary)]" />
+        <button className="flex items-center justify-center hover:opacity-70 transition-opacity cursor-pointer">
+          <Search className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
         </button>
         <UserMenu />
-        <button className="bg-gray-800 dark:bg-purple-600 text-white px-6 py-3 rounded-full flex items-center gap-2 hover:bg-gray-700 dark:hover:bg-purple-500 transition-colors cursor-pointer">
-          <Plus className="w-5 h-5" />
+        <button className="bg-[var(--accent-primary)] text-[var(--bg-primary)] px-3 py-1.5 text-sm rounded-md flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer">
+          <Plus className="w-4 h-4" />
           Add task
         </button>
       </div>

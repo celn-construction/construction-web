@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { X, Home, LayoutGrid, Zap, Clipboard, FileText } from 'lucide-react';
+import { X, Home, LayoutGrid, Zap, Clipboard, FileText, Calendar } from 'lucide-react';
 import { navItems } from './navItems';
 
 interface MobileDrawerProps {
@@ -17,6 +17,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'Home': return Home;
+      case 'Calendar': return Calendar;
       case 'FileText': return FileText;
       case 'LayoutGrid': return LayoutGrid;
       case 'Zap': return Zap;
@@ -51,7 +52,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-black/30 dark:bg-black/50 transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-black/30 dark:bg-black/50 transition-opacity duration-200 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -60,7 +61,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
       {/* Drawer */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#d8d9e8] dark:bg-[var(--bg-primary)] transform transition-transform duration-300 ease-out ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[var(--bg-sidebar)] transform transition-transform duration-200 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         role="dialog"
@@ -68,19 +69,16 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         aria-label="Navigation menu"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-300/50 dark:border-[var(--border-color)]">
+        <div className="flex items-center justify-between p-4 border-b border-[var(--border-color)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-800 dark:bg-gray-700 rounded-full flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-white rounded-full"></div>
-            </div>
-            <span className="text-gray-800 dark:text-[var(--text-primary)] font-medium">BuildTrack Pro</span>
+            <span className="text-[var(--text-primary)] font-medium">BuildTrack Pro</span>
           </div>
           <button
             onClick={onClose}
             aria-label="Close menu"
-            className="w-10 h-10 bg-white dark:bg-[var(--bg-input)] rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+            className="flex items-center justify-center hover:opacity-70 transition-opacity cursor-pointer"
           >
-            <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
+            <X className="w-5 h-5 text-[var(--text-secondary)]" />
           </button>
         </div>
 
@@ -94,10 +92,10 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               <Link
                 key={item.id}
                 href={item.href}
-                className={`flex items-center gap-4 p-4 rounded-2xl transition-colors ${
+                className={`flex items-center gap-4 p-4 rounded-md transition-colors ${
                   isActive
-                    ? 'bg-gray-800 dark:bg-purple-600 text-white'
-                    : 'bg-white/50 dark:bg-[var(--bg-input)]/50 text-gray-700 dark:text-[var(--text-primary)] hover:bg-white dark:hover:bg-[var(--bg-hover)]'
+                    ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                    : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
                 }`}
               >
                 <Icon className="w-6 h-6" />

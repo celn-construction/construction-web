@@ -8,92 +8,71 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --bg-primary: #e8e9f3;
+  --bg-primary: #fafafa;
   --bg-secondary: #ffffff;
-  --bg-sidebar: #ffffff;
+  --bg-sidebar: #f5f5f5;
   --bg-card: #ffffff;
-  --bg-input: #f3f4f6;
-  --bg-hover: #f3f4f6;
-  --bg-accent: #f3e8ff;
+  --bg-input: #f5f5f5;
+  --bg-hover: #f0f0f0;
+  --bg-accent: #f5f5f5;
 
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --text-primary: #171717;
+  --text-secondary: #737373;
+  --text-muted: #a3a3a3;
 
-  --border-color: #e5e7eb;
-  --border-light: #f3f4f6;
+  --border-color: #e5e5e5;
+  --border-light: #f0f0f0;
 
-  --accent-purple: #9333ea;
-  --accent-purple-light: #f3e8ff;
-  --accent-blue: #3b82f6;
-  --accent-green: #10b981;
-  --accent-orange: #f97316;
-  --accent-red: #ef4444;
+  --accent-primary: #171717;
+  --accent-subtle: rgba(23, 23, 23, 0.06);
 
-  --blueprint-grid: rgba(59, 130, 246, 0.06);
-  --blueprint-line: rgba(59, 130, 246, 0.1);
-  --blueprint-accent: #0ea5e9;
-  --blueprint-accent-glow: rgba(14, 165, 233, 0.3);
-  --blueprint-safety: #f97316;
-  --blueprint-safety-glow: rgba(249, 115, 22, 0.25);
-  --blueprint-dot: rgba(59, 130, 246, 0.12);
-  --blueprint-hatch: rgba(59, 130, 246, 0.08);
+  --status-green: #16a34a;
+  --status-amber: #d97706;
+  --status-red: #dc2626;
+  --status-blue: #2563eb;
+
+  --grid-line: rgba(0, 0, 0, 0.04);
+  --timeline-accent: #171717;
+  --timeline-accent-subtle: rgba(23, 23, 23, 0.06);
+
+  --focus-ring: rgba(23, 23, 23, 0.3);
 }
 
 .dark {
-  /* Background layers - refined depth hierarchy */
-  --bg-primary: #0a0f1a;
-  --bg-secondary: #111827;
-  --bg-sidebar: #111827;
-  --bg-card: #1a2332;
-  --bg-input: #243044;
-  --bg-hover: #2d3a4f;
-  --bg-accent: #1e1b4b;
-  --bg-elevated: #1f2937;
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #141414;
+  --bg-sidebar: #111111;
+  --bg-card: #171717;
+  --bg-input: #1f1f1f;
+  --bg-hover: #262626;
+  --bg-accent: #1a1a1a;
 
-  /* Text - improved contrast ratios */
-  --text-primary: #f8fafc;
-  --text-secondary: #a1b1c7;
-  --text-tertiary: #7a8ca3;
-  --text-muted: #5a6b80;
+  --text-primary: #fafafa;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
 
-  /* Borders - subtle but visible */
-  --border-color: #2a3546;
-  --border-light: #1e2939;
-  --border-strong: #3d4f65;
+  --border-color: #262626;
+  --border-light: #1a1a1a;
 
-  /* Accent colors - vibrant for dark backgrounds */
-  --accent-purple: #a78bfa;
-  --accent-purple-light: #2e1065;
-  --accent-purple-glow: rgba(167, 139, 250, 0.15);
-  --accent-blue: #60a5fa;
-  --accent-blue-light: #1e3a5f;
-  --accent-green: #4ade80;
-  --accent-green-light: #14532d;
-  --accent-orange: #fb923c;
-  --accent-orange-light: #7c2d12;
-  --accent-red: #f87171;
-  --accent-red-light: #7f1d1d;
-  --accent-yellow: #fbbf24;
+  --accent-primary: #fafafa;
+  --accent-subtle: rgba(250, 250, 250, 0.06);
 
-  /* Interactive states */
-  --focus-ring: rgba(167, 139, 250, 0.5);
-  --shadow-color: rgba(0, 0, 0, 0.4);
+  --status-green: #4ade80;
+  --status-amber: #fbbf24;
+  --status-red: #f87171;
+  --status-blue: #60a5fa;
 
-  --blueprint-grid: rgba(56, 189, 248, 0.05);
-  --blueprint-line: rgba(56, 189, 248, 0.12);
-  --blueprint-accent: #22d3ee;
-  --blueprint-accent-glow: rgba(34, 211, 238, 0.25);
-  --blueprint-safety: #fb923c;
-  --blueprint-safety-glow: rgba(251, 146, 60, 0.3);
-  --blueprint-dot: rgba(56, 189, 248, 0.08);
-  --blueprint-hatch: rgba(34, 211, 238, 0.12);
+  --grid-line: rgba(255, 255, 255, 0.04);
+  --timeline-accent: #fafafa;
+  --timeline-accent-subtle: rgba(250, 250, 250, 0.06);
+
+  --focus-ring: rgba(250, 250, 250, 0.3);
 }
 
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 /* ============================================
@@ -128,31 +107,4 @@ body {
 
 .gantt.monthly .gantt-snap-point {
   scroll-snap-align: start;
-}
-
-/* Dark mode - native scrollbar is hidden, custom scrollbar handles dark mode via Tailwind */
-
-/* ============================================
-   Blueprint Theme Utilities
-   ============================================ */
-
-.blueprint-dotgrid {
-  background-image: radial-gradient(circle, var(--blueprint-dot) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-
-.blueprint-hatch {
-  background-image: repeating-linear-gradient(
-    -45deg, transparent, transparent 4px,
-    var(--blueprint-hatch) 4px, var(--blueprint-hatch) 5px
-  );
-}
-
-@keyframes blueprint-pulse {
-  0%, 100% { box-shadow: 0 0 4px var(--blueprint-accent-glow); }
-  50% { box-shadow: 0 0 12px var(--blueprint-accent-glow), 0 0 24px var(--blueprint-accent-glow); }
-}
-
-.blueprint-today-pulse {
-  animation: blueprint-pulse 3s ease-in-out infinite;
 }

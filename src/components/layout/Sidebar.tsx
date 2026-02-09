@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText } from 'lucide-react';
+import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar } from 'lucide-react';
 import { navItems } from './navItems';
 
 export default function Sidebar() {
@@ -11,6 +11,7 @@ export default function Sidebar() {
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'Home': return Home;
+      case 'Calendar': return Calendar;
       case 'FileText': return FileText;
       case 'LayoutGrid': return LayoutGrid;
       case 'Zap': return Zap;
@@ -21,7 +22,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="h-screen w-20 bg-[#d8d9e8] dark:bg-[var(--bg-primary)] flex flex-col items-center py-6 gap-4 sticky top-0 transition-colors duration-300">
+    <aside className="h-screen w-14 bg-[var(--bg-sidebar)] flex flex-col items-center py-3 gap-1 sticky top-0 transition-colors duration-150">
       {navItems.map((item) => {
         const Icon = getIcon(item.icon);
         const isActive = pathname === item.href;
@@ -30,13 +31,13 @@ export default function Sidebar() {
           <Link
             key={item.id}
             href={item.href}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors cursor-pointer ${
+            className={`w-9 h-9 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
               isActive
-                ? 'bg-gray-800 dark:bg-purple-600 hover:bg-gray-700 dark:hover:bg-purple-500'
-                : 'bg-white dark:bg-[var(--bg-input)] hover:bg-gray-100 dark:hover:bg-[var(--bg-hover)]'
+                ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]'
             }`}
           >
-            <Icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-gray-600 dark:text-[var(--text-secondary)]'}`} />
+            <Icon className="w-[18px] h-[18px]" />
           </Link>
         );
       })}
