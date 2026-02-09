@@ -3,6 +3,7 @@
 import { useMemo, useCallback, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import LayoutWrapper from '@/components/layout/LayoutWrapper';
 import { useSession } from '@/lib/auth-client';
@@ -202,6 +203,12 @@ export default function DashboardPage() {
             <span className="text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] bg-gray-100 dark:bg-[var(--bg-input)] px-3 py-1.5 rounded-full">
               {allFeaturesWithIndex.length} tasks
             </span>
+            <Link
+              href="/dashboard/custom-gantt"
+              className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+            >
+              Custom Gantt
+            </Link>
           </div>
         </div>
 
