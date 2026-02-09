@@ -82,10 +82,10 @@ export default function DashboardPage() {
               {kiboFeatures.length} tasks
             </span>
             <Link
-              href="/dashboard/custom-gantt"
+              href="/gantt"
               className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
             >
-              View Custom Gantt
+              Advanced View
             </Link>
           </div>
         </div>

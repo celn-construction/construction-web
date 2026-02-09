@@ -123,7 +123,7 @@ export default function CustomGanttPage() {
               {greeting}, {session?.user?.name || 'there'}!
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Custom Gantt Chart View with Phase 1-3 Improvements
+              Manage your project timeline
             </p>
           </div>
           <Link

@@ -7,7 +7,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'Home', href: '/dashboard' },
-  { id: 'gantt', label: 'Gantt Chart', icon: 'GanttChart', href: '/dashboard/custom-gantt' },
+  { id: 'gantt', label: 'Gantt Chart', icon: 'GanttChart', href: '/gantt' },
   { id: 'projects', label: 'Projects', icon: 'LayoutGrid', href: '/projects' },
   { id: 'tasks', label: 'Tasks', icon: 'Zap', href: '/tasks' },
   { id: 'reports', label: 'Reports', icon: 'Clipboard', href: '/reports' },
