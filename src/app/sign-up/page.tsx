@@ -42,14 +42,14 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e8e9f3] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-0 bg-white dark:bg-[var(--bg-card)] rounded-3xl overflow-hidden shadow-xl dark:shadow-black/20">
+    <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
+      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-0 bg-white dark:bg-[var(--bg-card)] rounded-lg overflow-hidden shadow-sm dark:shadow-black/20">
         {/* Left side - Form */}
         <div className="p-12 lg:p-16 flex flex-col justify-center">
           <div className="mb-12">
             <Link href="/" className="flex items-center gap-3 mb-8 w-fit hover:opacity-80 transition-opacity">
-              <div className="w-12 h-12 bg-gray-800 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-white rounded-full"></div>
+              <div className="w-12 h-12 bg-[var(--accent-primary)] dark:bg-gray-700 rounded-md flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-white rounded-md"></div>
               </div>
               <span className="text-gray-800 dark:text-[var(--text-primary)] text-lg font-medium">BuildTrack Pro</span>
             </Link>
@@ -78,7 +78,7 @@ export default function SignUpPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
-                  className="w-full pl-12 pr-4 py-4 bg-[#f5f5f9] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                  className="w-full pl-12 pr-4 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
                   required
                 />
               </div>
@@ -98,7 +98,7 @@ export default function SignUpPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your.email@company.com"
-                  className="w-full pl-12 pr-4 py-4 bg-[#f5f5f9] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                  className="w-full pl-12 pr-4 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
                   required
                 />
               </div>
@@ -118,7 +118,7 @@ export default function SignUpPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Min 8 characters"
-                  className="w-full pl-12 pr-12 py-4 bg-[#f5f5f9] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                  className="w-full pl-12 pr-12 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
                   required
                   minLength={8}
                 />
@@ -139,7 +139,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gray-800 dark:bg-[var(--accent-purple)] text-white py-4 rounded-full hover:bg-gray-700 dark:hover:bg-[var(--accent-purple)]/90 transition-colors flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full bg-[var(--accent-primary)] dark:bg-[var(--accent-purple)] text-white py-4 rounded-md hover:opacity-90 dark:hover:bg-[var(--accent-purple)]/90 transition-colors flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? "Creating account..." : "Create account"}
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

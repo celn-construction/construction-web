@@ -38,21 +38,21 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e8e9f3] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-0 bg-white dark:bg-[var(--bg-card)] rounded-3xl overflow-hidden shadow-xl dark:shadow-black/20">
+    <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
+      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-0 bg-white dark:bg-[var(--bg-card)] rounded-lg overflow-hidden shadow-sm dark:shadow-black/20">
         {/* Left side - Form */}
         <div className="p-12 lg:p-16 flex flex-col justify-center">
           <div className="mb-12">
             <Link href="/" className="flex items-center gap-3 mb-8 w-fit hover:opacity-80 transition-opacity">
-              <div className="w-12 h-12 bg-gray-800 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-white rounded-full"></div>
+              <div className="w-12 h-12 bg-[var(--accent-primary)] dark:bg-gray-700 rounded-md flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-white rounded-md"></div>
               </div>
               <span className="text-gray-800 dark:text-[var(--text-primary)] text-lg font-medium">BuildTrack Pro</span>
             </Link>
 
             {submitted ? (
               <>
-                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-6">
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-md flex items-center justify-center mb-6">
                   <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
                 </div>
                 <h1 className="text-2xl font-medium text-gray-800 dark:text-[var(--text-primary)] mb-3">Check your email</h1>
@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
 
               <Link
                 href="/sign-in"
-                className="w-full h-14 bg-gray-800 text-white text-base rounded-full hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 group"
+                className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group"
               >
                 <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                 Back to sign in
@@ -113,7 +113,7 @@ export default function ForgotPasswordPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your.email@company.com"
-                    className="w-full pl-12 pr-4 py-4 bg-[#f5f5f9] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                    className="w-full pl-12 pr-4 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
                     required
                   />
                 </div>
@@ -122,7 +122,7 @@ export default function ForgotPasswordPage() {
               <Button
                 type="submit"
                 loading={loading}
-                className="w-full h-14 bg-gray-800 text-white text-base rounded-full hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
+                className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
               >
                 Send reset link
                 {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}

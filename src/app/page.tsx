@@ -9,13 +9,13 @@ export default function Home() {
   const { data: session } = useSession();
 
   return (
-    <main className="min-h-screen bg-[#e8e9f3] dark:bg-[var(--bg-primary)] transition-colors">
+    <main className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] transition-colors">
       {/* Navigation */}
       <nav className="container mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-800 dark:bg-gray-700 rounded-full flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-white rounded-full"></div>
+            <div className="w-10 h-10 bg-[var(--accent-primary)] dark:bg-gray-700 rounded-md flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-white rounded-md"></div>
             </div>
             <span className="text-gray-800 dark:text-[var(--text-primary)] text-lg font-medium">BuildTrack Pro</span>
           </div>
@@ -23,7 +23,7 @@ export default function Home() {
             {session ? (
               <Link
                 href="/dashboard"
-                className="bg-gray-800 dark:bg-[var(--accent-purple)] text-white px-6 py-2.5 rounded-full hover:bg-gray-700 dark:hover:bg-[var(--accent-purple)]/90 transition-colors"
+                className="bg-[var(--accent-primary)] dark:bg-[var(--accent-primary)] text-white px-6 py-2.5 rounded-md hover:opacity-90 dark:hover:bg-[var(--accent-purple)]/90 transition-colors"
               >
                 Dashboard
               </Link>
@@ -37,7 +37,7 @@ export default function Home() {
                 </Link>
                 <Link
                   href="/sign-up"
-                  className="bg-gray-800 dark:bg-[var(--accent-purple)] text-white px-6 py-2.5 rounded-full hover:bg-gray-700 dark:hover:bg-[var(--accent-purple)]/90 transition-colors"
+                  className="bg-[var(--accent-primary)] dark:bg-[var(--accent-primary)] text-white px-6 py-2.5 rounded-md hover:opacity-90 dark:hover:bg-[var(--accent-purple)]/90 transition-colors"
                 >
                   Get started
                 </Link>
@@ -52,7 +52,7 @@ export default function Home() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
           <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 bg-white dark:bg-[var(--bg-card)] px-4 py-2 rounded-full shadow-sm dark:shadow-black/20">
+            <div className="inline-flex items-center gap-2 bg-white dark:bg-[var(--bg-card)] px-4 py-2 rounded-md shadow-sm dark:shadow-black/20">
               <HardHat className="w-4 h-4 text-gray-600 dark:text-[var(--text-secondary)]" />
               <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">Built for construction teams</span>
             </div>
@@ -70,14 +70,14 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
                 href="/sign-up"
-                className="bg-gray-800 dark:bg-[var(--accent-purple)] text-white px-8 py-4 rounded-full hover:bg-gray-700 dark:hover:bg-[var(--accent-purple)]/90 transition-colors flex items-center justify-center gap-2 group"
+                className="bg-[var(--accent-primary)] dark:bg-[var(--accent-primary)] text-white px-8 py-4 rounded-md hover:opacity-90 dark:hover:bg-[var(--accent-purple)]/90 transition-colors flex items-center justify-center gap-2 group"
               >
                 Start free trial
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
                 href="/sign-in"
-                className="bg-white dark:bg-[var(--bg-card)] text-gray-800 dark:text-[var(--text-primary)] px-8 py-4 rounded-full hover:bg-gray-50 dark:hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center border border-gray-200 dark:border-[var(--border-color)]"
+                className="bg-white dark:bg-[var(--bg-card)] text-gray-800 dark:text-[var(--text-primary)] px-8 py-4 rounded-md hover:bg-gray-50 dark:hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center border border-gray-200 dark:border-[var(--border-color)]"
               >
                 View demo
               </Link>
@@ -102,7 +102,7 @@ export default function Home() {
 
           {/* Right Content - Hero Image */}
           <div className="relative">
-            <div className="relative h-[500px] lg:h-[600px] rounded-3xl overflow-hidden shadow-2xl">
+            <div className="relative h-[500px] lg:h-[600px] rounded-lg overflow-hidden shadow-sm">
               <Image
                 src="/images/hero-construction.jpg"
                 alt="Construction site aerial view"
@@ -116,7 +116,7 @@ export default function Home() {
             {/* Floating Cards */}
             <div className="absolute -left-8 top-1/4 bg-white dark:bg-[var(--bg-card)] p-4 rounded-2xl shadow-xl dark:shadow-black/20">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-md flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
@@ -128,7 +128,7 @@ export default function Home() {
 
             <div className="absolute -right-4 bottom-1/4 bg-white dark:bg-[var(--bg-card)] p-4 rounded-2xl shadow-xl dark:shadow-black/20">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center">
                   <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>

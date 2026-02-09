@@ -60,9 +60,9 @@ function ResetPasswordForm() {
   // No token provided
   if (!token) {
     return (
-      <div className="min-h-screen bg-[#e8e9f3] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
-        <div className="w-full max-w-md bg-white dark:bg-[var(--bg-card)] rounded-3xl p-12 shadow-xl dark:shadow-black/20 text-center">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+      <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
+        <div className="w-full max-w-md bg-white dark:bg-[var(--bg-card)] rounded-lg p-12 shadow-sm dark:shadow-black/20 text-center">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-md flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
           <h1 className="text-2xl font-medium text-gray-800 dark:text-[var(--text-primary)] mb-3">Invalid Reset Link</h1>
@@ -71,7 +71,7 @@ function ResetPasswordForm() {
           </p>
           <Link
             href="/forgot-password"
-            className="w-full h-14 bg-gray-800 text-white text-base rounded-full hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 group"
+            className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group"
           >
             Request new link
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -82,21 +82,21 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen bg-[#e8e9f3] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-0 bg-white dark:bg-[var(--bg-card)] rounded-3xl overflow-hidden shadow-xl dark:shadow-black/20">
+    <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
+      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-0 bg-white dark:bg-[var(--bg-card)] rounded-lg overflow-hidden shadow-sm dark:shadow-black/20">
         {/* Left side - Form */}
         <div className="p-12 lg:p-16 flex flex-col justify-center">
           <div className="mb-12">
             <Link href="/" className="flex items-center gap-3 mb-8 w-fit hover:opacity-80 transition-opacity">
-              <div className="w-12 h-12 bg-gray-800 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-white rounded-full"></div>
+              <div className="w-12 h-12 bg-[var(--accent-primary)] dark:bg-gray-700 rounded-md flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-white rounded-md"></div>
               </div>
               <span className="text-gray-800 dark:text-[var(--text-primary)] text-lg font-medium">BuildTrack Pro</span>
             </Link>
 
             {success ? (
               <>
-                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-6">
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-md flex items-center justify-center mb-6">
                   <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
                 </div>
                 <h1 className="text-2xl font-medium text-gray-800 dark:text-[var(--text-primary)] mb-3">Password reset!</h1>
@@ -117,7 +117,7 @@ function ResetPasswordForm() {
           {success ? (
             <button
               onClick={() => router.push("/sign-in")}
-              className="w-full h-14 bg-gray-800 text-white text-base rounded-full hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
+              className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
             >
               Continue to sign in
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -144,7 +144,7 @@ function ResetPasswordForm() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter new password"
-                    className="w-full pl-12 pr-12 py-4 bg-[#f5f5f9] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                    className="w-full pl-12 pr-12 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
                     required
                     minLength={8}
                   />
@@ -176,7 +176,7 @@ function ResetPasswordForm() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
-                    className="w-full pl-12 pr-12 py-4 bg-[#f5f5f9] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                    className="w-full pl-12 pr-12 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
                     required
                     minLength={8}
                   />
@@ -197,7 +197,7 @@ function ResetPasswordForm() {
               <Button
                 type="submit"
                 loading={loading}
-                className="w-full h-14 bg-gray-800 text-white text-base rounded-full hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
+                className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
               >
                 Reset password
                 {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
@@ -231,7 +231,7 @@ function ResetPasswordForm() {
 
 function ResetPasswordLoading() {
   return (
-    <div className="min-h-screen bg-[#e8e9f3] dark:bg-[var(--bg-primary)] flex items-center justify-center transition-colors">
+    <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center transition-colors">
       <div className="animate-pulse text-gray-500 dark:text-[var(--text-secondary)]">Loading...</div>
     </div>
   );

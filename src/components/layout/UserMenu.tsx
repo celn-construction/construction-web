@@ -79,7 +79,7 @@ export default function UserMenu() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-12 w-48 bg-white dark:bg-[var(--bg-card)] rounded-xl shadow-lg border border-gray-200 dark:border-[var(--border-color)] py-2 z-50">
+        <div className="absolute right-0 top-12 w-48 bg-white dark:bg-[var(--bg-card)] rounded-md shadow-lg border border-gray-200 dark:border-[var(--border-color)] py-2 z-50">
           <div className="px-4 py-2 border-b border-gray-100 dark:border-[var(--border-color)]">
             <p className="text-sm font-medium text-gray-800 dark:text-[var(--text-primary)]">Alex Johnson</p>
             <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">alex@buildtrack.com</p>
