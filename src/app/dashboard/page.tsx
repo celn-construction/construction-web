@@ -1,7 +1,6 @@
 'use client';
 
 import { DraftingCompass } from 'lucide-react';
-import Link from 'next/link';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import LayoutWrapper from '@/components/layout/LayoutWrapper';
@@ -19,6 +18,7 @@ import {
   GanttFeatureListGroup,
   GanttFeatureRow,
   GanttToday,
+  computeSubRows,
   type GanttFeature as KiboFeature,
 } from '@/components/kibo-ui/gantt';
 
@@ -62,6 +62,15 @@ export default function DashboardPage() {
     return result;
   }, [groups, kiboFeatures, allFeatures]);
 
+  // Compute sub-row counts for each group to ensure sidebar/timeline height sync
+  const subRowCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const groupName of groups) {
+      counts[groupName] = computeSubRows(kiboGrouped[groupName] || []);
+    }
+    return counts;
+  }, [groups, kiboGrouped]);
+
   // Move handler
   const handleMove = (id: string, startDate: Date, endDate: Date | null) => {
     moveFeature(id, startDate, endDate ?? startDate);
@@ -94,12 +103,6 @@ export default function DashboardPage() {
             <span className="text-xs font-medium font-[family-name:var(--font-mono-blueprint)] text-[var(--blueprint-accent)] bg-[var(--blueprint-accent)]/10 px-3 py-1.5 rounded border border-[var(--blueprint-accent)]/30">
               {kiboFeatures.length} TASKS
             </span>
-            <Link
-              href="/gantt"
-              className="px-3 py-1.5 text-xs font-medium font-[family-name:var(--font-mono-blueprint)] text-[var(--blueprint-safety)] hover:text-[var(--blueprint-safety)] border border-[var(--blueprint-safety)]/40 rounded hover:bg-[var(--blueprint-safety)]/10 transition-colors"
-            >
-              CUSTOM VIEW
-            </Link>
           </div>
         </motion.div>
 
@@ -119,7 +122,7 @@ export default function DashboardPage() {
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ duration: 0.3, delay: 0.2 + groupIndex * 0.05 }}
                 >
-                  <GanttSidebarGroup name={groupName}>
+                  <GanttSidebarGroup name={groupName} subRowCount={subRowCounts[groupName]}>
                     {kiboGrouped[groupName]?.map((feature) => (
                       <GanttSidebarItem key={feature.id} feature={feature} />
                     ))}

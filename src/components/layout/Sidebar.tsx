@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Zap, Clipboard, GanttChart } from 'lucide-react';
+import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText } from 'lucide-react';
 import { navItems } from './navItems';
 
 export default function Sidebar() {
@@ -11,6 +11,7 @@ export default function Sidebar() {
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'Home': return Home;
+      case 'FileText': return FileText;
       case 'LayoutGrid': return LayoutGrid;
       case 'Zap': return Zap;
       case 'Clipboard': return Clipboard;

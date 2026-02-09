@@ -130,6 +130,19 @@ const getDifferenceIn = (range: Range) => {
   return fn;
 };
 
+// Utility: Calculate number of visual sub-rows needed for a set of features
+export function computeSubRows(features: { startAt: Date; endAt: Date }[]): number {
+  const sorted = [...features].sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
+  const endTimes: Date[] = [];
+  for (const f of sorted) {
+    let row = 0;
+    while (row < endTimes.length && endTimes[row]! > f.startAt) row++;
+    if (row === endTimes.length) endTimes.push(f.endAt);
+    else endTimes[row] = f.endAt;
+  }
+  return Math.max(1, endTimes.length);
+}
+
 const getInnerDifferenceIn = (range: Range) => {
   let fn = differenceInHours;
 
@@ -543,12 +556,14 @@ export type GanttSidebarGroupProps = {
   children: ReactNode;
   name: string;
   className?: string;
+  subRowCount?: number; // Optional: Match timeline row count for height sync
 };
 
 export const GanttSidebarGroup: FC<GanttSidebarGroupProps> = ({
   children,
   name,
   className,
+  subRowCount,
 }) => {
   // Map group names to construction icons
   const getIconForGroup = (groupName: string) => {
@@ -570,7 +585,12 @@ export const GanttSidebarGroup: FC<GanttSidebarGroupProps> = ({
         <Icon className="w-3.5 h-3.5 shrink-0" />
         <p className="truncate">{name}</p>
       </div>
-      <div className="divide-y divide-[var(--blueprint-line)]">{children}</div>
+      <div
+        className="divide-y divide-[var(--blueprint-line)] overflow-hidden"
+        style={subRowCount ? { height: `${subRowCount * 36}px` } : undefined}
+      >
+        {children}
+      </div>
     </div>
   );
 };
@@ -1031,6 +1051,9 @@ export const GanttFeatureRow: FC<GanttFeatureRowProps> = ({
   children,
   className,
 }) => {
+  // Calculate sub-rows using the shared utility function
+  const maxSubRows = computeSubRows(features);
+
   // Sort features by start date to handle potential overlaps
   const sortedFeatures = [...features].sort(
     (a, b) => a.startAt.getTime() - b.startAt.getTime()
@@ -1061,7 +1084,6 @@ export const GanttFeatureRow: FC<GanttFeatureRowProps> = ({
     featureWithPositions.push({ ...feature, subRow });
   }
 
-  const maxSubRows = Math.max(1, subRowEndTimes.length);
   const subRowHeight = 36; // Base row height
 
   return (

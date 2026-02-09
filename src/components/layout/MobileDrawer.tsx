@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { X, Home, LayoutGrid, Zap, Clipboard } from 'lucide-react';
+import { X, Home, LayoutGrid, Zap, Clipboard, FileText } from 'lucide-react';
 import { navItems } from './navItems';
 
 interface MobileDrawerProps {
@@ -17,6 +17,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'Home': return Home;
+      case 'FileText': return FileText;
       case 'LayoutGrid': return LayoutGrid;
       case 'Zap': return Zap;
       case 'Clipboard': return Clipboard;

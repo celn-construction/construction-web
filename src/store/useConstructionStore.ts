@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import type { GanttFeature, GanttStatus } from '@/components/gantt/document-modal/gantt-types';
+import type { GanttFeature, GanttStatus } from '@/types/gantt-types';
 
 // ============================================================================
 // TYPES
@@ -56,9 +56,11 @@ interface ConstructionSelectors {
 // ============================================================================
 
 const DEFAULT_GROUPS: GroupName[] = [
-  'Design',
-  'Development',
-  'Testing',
+  'Site Prep',
+  'Foundation',
+  'Framing',
+  'MEP Systems',
+  'Finishing',
 ];
 
 // Define statuses as strongly typed constants
