@@ -132,7 +132,10 @@ export default function DashboardPage() {
       });
     });
 
-    return { ganttTasks: tasks, ganttLinks: links };
+    return {
+      ganttTasks: tasks.length > 0 ? tasks : [],
+      ganttLinks: links.length > 0 ? links : []
+    };
   }, [allFeaturesWithIndex]);
 
   // Handle moving a task to a different group

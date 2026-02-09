@@ -93,6 +93,9 @@ export default function SVARGanttChart({
   const [api, setApi] = useState<IApi | null>(null);
   const { theme } = useThemeStore();
 
+  // Ensure links is always an array (safety check)
+  const safeLinks = useMemo(() => links || [], [links]);
+
   // Transform tasks to SVAR format with hierarchy support
   const ganttTasks = useMemo(() => tasks.map(t => ({
     id: t.id,
@@ -233,7 +236,7 @@ export default function SVARGanttChart({
           <ContextMenu api={api || undefined}>
             <Gantt
               tasks={ganttTasks}
-              links={links}
+              links={safeLinks}
               columns={columns}
               zoom={zoomConfig}
               cellHeight={38}
