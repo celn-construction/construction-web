@@ -320,9 +320,9 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
           if (state?.features) {
             state.features = state.features.map((feature) => ({
               ...feature,
-              // Only convert to Date if value exists (unscheduled issues have no dates)
-              startAt: feature.startAt ? new Date(feature.startAt) : undefined,
-              endAt: feature.endAt ? new Date(feature.endAt) : undefined,
+              // Convert string dates back to Date objects
+              startAt: feature.startAt ? new Date(feature.startAt) : feature.startAt,
+              endAt: feature.endAt ? new Date(feature.endAt) : feature.endAt,
             }));
           }
         },

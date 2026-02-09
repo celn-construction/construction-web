@@ -66,7 +66,8 @@ export default function DashboardPage() {
   const subRowCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const groupName of groups) {
-      counts[groupName] = computeSubRows(kiboGrouped[groupName] || []);
+      const groupFeatures = kiboGrouped[groupName] || [];
+      counts[groupName] = computeSubRows(groupFeatures);
     }
     return counts;
   }, [groups, kiboGrouped]);

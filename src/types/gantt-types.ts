@@ -10,10 +10,10 @@ export type GanttStatus = {
 export type GanttFeature = {
   id: string;
   name: string;
-  startAt?: Date | null;
-  endAt?: Date | null;
+  startAt?: Date;
+  endAt?: Date;
   status: GanttStatus;
-  group?: string;
+  group: string; // Required for construction tracking
   coverImage?: string;
   progress?: number;
 };

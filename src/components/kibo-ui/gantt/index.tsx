@@ -132,7 +132,13 @@ const getDifferenceIn = (range: Range) => {
 
 // Utility: Calculate number of visual sub-rows needed for a set of features
 export function computeSubRows(features: { startAt: Date; endAt: Date }[]): number {
-  const sorted = [...features].sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
+  if (!features || features.length === 0) return 1;
+
+  // Filter out any features without valid dates
+  const validFeatures = features.filter(f => f.startAt && f.endAt);
+  if (validFeatures.length === 0) return 1;
+
+  const sorted = [...validFeatures].sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
   const endTimes: Date[] = [];
   for (const f of sorted) {
     let row = 0;
