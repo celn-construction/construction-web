@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { CustomScrollbar } from '../components/CustomScrollbar';
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -21,8 +22,8 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 
-import type { Range, TimelineData } from '../types';
-import { createInitialTimelineData } from '../utils';
+import type { Range, TimelineData, GanttFeature } from '../types';
+import { createInitialTimelineData, getOffset } from '../utils';
 import { GanttContext } from './GanttContext';
 import type { StagedTask } from '@/store/useStagingStore';
 
@@ -70,7 +71,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
   onStagedItemDrop,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [timelineData] = useState<TimelineData>(
+  const [timelineData, setTimelineData] = useState<TimelineData>(
     createInitialTimelineData(new Date())
   );
   const [scrollX] = useGanttScrollX();
@@ -101,7 +102,14 @@ export const GanttProvider: FC<GanttProviderProps> = ({
   }, [children]);
 
   // Use composable hooks for Gantt functionality
-  const { canScrollLeft } = useScrollTracking({ scrollRef });
+  const { canScrollLeft } = useScrollTracking({
+    scrollRef,
+    timelineData,
+    setTimelineData,
+    columnWidth,
+    zoom,
+    range,
+  });
 
   useAutoScrollToToday({
     scrollRef,
@@ -132,6 +140,32 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     scrollRef,
   });
 
+  // Scroll to feature callback
+  const scrollToFeature = useCallback((feature: GanttFeature) => {
+    if (!feature.startAt || !scrollRef.current) return;
+
+    const firstTimelineData = timelineData[0];
+    if (!firstTimelineData) return;
+
+    const timelineStartDate = new Date(firstTimelineData.year, 0, 1);
+    const contextValues = {
+      timelineData,
+      columnWidth,
+      zoom,
+      range,
+      headerHeight,
+      rowHeight,
+      sidebarWidth,
+      onAddItem,
+      placeholderLength: 2,
+      ref: scrollRef,
+      validDropRows,
+    };
+
+    const offset = getOffset(feature.startAt, timelineStartDate, contextValues);
+    scrollRef.current.scrollTo({ left: Math.max(0, offset - 100), behavior: 'smooth' });
+  }, [timelineData, columnWidth, zoom, range, headerHeight, rowHeight, sidebarWidth, onAddItem, validDropRows]);
+
   return (
     <GanttContext.Provider
       value={{
@@ -146,6 +180,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         placeholderLength: 2,
         ref: scrollRef,
         validDropRows,
+        scrollToFeature,
       }}
     >
       <DndContext

@@ -2,7 +2,7 @@
 // Extracted from components/ui/gantt.tsx
 
 import type { RefObject } from 'react';
-import type { Range, TimelineData } from './core.types';
+import type { Range, TimelineData, GanttFeature } from './core.types';
 
 export type GanttContextProps = {
   zoom: number;
@@ -16,4 +16,5 @@ export type GanttContextProps = {
   timelineData: TimelineData;
   ref: RefObject<HTMLDivElement | null> | null;
   validDropRows?: number[]; // Row indices where items can be dropped (task rows only)
+  scrollToFeature?: (feature: GanttFeature) => void;
 };

@@ -16,6 +16,7 @@ export type GanttFeature = {
   group?: string;
   coverImage?: string; // Base64 data URL or blob URL for cover image
   progress?: number; // 0-100 percentage, auto-calculated if not set
+  lane?: string; // Features with same lane share a visual row
 };
 
 export type GanttMarkerProps = {

@@ -1,9 +1,10 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { memo } from 'react';
+import { memo, useContext } from 'react';
 import type { FC, KeyboardEventHandler, MouseEventHandler } from 'react';
 import type { GanttFeature } from '../../types';
+import { GanttContext } from '../../context/GanttContext';
 
 export type GanttSidebarItemProps = {
   feature: GanttFeature;
@@ -18,15 +19,19 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
   className,
   isFullscreen = false,
 }) => {
+  const gantt = useContext(GanttContext);
+
   const handleClick: MouseEventHandler<HTMLDivElement> = (event) => {
     if (event.target === event.currentTarget) {
       onSelectItem?.(feature.id);
+      gantt.scrollToFeature?.(feature);
     }
   };
 
   const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (event) => {
     if (event.key === 'Enter') {
       onSelectItem?.(feature.id);
+      gantt.scrollToFeature?.(feature);
     }
   };
 

@@ -50,6 +50,7 @@ export {
   GanttFeatureList,
   GanttFeatureListGroup,
   GanttRowGrid,
+  GanttFeatureRow,
 
   // DnD components
   GanttDropZoneIndicator,
@@ -91,6 +92,7 @@ export type {
   GanttFeatureListProps,
   GanttFeatureListGroupProps,
   GanttRowGridProps,
+  GanttFeatureRowProps,
 
   // DnD component types
   GanttDropZoneIndicatorProps,

@@ -120,24 +120,31 @@ export const getMonthBoundsByMousePosition = (
   };
 };
 
+export const createYearData = (year: number) => {
+  const yearObj = { year, quarters: new Array(4).fill(null) };
+
+  yearObj.quarters = new Array(4).fill(null).map((_, quarterIndex) => ({
+    months: new Array(3).fill(null).map((_, monthIndex) => {
+      const month = quarterIndex * 3 + monthIndex;
+      return {
+        days: getDaysInMonth(new Date(year, month, 1)),
+      };
+    }),
+  }));
+
+  return yearObj;
+};
+
 export const createInitialTimelineData = (today: Date) => {
+  const currentYear = today.getFullYear();
   const data: TimelineData = [];
 
-  // Only show current year
+  // Generate 3 years: previous, current, next
   data.push(
-    { year: today.getFullYear(), quarters: new Array(4).fill(null) }
+    createYearData(currentYear - 1),
+    createYearData(currentYear),
+    createYearData(currentYear + 1)
   );
-
-  for (const yearObj of data) {
-    yearObj.quarters = new Array(4).fill(null).map((_, quarterIndex) => ({
-      months: new Array(3).fill(null).map((_, monthIndex) => {
-        const month = quarterIndex * 3 + monthIndex;
-        return {
-          days: getDaysInMonth(new Date(yearObj.year, month, 1)),
-        };
-      }),
-    }));
-  }
 
   return data;
 };

@@ -9,3 +9,6 @@ export type { GanttFeatureListGroupProps } from './GanttFeatureListGroup';
 
 export { GanttRowGrid } from './GanttRowGrid';
 export type { GanttRowGridProps } from './GanttRowGrid';
+
+export { GanttFeatureRow } from './GanttFeatureRow';
+export type { GanttFeatureRowProps } from './GanttFeatureRow';

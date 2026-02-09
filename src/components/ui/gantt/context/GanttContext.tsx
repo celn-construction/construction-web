@@ -16,4 +16,5 @@ export const GanttContext = createContext<GanttContextProps>({
   timelineData: [],
   ref: null,
   validDropRows: undefined,
+  scrollToFeature: undefined,
 });
