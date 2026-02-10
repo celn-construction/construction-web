@@ -519,7 +519,7 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
   return (
     <div
       className={cn(
-        "relative flex items-center gap-2.5 p-2.5 text-xs hover:bg-secondary",
+        "group relative flex items-center gap-2.5 p-2.5 text-xs transition-all duration-150 ease-in-out cursor-pointer hover:bg-secondary/80 hover:pl-3.5 hover:shadow-[inset_2px_0_0_var(--timeline-accent)]",
         className
       )}
       key={feature.id}
@@ -534,15 +534,15 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
     >
       {/* <Checkbox onCheckedChange={handleCheck} className="shrink-0" /> */}
       <div
-        className="pointer-events-none h-2 w-2 shrink-0 rounded-full ring-1 ring-offset-1"
+        className="pointer-events-none h-2 w-2 shrink-0 rounded-full ring-1 ring-offset-1 group-hover:scale-125 transition-transform"
         style={{
           backgroundColor: feature.status.color,
         }}
       />
-      <p className="pointer-events-none flex-1 truncate text-left font-medium">
+      <p className="pointer-events-none flex-1 truncate text-left font-medium group-hover:text-[var(--text-primary)] transition-colors">
         {feature.name}
       </p>
-      <p className="pointer-events-none text-muted-foreground font-mono">{duration}</p>
+      <p className="pointer-events-none text-muted-foreground font-mono group-hover:text-[var(--text-primary)] transition-colors">{duration}</p>
     </div>
   );
 };
