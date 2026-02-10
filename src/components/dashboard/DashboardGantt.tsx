@@ -8,6 +8,7 @@ import {
   PopoverAnchor,
   PopoverContent,
 } from '@/components/ui/popover';
+import FeatureFolderTree from './FeatureFolderTree';
 
 // Import Kibo UI Gantt components
 import {
@@ -149,8 +150,8 @@ export default function DashboardGantt() {
 
       <Popover open={!!selectedFeatureId} onOpenChange={(open) => { if (!open) setSelectedFeatureId(null); }}>
         <PopoverAnchor virtualRef={anchorRef as React.RefObject<any>} />
-        <PopoverContent side="right" align="start" sideOffset={8}>
-          <p className="text-sm font-medium">{selectedFeature?.name}</p>
+        <PopoverContent side="right" align="start" sideOffset={8} className="w-80">
+          <FeatureFolderTree featureName={selectedFeature?.name ?? ''} />
         </PopoverContent>
       </Popover>
     </motion.div>
