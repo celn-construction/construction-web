@@ -3,12 +3,10 @@
 import { Eventcalendar } from "@mobiscroll/react";
 import "@mobiscroll/react/dist/css/mobiscroll.scss";
 import { useMemo } from "react";
-import { motion } from "framer-motion";
-import LayoutWrapper from "@/components/layout/LayoutWrapper";
-import { events } from "./events";
-import { resources } from "./resources";
+import { events } from "@/app/(app)/timeline/events";
+import { resources } from "@/app/(app)/timeline/resources";
 
-export default function TimelinePage() {
+export default function TimelineCalendar() {
   // Timeline view configuration
   const view = useMemo(
     () => ({
@@ -16,14 +14,14 @@ export default function TimelinePage() {
         type: "week" as const,
         startDay: 1,
         endDay: 5,
-        rowHeight: 48,
+        rowHeight: "equal" as const,
       },
     }),
     [],
   );
 
   return (
-    <LayoutWrapper>
+    <>
       <style jsx global>{`
         .mbsc-timeline-row,
         .mbsc-timeline-resource-row,
@@ -63,6 +61,6 @@ export default function TimelinePage() {
           />
         </div>
       </div>
-    </LayoutWrapper>
+    </>
   );
 }

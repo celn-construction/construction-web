@@ -1,16 +1,12 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import Sidebar from './Sidebar';
-import Header from './Header';
-import MobileHeader from './MobileHeader';
-import MobileDrawer from './MobileDrawer';
+import Sidebar from '@/components/layout/Sidebar';
+import Header from '@/components/layout/Header';
+import MobileHeader from '@/components/layout/MobileHeader';
+import MobileDrawer from '@/components/layout/MobileDrawer';
 
-interface LayoutWrapperProps {
-  children: React.ReactNode;
-}
-
-export default function LayoutWrapper({ children }: LayoutWrapperProps) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const openDrawer = useCallback(() => setDrawerOpen(true), []);

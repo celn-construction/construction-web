@@ -836,12 +836,14 @@ export const GanttFeatureDragHelper: FC<GanttFeatureDragHelperProps> = ({
 export type GanttFeatureItemCardProps = Pick<GanttFeature, "id"> & {
   children?: ReactNode;
   statusColor?: string;
+  onClick?: () => void;
 };
 
 export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
   id,
   children,
   statusColor,
+  onClick,
 }) => {
   const [, setDragging] = useGanttDragging();
   const { attributes, listeners, setNodeRef } = useDraggable({ id });
@@ -850,7 +852,10 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
   useEffect(() => setDragging(isPressed), [isPressed, setDragging]);
 
   return (
-    <Card className="h-full w-full rounded-md bg-[var(--bg-card)] border border-[var(--grid-line)] p-2 text-xs shadow-sm relative overflow-hidden">
+    <Card
+      className="h-full w-full rounded-md bg-[var(--bg-card)] border border-[var(--grid-line)] p-2 text-xs shadow-sm relative overflow-hidden cursor-pointer hover:shadow-md hover:border-[var(--timeline-accent)] hover:scale-[1.02] transition-all duration-150"
+      onClick={onClick}
+    >
       {/* Left accent bar */}
       {statusColor && (
         <div
@@ -875,12 +880,14 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
 
 export type GanttFeatureItemProps = GanttFeature & {
   onMove?: (id: string, startDate: Date, endDate: Date | null) => void;
+  onSelectItem?: (id: string) => void;
   children?: ReactNode;
   className?: string;
 };
 
 export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
   onMove,
+  onSelectItem,
   children,
   className,
   ...feature
@@ -942,6 +949,10 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
     [onMove, feature.id, startAt, endAt]
   );
 
+  const handleCardClick = useCallback(() => {
+    onSelectItem?.(feature.id);
+  }, [onSelectItem, feature.id]);
+
   const handleLeftDragMove = useCallback(() => {
     const ganttRect = gantt.ref?.current?.getBoundingClientRect();
     const x =
@@ -994,7 +1005,11 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           onDragStart={handleItemDragStart}
           sensors={[mouseSensor]}
         >
-          <GanttFeatureItemCard id={feature.id} statusColor={feature.status.color}>
+          <GanttFeatureItemCard
+            id={feature.id}
+            statusColor={feature.status.color}
+            onClick={handleCardClick}
+          >
             {children ?? (
               <p className="flex-1 truncate text-xs">{feature.name}</p>
             )}
@@ -1036,6 +1051,7 @@ export const GanttFeatureListGroup: FC<GanttFeatureListGroupProps> = ({
 export type GanttFeatureRowProps = {
   features: GanttFeature[];
   onMove?: (id: string, startAt: Date, endAt: Date | null) => void;
+  onSelectItem?: (id: string) => void;
   children?: (feature: GanttFeature) => ReactNode;
   className?: string;
 };
@@ -1043,6 +1059,7 @@ export type GanttFeatureRowProps = {
 export const GanttFeatureRow: FC<GanttFeatureRowProps> = ({
   features,
   onMove,
+  onSelectItem,
   children,
   className,
 }) => {
@@ -1098,7 +1115,7 @@ export const GanttFeatureRow: FC<GanttFeatureRowProps> = ({
             height: `${subRowHeight}px`,
           }}
         >
-          <GanttFeatureItem {...feature} onMove={onMove}>
+          <GanttFeatureItem {...feature} onMove={onMove} onSelectItem={onSelectItem}>
             {children ? (
               children(feature)
             ) : (

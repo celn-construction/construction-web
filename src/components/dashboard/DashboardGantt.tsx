@@ -1,8 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
-import LayoutWrapper from '@/components/layout/LayoutWrapper';
-import { useSession } from '@/lib/auth-client';
+import { useMemo, useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 // Import Kibo UI Gantt components
 import {
@@ -27,11 +31,11 @@ import {
   useGroups,
 } from '@/store/hooks';
 
-export default function DashboardPage() {
-  const { data: session } = useSession();
+export default function DashboardGantt() {
   const { grouped, flatList: allFeatures } = useGroupedFeaturesWithRows();
   const { move: moveFeature } = useFeatureActions();
   const groups = useGroups();
+  const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
 
   // Adapter: Filter out features without dates and map to Kibo's type
   const kiboFeatures: KiboFeature[] = useMemo(
@@ -75,40 +79,58 @@ export default function DashboardPage() {
     moveFeature(id, startDate, endDate ?? startDate);
   };
 
-  return (
-    <LayoutWrapper>
-      <div className="flex flex-col h-full bg-[var(--bg-primary)]">
-        <div className="flex-1 overflow-hidden">
-          <GanttProvider range="daily" zoom={100}>
-            <GanttSidebar>
-              {groups.map((groupName) => (
-                <div key={groupName}>
-                  <GanttSidebarGroup name={groupName} subRowCount={subRowCounts[groupName]}>
-                    {kiboGrouped[groupName]?.map((feature) => (
-                      <GanttSidebarItem key={feature.id} feature={feature} />
-                    ))}
-                  </GanttSidebarGroup>
-                </div>
-              ))}
-            </GanttSidebar>
+  // Select handler
+  const handleSelectItem = (id: string) => {
+    setSelectedFeatureId(id);
+  };
 
-            <GanttTimeline>
-              <GanttHeader />
-              <GanttFeatureList>
-                {groups.map((groupName) => (
-                  <GanttFeatureListGroup key={groupName}>
-                    <GanttFeatureRow
-                      features={kiboGrouped[groupName] || []}
-                      onMove={handleMove}
+  // Get selected feature name
+  const selectedFeature = kiboFeatures.find((f) => f.id === selectedFeatureId);
+
+  return (
+    <div className="flex flex-col h-full bg-[var(--bg-primary)]">
+      <div className="flex-1 overflow-hidden">
+        <GanttProvider range="daily" zoom={100}>
+          <GanttSidebar>
+            {groups.map((groupName) => (
+              <div key={groupName}>
+                <GanttSidebarGroup name={groupName} subRowCount={subRowCounts[groupName]}>
+                  {kiboGrouped[groupName]?.map((feature) => (
+                    <GanttSidebarItem
+                      key={feature.id}
+                      feature={feature}
                     />
-                  </GanttFeatureListGroup>
-                ))}
-              </GanttFeatureList>
-              <GanttToday />
-            </GanttTimeline>
-          </GanttProvider>
-        </div>
+                  ))}
+                </GanttSidebarGroup>
+              </div>
+            ))}
+          </GanttSidebar>
+
+          <GanttTimeline>
+            <GanttHeader />
+            <GanttFeatureList>
+              {groups.map((groupName) => (
+                <GanttFeatureListGroup key={groupName}>
+                  <GanttFeatureRow
+                    features={kiboGrouped[groupName] || []}
+                    onMove={handleMove}
+                    onSelectItem={handleSelectItem}
+                  />
+                </GanttFeatureListGroup>
+              ))}
+            </GanttFeatureList>
+            <GanttToday />
+          </GanttTimeline>
+        </GanttProvider>
       </div>
-    </LayoutWrapper>
+
+      <Dialog open={!!selectedFeatureId} onOpenChange={(open) => !open && setSelectedFeatureId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedFeature?.name}</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
