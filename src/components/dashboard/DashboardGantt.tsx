@@ -37,7 +37,7 @@ export default function DashboardGantt() {
   const { move: moveFeature } = useFeatureActions();
   const groups = useGroups();
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
-  const anchorRef = useRef<{ getBoundingClientRect: () => DOMRect } | null>(null);
+  const anchorRef = useRef<HTMLElement | null>(null);
 
   // Adapter: Filter out features without dates and map to Kibo's type
   const kiboFeatures: KiboFeature[] = useMemo(
@@ -148,7 +148,7 @@ export default function DashboardGantt() {
       </div>
 
       <Popover open={!!selectedFeatureId} onOpenChange={(open) => { if (!open) setSelectedFeatureId(null); }}>
-        <PopoverAnchor virtualRef={anchorRef} />
+        <PopoverAnchor virtualRef={anchorRef as React.RefObject<any>} />
         <PopoverContent side="right" align="start" sideOffset={8}>
           <p className="text-sm font-medium">{selectedFeature?.name}</p>
         </PopoverContent>
