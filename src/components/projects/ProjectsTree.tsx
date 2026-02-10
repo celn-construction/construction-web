@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { Folder } from 'lucide-react';
+import { Folder, FileText } from 'lucide-react';
 import {
   TreeProvider,
   TreeView,
@@ -12,166 +11,193 @@ import {
   TreeIcon,
   TreeLabel,
 } from '@/components/kibo-ui/tree';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import FeatureFolderTree from '@/components/dashboard/FeatureFolderTree';
 import { useGroupedFeaturesWithRows, useGroups } from '@/store/hooks/useGanttFeatures';
-import { useUpdateFeature } from '@/store/hooks/useFeatureActions';
 import type { GanttFeature } from '@/types/gantt-types';
 
-type DocumentSelection = {
-  id: string;
-  name: string;
-};
+// Static construction document folder structure (same for every task)
+const folderData = [
+  {
+    id: 'rfi',
+    name: 'RFI',
+    isLeaf: true,
+  },
+  {
+    id: 'submittals',
+    name: 'Submittals',
+    isLeaf: false,
+    children: [
+      { id: 'submittals-product', name: 'Product Data' },
+      { id: 'submittals-shop', name: 'Shop Drawings' },
+      { id: 'submittals-certs', name: 'Certs' },
+    ],
+  },
+  {
+    id: 'change-orders',
+    name: 'Change Orders',
+    isLeaf: true,
+  },
+  {
+    id: 'photos',
+    name: 'Photos',
+    isLeaf: true,
+  },
+  {
+    id: 'inspections',
+    name: 'Inspections',
+    isLeaf: false,
+    children: [
+      { id: 'inspections-structural', name: 'Structural' },
+      { id: 'inspections-mep', name: 'MEP' },
+      { id: 'inspections-safety', name: 'Safety' },
+    ],
+  },
+];
 
 export default function ProjectsTree() {
   const groups = useGroups();
   const { grouped } = useGroupedFeaturesWithRows();
-  const updateFeature = useUpdateFeature();
-
-  const [selectedTask, setSelectedTask] = useState<GanttFeature | null>(null);
-  const [selectedDoc, setSelectedDoc] = useState<DocumentSelection | null>(null);
 
   // Get all group IDs for default expansion
   const defaultExpandedIds = groups.map((group) => `group-${group}`);
 
-  const handleTaskClick = (task: GanttFeature) => {
-    setSelectedTask(task);
-  };
-
-  const handleDocumentSelect = (docId: string, docName: string) => {
-    setSelectedDoc({ id: docId, name: docName });
-  };
-
-  const handleCoverImageChange = (imageUrl: string | undefined) => {
-    if (selectedTask) {
-      updateFeature(selectedTask.id, { coverImage: imageUrl });
-    }
-  };
-
-  const getStatusColor = (statusName: string): string => {
-    const statusColors: Record<string, string> = {
-      'Completed': '#10b981', // green-500
-      'In Progress': '#3b82f6', // blue-500
-      'Planned': '#6b7280', // gray-500
-      'On Hold': '#f59e0b', // amber-500
-      'Delayed': '#ef4444', // red-500
-    };
-    return statusColors[statusName] || '#6b7280';
-  };
-
   return (
-    <>
-      <TreeProvider
-        defaultExpandedIds={defaultExpandedIds}
-        showLines={true}
-        showIcons={true}
-        selectable={false}
-      >
-        <TreeView className="w-full">
-          {groups.map((groupName) => {
-            const tasks = grouped[groupName] || [];
-            const groupId = `group-${groupName}`;
+    <TreeProvider
+      defaultExpandedIds={defaultExpandedIds}
+      showLines={true}
+      showIcons={true}
+      selectable={false}
+    >
+      <TreeView className="w-full">
+        {groups.map((groupName, groupIndex) => {
+          const tasks = grouped[groupName] || [];
+          const groupId = `group-${groupName}`;
 
-            return (
-              <TreeNode key={groupId} nodeId={groupId} isLast={false}>
-                <TreeNodeTrigger>
-                  <TreeExpander />
-                  <TreeIcon>
-                    <Folder className="w-4 h-4" />
-                  </TreeIcon>
-                  <TreeLabel>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{groupName}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
-                      </span>
-                    </div>
-                  </TreeLabel>
-                </TreeNodeTrigger>
-                <TreeNodeContent>
-                  {tasks.map((task, index) => {
-                    const taskId = `task-${task.id}`;
-                    const isLastTask = index === tasks.length - 1;
+          return (
+            <TreeNode key={groupId} nodeId={groupId} isLast={groupIndex === groups.length - 1}>
+              <TreeNodeTrigger>
+                <TreeExpander hasChildren={true} />
+                <TreeIcon hasChildren={true} icon={<Folder className="w-4 h-4" />} />
+                <TreeLabel>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{groupName}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+                    </span>
+                  </div>
+                </TreeLabel>
+              </TreeNodeTrigger>
+              <TreeNodeContent hasChildren={true}>
+                {tasks.map((task, taskIndex) => {
+                  const taskId = `task-${task.id}`;
+                  const isLastTask = taskIndex === tasks.length - 1;
 
-                    return (
-                      <TreeNode key={taskId} nodeId={taskId} isLast={isLastTask}>
-                        <TreeNodeTrigger
-                          onClick={() => handleTaskClick(task)}
-                          className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
-                        >
-                          <TreeIcon>
+                  return (
+                    <TreeNode
+                      key={taskId}
+                      nodeId={taskId}
+                      isLast={isLastTask}
+                      level={1}
+                      parentPath={[groupIndex === groups.length - 1]}
+                    >
+                      <TreeNodeTrigger>
+                        <TreeExpander hasChildren={true} />
+                        <TreeIcon
+                          hasChildren={true}
+                          icon={
                             <div
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: task.status.color }}
                             />
-                          </TreeIcon>
-                          <TreeLabel>
-                            <div className="flex items-center justify-between flex-1 gap-4">
-                              <span>{task.name}</span>
-                              <div className="flex items-center gap-3 text-xs">
-                                {task.progress !== undefined && (
-                                  <span className="text-gray-600 dark:text-gray-400">
-                                    {task.progress}%
-                                  </span>
-                                )}
-                                <span
-                                  className="font-medium"
-                                  style={{ color: task.status.color }}
-                                >
-                                  {task.status.name}
+                          }
+                        />
+                        <TreeLabel>
+                          <div className="flex items-center justify-between flex-1 gap-4">
+                            <span>{task.name}</span>
+                            <div className="flex items-center gap-3 text-xs">
+                              {task.progress !== undefined && (
+                                <span className="text-gray-600 dark:text-gray-400">
+                                  {task.progress}%
                                 </span>
-                              </div>
+                              )}
+                              <span
+                                className="font-medium"
+                                style={{ color: task.status.color }}
+                              >
+                                {task.status.name}
+                              </span>
                             </div>
-                          </TreeLabel>
-                        </TreeNodeTrigger>
-                      </TreeNode>
-                    );
-                  })}
-                </TreeNodeContent>
-              </TreeNode>
-            );
-          })}
-        </TreeView>
-      </TreeProvider>
+                          </div>
+                        </TreeLabel>
+                      </TreeNodeTrigger>
+                      <TreeNodeContent hasChildren={true}>
+                        {folderData.map((folder, folderIndex) => {
+                          const folderId = `${taskId}-${folder.id}`;
+                          const isLastFolder = folderIndex === folderData.length - 1;
 
-      {/* Task Detail Sheet */}
-      <Sheet
-        modal={false}
-        open={!!selectedTask}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedTask(null);
-            setSelectedDoc(null);
-          }
-        }}
-      >
-        <SheetContent overlay={false} className="w-96">
-          {selectedTask && (
-            <FeatureFolderTree
-              featureName={selectedTask.name}
-              featureId={selectedTask.id}
-              coverImage={selectedTask.coverImage}
-              onCoverImageChange={handleCoverImageChange}
-              onDocumentSelect={handleDocumentSelect}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
+                          return (
+                            <TreeNode
+                              key={folderId}
+                              nodeId={folderId}
+                              isLast={isLastFolder}
+                              level={2}
+                              parentPath={[
+                                groupIndex === groups.length - 1,
+                                isLastTask,
+                              ]}
+                            >
+                              <TreeNodeTrigger>
+                                <TreeExpander hasChildren={!folder.isLeaf} />
+                                <TreeIcon
+                                  hasChildren={!folder.isLeaf}
+                                  icon={<Folder className="w-4 h-4 text-amber-500" />}
+                                />
+                                <TreeLabel className="font-medium">
+                                  {folder.name}
+                                </TreeLabel>
+                              </TreeNodeTrigger>
+                              {!folder.isLeaf && folder.children && (
+                                <TreeNodeContent hasChildren={true}>
+                                  {folder.children.map((child, childIndex) => {
+                                    const childId = `${folderId}-${child.id}`;
+                                    const isLastChild = childIndex === folder.children!.length - 1;
 
-      {/* Document Detail Sheet (nested) */}
-      <Sheet
-        modal={false}
-        open={!!selectedDoc}
-        onOpenChange={(open) => {
-          if (!open) setSelectedDoc(null);
-        }}
-      >
-        <SheetContent overlay={false}>
-          <SheetHeader>
-            <SheetTitle>{selectedDoc?.name}</SheetTitle>
-          </SheetHeader>
-        </SheetContent>
-      </Sheet>
-    </>
+                                    return (
+                                      <TreeNode
+                                        key={childId}
+                                        nodeId={childId}
+                                        isLast={isLastChild}
+                                        level={3}
+                                        parentPath={[
+                                          groupIndex === groups.length - 1,
+                                          isLastTask,
+                                          isLastFolder,
+                                        ]}
+                                      >
+                                        <TreeNodeTrigger>
+                                          <TreeExpander hasChildren={false} />
+                                          <TreeIcon
+                                            hasChildren={false}
+                                            icon={<FileText className="w-4 h-4 text-gray-500" />}
+                                          />
+                                          <TreeLabel>{child.name}</TreeLabel>
+                                        </TreeNodeTrigger>
+                                      </TreeNode>
+                                    );
+                                  })}
+                                </TreeNodeContent>
+                              )}
+                            </TreeNode>
+                          );
+                        })}
+                      </TreeNodeContent>
+                    </TreeNode>
+                  );
+                })}
+              </TreeNodeContent>
+            </TreeNode>
+          );
+        })}
+      </TreeView>
+    </TreeProvider>
   );
 }
