@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Lock, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
@@ -9,8 +9,13 @@ import { Button } from "@/components/ui/button";
 
 function ResetPasswordForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get token from URL on client side only
+    const params = new URLSearchParams(window.location.search);
+    setToken(params.get("token"));
+  }, []);
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -229,18 +234,6 @@ function ResetPasswordForm() {
   );
 }
 
-function ResetPasswordLoading() {
-  return (
-    <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center transition-colors">
-      <div className="animate-pulse text-gray-500 dark:text-[var(--text-secondary)]">Loading...</div>
-    </div>
-  );
-}
-
 export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={<ResetPasswordLoading />}>
-      <ResetPasswordForm />
-    </Suspense>
-  );
+  return <ResetPasswordForm />;
 }
