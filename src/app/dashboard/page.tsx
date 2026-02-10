@@ -17,17 +17,14 @@ import {
   GanttFeatureRow,
   GanttToday,
   computeSubRows,
-  computeFeaturePositionMap,
   type GanttFeature as KiboFeature,
 } from '@/components/kibo-ui/gantt';
-import { GanttDependencyArrows } from '@/components/kibo-ui/gantt/GanttDependencyArrows';
 
 // Zustand store imports
 import {
   useGroupedFeaturesWithRows,
   useFeatureActions,
   useGroups,
-  useDependencies,
 } from '@/store/hooks';
 
 export default function DashboardPage() {
@@ -35,7 +32,6 @@ export default function DashboardPage() {
   const { grouped, flatList: allFeatures } = useGroupedFeaturesWithRows();
   const { move: moveFeature } = useFeatureActions();
   const groups = useGroups();
-  const dependencies = useDependencies();
 
   // Adapter: Filter out features without dates and map to Kibo's type
   const kiboFeatures: KiboFeature[] = useMemo(
@@ -74,19 +70,6 @@ export default function DashboardPage() {
     return counts;
   }, [groups, kiboGrouped]);
 
-  // Create feature map for dependency arrows
-  const featureMap = useMemo(() => {
-    const map = new Map();
-    for (const f of kiboFeatures) map.set(f.id, f);
-    return map;
-  }, [kiboFeatures]);
-
-  // Compute feature position map for dependency arrows
-  const positionMap = useMemo(
-    () => computeFeaturePositionMap(groups, kiboGrouped),
-    [groups, kiboGrouped]
-  );
-
   // Move handler
   const handleMove = (id: string, startDate: Date, endDate: Date | null) => {
     moveFeature(id, startDate, endDate ?? startDate);
@@ -121,13 +104,6 @@ export default function DashboardPage() {
                   </GanttFeatureListGroup>
                 ))}
               </GanttFeatureList>
-              <GanttDependencyArrows
-                dependencies={dependencies}
-                features={featureMap}
-                positionMap={positionMap}
-                groups={groups}
-                subRowCounts={subRowCounts}
-              />
               <GanttToday />
             </GanttTimeline>
           </GanttProvider>

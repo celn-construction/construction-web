@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import type { GanttFeature, GanttStatus, GanttDependency } from '@/types/gantt-types';
+import type { GanttFeature, GanttStatus } from '@/types/gantt-types';
 
 // ============================================================================
 // TYPES
@@ -15,7 +15,6 @@ type GroupName = string;
 interface ConstructionState {
   // ========== DOMAIN DATA ==========
   features: GanttFeature[];
-  dependencies: GanttDependency[];
 
   // ========== METADATA ==========
   groups: GroupName[];
@@ -29,10 +28,6 @@ interface ConstructionState {
 
   // Feature movement (drag/drop)
   moveFeature: (id: FeatureId, startAt: Date, endAt: Date) => void;
-
-  // Dependency CRUD
-  addDependency: (dep: GanttDependency) => void;
-  removeDependency: (id: string) => void;
 
   // Batch operations
   updateMultipleFeatures: (updates: Array<{ id: FeatureId; changes: Partial<GanttFeature> }>) => void;
@@ -78,18 +73,6 @@ const DEFAULT_STATUSES: Record<string, GanttStatus> = {
   'in-progress': IN_PROGRESS_STATUS,
   planned: PLANNED_STATUS,
 };
-
-const DEFAULT_DEPENDENCIES: GanttDependency[] = [
-  { id: 'dep-1', fromId: 'task-1', toId: 'task-2', type: 'finish-to-start' },
-  { id: 'dep-2', fromId: 'task-2', toId: 'task-3', type: 'finish-to-start' },
-  { id: 'dep-3', fromId: 'task-3', toId: 'task-4', type: 'finish-to-start' },
-  { id: 'dep-4', fromId: 'task-4', toId: 'task-5', type: 'finish-to-start' },
-  { id: 'dep-5', fromId: 'task-5', toId: 'task-6', type: 'finish-to-start' },
-  { id: 'dep-6', fromId: 'task-6', toId: 'task-7', type: 'finish-to-start' },
-  { id: 'dep-7', fromId: 'task-7', toId: 'task-8', type: 'finish-to-start' },
-  { id: 'dep-8', fromId: 'task-7', toId: 'task-9', type: 'finish-to-start' },
-  { id: 'dep-9', fromId: 'task-8', toId: 'task-12', type: 'finish-to-start' },
-];
 
 const DEFAULT_FEATURES: GanttFeature[] = [
   // Site Prep - 3 features, 2 sub-rows (Survey+Demolition share row 0, Grading overlaps Demo → row 1)
@@ -217,7 +200,6 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
       immer((set, get) => ({
         // Initial state - populated with sample construction tasks
         features: DEFAULT_FEATURES,
-        dependencies: DEFAULT_DEPENDENCIES,
         groups: DEFAULT_GROUPS,
         statuses: DEFAULT_STATUSES,
 
@@ -241,10 +223,6 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
         removeFeature: (id) =>
           set((state) => {
             state.features = state.features.filter((f) => f.id !== id);
-            // Cascade-delete dependencies referencing the removed feature
-            state.dependencies = state.dependencies.filter(
-              (d) => d.fromId !== id && d.toId !== id
-            );
           }),
 
         moveFeature: (id, startAt, endAt) =>
@@ -254,16 +232,6 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
               feature.startAt = startAt;
               feature.endAt = endAt;
             }
-          }),
-
-        addDependency: (dep) =>
-          set((state) => {
-            state.dependencies.push(dep);
-          }),
-
-        removeDependency: (id) =>
-          set((state) => {
-            state.dependencies = state.dependencies.filter((d) => d.id !== id);
           }),
 
         updateMultipleFeatures: (updates) =>
@@ -342,10 +310,9 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
       })),
       {
         name: 'construction-storage',
-        version: 4, // Bumped to include dependencies
+        version: 3,
         partialize: (state) => ({
           features: state.features,
-          dependencies: state.dependencies,
           groups: state.groups,
         }),
         // Rehydrate dates from localStorage (JSON serializes them as strings)
@@ -364,18 +331,10 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
           if (version < 3) {
             return {
               features: DEFAULT_FEATURES,
-              dependencies: DEFAULT_DEPENDENCIES,
               groups: DEFAULT_GROUPS,
             };
           }
-          // Add dependencies for version 4
-          if (version < 4) {
-            return {
-              ...(persistedState as { features: GanttFeature[]; groups: GroupName[] }),
-              dependencies: DEFAULT_DEPENDENCIES,
-            };
-          }
-          return persistedState as { features: GanttFeature[]; dependencies: GanttDependency[]; groups: GroupName[] };
+          return persistedState as { features: GanttFeature[]; groups: GroupName[] };
         },
       }
     ),

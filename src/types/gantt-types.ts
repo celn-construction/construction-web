@@ -17,10 +17,3 @@ export type GanttFeature = {
   coverImage?: string;
   progress?: number;
 };
-
-export type GanttDependency = {
-  id: string;
-  fromId: string;   // predecessor feature ID
-  toId: string;     // successor feature ID
-  type: 'finish-to-start';
-};
