@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { GanttChart } from 'lucide-react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from '@/components/ui/popover';
 
 // Import Kibo UI Gantt components
 import {
@@ -36,6 +37,7 @@ export default function DashboardGantt() {
   const { move: moveFeature } = useFeatureActions();
   const groups = useGroups();
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
+  const anchorRef = useRef<HTMLElement | null>(null);
 
   // Adapter: Filter out features without dates and map to Kibo's type
   const kiboFeatures: KiboFeature[] = useMemo(
@@ -88,7 +90,21 @@ export default function DashboardGantt() {
   const selectedFeature = kiboFeatures.find((f) => f.id === selectedFeatureId);
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-primary)]">
+    <motion.div
+      className="flex flex-col h-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-color)]">
+        <GanttChart className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+        <h2 className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>
+          Project Schedule
+        </h2>
+      </div>
+
+      {/* Gantt content */}
       <div className="flex-1 overflow-hidden">
         <GanttProvider range="daily" zoom={100}>
           <GanttSidebar>
@@ -131,6 +147,6 @@ export default function DashboardGantt() {
           </DialogHeader>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

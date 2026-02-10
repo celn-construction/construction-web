@@ -836,7 +836,7 @@ export const GanttFeatureDragHelper: FC<GanttFeatureDragHelperProps> = ({
 export type GanttFeatureItemCardProps = Pick<GanttFeature, "id"> & {
   children?: ReactNode;
   statusColor?: string;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 };
 
 export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
@@ -880,7 +880,7 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
 
 export type GanttFeatureItemProps = GanttFeature & {
   onMove?: (id: string, startDate: Date, endDate: Date | null) => void;
-  onSelectItem?: (id: string) => void;
+  onSelectItem?: (id: string, anchorEl: HTMLElement) => void;
   children?: ReactNode;
   className?: string;
 };
@@ -949,8 +949,8 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
     [onMove, feature.id, startAt, endAt]
   );
 
-  const handleCardClick = useCallback(() => {
-    onSelectItem?.(feature.id);
+  const handleCardClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    onSelectItem?.(feature.id, event.currentTarget);
   }, [onSelectItem, feature.id]);
 
   const handleLeftDragMove = useCallback(() => {
@@ -1051,7 +1051,7 @@ export const GanttFeatureListGroup: FC<GanttFeatureListGroupProps> = ({
 export type GanttFeatureRowProps = {
   features: GanttFeature[];
   onMove?: (id: string, startAt: Date, endAt: Date | null) => void;
-  onSelectItem?: (id: string) => void;
+  onSelectItem?: (id: string, anchorEl: HTMLElement) => void;
   children?: (feature: GanttFeature) => ReactNode;
   className?: string;
 };
