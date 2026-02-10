@@ -11,7 +11,10 @@ import ThemeProvider from "@/components/providers/ThemeProvider";
 export const metadata: Metadata = {
   title: "BuildTrack Pro",
   description: "Construction project management",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [
+    { rel: "icon", url: "/favicon.svg", type: "image/svg+xml" },
+    { rel: "icon", url: "/favicon.ico", sizes: "32x32" },
+  ],
 };
 
 const geist = Geist({

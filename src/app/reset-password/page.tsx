@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Lock, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LogoIcon } from "@/components/ui/Logo";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -94,7 +95,7 @@ function ResetPasswordForm() {
           <div className="mb-12">
             <Link href="/" className="flex items-center gap-3 mb-8 w-fit hover:opacity-80 transition-opacity">
               <div className="w-12 h-12 bg-[var(--accent-primary)] dark:bg-gray-700 rounded-md flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-white rounded-md"></div>
+                <LogoIcon size={28} />
               </div>
               <span className="text-gray-800 dark:text-[var(--text-primary)] text-lg font-medium">BuildTrack Pro</span>
             </Link>

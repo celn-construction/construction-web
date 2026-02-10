@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, User, Settings } from 'lucide-react';
-import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
+import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { signOut } from '@/lib/auth-client';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 export default function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);

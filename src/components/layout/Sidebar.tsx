@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar } from 'lucide-react';
 import { navItems } from './navItems';
+import { LogoIcon } from '@/components/ui/Logo';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -29,7 +30,7 @@ export default function Sidebar() {
       {/* Branding Area */}
       <div className="px-4 py-4 border-b flex items-center gap-3" style={{ borderColor: 'var(--sidebar-border)' }}>
         <div className="w-8 h-8 rounded-md bg-[var(--accent-primary)] text-[var(--bg-primary)] flex items-center justify-center font-bold text-sm">
-          BT
+          <LogoIcon size={18} />
         </div>
         <span className="font-medium text-sm text-[var(--text-primary)]">BuildTrack</span>
       </div>

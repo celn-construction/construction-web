@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, HardHat, Calendar, Users } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
+import { LogoIcon } from "@/components/ui/Logo";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -15,7 +16,7 @@ export default function Home() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[var(--accent-primary)] dark:bg-gray-700 rounded-md flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-white rounded-md"></div>
+              <LogoIcon size={22} />
             </div>
             <span className="text-gray-800 dark:text-[var(--text-primary)] text-lg font-medium">BuildTrack Pro</span>
           </div>

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 interface LoadingContextValue {
   isLoading: boolean;

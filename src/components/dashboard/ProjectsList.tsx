@@ -1,7 +1,7 @@
 'use client';
 
 import { Maximize2, CheckCircle2 } from 'lucide-react';
-import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
+import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 
 const projects = [
   {

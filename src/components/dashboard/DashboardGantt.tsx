@@ -9,6 +9,7 @@ import {
   PopoverContent,
 } from '@/components/ui/popover';
 import FeatureFolderTree from './FeatureFolderTree';
+import { X } from 'lucide-react';
 
 // Import Kibo UI Gantt components
 import {
@@ -31,14 +32,18 @@ import {
   useGroupedFeaturesWithRows,
   useFeatureActions,
   useGroups,
+  useUpdateFeature,
 } from '@/store/hooks';
 
 export default function DashboardGantt() {
   const { grouped, flatList: allFeatures } = useGroupedFeaturesWithRows();
   const { move: moveFeature } = useFeatureActions();
+  const updateFeature = useUpdateFeature();
   const groups = useGroups();
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<{ id: string; name: string } | null>(null);
   const anchorRef = useRef<HTMLElement | null>(null);
+  const ganttContentRef = useRef<HTMLDivElement>(null);
 
   // Adapter: Filter out features without dates and map to Kibo's type
   const kiboFeatures: KiboFeature[] = useMemo(
@@ -94,8 +99,20 @@ export default function DashboardGantt() {
     }
   }, [selectedFeatureId]);
 
-  // Get selected feature name
-  const selectedFeature = kiboFeatures.find((f) => f.id === selectedFeatureId);
+  // Cover image change handler
+  const handleCoverImageChange = useCallback((imageUrl: string | undefined) => {
+    if (selectedFeatureId) {
+      updateFeature(selectedFeatureId, { coverImage: imageUrl });
+    }
+  }, [selectedFeatureId, updateFeature]);
+
+  // Document selection handler
+  const handleDocumentSelect = useCallback((docId: string, docName: string) => {
+    setSelectedDoc({ id: docId, name: docName });
+  }, []);
+
+  // Get selected feature (from full feature list to access coverImage)
+  const selectedFeature = allFeatures.find((item) => item.feature.id === selectedFeatureId)?.feature;
 
   return (
     <motion.div
@@ -113,7 +130,7 @@ export default function DashboardGantt() {
       </div>
 
       {/* Gantt content */}
-      <div className="flex-1 overflow-hidden">
+      <div ref={ganttContentRef} className="flex-1 overflow-hidden">
         <GanttProvider range="daily" zoom={100}>
           <GanttSidebar>
             {groups.map((groupName) => (
@@ -148,10 +165,57 @@ export default function DashboardGantt() {
         </GanttProvider>
       </div>
 
-      <Popover open={!!selectedFeatureId} onOpenChange={(open) => { if (!open) setSelectedFeatureId(null); }}>
+      <Popover open={!!selectedFeatureId} onOpenChange={(open) => { if (!open) { setSelectedFeatureId(null); setSelectedDoc(null); } }}>
         <PopoverAnchor virtualRef={anchorRef as React.RefObject<any>} />
-        <PopoverContent side="right" align="start" sideOffset={8} className="w-80">
-          <FeatureFolderTree featureName={selectedFeature?.name ?? ''} />
+        <PopoverContent
+          side="right"
+          align="start"
+          sideOffset={8}
+          collisionBoundary={ganttContentRef.current}
+          collisionPadding={{ left: 300 }}
+          className={`transition-all duration-300 ${selectedDoc ? 'w-[580px]' : 'w-80'}`}
+        >
+          <div className="flex gap-3">
+            {/* Folder Tree - Fixed width */}
+            <div className={`transition-all duration-300 ${selectedDoc ? 'w-[280px]' : 'w-full'}`}>
+              <FeatureFolderTree
+                featureName={selectedFeature?.name ?? ''}
+                featureId={selectedFeatureId ?? ''}
+                coverImage={selectedFeature?.coverImage}
+                onCoverImageChange={handleCoverImageChange}
+                onDocumentSelect={handleDocumentSelect}
+              />
+            </div>
+
+            {/* Detail Panel - Appears when doc is selected */}
+            {selectedDoc && (
+              <div className="flex-1 border-l border-[var(--border-color)] pl-3 animate-in fade-in slide-in-from-right-2 duration-300">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {selectedDoc.name}
+                    </h3>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                      {selectedFeature?.name}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedDoc(null)}
+                    className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                    aria-label="Close detail panel"
+                  >
+                    <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                  </button>
+                </div>
+                <div
+                  className="text-xs rounded-md p-3 border border-dashed border-[var(--border-color)]"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  No documents yet
+                </div>
+              </div>
+            )}
+          </div>
         </PopoverContent>
       </Popover>
     </motion.div>

@@ -1,8 +1,9 @@
 'use client';
 
 import { Search, Moon, Sun, Plus, Menu } from 'lucide-react';
-import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
+import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { useThemeStore } from '@/store/useThemeStore';
+import { LogoIcon } from '@/components/ui/Logo';
 
 interface MobileHeaderProps {
   onMenuOpen: () => void;
@@ -22,6 +23,7 @@ export default function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
           <Menu className="w-5 h-5 text-[var(--text-secondary)]" />
         </button>
         <div className="flex items-center gap-2">
+          <LogoIcon size={16} />
           <span className="text-[var(--text-primary)] font-medium text-sm">BuildTrack</span>
         </div>
       </div>

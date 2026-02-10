@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { X, Home, LayoutGrid, Zap, Clipboard, FileText, Calendar } from 'lucide-react';
 import { navItems } from './navItems';
+import { LogoIcon } from '@/components/ui/Logo';
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -72,7 +73,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-md bg-[var(--accent-primary)] text-[var(--bg-primary)] flex items-center justify-center font-bold text-sm">
-              BT
+              <LogoIcon size={18} />
             </div>
             <span className="font-medium text-sm text-[var(--text-primary)]">BuildTrack</span>
           </div>
