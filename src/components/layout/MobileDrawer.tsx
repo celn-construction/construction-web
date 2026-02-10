@@ -69,40 +69,87 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         aria-label="Navigation menu"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border-color)]">
+        <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
           <div className="flex items-center gap-3">
-            <span className="text-[var(--text-primary)] font-medium">BuildTrack Pro</span>
+            <div className="w-8 h-8 rounded-md bg-[var(--accent-primary)] text-[var(--bg-primary)] flex items-center justify-center font-bold text-sm">
+              BT
+            </div>
+            <span className="font-medium text-sm text-[var(--text-primary)]">BuildTrack</span>
           </div>
           <button
             onClick={onClose}
             aria-label="Close menu"
-            className="flex items-center justify-center hover:opacity-70 transition-opacity cursor-pointer"
+            className="flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5 text-[var(--text-secondary)]" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex flex-col gap-2 p-4">
-          {navItems.map((item) => {
-            const Icon = getIcon(item.icon);
-            const isActive = pathname === item.href;
+        <nav className="flex flex-col gap-6 p-4">
+          {/* Navigate Section */}
+          <div className="flex flex-col gap-1">
+            <div className="px-3 mb-1 text-[10px] tracking-widest text-[var(--text-muted)] font-medium uppercase">
+              Navigate
+            </div>
+            {navItems.slice(0, 3).map((item) => {
+              const Icon = getIcon(item.icon);
+              const isActive = pathname === item.href;
 
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`flex items-center gap-4 p-4 rounded-md transition-colors ${
-                  isActive
-                    ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
-                    : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-                }`}
-              >
-                <Icon className="w-6 h-6" />
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 ${
+                    isActive
+                      ? 'bg-[var(--sidebar-active-bg)] text-[var(--text-primary)] font-medium'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {isActive && (
+                    <div
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-[var(--sidebar-indicator)]"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+                  <span className="text-sm">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Workspace Section */}
+          <div className="flex flex-col gap-1">
+            <div className="px-3 mb-1 text-[10px] tracking-widest text-[var(--text-muted)] font-medium uppercase">
+              Workspace
+            </div>
+            {navItems.slice(3).map((item) => {
+              const Icon = getIcon(item.icon);
+              const isActive = pathname === item.href;
+
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 ${
+                    isActive
+                      ? 'bg-[var(--sidebar-active-bg)] text-[var(--text-primary)] font-medium'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {isActive && (
+                    <div
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-[var(--sidebar-indicator)]"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+                  <span className="text-sm">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
         </nav>
       </div>
     </>
