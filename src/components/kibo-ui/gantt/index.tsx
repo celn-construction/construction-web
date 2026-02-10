@@ -149,6 +149,47 @@ export function computeSubRows(features: { startAt: Date; endAt: Date }[]): numb
   return Math.max(1, endTimes.length);
 }
 
+// Utility: Map feature IDs to their visual positions (group index, sub-row)
+export type FeaturePositionMap = Map<string, { subRow: number; groupIndex: number }>;
+
+export function computeFeaturePositionMap(
+  groups: string[],
+  kiboGrouped: Record<string, { id: string; startAt: Date; endAt: Date }[]>
+): FeaturePositionMap {
+  const map = new Map<string, { subRow: number; groupIndex: number }>();
+
+  groups.forEach((groupName, groupIndex) => {
+    const groupFeatures = kiboGrouped[groupName] || [];
+
+    // Sort by start date (same algorithm as GanttFeatureRow)
+    const sorted = [...groupFeatures].sort(
+      (a, b) => a.startAt.getTime() - b.startAt.getTime()
+    );
+
+    // Greedy sub-row assignment
+    const subRowEndTimes: Date[] = [];
+    for (const feature of sorted) {
+      let subRow = 0;
+      // Find first available sub-row
+      while (
+        subRow < subRowEndTimes.length &&
+        subRowEndTimes[subRow]! > feature.startAt
+      ) {
+        subRow++;
+      }
+      // Assign sub-row
+      if (subRow === subRowEndTimes.length) {
+        subRowEndTimes.push(feature.endAt);
+      } else {
+        subRowEndTimes[subRow] = feature.endAt;
+      }
+      map.set(feature.id, { subRow, groupIndex });
+    }
+  });
+
+  return map;
+}
+
 const getInnerDifferenceIn = (range: Range) => {
   let fn = differenceInHours;
 
@@ -227,7 +268,7 @@ const createInitialTimelineData = (today: Date) => {
   return data;
 };
 
-const getOffset = (
+export const getOffset = (
   date: Date,
   timelineStartDate: Date,
   context: GanttContextProps
@@ -248,7 +289,7 @@ const getOffset = (
   return fullColumns * parsedColumnWidth + partialColumns * pixelsPerDay;
 };
 
-const getWidth = (
+export const getWidth = (
   startAt: Date,
   endAt: Date | null,
   context: GanttContextProps
@@ -310,7 +351,7 @@ const calculateInnerOffset = (
   return (dayOfMonth / totalRangeDays) * columnWidth;
 };
 
-const GanttContext = createContext<GanttContextProps>({
+export const GanttContext = createContext<GanttContextProps>({
   zoom: 100,
   range: "monthly",
   columnWidth: 50,

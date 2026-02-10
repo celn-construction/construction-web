@@ -15,3 +15,5 @@ export {
   useRemoveFeature,
   useMoveFeature,
 } from './useFeatureActions';
+
+export { useDependencies } from './useDependencies';
