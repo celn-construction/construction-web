@@ -37,7 +37,7 @@ export default function DashboardGantt() {
   const { move: moveFeature } = useFeatureActions();
   const groups = useGroups();
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
-  const anchorRef = useRef<HTMLElement | null>(null);
+  const anchorRef = useRef<{ getBoundingClientRect: () => DOMRect } | null>(null);
 
   // Adapter: Filter out features without dates and map to Kibo's type
   const kiboFeatures: KiboFeature[] = useMemo(
