@@ -1266,11 +1266,25 @@ export const GanttProvider: FC<GanttProviderProps> = ({
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollLeft =
-        scrollRef.current.scrollWidth / 2 - scrollRef.current.clientWidth / 2;
+      const today = new Date();
+      const timelineStartDate = new Date(timelineData[0]?.year ?? today.getFullYear(), 0, 1);
+      const todayOffset = getOffset(today, timelineStartDate, {
+        zoom,
+        range,
+        columnWidth,
+        sidebarWidth,
+        headerHeight,
+        rowHeight,
+        onAddItem,
+        placeholderLength: 2,
+        timelineData,
+        ref: scrollRef,
+      });
+      // Center today in the visible area
+      scrollRef.current.scrollLeft = Math.max(0, todayOffset - scrollRef.current.clientWidth / 2);
       setScrollX(scrollRef.current.scrollLeft);
     }
-  }, [setScrollX]);
+  }, [setScrollX, timelineData, zoom, range, columnWidth, sidebarWidth, headerHeight, rowHeight, onAddItem]);
 
   // Update sidebar width when DOM is ready
   useEffect(() => {
