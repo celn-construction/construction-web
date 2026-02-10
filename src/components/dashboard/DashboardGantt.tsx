@@ -82,9 +82,16 @@ export default function DashboardGantt() {
   };
 
   // Select handler
-  const handleSelectItem = (id: string) => {
-    setSelectedFeatureId(id);
-  };
+  const handleSelectItem = useCallback((id: string, anchorEl: HTMLElement) => {
+    // Toggle: if clicking the same bar, close the popover
+    if (selectedFeatureId === id) {
+      setSelectedFeatureId(null);
+      anchorRef.current = null;
+    } else {
+      setSelectedFeatureId(id);
+      anchorRef.current = anchorEl;
+    }
+  }, [selectedFeatureId]);
 
   // Get selected feature name
   const selectedFeature = kiboFeatures.find((f) => f.id === selectedFeatureId);
@@ -140,13 +147,12 @@ export default function DashboardGantt() {
         </GanttProvider>
       </div>
 
-      <Dialog open={!!selectedFeatureId} onOpenChange={(open) => !open && setSelectedFeatureId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedFeature?.name}</DialogTitle>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+      <Popover open={!!selectedFeatureId} onOpenChange={(open) => { if (!open) setSelectedFeatureId(null); }}>
+        <PopoverAnchor virtualRef={anchorRef} />
+        <PopoverContent side="right" align="start" sideOffset={8}>
+          <p className="text-sm font-medium">{selectedFeature?.name}</p>
+        </PopoverContent>
+      </Popover>
     </motion.div>
   );
 }
