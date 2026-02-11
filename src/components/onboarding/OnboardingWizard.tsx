@@ -149,7 +149,7 @@ export function OnboardingWizard() {
                 }}
                 className="mb-8 flex justify-center"
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--accent-warm)] sm:h-18 sm:w-18">
+                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-white dark:bg-gray-700 sm:h-18 sm:w-18">
                   <LogoIcon className="h-10 w-10 sm:h-12 sm:w-12" />
                 </div>
               </motion.div>
