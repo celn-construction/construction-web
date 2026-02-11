@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useRef, useCallback } from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { GanttChart } from 'lucide-react';
 import {
@@ -86,6 +86,35 @@ export default function DashboardGantt() {
 
   // Sync ref with state
   selectedFeatureIdRef.current = selectedFeatureId;
+
+  // Close popover when anchor scrolls off-screen
+  useEffect(() => {
+    if (!selectedFeatureId) return;
+
+    const scrollContainer = ganttContentRef.current?.querySelector('.gantt');
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const anchor = anchorRef.current;
+      if (!anchor) return;
+
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const anchorRect = anchor.getBoundingClientRect();
+
+      // Visible timeline starts after the 300px sticky sidebar
+      const visibleLeft = containerRect.left + 300;
+      const visibleRight = containerRect.right;
+
+      // Close if anchor fully scrolled behind sidebar or past right edge
+      if (anchorRect.right < visibleLeft || anchorRect.left > visibleRight) {
+        setSelectedFeatureId(null);
+        setSelectedDoc(null);
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [selectedFeatureId]);
 
   // Move handler - memoized with stable dependency
   const handleMove = useCallback((id: string, startDate: Date, endDate: Date | null) => {
