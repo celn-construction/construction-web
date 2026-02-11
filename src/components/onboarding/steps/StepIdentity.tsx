@@ -62,7 +62,7 @@ export function StepIdentity({
           value={formData.name}
           onChange={(e) => updateField("name", e.target.value)}
           className={cn(
-            "h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-warm)]",
+            "h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800",
             errors.name && "border-red-500"
           )}
           placeholder="Enter your company name"
@@ -80,7 +80,7 @@ export function StepIdentity({
         >
           <SelectTrigger
             className={cn(
-              "h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm focus:ring-2 focus:ring-[var(--accent-warm)]",
+              "h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm focus:ring-2 focus:ring-gray-800",
               errors.companyType && "border-red-500"
             )}
           >

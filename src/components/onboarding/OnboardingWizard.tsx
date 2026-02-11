@@ -256,7 +256,7 @@ export function OnboardingWizard() {
                     <Button
                       type="button"
                       onClick={goForward}
-                      className="h-12 rounded-lg bg-[var(--accent-warm)] px-6 text-white hover:bg-[var(--accent-warm-hover)]"
+                      className="h-12 rounded-lg bg-[var(--accent-primary)] px-6 text-white hover:opacity-90"
                     >
                       Continue
                     </Button>
@@ -265,7 +265,7 @@ export function OnboardingWizard() {
                       type="button"
                       onClick={handleSubmit}
                       loading={completeMutation.isPending}
-                      className="group h-12 rounded-lg bg-[var(--accent-warm)] px-6 text-white hover:bg-[var(--accent-warm-hover)]"
+                      className="group h-12 rounded-lg bg-[var(--accent-primary)] px-6 text-white hover:opacity-90"
                     >
                       Launch BuildTrack Pro
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -303,7 +303,7 @@ export function OnboardingWizard() {
                   damping: 20,
                   delay: 0.2,
                 }}
-                className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--accent-warm)]"
+                className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--status-green)]"
               >
                 <Check className="h-10 w-10 text-white" />
               </motion.div>

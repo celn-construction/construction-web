@@ -36,9 +36,9 @@ export function OnboardingProgress({
                 className={cn(
                   "flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
                   isComplete &&
-                    "bg-[var(--accent-warm)] text-white",
+                    "bg-[var(--accent-primary)] text-[var(--bg-primary)]",
                   isActive &&
-                    "bg-[var(--accent-warm)] text-white",
+                    "bg-[var(--accent-primary)] text-[var(--bg-primary)]",
                   !isComplete &&
                     !isActive &&
                     "border-2 border-[var(--border-color)] text-[var(--text-muted)]"
@@ -89,7 +89,7 @@ export function OnboardingProgress({
       {/* Progress bar */}
       <div className="relative h-1 w-full overflow-hidden rounded-full bg-[var(--bg-input)]">
         <motion.div
-          className="h-full rounded-full bg-[var(--accent-warm)]"
+          className="h-full rounded-full bg-[var(--accent-primary)]"
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{

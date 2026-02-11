@@ -40,7 +40,7 @@ export function StepContact({ formData, updateField }: StepContactProps) {
           type="tel"
           value={formData.phone}
           onChange={(e) => updateField("phone", e.target.value)}
-          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-warm)]"
+          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
           placeholder="(555) 123-4567"
         />
       </OnboardingField>
@@ -50,7 +50,7 @@ export function StepContact({ formData, updateField }: StepContactProps) {
           type="url"
           value={formData.website}
           onChange={(e) => updateField("website", e.target.value)}
-          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-warm)]"
+          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
           placeholder="https://example.com"
         />
       </OnboardingField>
@@ -60,7 +60,7 @@ export function StepContact({ formData, updateField }: StepContactProps) {
           type="text"
           value={formData.address}
           onChange={(e) => updateField("address", e.target.value)}
-          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-warm)]"
+          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
           placeholder="123 Main Street"
         />
       </OnboardingField>
@@ -71,7 +71,7 @@ export function StepContact({ formData, updateField }: StepContactProps) {
             type="text"
             value={formData.city}
             onChange={(e) => updateField("city", e.target.value)}
-            className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-warm)]"
+            className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
             placeholder="City"
           />
         </OnboardingField>
@@ -81,7 +81,7 @@ export function StepContact({ formData, updateField }: StepContactProps) {
             type="text"
             value={formData.state}
             onChange={(e) => updateField("state", e.target.value)}
-            className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-warm)]"
+            className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
             placeholder="State"
           />
         </OnboardingField>
@@ -91,7 +91,7 @@ export function StepContact({ formData, updateField }: StepContactProps) {
             type="text"
             value={formData.zip}
             onChange={(e) => updateField("zip", e.target.value)}
-            className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-warm)]"
+            className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
             placeholder="ZIP"
           />
         </OnboardingField>

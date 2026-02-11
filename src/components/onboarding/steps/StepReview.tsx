@@ -61,7 +61,7 @@ export function StepReview({ formData, updateField }: StepReviewProps) {
           type="text"
           value={formData.licenseNumber}
           onChange={(e) => updateField("licenseNumber", e.target.value)}
-          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-warm)]"
+          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
           placeholder="Enter license number"
         />
       </OnboardingField>
