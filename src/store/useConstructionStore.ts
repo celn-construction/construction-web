@@ -3,7 +3,10 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { enableMapSet } from 'immer';
 import type { GanttFeature, GanttStatus } from '@/types/gantt-types';
+
+enableMapSet();
 
 // ============================================================================
 // TYPES
