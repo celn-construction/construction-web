@@ -24,7 +24,7 @@ import {
   startOfDay,
   startOfMonth,
 } from "date-fns";
-import { atom, useAtom } from "jotai";
+import { atom, useAtom, useSetAtom, useAtomValue } from "jotai";
 import throttle from "lodash.throttle";
 import { PencilIcon, PlusIcon, TrashIcon, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -60,10 +60,10 @@ import { cn } from "src/lib/utils";
 const draggingAtom = atom(false);
 const scrollXAtom = atom(0);
 const draggingFeatureIdAtom = atom<string | null>(null);
-const dragHighlightAtom = atom<{ startAt: Date; endAt: Date | null } | null>(null);
 
 export const useGanttDragging = () => useAtom(draggingAtom);
 export const useGanttScrollX = () => useAtom(scrollXAtom);
+const useSetGanttDragging = () => useSetAtom(draggingAtom);
 
 export type GanttStatus = {
   id: string;
@@ -109,6 +109,7 @@ export type GanttContextProps = {
   timelineData: TimelineData;
   ref: RefObject<HTMLDivElement | null> | null;
   scrollToFeature?: (feature: GanttFeature) => void;
+  dragHighlightRef: RefObject<HTMLDivElement | null> | null;
 };
 
 const getsDaysIn = (range: Range) => {
@@ -325,6 +326,7 @@ const GanttContext = createContext<GanttContextProps>({
   timelineData: [],
   ref: null,
   scrollToFeature: undefined,
+  dragHighlightRef: null,
 });
 
 export type GanttContentHeaderProps = {
@@ -811,26 +813,8 @@ export const GanttColumns: FC<GanttColumnsProps> = ({
   const [dragging] = useGanttDragging();
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverInfo, setHoverInfo] = useState<{ mouseY: number } | null>(null);
-  // Improvement #7: Read drag highlight atom
-  const [dragHighlight] = useAtom(dragHighlightAtom);
 
   const showHelper = !dragging && gantt.onAddItem;
-
-  // Improvement #7: Calculate highlight overlay position
-  const timelineStartDate = useMemo(
-    () => new Date(gantt.timelineData.at(0)?.year ?? 0, 0, 1),
-    [gantt.timelineData]
-  );
-
-  const highlightStyle = useMemo(() => {
-    if (!dragHighlight) return null;
-    const highlightOffset = getOffset(dragHighlight.startAt, timelineStartDate, gantt);
-    const highlightWidth = getWidth(dragHighlight.startAt, dragHighlight.endAt, gantt);
-    return {
-      left: Math.round(highlightOffset),
-      width: Math.round(highlightWidth),
-    };
-  }, [dragHighlight, timelineStartDate, gantt]);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -863,20 +847,6 @@ export const GanttColumns: FC<GanttColumnsProps> = ({
           key={`${id}-${index}`}
         />
       ))}
-
-      {/* Improvement #7: Grid column highlight overlay */}
-      {highlightStyle && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.08 }}
-          exit={{ opacity: 0 }}
-          className="absolute top-0 h-full pointer-events-none bg-[var(--timeline-accent)]"
-          style={{
-            left: highlightStyle.left,
-            width: highlightStyle.width,
-          }}
-        />
-      )}
 
       {/* Single helper instance for the entire container */}
       {showHelper && hoverInfo ? (
@@ -949,7 +919,7 @@ export const GanttFeatureDragHelper: FC<GanttFeatureDragHelperProps> = ({
   featureId,
   date,
 }) => {
-  const [, setDragging] = useGanttDragging();
+  const setDragging = useSetGanttDragging();
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `feature-drag-helper-${featureId}`,
   });
@@ -1004,8 +974,8 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
   statusColor,
   onClick,
 }) => {
-  const [, setDragging] = useGanttDragging();
-  const [, setDraggingFeatureId] = useAtom(draggingFeatureIdAtom);
+  const setDragging = useSetGanttDragging();
+  const setDraggingFeatureId = useSetAtom(draggingFeatureIdAtom);
   const { attributes, listeners, setNodeRef } = useDraggable({ id });
   const isPressed = Boolean(attributes["aria-pressed"]);
 
@@ -1056,6 +1026,49 @@ export type GanttFeatureItemProps = GanttFeature & {
   className?: string;
 };
 
+// Fix 1: rAF-throttle hook for drag handlers
+function useRafCallback<T extends (...args: any[]) => void>(callback: T): T {
+  const rafRef = useRef<number | null>(null);
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
+  const rafCallback = useCallback((...args: any[]) => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      callbackRef.current(...args);
+    });
+  }, []) as T;
+  useEffect(() => () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); }, []);
+  return rafCallback;
+}
+
+// Fix 2: Direct DOM manipulation for drag highlight
+const updateDragHighlightDOM = (
+  ref: RefObject<HTMLDivElement | null>,
+  startAt: Date,
+  endAt: Date | null,
+  timelineStartDate: Date,
+  gantt: GanttContextProps
+) => {
+  const el = ref.current;
+  if (!el) return;
+
+  const highlightOffset = getOffset(startAt, timelineStartDate, gantt);
+  const highlightWidth = getWidth(startAt, endAt, gantt);
+
+  el.style.display = 'block';
+  el.style.opacity = '0.08';
+  el.style.transform = `translateX(${Math.round(highlightOffset)}px)`;
+  el.style.width = `${Math.round(highlightWidth)}px`;
+};
+
+const clearDragHighlightDOM = (ref: RefObject<HTMLDivElement | null>) => {
+  const el = ref.current;
+  if (!el) return;
+  el.style.display = 'none';
+  el.style.opacity = '0';
+};
+
 // Drag layer component - only mounted on hover
 type GanttFeatureItemDragLayerProps = {
   feature: GanttFeature;
@@ -1098,8 +1111,14 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
   // Improvement #3: Ghost position state
   const [originalOffset, setOriginalOffset] = useState(offset);
   const [originalWidth, setOriginalWidth] = useState(width);
-  // Improvement #7: Drag highlight atom
-  const [, setDragHighlight] = useAtom(dragHighlightAtom);
+  // Fix 6: Cache original date computation
+  const originalDateRef = useRef<Date | null>(null);
+
+  // Compute timelineStartDate once
+  const timelineStartDate = useMemo(
+    () => new Date(gantt.timelineData.at(0)?.year ?? 0, 0, 1),
+    [gantt.timelineData]
+  );
 
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
@@ -1119,17 +1138,19 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
       // Improvement #3: Capture original position
       setOriginalOffset(offset);
       setOriginalWidth(width);
-      // Improvement #7: Set drag highlight
-      setDragHighlight({ startAt, endAt });
+      // Fix 6: Cache original date
+      originalDateRef.current = getDateByMousePosition(gantt, mouseX);
+      // Fix 2: Set drag highlight via DOM
+      updateDragHighlightDOM(gantt.dragHighlightRef!, startAt, endAt, timelineStartDate, gantt);
     }
-  }, [gantt, scrollX, startAt, endAt, offset, width, setDragHighlight]);
+  }, [gantt, scrollX, startAt, endAt, offset, width, timelineStartDate]);
 
-  const handleItemDragMove = useCallback((event: any) => {
+  const handleItemDragMoveRaw = useCallback((event: any) => {
     if (event.activatorEvent && event.delta) {
       const ganttRect = gantt.ref?.current?.getBoundingClientRect();
       const currentMouseX = event.activatorEvent.clientX - (ganttRect?.left ?? 0) + event.delta.x + scrollX - gantt.sidebarWidth;
       const currentDate = getDateByMousePosition(gantt, currentMouseX);
-      const originalDate = getDateByMousePosition(gantt, previousMouseX);
+      const originalDate = originalDateRef.current!;
       const delta =
         gantt.range === "daily"
           ? getDifferenceIn(gantt.range)(currentDate, originalDate)
@@ -1138,22 +1159,29 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
       const newEndDate = previousEndAt ? addDays(previousEndAt, delta) : null;
 
       // Improvement #1: Snap to day
-      setStartAt(startOfDay(newStartDate));
-      setEndAt(newEndDate ? startOfDay(newEndDate) : null);
-      // Improvement #7: Update drag highlight
-      setDragHighlight({ startAt: startOfDay(newStartDate), endAt: newEndDate ? startOfDay(newEndDate) : null });
+      const snappedStart = startOfDay(newStartDate);
+      const snappedEnd = newEndDate ? startOfDay(newEndDate) : null;
+      setStartAt(snappedStart);
+      setEndAt(snappedEnd);
+      // Fix 2: Update drag highlight via DOM
+      updateDragHighlightDOM(gantt.dragHighlightRef!, snappedStart, snappedEnd, timelineStartDate, gantt);
     }
-  }, [gantt, scrollX, previousMouseX, previousStartAt, previousEndAt, setStartAt, setEndAt, setDragHighlight]);
+  }, [gantt, scrollX, previousStartAt, previousEndAt, setStartAt, setEndAt, timelineStartDate]);
+
+  // Fix 1: Wrap with rAF throttle
+  const handleItemDragMove = useRafCallback(handleItemDragMoveRaw);
 
   const onDragEnd = useCallback(
     () => {
       onMove?.(feature.id, startAt, endAt);
       // Improvement #2: Clear drag active
       setIsDragActive(false);
-      // Improvement #7: Clear drag highlight
-      setDragHighlight(null);
+      // Fix 2: Clear drag highlight via DOM
+      clearDragHighlightDOM(gantt.dragHighlightRef!);
+      // Fix 6: Clear cached date
+      originalDateRef.current = null;
     },
-    [onMove, feature.id, startAt, endAt, setDragHighlight]
+    [onMove, feature.id, startAt, endAt, gantt]
   );
 
   // Improvement #2: Drag cancel handler
@@ -1161,10 +1189,11 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
     setStartAt(previousStartAt);
     setEndAt(previousEndAt);
     setIsDragActive(false);
-    setDragHighlight(null);
-  }, [previousStartAt, previousEndAt, setStartAt, setEndAt, setDragHighlight]);
+    clearDragHighlightDOM(gantt.dragHighlightRef!);
+    originalDateRef.current = null;
+  }, [previousStartAt, previousEndAt, setStartAt, setEndAt, gantt]);
 
-  const handleLeftDragMove = useCallback((event: any) => {
+  const handleLeftDragMoveRaw = useCallback((event: any) => {
     if (event.activatorEvent && event.delta) {
       const ganttRect = gantt.ref?.current?.getBoundingClientRect();
       const x =
@@ -1172,13 +1201,17 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
       const newStartAt = getDateByMousePosition(gantt, x);
 
       // Improvement #1: Snap to day
-      setStartAt(startOfDay(newStartAt));
-      // Improvement #7: Update drag highlight
-      setDragHighlight({ startAt: startOfDay(newStartAt), endAt });
+      const snappedStart = startOfDay(newStartAt);
+      setStartAt(snappedStart);
+      // Fix 2: Update drag highlight via DOM
+      updateDragHighlightDOM(gantt.dragHighlightRef!, snappedStart, endAt, timelineStartDate, gantt);
     }
-  }, [gantt, scrollX, setStartAt, endAt, setDragHighlight]);
+  }, [gantt, scrollX, setStartAt, endAt, timelineStartDate]);
 
-  const handleRightDragMove = useCallback((event: any) => {
+  // Fix 1: Wrap with rAF throttle
+  const handleLeftDragMove = useRafCallback(handleLeftDragMoveRaw);
+
+  const handleRightDragMoveRaw = useCallback((event: any) => {
     if (event.activatorEvent && event.delta) {
       const ganttRect = gantt.ref?.current?.getBoundingClientRect();
       const x =
@@ -1186,11 +1219,15 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
       const newEndAt = getDateByMousePosition(gantt, x);
 
       // Improvement #1: Snap to day
-      setEndAt(startOfDay(newEndAt));
-      // Improvement #7: Update drag highlight
-      setDragHighlight({ startAt, endAt: startOfDay(newEndAt) });
+      const snappedEnd = startOfDay(newEndAt);
+      setEndAt(snappedEnd);
+      // Fix 2: Update drag highlight via DOM
+      updateDragHighlightDOM(gantt.dragHighlightRef!, startAt, snappedEnd, timelineStartDate, gantt);
     }
-  }, [gantt, scrollX, setEndAt, startAt, setDragHighlight]);
+  }, [gantt, scrollX, setEndAt, startAt, timelineStartDate]);
+
+  // Fix 1: Wrap with rAF throttle
+  const handleRightDragMove = useRafCallback(handleRightDragMoveRaw);
 
   // Improvement #2: Escape key handler
   useEffect(() => {
@@ -1234,7 +1271,7 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
             exit={{ opacity: 0 }}
             className="absolute top-0 rounded-md border-2 border-dashed border-[var(--timeline-accent)]"
             style={{
-              left: Math.round(originalOffset),
+              transform: `translateX(${Math.round(originalOffset)}px)`,
               width: Math.round(originalWidth),
               height: "calc(var(--gantt-row-height) - 4px)",
             }}
@@ -1329,9 +1366,12 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
   const [endAt, setEndAt] = useState<Date | null>(feature.endAt);
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  // Improvement #4: Read dragging feature ID for z-index
-  const [draggingFeatureId] = useAtom(draggingFeatureIdAtom);
-  const isDraggingThis = draggingFeatureId === feature.id;
+  // Fix 5: Derived atom for dragging state
+  const isDraggingThisAtom = useMemo(
+    () => atom((get) => get(draggingFeatureIdAtom) === feature.id),
+    [feature.id]
+  );
+  const isDraggingThis = useAtomValue(isDraggingThisAtom);
 
   // Memoize expensive calculations
   const width = useMemo(
@@ -1358,20 +1398,20 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Improvement #5: Motion wrapper for smooth settle animation */}
+      {/* Fix 3: Use transform instead of left for GPU compositing */}
       <motion.div
         ref={cardRef}
         className="pointer-events-auto absolute top-0.5"
         style={{
           height: "calc(var(--gantt-row-height) - 4px)",
-          width: Math.round(width),
-          left: Math.round(offset),
+          left: 0,
           // Improvement #4: Increase z-index when dragging
           zIndex: isDraggingThis ? 50 : 1,
+          willChange: isDraggingThis ? 'transform, width' : 'auto',
         }}
         animate={{
+          x: Math.round(offset),
           width: Math.round(width),
-          left: Math.round(offset),
         }}
         transition={
           isDraggingThis
@@ -1628,6 +1668,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
   className,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const dragHighlightRef = useRef<HTMLDivElement>(null);
   const [timelineData, setTimelineData] = useState<TimelineData>(
     createInitialTimelineData(new Date())
   );
@@ -1676,6 +1717,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         placeholderLength: 2,
         timelineData,
         ref: scrollRef,
+        dragHighlightRef,
       });
       // Center today in the visible area
       scrollRef.current.scrollLeft = Math.max(0, todayOffset - scrollRef.current.clientWidth / 2);
@@ -1819,6 +1861,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         placeholderLength: 2,
         timelineData,
         ref: scrollRef,
+        dragHighlightRef,
       });
 
       // Scroll to align the feature's start with the right side of the sidebar
@@ -1846,6 +1889,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         placeholderLength: 2,
         ref: scrollRef,
         scrollToFeature,
+        dragHighlightRef,
       }}
     >
       <div
@@ -1860,6 +1904,12 @@ export const GanttProvider: FC<GanttProviderProps> = ({
           gridTemplateColumns: "var(--gantt-sidebar-width) 1fr",
         }}
       >
+        {/* Fix 2: Drag highlight overlay with direct DOM manipulation */}
+        <div
+          ref={dragHighlightRef}
+          className="pointer-events-none absolute top-0 h-full bg-[var(--timeline-accent)] z-10"
+          style={{ display: 'none', opacity: 0 }}
+        />
         {children}
       </div>
     </GanttContext.Provider>
