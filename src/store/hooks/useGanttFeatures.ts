@@ -135,3 +135,17 @@ export function useIsCollapsed(featureId: string): boolean {
 export function useCollapsedFeatureIds(): Set<string> {
   return useConstructionStore((state) => state.collapsedFeatureIds);
 }
+
+/**
+ * Hook to get the current project ID
+ */
+export function useCurrentProjectId(): string | null {
+  return useConstructionStore((state) => state.currentProjectId);
+}
+
+/**
+ * Hook to get the switchProject action
+ */
+export function useSwitchProject() {
+  return useConstructionStore((state) => state.switchProject);
+}

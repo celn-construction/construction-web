@@ -86,8 +86,22 @@ model Organization {
 
     memberships Membership[]
     invitations Invitation[]
+    projects    Project[]
 
     @@index([slug])
+}
+
+model Project {
+    id             String   @id @default(cuid())
+    name           String
+    status         String   @default("active")
+    organizationId String
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    @@index([organizationId])
 }
 
 model Membership {

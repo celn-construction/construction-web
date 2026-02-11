@@ -15,8 +15,18 @@ enableMapSet();
 type FeatureId = string;
 type GroupName = string;
 
+interface ProjectData {
+  features: GanttFeature[];
+  groups: GroupName[];
+  collapsedFeatureIds: Set<string>;
+}
+
 interface ConstructionState {
-  // ========== DOMAIN DATA ==========
+  // ========== PROJECT MANAGEMENT ==========
+  currentProjectId: string | null;
+  projectData: Record<string, ProjectData>;
+
+  // ========== DOMAIN DATA (active project) ==========
   features: GanttFeature[];
 
   // ========== METADATA ==========
@@ -25,6 +35,9 @@ interface ConstructionState {
   collapsedFeatureIds: Set<string>;
 
   // ========== ACTIONS ==========
+  // Project switching
+  switchProject: (projectId: string) => void;
+
   // Feature CRUD
   addFeature: (feature: GanttFeature) => void;
   updateFeature: (id: FeatureId, updates: Partial<GanttFeature>) => void;
@@ -85,6 +98,99 @@ const DEFAULT_STATUSES: Record<string, GanttStatus> = {
   'in-progress': IN_PROGRESS_STATUS,
   planned: PLANNED_STATUS,
 };
+
+// Residential Complex default data
+const RESIDENTIAL_GROUPS: GroupName[] = [
+  'Demolition',
+  'Utilities',
+  'Structure',
+  'Interior',
+  'Landscaping',
+];
+
+const RESIDENTIAL_FEATURES: GanttFeature[] = [
+  {
+    id: 'res-task-1',
+    name: 'Remove Existing Structures',
+    status: COMPLETED_STATUS,
+    group: 'Demolition',
+    startAt: new Date('2026-01-15'),
+    endAt: new Date('2026-01-25'),
+    progress: 100,
+  },
+  {
+    id: 'res-task-2',
+    name: 'Clear Debris',
+    status: COMPLETED_STATUS,
+    group: 'Demolition',
+    startAt: new Date('2026-01-26'),
+    endAt: new Date('2026-02-05'),
+    progress: 100,
+  },
+  {
+    id: 'res-task-3',
+    name: 'Water Line Installation',
+    status: IN_PROGRESS_STATUS,
+    group: 'Utilities',
+    startAt: new Date('2026-02-06'),
+    endAt: new Date('2026-02-20'),
+    progress: 55,
+  },
+  {
+    id: 'res-task-4',
+    name: 'Electrical Infrastructure',
+    status: PLANNED_STATUS,
+    group: 'Utilities',
+    startAt: new Date('2026-02-18'),
+    endAt: new Date('2026-03-05'),
+    progress: 0,
+  },
+  {
+    id: 'res-task-5',
+    name: 'Building Foundations',
+    status: PLANNED_STATUS,
+    group: 'Structure',
+    startAt: new Date('2026-03-01'),
+    endAt: new Date('2026-03-20'),
+    progress: 0,
+  },
+  {
+    id: 'res-task-6',
+    name: 'Framing & Roof',
+    status: PLANNED_STATUS,
+    group: 'Structure',
+    startAt: new Date('2026-03-18'),
+    endAt: new Date('2026-04-10'),
+    progress: 0,
+  },
+  {
+    id: 'res-task-7',
+    name: 'Drywall Installation',
+    status: PLANNED_STATUS,
+    group: 'Interior',
+    startAt: new Date('2026-04-08'),
+    endAt: new Date('2026-04-25'),
+    progress: 0,
+  },
+  {
+    id: 'res-task-8',
+    name: 'Painting & Flooring',
+    status: PLANNED_STATUS,
+    group: 'Interior',
+    startAt: new Date('2026-04-23'),
+    endAt: new Date('2026-05-12'),
+    progress: 0,
+  },
+  {
+    id: 'res-task-9',
+    name: 'Sod & Irrigation',
+    status: PLANNED_STATUS,
+    group: 'Landscaping',
+    startAt: new Date('2026-05-05'),
+    endAt: new Date('2026-05-20'),
+    progress: 0,
+  },
+];
 
 const DEFAULT_FEATURES: GanttFeature[] = [
   // Site Prep - 3 features, 2 sub-rows (Survey+Demolition share row 0, Grading overlaps Demo → row 1)
@@ -232,12 +338,48 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
     persist(
       immer((set, get) => ({
         // Initial state - populated with sample construction tasks
+        currentProjectId: null,
+        projectData: {},
         features: DEFAULT_FEATURES,
         groups: DEFAULT_GROUPS,
         statuses: DEFAULT_STATUSES,
         collapsedFeatureIds: new Set<string>(),
 
         // ========== ACTIONS ==========
+
+        switchProject: (projectId) =>
+          set((state) => {
+            // Save current project data before switching
+            if (state.currentProjectId) {
+              state.projectData[state.currentProjectId] = {
+                features: state.features,
+                groups: state.groups,
+                collapsedFeatureIds: state.collapsedFeatureIds,
+              };
+            }
+
+            // Load new project data or use defaults
+            const projectData = state.projectData[projectId];
+            if (projectData) {
+              state.features = projectData.features;
+              state.groups = projectData.groups;
+              state.collapsedFeatureIds = projectData.collapsedFeatureIds;
+            } else {
+              // First time visiting this project - use defaults based on project ID
+              // We'll use the index (0 or 1) to determine which defaults to use
+              const isFirstProject = Object.keys(state.projectData).length === 0;
+              if (isFirstProject) {
+                state.features = DEFAULT_FEATURES;
+                state.groups = DEFAULT_GROUPS;
+              } else {
+                state.features = RESIDENTIAL_FEATURES;
+                state.groups = RESIDENTIAL_GROUPS;
+              }
+              state.collapsedFeatureIds = new Set<string>();
+            }
+
+            state.currentProjectId = projectId;
+          }),
 
         addFeature: (feature) =>
           set((state) => {
@@ -376,18 +518,54 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
       })),
       {
         name: 'construction-storage',
-        version: 4,
-        partialize: (state) => ({
-          features: state.features,
-          groups: state.groups,
-          collapsedFeatureIds: Array.from(state.collapsedFeatureIds),
-        }),
+        version: 5,
+        partialize: (state) => {
+          // Save current project data before persisting
+          const updatedProjectData = { ...state.projectData };
+          if (state.currentProjectId) {
+            updatedProjectData[state.currentProjectId] = {
+              features: state.features,
+              groups: state.groups,
+              collapsedFeatureIds: state.collapsedFeatureIds,
+            };
+          }
+
+          return {
+            currentProjectId: state.currentProjectId,
+            projectData: Object.fromEntries(
+              Object.entries(updatedProjectData).map(([id, data]) => [
+                id,
+                {
+                  features: data.features,
+                  groups: data.groups,
+                  collapsedFeatureIds: Array.from(data.collapsedFeatureIds),
+                },
+              ])
+            ),
+          };
+        },
         // Rehydrate dates from localStorage (JSON serializes them as strings)
         onRehydrateStorage: () => (state) => {
+          if (state?.projectData) {
+            // Rehydrate each project's data
+            for (const [projectId, data] of Object.entries(state.projectData)) {
+              if (data.features) {
+                data.features = data.features.map((feature: GanttFeature) => ({
+                  ...feature,
+                  startAt: feature.startAt ? new Date(feature.startAt) : feature.startAt,
+                  endAt: feature.endAt ? new Date(feature.endAt) : feature.endAt,
+                }));
+              }
+              // Rehydrate Set from array
+              if (Array.isArray((data as any).collapsedFeatureIds)) {
+                data.collapsedFeatureIds = new Set((data as any).collapsedFeatureIds);
+              }
+            }
+          }
+          // Rehydrate current project's live state
           if (state?.features) {
             state.features = state.features.map((feature) => ({
               ...feature,
-              // Convert string dates back to Date objects
               startAt: feature.startAt ? new Date(feature.startAt) : feature.startAt,
               endAt: feature.endAt ? new Date(feature.endAt) : feature.endAt,
             }));
@@ -398,14 +576,31 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
           }
         },
         migrate: (persistedState: unknown, version: number) => {
-          if (version < 4) {
+          if (version < 5) {
+            // Migrate v4 to v5: wrap single-project data into multi-project structure
+            const v4State = persistedState as any;
+            if (v4State?.features && v4State?.groups) {
+              // The v4 data becomes the data for a null project (will be set on first load)
+              return {
+                currentProjectId: null,
+                projectData: {
+                  _default: {
+                    features: v4State.features,
+                    groups: v4State.groups,
+                    collapsedFeatureIds: v4State.collapsedFeatureIds || [],
+                  },
+                },
+              };
+            }
             return {
-              features: DEFAULT_FEATURES,
-              groups: DEFAULT_GROUPS,
-              collapsedFeatureIds: [],
+              currentProjectId: null,
+              projectData: {},
             };
           }
-          return persistedState as { features: GanttFeature[]; groups: GroupName[]; collapsedFeatureIds: string[] };
+          return persistedState as {
+            currentProjectId: string | null;
+            projectData: Record<string, { features: GanttFeature[]; groups: GroupName[]; collapsedFeatureIds: string[] }>
+          };
         },
       }
     ),

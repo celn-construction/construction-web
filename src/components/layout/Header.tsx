@@ -1,15 +1,38 @@
 'use client';
 
-import { Search, Moon, Sun, ChevronRight, Bell, Home, Calendar, FileText, LayoutGrid, Zap, Clipboard, Users } from 'lucide-react';
+import { Search, Moon, Sun, ChevronRight, ChevronDown, Bell, Home, Calendar, FileText, LayoutGrid, Zap, Clipboard, Users } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
 import { navItems } from './navItems';
+import { api } from '@/trpc/react';
+import { useCurrentProjectId, useSwitchProject } from '@/store/hooks';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function Header() {
   const { theme, toggleTheme } = useThemeStore();
   const pathname = usePathname();
+
+  // Project management
+  const { data: projects = [], isLoading: projectsLoading } = api.project.list.useQuery();
+  const currentProjectId = useCurrentProjectId();
+  const switchProject = useSwitchProject();
+
+  // Auto-set first project on initial load
+  useEffect(() => {
+    if (!currentProjectId && projects.length > 0 && !projectsLoading) {
+      switchProject(projects[0]!.id);
+    }
+  }, [currentProjectId, projects, projectsLoading, switchProject]);
+
+  const currentProject = projects.find(p => p.id === currentProjectId);
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -61,6 +84,42 @@ export default function Header() {
         <motion.div variants={item}>
           <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
         </motion.div>
+
+        {/* Project Switcher */}
+        {!projectsLoading && projects.length > 0 && (
+          <>
+            <motion.div variants={item}>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-secondary)] text-sm font-medium">
+                  {currentProject?.name ?? 'Select Project'}
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {projects.map((project) => (
+                    <DropdownMenuItem
+                      key={project.id}
+                      onClick={() => switchProject(project.id)}
+                      className="flex items-center gap-2"
+                    >
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          project.id === currentProjectId
+                            ? 'bg-[var(--status-green)]'
+                            : 'bg-transparent'
+                        }`}
+                      />
+                      {project.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </motion.div>
+            <motion.div variants={item}>
+              <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+            </motion.div>
+          </>
+        )}
+
         <motion.div variants={item} className="flex items-center gap-2">
           <CurrentIcon className="w-[18px] h-[18px] text-[var(--text-primary)]" />
           <span className="text-[var(--text-primary)] font-medium text-sm">{currentPage?.label ?? 'Home'}</span>

@@ -9,6 +9,8 @@ export {
   useSubtasks,
   useIsCollapsed,
   useCollapsedFeatureIds,
+  useCurrentProjectId,
+  useSwitchProject,
 } from './useGanttFeatures';
 
 export {

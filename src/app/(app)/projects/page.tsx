@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { LayoutGrid } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ProjectsTree, { type Selection } from '@/components/projects/ProjectsTree';
@@ -11,6 +11,47 @@ export default function ProjectsPage() {
   const groups = useGroups();
   const { flatList } = useGroupedFeaturesWithRows();
   const [selection, setSelection] = useState<Selection | null>(null);
+
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+  const SIDEBAR_MIN = 200;
+  const SIDEBAR_MAX = 600;
+
+  const onDragHandleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = sidebarWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = e.clientX - dragStartX.current;
+      const newWidth = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, dragStartWidth.current + delta));
+      setSidebarWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)]">
@@ -45,16 +86,27 @@ export default function ProjectsPage() {
       >
         {/* Tree Pane - hidden on mobile when item selected */}
         <div
-          className={`w-full lg:w-80 border-r border-[var(--blueprint-line)] overflow-auto p-6 ${
+          className={`w-full lg:shrink-0 overflow-auto p-6 ${
             selection ? 'hidden lg:block' : 'block'
-          }`}
+          } max-lg:!w-full`}
+          style={{ width: sidebarWidth }}
         >
           <ProjectsTree selectedNodeId={selection?.nodeId || null} onSelect={setSelection} />
         </div>
 
+        {/* Drag Handle - Desktop Only */}
+        <div className="w-0 relative hidden lg:flex">
+          <div
+            className="absolute inset-y-0 -left-1 w-2 cursor-col-resize flex items-center justify-center group"
+            onMouseDown={onDragHandleMouseDown}
+          >
+            <div className="w-px h-full bg-[var(--blueprint-line)] group-hover:bg-[var(--blueprint-accent)] transition-colors" />
+          </div>
+        </div>
+
         {/* Detail Panel - hidden on mobile when nothing selected */}
         <div
-          className={`flex-1 bg-white dark:bg-[var(--bg-card)] ${
+          className={`flex-1 min-w-0 bg-white dark:bg-[var(--bg-card)] ${
             selection ? 'block' : 'hidden lg:block'
           }`}
         >

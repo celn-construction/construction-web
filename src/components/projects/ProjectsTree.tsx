@@ -189,10 +189,10 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
                             />
                           }
                         />
-                        <TreeLabel>
-                          <div className="flex items-center justify-between flex-1 gap-4">
-                            <span>{task.name}</span>
-                            <div className="flex items-center gap-3 text-xs">
+                        <TreeLabel className="overflow-hidden">
+                          <div className="flex items-center justify-between flex-1 gap-4 min-w-0">
+                            <span className="truncate">{task.name}</span>
+                            <div className="flex items-center gap-3 text-xs shrink-0">
                               {task.progress !== undefined && (
                                 <span className="text-gray-600 dark:text-gray-400">
                                   {task.progress}%
