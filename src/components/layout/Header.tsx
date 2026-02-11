@@ -1,12 +1,10 @@
 'use client';
 
-import { Search, Moon, Sun, ChevronRight, ChevronDown, Bell, Home, Calendar, FileText, LayoutGrid, Zap, Clipboard, Users, Plus } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { Search, Moon, Sun, ChevronDown, Bell, Users, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
-import { navItems } from './navItems';
 import { api } from '@/trpc/react';
 import { useCurrentProjectId, useSwitchProject } from '@/store/hooks';
 import {
@@ -20,7 +18,6 @@ import AddProjectDialog from '@/components/projects/AddProjectDialog';
 
 export default function Header() {
   const { theme, toggleTheme } = useThemeStore();
-  const pathname = usePathname();
   const [addProjectOpen, setAddProjectOpen] = useState(false);
 
   // Project management
@@ -40,26 +37,6 @@ export default function Header() {
 
   const currentProject = projects.find(p => p.id === currentProjectId);
 
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Home': return Home;
-      case 'Calendar': return Calendar;
-      case 'FileText': return FileText;
-      case 'LayoutGrid': return LayoutGrid;
-      case 'Zap': return Zap;
-      case 'Clipboard': return Clipboard;
-      case 'Users': return Users;
-      default: return Home;
-    }
-  };
-
-  const getCurrentPage = () => {
-    return navItems.find(item => item.href === pathname) ?? navItems[0];
-  };
-
-  const currentPage = getCurrentPage();
-  const CurrentIcon = getIcon(currentPage?.icon ?? 'Home');
-
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -77,21 +54,14 @@ export default function Header() {
 
   return (
     <header className="bg-[var(--bg-primary)] px-6 py-3 flex items-center justify-between border-b border-[var(--border-light)] transition-colors duration-150">
-      {/* Left: Breadcrumb */}
+      {/* Left: Project Switcher */}
       <motion.div
         variants={container}
         initial="hidden"
         animate="show"
         className="flex items-center gap-2"
       >
-        <motion.div variants={item} className="flex items-center gap-2 text-[var(--text-muted)] text-sm">
-          <span className="font-medium">BuildTrack</span>
-        </motion.div>
-        <motion.div variants={item}>
-          <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-        </motion.div>
-
-        {/* Project Switcher - Always render */}
+        {/* Project Switcher */}
         <motion.div variants={item}>
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -136,16 +106,6 @@ export default function Header() {
               </DropdownMenuContent>
             )}
           </DropdownMenu>
-        </motion.div>
-        {projects.length > 0 && (
-          <motion.div variants={item}>
-            <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-          </motion.div>
-        )}
-
-        <motion.div variants={item} className="flex items-center gap-2">
-          <CurrentIcon className="w-[18px] h-[18px] text-[var(--text-primary)]" />
-          <span className="text-[var(--text-primary)] font-medium text-sm">{currentPage?.label ?? 'Home'}</span>
         </motion.div>
       </motion.div>
 
