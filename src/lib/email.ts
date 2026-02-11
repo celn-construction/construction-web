@@ -20,7 +20,8 @@ export async function sendPasswordResetEmail(
 
   try {
     const { error } = await resend.emails.send({
-      from: "BuildTrack Pro <onboarding@resend.dev>",
+      // TODO: Change from rentnotify.com to buildtrack domain once verified
+      from: "BuildTrack Pro <noreply@rentnotify.com>",
       to: email,
       subject: "Reset your password",
       html: `
@@ -105,7 +106,8 @@ export async function sendInvitationEmail(
 
   try {
     const { error } = await resend.emails.send({
-      from: "BuildTrack Pro <onboarding@resend.dev>",
+      // TODO: Change from rentnotify.com to buildtrack domain once verified
+      from: "BuildTrack Pro <noreply@rentnotify.com>",
       to: email,
       subject: `${inviterName} invited you to join ${orgName}`,
       html: `
