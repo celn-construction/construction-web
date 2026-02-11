@@ -25,8 +25,8 @@ export default function Sidebar() {
     }
   };
 
-  const navigateItems = navItems.slice(0, 3);
-  const workspaceItems = navItems.slice(3);
+  const navigateItems = navItems.slice(0, 4);
+  const workspaceItems = navItems.slice(4);
 
   return (
     <aside className="h-screen w-52 bg-[var(--bg-sidebar)] flex flex-col sticky top-0 transition-colors duration-150 sidebar-depth">

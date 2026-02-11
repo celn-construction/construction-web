@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { X, Home, LayoutGrid, Zap, Clipboard, FileText, Calendar, Users } from 'lucide-react';
+import { X, Home, LayoutGrid, Zap, Clipboard, FileText, Calendar, Users, GanttChart } from 'lucide-react';
 import { navItems } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
 
@@ -19,6 +19,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
     switch (iconName) {
       case 'Home': return Home;
       case 'Calendar': return Calendar;
+      case 'GanttChart': return GanttChart;
       case 'FileText': return FileText;
       case 'LayoutGrid': return LayoutGrid;
       case 'Zap': return Zap;
@@ -94,7 +95,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
             <div className="px-3 mb-1 text-[10px] tracking-widest text-[var(--text-muted)] font-medium uppercase">
               Navigate
             </div>
-            {navItems.slice(0, 3).map((item) => {
+            {navItems.slice(0, 4).map((item) => {
               const Icon = getIcon(item.icon);
               const isActive = pathname === item.href;
 
@@ -126,7 +127,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
             <div className="px-3 mb-1 text-[10px] tracking-widest text-[var(--text-muted)] font-medium uppercase">
               Workspace
             </div>
-            {navItems.slice(3).map((item) => {
+            {navItems.slice(4).map((item) => {
               const Icon = getIcon(item.icon);
               const isActive = pathname === item.href;
 
