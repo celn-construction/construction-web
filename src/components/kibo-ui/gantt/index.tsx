@@ -515,13 +515,11 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
     ? formatDistance(feature.startAt, tempEndAt)
     : `${formatDistance(feature.startAt, new Date())} so far`;
 
-  const handleClick: MouseEventHandler<HTMLDivElement> = (event) => {
-    if (event.target === event.currentTarget) {
-      // Scroll to the feature in the timeline
-      gantt.scrollToFeature?.(feature);
-      // Call the original onSelectItem callback
-      onSelectItem?.(feature.id);
-    }
+  const handleClick: MouseEventHandler<HTMLDivElement> = () => {
+    // Scroll to the feature in the timeline
+    gantt.scrollToFeature?.(feature);
+    // Call the original onSelectItem callback
+    onSelectItem?.(feature.id);
   };
 
   const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (event) => {
@@ -595,18 +593,22 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
     >
       {/* Chevron for parent features with children */}
       {hasChildren && (
-        <button
-          className="pointer-events-auto shrink-0 p-0.5 rounded hover:bg-secondary"
+        <motion.button
+          className="pointer-events-auto shrink-0 p-0.5 rounded cursor-pointer hover:bg-[var(--timeline-accent)]/15"
           onClick={handleChevronClick}
           type="button"
+          title={isExpanded ? "Collapse" : "Expand"}
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.85 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
-          <ChevronRight
-            className={cn(
-              "w-3.5 h-3.5 transition-transform",
-              isExpanded && "rotate-90"
-            )}
-          />
-        </button>
+          <motion.div
+            animate={{ rotate: isExpanded ? 90 : 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </motion.div>
+        </motion.button>
       )}
 
       {/* Status dot */}
