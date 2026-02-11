@@ -26,7 +26,8 @@ import {
 } from "date-fns";
 import { atom, useAtom } from "jotai";
 import throttle from "lodash.throttle";
-import { PlusIcon, TrashIcon, ChevronRight } from "lucide-react";
+import { PencilIcon, PlusIcon, TrashIcon, ChevronRight } from "lucide-react";
+import { motion } from "motion/react";
 
 import type {
   CSSProperties,
@@ -542,12 +543,10 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
     onAddSubtask?.();
   };
 
-  const handleNameDoubleClick: MouseEventHandler<HTMLParagraphElement> = (event) => {
-    if (onRename) {
-      event.stopPropagation();
-      setIsEditing(true);
-      setEditValue(feature.name);
-    }
+  const handleEditClick: MouseEventHandler<HTMLButtonElement> = (event) => {
+    event.stopPropagation();
+    setIsEditing(true);
+    setEditValue(feature.name);
   };
 
   const commitEdit = useCallback(() => {
@@ -631,27 +630,51 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
         />
       ) : (
         <p
-          className="flex-1 truncate text-left font-medium group-hover:text-[var(--text-primary)] transition-colors cursor-text"
-          onDoubleClick={handleNameDoubleClick}
+          className="flex-1 truncate text-left font-medium group-hover:text-[var(--text-primary)] transition-colors"
         >
           {feature.name}
         </p>
       )}
 
-      {/* Duration */}
-      <p className="pointer-events-none text-muted-foreground font-mono group-hover:text-[var(--text-primary)] transition-colors">{duration}</p>
+      {/* Right section: duration + actions — fixed layout so columns align */}
+      <div className="flex items-center gap-1 shrink-0 ml-auto">
+        <p className="pointer-events-none text-muted-foreground font-mono text-right min-w-[4rem] group-hover:text-[var(--text-primary)] transition-colors">
+          {duration}
+        </p>
 
-      {/* Add subtask button (only for parent features) */}
-      {onAddSubtask && (
-        <button
-          className="pointer-events-auto shrink-0 p-1 rounded hover:bg-secondary opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={handleAddSubtaskClick}
-          type="button"
-          title="Add subtask"
-        >
-          <PlusIcon className="w-3.5 h-3.5" />
-        </button>
-      )}
+        {/* Action buttons — fixed-width slot so duration stays aligned */}
+        <div className="flex items-center w-[3.25rem]">
+          {/* Rename button */}
+          {onRename && !isEditing && (
+            <motion.button
+              className="pointer-events-auto shrink-0 p-1 rounded-md cursor-pointer opacity-0 group-hover:opacity-100 hover:bg-[var(--timeline-accent)]/15 transition-opacity duration-150"
+              onClick={handleEditClick}
+              type="button"
+              title="Rename"
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.85 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            >
+              <PencilIcon className="w-3.5 h-3.5" />
+            </motion.button>
+          )}
+
+          {/* Add subtask button (only for parent features) */}
+          {onAddSubtask && (
+            <motion.button
+              className="pointer-events-auto shrink-0 p-1 rounded-md cursor-pointer opacity-0 group-hover:opacity-100 hover:bg-[var(--timeline-accent)]/15 transition-opacity duration-150"
+              onClick={handleAddSubtaskClick}
+              type="button"
+              title="Add subtask"
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.85 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            >
+              <PlusIcon className="w-3.5 h-3.5" />
+            </motion.button>
+          )}
+        </div>
+      </div>
     </div>
   );
 });
@@ -665,7 +688,13 @@ export const GanttSidebarHeader: FC = () => (
   >
     {/* <Checkbox className="shrink-0" /> */}
     <p className="flex-1 truncate text-left">Scope</p>
-    <p className="shrink-0">Duration</p>
+    <div className="flex items-center gap-1 shrink-0">
+      <p className="text-right min-w-[4rem]">Duration</p>
+      <div className="flex items-center w-[3.25rem]">
+        <PencilIcon className="w-3.5 h-3.5 opacity-0" />
+        <PlusIcon className="w-3.5 h-3.5 opacity-0" />
+      </div>
+    </div>
   </div>
 );
 
