@@ -12,53 +12,71 @@ interface GroupedFeaturesWithRows {
   grouped: Record<GroupName, GanttFeature[]>;
   flatList: Array<{ feature: GanttFeature; rowIndex: number; group: GroupName }>;
   totalRows: number;
+  subtasksByParent: Map<string, GanttFeature[]>;
 }
 
 /**
  * Hook to get all grouped features with visual row mapping
  * Select raw state and derive computed values with useMemo to avoid SSR hydration issues
+ * Now includes hierarchy support: groups parent features only, builds subtask lookup
  */
 export function useGroupedFeaturesWithRows(): GroupedFeaturesWithRows {
   // Select stable state references only
-  const { features, groups } = useConstructionStore(
+  const { features, groups, collapsedFeatureIds } = useConstructionStore(
     useShallow((state) => ({
       features: state.features,
       groups: state.groups,
+      collapsedFeatureIds: state.collapsedFeatureIds,
     }))
   );
 
   // Derive computed values with useMemo for stable references
   return useMemo(() => {
-    // Group features by group name
+    // 1. Group only parent features (no parentId) by group name
     const grouped = groups.reduce(
       (acc, groupName) => {
-        acc[groupName] = features.filter((f) => f.group === groupName);
+        acc[groupName] = features.filter((f) => f.group === groupName && !f.parentId);
         return acc;
       },
       {} as Record<GroupName, GanttFeature[]>
     );
 
-    // Create flat list with row indices
-    const flatList = Object.entries(grouped).flatMap(
-      ([group, groupFeatures], groupIndex) => {
-        const previousGroupsFeatures = Object.values(grouped)
-          .slice(0, groupIndex)
-          .reduce((sum, g) => sum + g.length, 0);
-
-        return groupFeatures.map((feature, indexInGroup) => ({
-          feature,
-          rowIndex: previousGroupsFeatures + indexInGroup,
-          group,
-        }));
+    // 2. Build subtask lookup map
+    const subtasksByParent = new Map<string, GanttFeature[]>();
+    for (const feature of features) {
+      if (feature.parentId) {
+        const existing = subtasksByParent.get(feature.parentId) || [];
+        existing.push(feature);
+        subtasksByParent.set(feature.parentId, existing);
       }
-    );
+    }
+
+    // 3. Build flat list interleaving parents with their visible subtasks
+    const flatList: Array<{ feature: GanttFeature; rowIndex: number; group: GroupName }> = [];
+    let rowIndex = 0;
+
+    for (const [group, groupFeatures] of Object.entries(grouped)) {
+      for (const parent of groupFeatures) {
+        // Add parent
+        flatList.push({ feature: parent, rowIndex: rowIndex++, group });
+
+        // Add visible subtasks if not collapsed
+        if (!collapsedFeatureIds.has(parent.id)) {
+          const subtasks = subtasksByParent.get(parent.id) || [];
+          for (const subtask of subtasks) {
+            flatList.push({ feature: subtask, rowIndex: rowIndex++, group });
+          }
+        }
+      }
+    }
 
     return {
       grouped,
       flatList,
-      totalRows: features.length,
+      totalRows: flatList.length,
+      subtasksByParent,
     };
-  }, [features, groups]);
+  }, [features, groups, collapsedFeatureIds]);
 }
 
 /**
@@ -95,4 +113,25 @@ export function useGroups(): GroupName[] {
  */
 export function useStatuses(): Record<string, GanttStatus> {
   return useConstructionStore((state) => state.statuses);
+}
+
+/**
+ * Hook to get subtasks for a parent feature
+ */
+export function useSubtasks(parentId: string): GanttFeature[] {
+  return useConstructionStore((state) => state.getSubtasks(parentId));
+}
+
+/**
+ * Hook to check if a feature is collapsed
+ */
+export function useIsCollapsed(featureId: string): boolean {
+  return useConstructionStore((state) => state.isCollapsed(featureId));
+}
+
+/**
+ * Hook to get all collapsed feature IDs
+ */
+export function useCollapsedFeatureIds(): Set<string> {
+  return useConstructionStore((state) => state.collapsedFeatureIds);
 }

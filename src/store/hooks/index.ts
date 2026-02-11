@@ -6,6 +6,9 @@ export {
   useFeaturesByStatus,
   useGroups,
   useStatuses,
+  useSubtasks,
+  useIsCollapsed,
+  useCollapsedFeatureIds,
 } from './useGanttFeatures';
 
 export {
@@ -14,4 +17,6 @@ export {
   useUpdateFeature,
   useRemoveFeature,
   useMoveFeature,
+  useAddSubtask,
+  useToggleFeatureCollapse,
 } from './useFeatureActions';

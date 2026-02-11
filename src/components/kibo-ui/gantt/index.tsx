@@ -26,7 +26,7 @@ import {
 } from "date-fns";
 import { atom, useAtom } from "jotai";
 import throttle from "lodash.throttle";
-import { PlusIcon, TrashIcon } from "lucide-react";
+import { PlusIcon, TrashIcon, ChevronRight } from "lucide-react";
 
 import type {
   CSSProperties,
@@ -482,12 +482,22 @@ export type GanttSidebarItemProps = {
   feature: GanttFeature;
   onSelectItem?: (id: string) => void;
   className?: string;
+  hasChildren?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
+  isSubtask?: boolean;
+  onAddSubtask?: () => void;
 };
 
 export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
   feature,
   onSelectItem,
   className,
+  hasChildren = false,
+  isExpanded = false,
+  onToggleExpand,
+  isSubtask = false,
+  onAddSubtask,
 }) => {
   const gantt = useContext(GanttContext);
   const tempEndAt =
@@ -516,10 +526,21 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
     }
   };
 
+  const handleChevronClick: MouseEventHandler<HTMLButtonElement> = (event) => {
+    event.stopPropagation();
+    onToggleExpand?.();
+  };
+
+  const handleAddSubtaskClick: MouseEventHandler<HTMLButtonElement> = (event) => {
+    event.stopPropagation();
+    onAddSubtask?.();
+  };
+
   return (
     <div
       className={cn(
         "group relative flex items-center gap-2.5 p-2.5 text-xs transition-all duration-150 ease-in-out cursor-pointer hover:bg-secondary/80 hover:pl-3.5 hover:shadow-[inset_2px_0_0_var(--timeline-accent)]",
+        isSubtask && "pl-8",
         className
       )}
       key={feature.id}
@@ -532,17 +553,49 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
       }}
       tabIndex={0}
     >
-      {/* <Checkbox onCheckedChange={handleCheck} className="shrink-0" /> */}
+      {/* Chevron for parent features with children */}
+      {hasChildren && (
+        <button
+          className="pointer-events-auto shrink-0 p-0.5 rounded hover:bg-secondary"
+          onClick={handleChevronClick}
+          type="button"
+        >
+          <ChevronRight
+            className={cn(
+              "w-3.5 h-3.5 transition-transform",
+              isExpanded && "rotate-90"
+            )}
+          />
+        </button>
+      )}
+
+      {/* Status dot */}
       <div
         className="pointer-events-none h-2 w-2 shrink-0 rounded-full ring-1 ring-offset-1 group-hover:scale-125 transition-transform"
         style={{
           backgroundColor: feature.status.color,
         }}
       />
+
+      {/* Feature name */}
       <p className="pointer-events-none flex-1 truncate text-left font-medium group-hover:text-[var(--text-primary)] transition-colors">
         {feature.name}
       </p>
+
+      {/* Duration */}
       <p className="pointer-events-none text-muted-foreground font-mono group-hover:text-[var(--text-primary)] transition-colors">{duration}</p>
+
+      {/* Add subtask button (only for parent features) */}
+      {onAddSubtask && (
+        <button
+          className="pointer-events-auto shrink-0 p-1 rounded hover:bg-secondary opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={handleAddSubtaskClick}
+          type="button"
+          title="Add subtask"
+        >
+          <PlusIcon className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 });

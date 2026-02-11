@@ -33,13 +33,19 @@ import {
   useFeatureActions,
   useGroups,
   useUpdateFeature,
+  useCollapsedFeatureIds,
+  useToggleFeatureCollapse,
+  useAddSubtask,
 } from '@/store/hooks';
 
 export default function DashboardGantt() {
-  const { grouped, flatList: allFeatures } = useGroupedFeaturesWithRows();
+  const { grouped, flatList: allFeatures, subtasksByParent } = useGroupedFeaturesWithRows();
   const { move: moveFeature } = useFeatureActions();
   const updateFeature = useUpdateFeature();
   const groups = useGroups();
+  const collapsedIds = useCollapsedFeatureIds();
+  const toggleCollapse = useToggleFeatureCollapse();
+  const addSubtask = useAddSubtask();
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<{ id: string; name: string } | null>(null);
   const anchorRef = useRef<HTMLElement | null>(null);
@@ -74,15 +80,25 @@ export default function DashboardGantt() {
     return result;
   }, [groups, allFeatures]);
 
-  // Compute sub-row counts for each group to ensure sidebar/timeline height sync
+  // Compute row counts for each group (parent + visible subtasks)
   const subRowCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const groupName of groups) {
-      const groupFeatures = kiboGrouped[groupName] || [];
-      counts[groupName] = computeSubRows(groupFeatures);
+      const parents = grouped[groupName] || [];
+      let count = parents.length; // Start with parent count
+
+      // Add visible subtasks
+      for (const parent of parents) {
+        if (!collapsedIds.has(parent.id)) {
+          const subtasks = subtasksByParent.get(parent.id) || [];
+          count += subtasks.length;
+        }
+      }
+
+      counts[groupName] = count;
     }
     return counts;
-  }, [groups, kiboGrouped]);
+  }, [groups, grouped, collapsedIds, subtasksByParent]);
 
   // Sync ref with state
   selectedFeatureIdRef.current = selectedFeatureId;
@@ -145,6 +161,22 @@ export default function DashboardGantt() {
     setSelectedDoc({ id: docId, name: docName });
   }, []);
 
+  // Add subtask handler
+  const handleAddSubtask = useCallback((parentId: string) => {
+    const parent = allFeatures.find((item) => item.feature.id === parentId)?.feature;
+    if (!parent) return;
+
+    addSubtask(parentId, {
+      id: `${parentId}-sub-${Date.now()}`,
+      name: 'New Subtask',
+      status: parent.status,
+      group: parent.group,
+      startAt: parent.startAt,
+      endAt: parent.endAt,
+      parentId,
+    });
+  }, [allFeatures, addSubtask]);
+
   // Get selected feature (from full feature list to access coverImage)
   const selectedFeature = allFeatures.find((item) => item.feature.id === selectedFeatureId)?.feature;
 
@@ -170,12 +202,32 @@ export default function DashboardGantt() {
             {groups.map((groupName) => (
               <div key={groupName}>
                 <GanttSidebarGroup name={groupName} subRowCount={subRowCounts[groupName]}>
-                  {kiboGrouped[groupName]?.map((feature) => (
-                    <GanttSidebarItem
-                      key={feature.id}
-                      feature={feature}
-                    />
-                  ))}
+                  {grouped[groupName]?.map((parent) => {
+                    const subtasks = subtasksByParent.get(parent.id) || [];
+                    const isExpanded = !collapsedIds.has(parent.id);
+                    const hasChildren = subtasks.length > 0;
+
+                    return (
+                      <div key={parent.id}>
+                        {/* Parent item */}
+                        <GanttSidebarItem
+                          feature={parent}
+                          hasChildren={hasChildren}
+                          isExpanded={isExpanded}
+                          onToggleExpand={() => toggleCollapse(parent.id)}
+                          onAddSubtask={() => handleAddSubtask(parent.id)}
+                        />
+                        {/* Subtask items (only when expanded) */}
+                        {isExpanded && subtasks.map((subtask) => (
+                          <GanttSidebarItem
+                            key={subtask.id}
+                            feature={subtask}
+                            isSubtask={true}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
                 </GanttSidebarGroup>
               </div>
             ))}
@@ -186,12 +238,34 @@ export default function DashboardGantt() {
             <GanttFeatureList>
               {groups.map((groupName) => (
                 <GanttFeatureListGroup key={groupName}>
-                  <GanttFeatureRow
-                    features={kiboGrouped[groupName] || []}
-                    onMove={handleMove}
-                    onSelectItem={handleSelectItem}
-                    subRowCount={subRowCounts[groupName]}
-                  />
+                  {grouped[groupName]?.map((parent) => {
+                    const subtasks = subtasksByParent.get(parent.id) || [];
+                    const isExpanded = !collapsedIds.has(parent.id);
+                    const visibleSubtasks = isExpanded ? subtasks : [];
+
+                    return (
+                      <div key={parent.id}>
+                        {/* Parent row */}
+                        <GanttFeatureRow
+                          features={[parent]}
+                          onMove={handleMove}
+                          onSelectItem={handleSelectItem}
+                          subRowCount={1}
+                        />
+                        {/* Subtask rows */}
+                        {visibleSubtasks.map((subtask) => (
+                          <GanttFeatureRow
+                            key={subtask.id}
+                            features={[subtask]}
+                            onMove={handleMove}
+                            onSelectItem={handleSelectItem}
+                            subRowCount={1}
+                            className="bg-secondary/20"
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
                 </GanttFeatureListGroup>
               ))}
             </GanttFeatureList>

@@ -16,6 +16,8 @@ interface FeatureActions {
   updateMultiple: (updates: Array<{ id: FeatureId; changes: Partial<GanttFeature> }>) => void;
   reorderGroup: (groupName: GroupName, featureIds: FeatureId[]) => void;
   initialize: (features: GanttFeature[]) => void;
+  addSubtask: (parentId: FeatureId, subtask: GanttFeature) => void;
+  toggleCollapse: (featureId: FeatureId) => void;
 }
 
 /**
@@ -32,6 +34,8 @@ export function useFeatureActions(): FeatureActions {
       updateMultiple: state.updateMultipleFeatures,
       reorderGroup: state.reorderGroup,
       initialize: state.initializeFeatures,
+      addSubtask: state.addSubtask,
+      toggleCollapse: state.toggleFeatureCollapse,
     }))
   );
 }
@@ -62,4 +66,18 @@ export function useRemoveFeature() {
  */
 export function useMoveFeature() {
   return useConstructionStore((state) => state.moveFeature);
+}
+
+/**
+ * Hook to get add subtask action
+ */
+export function useAddSubtask() {
+  return useConstructionStore((state) => state.addSubtask);
+}
+
+/**
+ * Hook to get toggle collapse action
+ */
+export function useToggleFeatureCollapse() {
+  return useConstructionStore((state) => state.toggleFeatureCollapse);
 }

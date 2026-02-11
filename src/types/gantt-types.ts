@@ -16,4 +16,5 @@ export type GanttFeature = {
   group: string; // Required for construction tracking
   coverImage?: string;
   progress?: number;
+  parentId?: string; // If set, this is a subtask
 };

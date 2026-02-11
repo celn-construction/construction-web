@@ -19,6 +19,7 @@ interface ConstructionState {
   // ========== METADATA ==========
   groups: GroupName[];
   statuses: Record<string, GanttStatus>;
+  collapsedFeatureIds: Set<string>;
 
   // ========== ACTIONS ==========
   // Feature CRUD
@@ -35,6 +36,10 @@ interface ConstructionState {
 
   // Initialization
   initializeFeatures: (features: GanttFeature[]) => void;
+
+  // Hierarchy operations
+  addSubtask: (parentId: FeatureId, subtask: GanttFeature) => void;
+  toggleFeatureCollapse: (featureId: FeatureId) => void;
 }
 
 interface ConstructionSelectors {
@@ -49,6 +54,10 @@ interface ConstructionSelectors {
   // Visual/layout queries
   getTotalRows: () => number;
   getFlatFeaturesWithIndex: () => Array<{ feature: GanttFeature; rowIndex: number; group: GroupName }>;
+
+  // Hierarchy queries
+  getSubtasks: (parentId: FeatureId) => GanttFeature[];
+  isCollapsed: (featureId: FeatureId) => boolean;
 }
 
 // ============================================================================
@@ -102,6 +111,27 @@ const DEFAULT_FEATURES: GanttFeature[] = [
     startAt: new Date('2026-02-12'),
     endAt: new Date('2026-02-22'),
     progress: 65,
+  },
+  // Sample subtasks for Grading & Excavation
+  {
+    id: 'task-3-sub-1',
+    name: 'Topsoil Removal',
+    status: COMPLETED_STATUS,
+    group: 'Site Prep',
+    parentId: 'task-3',
+    startAt: new Date('2026-02-12'),
+    endAt: new Date('2026-02-16'),
+    progress: 100,
+  },
+  {
+    id: 'task-3-sub-2',
+    name: 'Rough Grading',
+    status: IN_PROGRESS_STATUS,
+    group: 'Site Prep',
+    parentId: 'task-3',
+    startAt: new Date('2026-02-17'),
+    endAt: new Date('2026-02-22'),
+    progress: 40,
   },
   // Foundation - 3 features, 2 sub-rows (cascading overlaps)
   {
@@ -202,6 +232,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
         features: DEFAULT_FEATURES,
         groups: DEFAULT_GROUPS,
         statuses: DEFAULT_STATUSES,
+        collapsedFeatureIds: new Set<string>(),
 
         // ========== ACTIONS ==========
 
@@ -222,7 +253,8 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
 
         removeFeature: (id) =>
           set((state) => {
-            state.features = state.features.filter((f) => f.id !== id);
+            // Cascade delete: remove the feature and all its subtasks
+            state.features = state.features.filter((f) => f.id !== id && f.parentId !== id);
           }),
 
         moveFeature: (id, startAt, endAt) =>
@@ -258,6 +290,29 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
         initializeFeatures: (features) =>
           set((state) => {
             state.features = features;
+          }),
+
+        addSubtask: (parentId, subtask) =>
+          set((state) => {
+            const parent = state.features.find((f) => f.id === parentId);
+            if (!parent) return;
+
+            // Reject if parent is already a subtask (only 1 level deep)
+            if (parent.parentId) return;
+
+            // Set the subtask's group and parentId
+            subtask.group = parent.group;
+            subtask.parentId = parentId;
+            state.features.push(subtask);
+          }),
+
+        toggleFeatureCollapse: (featureId) =>
+          set((state) => {
+            if (state.collapsedFeatureIds.has(featureId)) {
+              state.collapsedFeatureIds.delete(featureId);
+            } else {
+              state.collapsedFeatureIds.add(featureId);
+            }
           }),
 
         // ========== SELECTORS ==========
@@ -307,13 +362,22 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
             }
           );
         },
+
+        getSubtasks: (parentId) => {
+          return get().features.filter((f) => f.parentId === parentId);
+        },
+
+        isCollapsed: (featureId) => {
+          return get().collapsedFeatureIds.has(featureId);
+        },
       })),
       {
         name: 'construction-storage',
-        version: 3,
+        version: 4,
         partialize: (state) => ({
           features: state.features,
           groups: state.groups,
+          collapsedFeatureIds: Array.from(state.collapsedFeatureIds),
         }),
         // Rehydrate dates from localStorage (JSON serializes them as strings)
         onRehydrateStorage: () => (state) => {
@@ -325,16 +389,20 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
               endAt: feature.endAt ? new Date(feature.endAt) : feature.endAt,
             }));
           }
+          // Rehydrate Set from array
+          if (state && Array.isArray((state as any).collapsedFeatureIds)) {
+            state.collapsedFeatureIds = new Set((state as any).collapsedFeatureIds);
+          }
         },
         migrate: (persistedState: unknown, version: number) => {
-          // Force reset to new defaults for version 3 (construction-themed data)
-          if (version < 3) {
+          if (version < 4) {
             return {
               features: DEFAULT_FEATURES,
               groups: DEFAULT_GROUPS,
+              collapsedFeatureIds: [],
             };
           }
-          return persistedState as { features: GanttFeature[]; groups: GroupName[] };
+          return persistedState as { features: GanttFeature[]; groups: GroupName[]; collapsedFeatureIds: string[] };
         },
       }
     ),
