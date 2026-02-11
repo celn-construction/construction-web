@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar } from 'lucide-react';
+import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar, Users } from 'lucide-react';
 import { navItems } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
 import { api } from '~/trpc/react';
@@ -20,6 +20,7 @@ export default function Sidebar() {
       case 'Zap': return Zap;
       case 'Clipboard': return Clipboard;
       case 'GanttChart': return GanttChart;
+      case 'Users': return Users;
       default: return Home;
     }
   };

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { X, Home, LayoutGrid, Zap, Clipboard, FileText, Calendar } from 'lucide-react';
+import { X, Home, LayoutGrid, Zap, Clipboard, FileText, Calendar, Users } from 'lucide-react';
 import { navItems } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
 
@@ -23,6 +23,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       case 'LayoutGrid': return LayoutGrid;
       case 'Zap': return Zap;
       case 'Clipboard': return Clipboard;
+      case 'Users': return Users;
       default: return Home;
     }
   };

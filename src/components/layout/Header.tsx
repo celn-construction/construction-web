@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Moon, Sun, ChevronRight, Bell, Home, Calendar, FileText, LayoutGrid, Zap, Clipboard } from 'lucide-react';
+import { Search, Moon, Sun, ChevronRight, Bell, Home, Calendar, FileText, LayoutGrid, Zap, Clipboard, Users } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import UserMenu from './UserMenu';
@@ -19,6 +19,7 @@ export default function Header() {
       case 'LayoutGrid': return LayoutGrid;
       case 'Zap': return Zap;
       case 'Clipboard': return Clipboard;
+      case 'Users': return Users;
       default: return Home;
     }
   };

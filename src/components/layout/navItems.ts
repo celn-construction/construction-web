@@ -12,4 +12,5 @@ export const navItems: NavItem[] = [
   { id: 'documents', label: 'Documents', icon: 'FileText', href: '/documents' },
   { id: 'tasks', label: 'Tasks', icon: 'Zap', href: '/tasks' },
   { id: 'reports', label: 'Reports', icon: 'Clipboard', href: '/reports' },
+  { id: 'team', label: 'Team', icon: 'Users', href: '/team' },
 ];
