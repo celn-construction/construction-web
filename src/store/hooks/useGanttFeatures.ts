@@ -149,17 +149,3 @@ export function useCurrentProjectId(): string | null {
 export function useSwitchProject() {
   return useConstructionStore((state) => state.switchProject);
 }
-
-/**
- * Hook to get all dependencies for the current project
- */
-export function useDependencies() {
-  return useConstructionStore((state) => state.getDependencies());
-}
-
-/**
- * Hook to get dependencies for a specific feature
- */
-export function useDependenciesForFeature(featureId: string) {
-  return useConstructionStore((state) => state.getDependenciesForFeature(featureId));
-}
