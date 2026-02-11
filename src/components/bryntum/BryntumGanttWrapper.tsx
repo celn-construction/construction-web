@@ -17,8 +17,7 @@ export default function BryntumGanttWrapper() {
     columns: [
       { type: 'name', field: 'name', text: 'Task', width: 250 },
       { type: 'startdate', field: 'startDate', text: 'Start' },
-      { type: 'duration', field: 'duration', text: 'Duration' },
-      { type: 'percentdone', field: 'percentDone', text: 'Progress' }
+      { type: 'duration', field: 'duration', text: 'Duration' }
     ],
     viewPreset: 'weekAndDayLetter',
     barMargin: 10
