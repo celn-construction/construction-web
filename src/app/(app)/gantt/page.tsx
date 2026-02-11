@@ -1,7 +1,7 @@
 "use client";
 
 import { Gantt } from "@svar-ui/react-gantt";
-import "@svar-ui/react-gantt/dist/index.css";
+import "@svar-ui/react-gantt/style.css";
 
 const tasks = [
   {
