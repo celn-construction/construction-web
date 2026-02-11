@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { enableMapSet } from 'immer';
+import { current, enableMapSet } from 'immer';
 import type { GanttFeature, GanttStatus } from '@/types/gantt-types';
 
 enableMapSet();
@@ -341,20 +341,28 @@ const DEFAULT_FEATURES: GanttFeature[] = [
 // HELPER FUNCTIONS
 // ============================================================================
 
-// Helper to push history snapshot (inline to avoid nested set() calls)
-function pushHistorySnapshot(state: any) {
-  const snapshot = state.features.map((f: GanttFeature) => ({
+// Deep clone features from an immer Draft safely
+function cloneFeatures(features: any): GanttFeature[] {
+  return current(features).map((f: GanttFeature) => ({
     ...f,
-    startAt: new Date(f.startAt.getTime()),
-    endAt: new Date(f.endAt.getTime()),
+    startAt: f.startAt ? new Date(f.startAt) : undefined,
+    endAt: f.endAt ? new Date(f.endAt) : undefined,
   }));
-  state._history = state._history.slice(0, state._historyIndex + 1);
-  state._history.push(snapshot);
-  if (state._history.length > 50) {
-    state._history.shift();
-  } else {
-    state._historyIndex++;
+}
+
+// Wraps a mutation with history tracking. Call inside set().
+// Usage: withHistory(state, () => { /* mutate state.features */ });
+function withHistory(state: any, mutate: () => void) {
+  const preSnapshot = cloneFeatures(state.features);
+  mutate();
+  if (state._history.length === 0) {
+    state._history.push(preSnapshot);
+    state._historyIndex = 0;
   }
+  state._history = state._history.slice(0, state._historyIndex + 1);
+  state._history.push(cloneFeatures(state.features));
+  if (state._history.length > 50) state._history.shift();
+  state._historyIndex = state._history.length - 1;
 }
 
 // ============================================================================
@@ -409,63 +417,71 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
             }
 
             state.currentProjectId = projectId;
+            state._history = [];
+            state._historyIndex = -1;
           }),
 
         addFeature: (feature) =>
           set((state) => {
-            pushHistorySnapshot(state);
-            state.features.push(feature);
+            withHistory(state, () => {
+              state.features.push(feature);
+            });
           }),
 
         updateFeature: (id, updates) =>
           set((state) => {
-            pushHistorySnapshot(state);
-            const index = state.features.findIndex((f) => f.id === id);
-            const existing = state.features[index];
-            if (index !== -1 && existing) {
-              // Create new object to trigger proper reactivity with useShallow
-              state.features[index] = { ...existing, ...updates };
-            }
+            withHistory(state, () => {
+              const index = state.features.findIndex((f) => f.id === id);
+              const existing = state.features[index];
+              if (index !== -1 && existing) {
+                // Create new object to trigger proper reactivity with useShallow
+                state.features[index] = { ...existing, ...updates };
+              }
+            });
           }),
 
         removeFeature: (id) =>
           set((state) => {
-            pushHistorySnapshot(state);
-            // Cascade delete: remove the feature and all its subtasks
-            state.features = state.features.filter((f) => f.id !== id && f.parentId !== id);
+            withHistory(state, () => {
+              // Cascade delete: remove the feature and all its subtasks
+              state.features = state.features.filter((f) => f.id !== id && f.parentId !== id);
+            });
           }),
 
         moveFeature: (id, startAt, endAt) =>
           set((state) => {
-            pushHistorySnapshot(state);
-            const feature = state.features.find((f) => f.id === id);
-            if (feature) {
-              feature.startAt = startAt;
-              feature.endAt = endAt;
-            }
+            withHistory(state, () => {
+              const feature = state.features.find((f) => f.id === id);
+              if (feature) {
+                feature.startAt = startAt;
+                feature.endAt = endAt;
+              }
+            });
           }),
 
         updateMultipleFeatures: (updates) =>
           set((state) => {
-            pushHistorySnapshot(state);
-            updates.forEach(({ id, changes }) => {
-              const feature = state.features.find((f) => f.id === id);
-              if (feature) {
-                Object.assign(feature, changes);
-              }
+            withHistory(state, () => {
+              updates.forEach(({ id, changes }) => {
+                const feature = state.features.find((f) => f.id === id);
+                if (feature) {
+                  Object.assign(feature, changes);
+                }
+              });
             });
           }),
 
         reorderGroup: (groupName, featureIds) =>
           set((state) => {
-            pushHistorySnapshot(state);
-            const groupFeatures = state.features.filter((f) => f.group === groupName);
-            const reordered = featureIds
-              .map((id) => groupFeatures.find((f) => f.id === id))
-              .filter(Boolean) as GanttFeature[];
+            withHistory(state, () => {
+              const groupFeatures = state.features.filter((f) => f.group === groupName);
+              const reordered = featureIds
+                .map((id) => groupFeatures.find((f) => f.id === id))
+                .filter(Boolean) as GanttFeature[];
 
-            const otherFeatures = state.features.filter((f) => f.group !== groupName);
-            state.features = [...otherFeatures, ...reordered];
+              const otherFeatures = state.features.filter((f) => f.group !== groupName);
+              state.features = [...otherFeatures, ...reordered];
+            });
           }),
 
         initializeFeatures: (features) =>
@@ -481,11 +497,12 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
             // Reject if parent is already a subtask (only 1 level deep)
             if (parent.parentId) return;
 
-            pushHistorySnapshot(state);
-            // Set the subtask's group and parentId
-            subtask.group = parent.group;
-            subtask.parentId = parentId;
-            state.features.push(subtask);
+            withHistory(state, () => {
+              // Set the subtask's group and parentId
+              subtask.group = parent.group;
+              subtask.parentId = parentId;
+              state.features.push(subtask);
+            });
           }),
 
         toggleFeatureCollapse: (featureId) =>
@@ -501,14 +518,9 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
 
         undo: () =>
           set((state) => {
-            if (state._historyIndex >= 0) {
-              // Restore features from history
-              state.features = state._history[state._historyIndex].map((f) => ({
-                ...f,
-                startAt: new Date(f.startAt.getTime()),
-                endAt: new Date(f.endAt.getTime()),
-              }));
+            if (state._historyIndex > 0) {
               state._historyIndex--;
+              state.features = cloneFeatures(state._history[state._historyIndex]);
             }
           }),
 
@@ -516,12 +528,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
           set((state) => {
             if (state._historyIndex < state._history.length - 1) {
               state._historyIndex++;
-              // Restore features from history (fixed: use current index after increment)
-              state.features = state._history[state._historyIndex].map((f) => ({
-                ...f,
-                startAt: new Date(f.startAt.getTime()),
-                endAt: new Date(f.endAt.getTime()),
-              }));
+              state.features = cloneFeatures(state._history[state._historyIndex]);
             }
           }),
 

@@ -100,7 +100,7 @@ export function useRedo() {
  * Hook to check if undo is available
  */
 export function useCanUndo() {
-  return useConstructionStore((state) => state._historyIndex >= 0);
+  return useConstructionStore((state) => state._historyIndex > 0);
 }
 
 /**

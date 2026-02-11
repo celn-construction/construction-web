@@ -12,8 +12,7 @@ export const createInvitationSchema = z.object({
     .email("Please enter a valid email address"),
   role: z
     .string()
-    .min(1, "Role is required")
-    .default("member"),
+    .min(1, "Role is required"),
 });
 
 export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
