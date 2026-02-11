@@ -13,16 +13,20 @@ datasource db {
 
 // Better Auth Tables
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String    @unique
-    emailVerified Boolean   @default(false)
-    image         String?
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
+    id                  String    @id @default(cuid())
+    name                String?
+    email               String    @unique
+    emailVerified       Boolean   @default(false)
+    image               String?
+    phone               String?
+    onboardingComplete  Boolean   @default(false)
+    createdAt           DateTime  @default(now())
+    updatedAt           DateTime  @updatedAt
 
-    sessions Session[]
-    accounts Account[]
+    sessions     Session[]
+    accounts     Account[]
+    memberships  Membership[]
+    invitations  Invitation[]    @relation("InvitedByUser")
 }
 
 model Session {
@@ -64,11 +68,61 @@ model Verification {
 }
 
 // Application Tables
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+model Organization {
+    id            String   @id @default(cuid())
+    name          String
+    slug          String   @unique
+    logoUrl       String?
+    phone         String?
+    website       String?
+    address       String?
+    city          String?
+    state         String?
+    zip           String?
+    licenseNumber String?
+    companyType   String?
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
 
-    @@index([name])
+    memberships Membership[]
+    invitations Invitation[]
+
+    @@index([slug])
+}
+
+model Membership {
+    id             String   @id @default(cuid())
+    role           String   @default("member")
+    jobTitle       String?
+    userId         String
+    organizationId String
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
+
+    user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, organizationId])
+    @@index([userId])
+    @@index([organizationId])
+}
+
+model Invitation {
+    id             String   @id @default(cuid())
+    email          String
+    role           String   @default("member")
+    status         String   @default("pending")
+    token          String   @unique
+    expiresAt      DateTime
+    invitedById    String
+    organizationId String
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
+
+    invitedBy    User         @relation("InvitedByUser", fields: [invitedById], references: [id], onDelete: Cascade)
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    @@index([email])
+    @@index([token])
+    @@index([organizationId])
 }

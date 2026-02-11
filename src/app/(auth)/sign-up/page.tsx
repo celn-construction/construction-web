@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from "lucide-react";
@@ -10,6 +10,8 @@ import { LogoIcon } from "@/components/ui/Logo";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get("invite");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,7 +35,12 @@ export default function SignUpPage() {
       if (result.error) {
         setError(result.error.message || "Sign up failed");
       } else {
-        router.push("/dashboard");
+        // If there's an invite token, redirect to the invite page
+        if (inviteToken) {
+          router.push(`/invite/${inviteToken}`);
+        } else {
+          router.push("/onboarding");
+        }
       }
     } catch (err) {
       setError("An unexpected error occurred");

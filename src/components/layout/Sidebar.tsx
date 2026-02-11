@@ -5,9 +5,11 @@ import { usePathname } from 'next/navigation';
 import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar } from 'lucide-react';
 import { navItems } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
+import { api } from '~/trpc/react';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { data: organization } = api.organization.getCurrent.useQuery();
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -28,11 +30,18 @@ export default function Sidebar() {
   return (
     <aside className="h-screen w-52 bg-[var(--bg-sidebar)] flex flex-col sticky top-0 transition-colors duration-150 sidebar-depth">
       {/* Branding Area */}
-      <div className="px-4 py-4 border-b flex items-center gap-3" style={{ borderColor: 'var(--sidebar-border)' }}>
-        <div className="w-8 h-8 rounded-md bg-[var(--accent-primary)] text-[var(--bg-primary)] flex items-center justify-center font-bold text-sm">
-          <LogoIcon size={18} />
+      <div className="px-4 py-4 border-b flex flex-col gap-2" style={{ borderColor: 'var(--sidebar-border)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-md bg-[var(--accent-primary)] text-[var(--bg-primary)] flex items-center justify-center font-bold text-sm">
+            <LogoIcon size={18} />
+          </div>
+          <span className="font-medium text-sm text-[var(--text-primary)]">BuildTrack</span>
         </div>
-        <span className="font-medium text-sm text-[var(--text-primary)]">BuildTrack</span>
+        {organization && (
+          <div className="text-xs text-[var(--text-muted)] truncate pl-11">
+            {organization.name}
+          </div>
+        )}
       </div>
 
       {/* Navigation */}

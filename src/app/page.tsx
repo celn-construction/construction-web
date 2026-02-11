@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, HardHat, Calendar, Users } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import { LogoIcon } from "@/components/ui/Logo";
+import { HeroImage } from "@/components/ui/optimized-image";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -103,41 +103,39 @@ export default function Home() {
 
           {/* Right Content - Hero Image */}
           <div className="relative">
-            <div className="relative h-[500px] lg:h-[600px] rounded-lg overflow-hidden shadow-sm">
-              <Image
-                src="/images/hero-construction.jpg"
-                alt="Construction site aerial view"
-                fill
-                className="object-cover"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-gray-900/40 to-transparent" />
-            </div>
-
-            {/* Floating Cards */}
-            <div className="absolute -left-8 top-1/4 bg-white dark:bg-[var(--bg-card)] p-4 rounded-2xl shadow-xl dark:shadow-black/20">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-md flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-800 dark:text-[var(--text-primary)]">Timeline</div>
-                  <div className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">On schedule</div>
+            <HeroImage
+              src="/images/hero-construction.jpg"
+              alt="Construction site aerial view showing workers and rebar foundation"
+              className="h-[500px] lg:h-[600px] shadow-sm"
+              priority
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              overlayOpacity={40}
+            >
+              {/* Floating Cards */}
+              <div className="absolute -left-8 top-1/4 bg-white dark:bg-[var(--bg-card)] p-4 rounded-2xl shadow-xl dark:shadow-black/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-md flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-800 dark:text-[var(--text-primary)]">Timeline</div>
+                    <div className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">On schedule</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="absolute -right-4 bottom-1/4 bg-white dark:bg-[var(--bg-card)] p-4 rounded-2xl shadow-xl dark:shadow-black/20">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center">
-                  <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-800 dark:text-[var(--text-primary)]">12 Active</div>
-                  <div className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">Team members</div>
+              <div className="absolute -right-4 bottom-1/4 bg-white dark:bg-[var(--bg-card)] p-4 rounded-2xl shadow-xl dark:shadow-black/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center">
+                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-800 dark:text-[var(--text-primary)]">12 Active</div>
+                    <div className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">Team members</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            </HeroImage>
           </div>
         </div>
       </section>

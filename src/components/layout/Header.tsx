@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Moon, Sun, Plus, ChevronRight, Bell, Home, Calendar, FileText, LayoutGrid, Zap, Clipboard } from 'lucide-react';
+import { Search, Moon, Sun, ChevronRight, Bell, Home, Calendar, FileText, LayoutGrid, Zap, Clipboard } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import UserMenu from './UserMenu';
@@ -128,16 +128,6 @@ export default function Header() {
         <motion.div variants={item}>
           <UserMenu />
         </motion.div>
-
-        {/* Add Task Button */}
-        <motion.button
-          variants={item}
-          className="bg-[var(--accent-warm)] hover:bg-[var(--accent-warm-hover)] text-white px-3 py-2 text-sm rounded-lg flex items-center gap-2 transition-all duration-150 cursor-pointer font-medium"
-          whileTap={{ scale: 0.98 }}
-        >
-          <Plus className="w-[18px] h-[18px]" />
-          <span className="hidden sm:inline">Add task</span>
-        </motion.button>
       </motion.div>
     </header>
   );

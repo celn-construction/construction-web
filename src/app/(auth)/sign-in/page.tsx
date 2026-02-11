@@ -12,7 +12,10 @@ import { LogoIcon } from "@/components/ui/Logo";
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const inviteToken = searchParams.get("invite");
+  const callbackUrl = inviteToken
+    ? `/invite/${inviteToken}`
+    : (searchParams.get("callbackUrl") || "/dashboard");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

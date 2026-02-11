@@ -3,11 +3,14 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get("better-auth.session_token");
+  const onboardingComplete = request.cookies.get("onboarding-complete");
   const pathname = request.nextUrl.pathname;
 
   const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up") || pathname.startsWith("/forgot-password") || pathname.startsWith("/reset-password");
   const isApiRoute = pathname.startsWith("/api");
   const isLandingPage = pathname === "/";
+  const isOnboardingPage = pathname.startsWith("/onboarding");
+  const isInvitePage = pathname.startsWith("/invite");
 
   // Bypass auth for E2E tests (only in development/test environments)
   const isTestBypass = request.headers.get("x-playwright-test") === "true";
@@ -38,6 +41,25 @@ export function middleware(request: NextRequest) {
   // Redirect to sign-in if no session cookie for protected routes
   if (!sessionCookie) {
     return NextResponse.redirect(new URL("/sign-in?callbackUrl=" + pathname, request.url));
+  }
+
+  // Allow invite pages for authenticated users
+  if (isInvitePage) {
+    return NextResponse.next();
+  }
+
+  // Allow onboarding page if not complete
+  if (isOnboardingPage) {
+    // If onboarding is complete, redirect to dashboard
+    if (onboardingComplete) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Enforce onboarding for all other protected routes
+  if (!onboardingComplete) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
   return NextResponse.next();
