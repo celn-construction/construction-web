@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '~/trpc/react';
 import {
@@ -60,19 +61,35 @@ export default function InviteDialog({
     createInvitation.mutate({ organizationId, email, role });
   };
 
+  const roleDescriptions = {
+    admin: 'Full access to all settings and team management',
+    project_manager: 'Manage projects, tasks, and team assignments',
+    member: 'View and contribute to assigned projects',
+    viewer: 'Read-only access to projects',
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Invite Team Member</DialogTitle>
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-[var(--accent-primary)]/10 rounded-lg flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-[var(--accent-primary)]" />
+            </div>
+            <div>
+              <DialogTitle>Invite Team Member</DialogTitle>
+            </div>
+          </div>
           <DialogDescription>
             Send an invitation to join your organization
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
+          <div className="space-y-5 py-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email Address
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -80,21 +97,57 @@ export default function InviteDialog({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role" className="text-sm font-medium">
+                Role
+              </Label>
               <Select value={role} onValueChange={setRole}>
-                <SelectTrigger id="role">
+                <SelectTrigger id="role" className="h-10">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="project_manager">Project Manager</SelectItem>
-                  <SelectItem value="member">Member</SelectItem>
-                  <SelectItem value="viewer">Viewer</SelectItem>
+                  <SelectItem value="admin">
+                    <div className="py-1">
+                      <div className="font-medium">Admin</div>
+                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
+                        {roleDescriptions.admin}
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="project_manager">
+                    <div className="py-1">
+                      <div className="font-medium">Project Manager</div>
+                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
+                        {roleDescriptions.project_manager}
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="member">
+                    <div className="py-1">
+                      <div className="font-medium">Member</div>
+                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
+                        {roleDescriptions.member}
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="viewer">
+                    <div className="py-1">
+                      <div className="font-medium">Viewer</div>
+                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
+                        {roleDescriptions.viewer}
+                      </div>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
+              {role && (
+                <p className="text-xs text-[var(--text-muted)] mt-1">
+                  {roleDescriptions[role as keyof typeof roleDescriptions]}
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>

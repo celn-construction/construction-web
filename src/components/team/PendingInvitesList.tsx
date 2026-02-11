@@ -1,5 +1,7 @@
 'use client';
 
+import { Mail } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { api } from '~/trpc/react';
 import { Button } from '@/components/ui/button';
@@ -74,8 +76,10 @@ export default function PendingInvitesList({
         {[1, 2].map((i) => (
           <div
             key={i}
-            className="flex items-center gap-3 p-3 rounded-lg animate-pulse"
+            className="flex items-center gap-3 p-3.5 rounded-lg animate-pulse"
+            style={{ animationDelay: `${i * 0.1}s` }}
           >
+            <div className="w-11 h-11 rounded-full bg-[var(--bg-hover)]" />
             <div className="flex-1 space-y-2">
               <div className="h-4 bg-[var(--bg-hover)] rounded w-1/3" />
               <div className="h-3 bg-[var(--bg-hover)] rounded w-1/4" />
@@ -88,12 +92,32 @@ export default function PendingInvitesList({
   }
 
   return (
-    <div className="space-y-2">
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={{
+        visible: {
+          transition: {
+            staggerChildren: 0.04,
+          },
+        },
+      }}
+      className="space-y-2"
+    >
       {pendingInvitations.map((invitation) => (
-        <div
+        <motion.div
           key={invitation.id}
-          className="flex items-center gap-3 p-3 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+          variants={{
+            hidden: { opacity: 0, y: 8 },
+            visible: { opacity: 1, y: 0 },
+          }}
+          className="flex items-center gap-3 p-3.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
         >
+          {/* Avatar placeholder */}
+          <div className="w-11 h-11 rounded-full bg-[var(--bg-hover)] flex items-center justify-center flex-shrink-0">
+            <Mail className="w-5 h-5 text-[var(--text-muted)]" />
+          </div>
+
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="font-medium text-[var(--text-primary)] truncate">
@@ -136,8 +160,8 @@ export default function PendingInvitesList({
               </Button>
             </div>
           )}
-        </div>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }
