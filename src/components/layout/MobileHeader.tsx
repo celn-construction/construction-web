@@ -50,7 +50,7 @@ export default function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
             className="w-full h-full object-cover"
           />
         </button>
-        <button className="bg-[var(--accent-primary)] text-[var(--bg-primary)] p-2 rounded-md flex items-center justify-center hover:opacity-90 transition-opacity cursor-pointer">
+        <button className="bg-[var(--accent-warm)] hover:bg-[var(--accent-warm-hover)] text-white p-2 rounded-md flex items-center justify-center transition-all duration-150 cursor-pointer">
           <Plus className="w-5 h-5" />
         </button>
       </div>

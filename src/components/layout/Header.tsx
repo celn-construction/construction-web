@@ -1,51 +1,144 @@
 'use client';
 
-import { Search, Moon, Sun, Plus } from 'lucide-react';
+import { Search, Moon, Sun, Plus, ChevronRight, Bell, Home, Calendar, FileText, LayoutGrid, Zap, Clipboard } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
+import { navItems } from './navItems';
 
 export default function Header() {
   const { theme, toggleTheme } = useThemeStore();
   const pathname = usePathname();
 
-  const getPageTitle = () => {
-    if (pathname === '/dashboard') return 'Dashboard';
-    if (pathname === '/timeline') return 'Timeline';
-    if (pathname === '/documents') return 'Documents';
-    if (pathname === '/projects') return 'Projects';
-    if (pathname === '/tasks') return 'Tasks';
-    if (pathname === '/reports') return 'Reports';
-    return 'BuildTrack';
+  const getIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'Home': return Home;
+      case 'Calendar': return Calendar;
+      case 'FileText': return FileText;
+      case 'LayoutGrid': return LayoutGrid;
+      case 'Zap': return Zap;
+      case 'Clipboard': return Clipboard;
+      default: return Home;
+    }
+  };
+
+  const getCurrentPage = () => {
+    return navItems.find(item => item.href === pathname) || navItems[0];
+  };
+
+  const currentPage = getCurrentPage();
+  const CurrentIcon = getIcon(currentPage.icon);
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: -4 },
+    show: { opacity: 1, y: 0 },
   };
 
   return (
-    <header className="bg-[var(--bg-primary)] px-6 py-2.5 flex items-center justify-between border-b border-[var(--border-light)] transition-colors duration-150">
-      <div className="flex items-center gap-4">
-        <span className="text-[var(--text-primary)] font-medium">{getPageTitle()}</span>
-      </div>
+    <header className="bg-[var(--bg-primary)] px-6 py-3 flex items-center justify-between border-b border-[var(--border-light)] transition-colors duration-150">
+      {/* Left: Breadcrumb */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="flex items-center gap-2"
+      >
+        <motion.div variants={item} className="flex items-center gap-2 text-[var(--text-muted)] text-sm">
+          <span className="font-medium">BuildTrack</span>
+        </motion.div>
+        <motion.div variants={item}>
+          <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+        </motion.div>
+        <motion.div variants={item} className="flex items-center gap-2">
+          <CurrentIcon className="w-[18px] h-[18px] text-[var(--text-primary)]" />
+          <span className="text-[var(--text-primary)] font-medium text-sm">{currentPage.label}</span>
+        </motion.div>
+      </motion.div>
 
-      <div className="flex items-center gap-3">
-        <button
+      {/* Center: Search Bar */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+        className="hidden md:flex items-center gap-3 bg-[var(--bg-input)] px-4 py-2 rounded-lg transition-all duration-150 hover:bg-[var(--bg-hover)] cursor-pointer group max-w-md w-full"
+      >
+        <Search className="w-[18px] h-[18px] text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors duration-150" />
+        <span className="text-sm text-[var(--text-muted)] flex-1">Search...</span>
+        <div className="flex items-center gap-1">
+          <kbd className="px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)] bg-[var(--bg-primary)] border border-[var(--border-light)] rounded">
+            ⌘
+          </kbd>
+          <kbd className="px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)] bg-[var(--bg-primary)] border border-[var(--border-light)] rounded">
+            K
+          </kbd>
+        </div>
+      </motion.div>
+
+      {/* Right: Actions */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="flex items-center gap-2"
+      >
+        {/* Theme Toggle */}
+        <motion.button
+          variants={item}
           onClick={toggleTheme}
-          className="flex items-center justify-center hover:opacity-70 transition-opacity cursor-pointer"
+          className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[var(--bg-hover)] transition-all duration-150 cursor-pointer"
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          whileTap={{ scale: 0.95 }}
         >
-          {theme === 'dark' ? (
-            <Sun className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
-          ) : (
-            <Moon className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
-          )}
-        </button>
-        <button className="flex items-center justify-center hover:opacity-70 transition-opacity cursor-pointer">
-          <Search className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
-        </button>
-        <UserMenu />
-        <button className="bg-[var(--accent-primary)] text-[var(--bg-primary)] px-3 py-1.5 text-sm rounded-md flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer">
-          <Plus className="w-4 h-4" />
-          Add task
-        </button>
-      </div>
+          <motion.div
+            initial={false}
+            animate={{ rotate: theme === 'dark' ? 0 : 180 }}
+            transition={{ duration: 0.15 }}
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
+            ) : (
+              <Moon className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
+            )}
+          </motion.div>
+        </motion.button>
+
+        {/* Notification Bell */}
+        <motion.button
+          variants={item}
+          className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[var(--bg-hover)] transition-all duration-150 cursor-pointer relative"
+          whileTap={{ scale: 0.95 }}
+        >
+          <Bell className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
+          {/* Optional notification indicator */}
+          <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-[var(--status-amber)] rounded-full" />
+        </motion.button>
+
+        {/* User Menu */}
+        <motion.div variants={item}>
+          <UserMenu />
+        </motion.div>
+
+        {/* Add Task Button */}
+        <motion.button
+          variants={item}
+          className="bg-[var(--accent-warm)] hover:bg-[var(--accent-warm-hover)] text-white px-3 py-2 text-sm rounded-lg flex items-center gap-2 transition-all duration-150 cursor-pointer font-medium"
+          whileTap={{ scale: 0.98 }}
+        >
+          <Plus className="w-[18px] h-[18px]" />
+          <span className="hidden sm:inline">Add task</span>
+        </motion.button>
+      </motion.div>
     </header>
   );
 }

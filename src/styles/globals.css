@@ -36,6 +36,9 @@
   --status-red: #dc2626;
   --status-blue: #2563eb;
 
+  --accent-warm: #d97706;
+  --accent-warm-hover: #b45309;
+
   --grid-line: rgba(0, 0, 0, 0.04);
   --timeline-accent: #171717;
   --timeline-accent-subtle: rgba(23, 23, 23, 0.06);
@@ -71,6 +74,9 @@
   --status-amber: #fbbf24;
   --status-red: #f87171;
   --status-blue: #60a5fa;
+
+  --accent-warm: #fbbf24;
+  --accent-warm-hover: #f59e0b;
 
   --grid-line: rgba(255, 255, 255, 0.04);
   --timeline-accent: #fafafa;
