@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '~/trpc/react';
@@ -14,8 +15,19 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import RoleSelect from './RoleSelect';
+import {
+  createInvitationSchema,
+  type CreateInvitationInput,
+} from '~/lib/validations/invitation';
 
 interface InviteDialogProps {
   open: boolean;
@@ -28,17 +40,23 @@ export default function InviteDialog({
   onOpenChange,
   organizationId,
 }: InviteDialogProps) {
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('member');
-
   const utils = api.useUtils();
+
+  // Initialize form with react-hook-form + zod
+  const form = useForm<CreateInvitationInput>({
+    resolver: zodResolver(createInvitationSchema),
+    defaultValues: {
+      organizationId,
+      email: '',
+      role: 'member',
+    },
+  });
 
   const createInvitation = api.invitation.create.useMutation({
     onSuccess: () => {
       toast.success('Invitation sent successfully');
       void utils.invitation.list.invalidate();
-      setEmail('');
-      setRole('member');
+      form.reset();
       onOpenChange(false);
     },
     onError: (error) => {
@@ -46,15 +64,9 @@ export default function InviteDialog({
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      toast.error('Email is required');
-      return;
-    }
-    createInvitation.mutate({ organizationId, email, role });
+  const onSubmit = (data: CreateInvitationInput) => {
+    createInvitation.mutate(data);
   };
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,42 +84,59 @@ export default function InviteDialog({
             Send an invitation to join your organization
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-5 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="member@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-10"
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="space-y-5 py-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="member@example.com"
+                        className="h-10"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <RoleSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="role" className="text-sm font-medium">
-                Role
-              </Label>
-              <RoleSelect value={role} onValueChange={setRole} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" loading={createInvitation.isPending}>
-              Send Invitation
-            </Button>
-          </DialogFooter>
-        </form>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" loading={createInvitation.isPending}>
+                Send Invitation
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

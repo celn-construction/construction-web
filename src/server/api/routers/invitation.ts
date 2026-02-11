@@ -4,15 +4,11 @@ import { createTRPCRouter, protectedProcedure, publicProcedure, orgProcedure } f
 import { canInviteMembers } from "~/lib/permissions";
 import { sendInvitationEmail } from "~/lib/email";
 import { randomBytes } from "crypto";
+import { createInvitationSchema } from "~/lib/validations/invitation";
 
 export const invitationRouter = createTRPCRouter({
   create: orgProcedure
-    .input(
-      z.object({
-        email: z.string().email(),
-        role: z.string().default("member"),
-      })
-    )
+    .input(createInvitationSchema)
     .mutation(async ({ ctx, input }) => {
       // Check permission
       if (!canInviteMembers(ctx.membership.role)) {

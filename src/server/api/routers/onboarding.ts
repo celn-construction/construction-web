@@ -1,5 +1,5 @@
-import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createOrganizationSchema } from "~/lib/validations/onboarding";
 
 function generateSlug(name: string): string {
   return name
@@ -23,19 +23,7 @@ export const onboardingRouter = createTRPCRouter({
   }),
 
   createOrganization: protectedProcedure
-    .input(
-      z.object({
-        name: z.string().min(1, "Company name is required"),
-        companyType: z.string().min(1, "Company type is required"),
-        phone: z.string().optional(),
-        website: z.string().optional(),
-        address: z.string().optional(),
-        city: z.string().optional(),
-        state: z.string().optional(),
-        zip: z.string().optional(),
-        licenseNumber: z.string().optional(),
-      })
-    )
+    .input(createOrganizationSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
       const slug = generateSlug(input.name);

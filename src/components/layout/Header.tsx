@@ -88,33 +88,42 @@ export default function Header() {
           <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
         </motion.div>
 
-        {/* Project Switcher */}
-        {!projectsLoading && projects.length > 0 && (
+        {/* Project Switcher - Always render to prevent layout shift */}
+        {projects.length > 0 && (
           <>
             <motion.div variants={item}>
               <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-secondary)] text-sm font-medium">
-                  {currentProject?.name ?? 'Select Project'}
+                <DropdownMenuTrigger
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-secondary)] text-sm font-medium"
+                  disabled={projectsLoading}
+                >
+                  {projectsLoading ? (
+                    <span className="text-[var(--text-muted)]">Loading...</span>
+                  ) : (
+                    currentProject?.name ?? 'Select Project'
+                  )}
                   <ChevronDown className="w-3.5 h-3.5" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  {projects.map((project) => (
-                    <DropdownMenuItem
-                      key={project.id}
-                      onClick={() => switchProject(project.id)}
-                      className="flex items-center gap-2"
-                    >
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          project.id === currentProjectId
-                            ? 'bg-[var(--status-green)]'
-                            : 'bg-transparent'
-                        }`}
-                      />
-                      {project.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
+                {!projectsLoading && (
+                  <DropdownMenuContent align="start">
+                    {projects.map((project) => (
+                      <DropdownMenuItem
+                        key={project.id}
+                        onClick={() => switchProject(project.id)}
+                        className="flex items-center gap-2"
+                      >
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            project.id === currentProjectId
+                              ? 'bg-[var(--status-green)]'
+                              : 'bg-transparent'
+                          }`}
+                        />
+                        {project.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                )}
               </DropdownMenu>
             </motion.div>
             <motion.div variants={item}>
