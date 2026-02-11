@@ -24,11 +24,11 @@ export default function Header() {
   };
 
   const getCurrentPage = () => {
-    return navItems.find(item => item.href === pathname) || navItems[0];
+    return navItems.find(item => item.href === pathname) ?? navItems[0];
   };
 
   const currentPage = getCurrentPage();
-  const CurrentIcon = getIcon(currentPage.icon);
+  const CurrentIcon = getIcon(currentPage?.icon ?? 'Home');
 
   const container = {
     hidden: { opacity: 0 },
@@ -62,7 +62,7 @@ export default function Header() {
         </motion.div>
         <motion.div variants={item} className="flex items-center gap-2">
           <CurrentIcon className="w-[18px] h-[18px] text-[var(--text-primary)]" />
-          <span className="text-[var(--text-primary)] font-medium text-sm">{currentPage.label}</span>
+          <span className="text-[var(--text-primary)] font-medium text-sm">{currentPage?.label ?? 'Home'}</span>
         </motion.div>
       </motion.div>
 
