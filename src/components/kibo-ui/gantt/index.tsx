@@ -878,7 +878,8 @@ type GanttFeatureItemDragLayerProps = {
   setStartAt: (date: Date) => void;
   setEndAt: (date: Date | null) => void;
   onMove?: (id: string, startDate: Date, endDate: Date | null) => void;
-  onSelectItem?: (id: string, anchorEl: HTMLElement) => void;
+  cardRef: RefObject<HTMLDivElement | null>;
+  handleCardClick: (event: React.MouseEvent<HTMLDivElement>) => void;
   children?: ReactNode;
   width: number;
   offset: number;
@@ -894,7 +895,8 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
   setStartAt,
   setEndAt,
   onMove,
-  onSelectItem,
+  cardRef,
+  handleCardClick,
   children,
   width,
   offset,
@@ -945,10 +947,6 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
     [onMove, feature.id, startAt, endAt]
   );
 
-  const handleCardClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    onSelectItem?.(feature.id, event.currentTarget);
-  }, [onSelectItem, feature.id]);
-
   const handleLeftDragMove = useCallback((event: any) => {
     if (event.activatorEvent && event.delta) {
       const ganttRect = gantt.ref?.current?.getBoundingClientRect();
@@ -972,14 +970,7 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
   }, [gantt, scrollX, setEndAt]);
 
   return (
-    <div
-      className="pointer-events-auto absolute top-0.5"
-      style={{
-        height: "calc(var(--gantt-row-height) - 4px)",
-        width: Math.round(width),
-        left: Math.round(offset),
-      }}
-    >
+    <>
       {onMove && (
         <DndContext
           modifiers={[restrictToHorizontalAxis]}
@@ -1025,7 +1016,7 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
           />
         </DndContext>
       )}
-    </div>
+    </>
   );
 };
 
@@ -1045,6 +1036,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
   const [startAt, setStartAt] = useState<Date>(feature.startAt);
   const [endAt, setEndAt] = useState<Date | null>(feature.endAt);
   const [isHovered, setIsHovered] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Memoize expensive calculations
   const width = useMemo(
@@ -1059,7 +1051,9 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
   const addRange = useMemo(() => getAddRange(gantt.range), [gantt.range]);
 
   const handleCardClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    onSelectItem?.(feature.id, event.currentTarget);
+    if (cardRef.current) {
+      onSelectItem?.(feature.id, cardRef.current);
+    }
   }, [onSelectItem, feature.id]);
 
   return (
@@ -1069,32 +1063,34 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {isHovered ? (
-        <GanttFeatureItemDragLayer
-          feature={feature}
-          startAt={startAt}
-          endAt={endAt}
-          setStartAt={setStartAt}
-          setEndAt={setEndAt}
-          onMove={onMove}
-          onSelectItem={onSelectItem}
-          width={width}
-          offset={offset}
-          addRange={addRange}
-          scrollX={scrollX}
-          gantt={gantt}
-        >
-          {children}
-        </GanttFeatureItemDragLayer>
-      ) : (
-        <div
-          className="pointer-events-auto absolute top-0.5"
-          style={{
-            height: "calc(var(--gantt-row-height) - 4px)",
-            width: Math.round(width),
-            left: Math.round(offset),
-          }}
-        >
+      <div
+        ref={cardRef}
+        className="pointer-events-auto absolute top-0.5"
+        style={{
+          height: "calc(var(--gantt-row-height) - 4px)",
+          width: Math.round(width),
+          left: Math.round(offset),
+        }}
+      >
+        {isHovered ? (
+          <GanttFeatureItemDragLayer
+            feature={feature}
+            startAt={startAt}
+            endAt={endAt}
+            setStartAt={setStartAt}
+            setEndAt={setEndAt}
+            onMove={onMove}
+            cardRef={cardRef}
+            handleCardClick={handleCardClick}
+            width={width}
+            offset={offset}
+            addRange={addRange}
+            scrollX={scrollX}
+            gantt={gantt}
+          >
+            {children}
+          </GanttFeatureItemDragLayer>
+        ) : (
           <Card
             className="h-full w-full rounded-md bg-[var(--bg-card)] border border-[var(--grid-line)] p-2 text-xs shadow-sm relative overflow-hidden cursor-pointer hover:shadow-md hover:border-[var(--timeline-accent)] hover:scale-[1.02] transition-all duration-150"
             onClick={handleCardClick}
@@ -1112,8 +1108,8 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
               )}
             </div>
           </Card>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 });
