@@ -1,7 +1,7 @@
 'use client';
 
-import { Search, Moon, Sun, ChevronDown, Bell, Users, Plus } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Search, Moon, Sun, ChevronDown, Bell, Users, Plus, Building2, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -19,6 +19,7 @@ import AddProjectDialog from '@/components/projects/AddProjectDialog';
 export default function Header() {
   const { theme, toggleTheme } = useThemeStore();
   const [addProjectOpen, setAddProjectOpen] = useState(false);
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
 
   // Project management
   const { data: projects = [], isLoading: projectsLoading } = api.project.list.useQuery(
@@ -63,48 +64,60 @@ export default function Header() {
       >
         {/* Project Switcher */}
         <motion.div variants={item}>
-          <DropdownMenu>
+          <DropdownMenu open={projectMenuOpen} onOpenChange={setProjectMenuOpen}>
             <DropdownMenuTrigger
-              className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-secondary)] text-sm font-medium"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg border border-[var(--border-light)] bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-color)] transition-all duration-150 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
               disabled={projectsLoading}
             >
-              {projectsLoading ? (
-                <span className="text-[var(--text-muted)]">Loading...</span>
-              ) : projects.length === 0 ? (
-                <span className="text-[var(--text-muted)]">No Projects</span>
-              ) : (
-                currentProject?.name ?? 'Select Project'
-              )}
-              <ChevronDown className="w-3.5 h-3.5" />
+              <div className="w-7 h-7 rounded-md bg-[var(--accent-warm)] flex items-center justify-center flex-shrink-0">
+                <Building2 className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex flex-col items-start min-w-0">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] leading-none">Project</span>
+                {projectsLoading ? (
+                  <div className="h-4 w-24 bg-[var(--bg-hover)] rounded animate-pulse" />
+                ) : (
+                  <span className="text-[var(--text-primary)] truncate max-w-[160px] leading-tight">
+                    {projects.length === 0 ? 'No Projects' : (currentProject?.name ?? 'Select Project')}
+                  </span>
+                )}
+              </div>
+              <motion.div animate={{ rotate: projectMenuOpen ? 180 : 0 }} transition={{ duration: 0.15 }}>
+                <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />
+              </motion.div>
             </DropdownMenuTrigger>
-            {!projectsLoading && (
-              <DropdownMenuContent align="start">
-                {projects.map((project) => (
-                  <DropdownMenuItem
-                    key={project.id}
-                    onClick={() => switchProject(project.id)}
-                    className="flex items-center gap-2"
-                  >
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        project.id === currentProjectId
-                          ? 'bg-[var(--status-green)]'
-                          : 'bg-transparent'
-                      }`}
-                    />
-                    {project.name}
+            <DropdownMenuContent align="start" className="w-[280px] p-2" sideOffset={8}>
+              <div className="px-2 py-1.5 mb-1">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium">Switch Project</span>
+              </div>
+              {projects.map((project) => {
+                const isActive = project.id === currentProjectId;
+                return (
+                  <DropdownMenuItem key={project.id} onClick={() => switchProject(project.id)}
+                    className={`flex items-center gap-3 px-2.5 py-2.5 rounded-lg mb-0.5 ${isActive ? 'bg-[var(--accent-subtle)]' : ''}`}>
+                    <div className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
+                      isActive ? 'bg-[var(--accent-warm)] text-white' : 'bg-[var(--bg-hover)] text-[var(--text-secondary)]'
+                    }`}>
+                      {project.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className={`text-sm truncate ${isActive ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-primary)]'}`}>
+                        {project.name}
+                      </span>
+                      <span className="text-[11px] text-[var(--text-muted)] capitalize">{project.status}</span>
+                    </div>
+                    {isActive && <Check className="w-4 h-4 text-[var(--accent-warm)] flex-shrink-0" />}
                   </DropdownMenuItem>
-                ))}
-                {projects.length > 0 && <DropdownMenuSeparator />}
-                <DropdownMenuItem
-                  onClick={() => setAddProjectOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Project
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            )}
+                );
+              })}
+              {projects.length > 0 && <DropdownMenuSeparator className="my-2" />}
+              <DropdownMenuItem onClick={() => setAddProjectOpen(true)} className="flex items-center gap-3 px-2.5 py-2.5 rounded-lg">
+                <div className="w-8 h-8 rounded-md border border-dashed border-[var(--border-color)] flex items-center justify-center flex-shrink-0">
+                  <Plus className="w-4 h-4 text-[var(--text-muted)]" />
+                </div>
+                <span className="text-sm text-[var(--text-secondary)]">New Project</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
           </DropdownMenu>
         </motion.div>
       </motion.div>

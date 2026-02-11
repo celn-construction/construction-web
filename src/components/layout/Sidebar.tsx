@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar, Users } from 'lucide-react';
+import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar, Users, BarChart3 } from 'lucide-react';
 import { navItems } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
 import { api } from '~/trpc/react';
@@ -20,13 +20,14 @@ export default function Sidebar() {
       case 'Zap': return Zap;
       case 'Clipboard': return Clipboard;
       case 'GanttChart': return GanttChart;
+      case 'BarChart3': return BarChart3;
       case 'Users': return Users;
       default: return Home;
     }
   };
 
-  const navigateItems = navItems.slice(0, 4);
-  const workspaceItems = navItems.slice(4);
+  const navigateItems = navItems.slice(0, 5);
+  const workspaceItems = navItems.slice(5);
 
   return (
     <aside className="h-screen w-52 bg-[var(--bg-sidebar)] flex flex-col sticky top-0 transition-colors duration-150 sidebar-depth">

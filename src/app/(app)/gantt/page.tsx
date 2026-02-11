@@ -1,7 +1,8 @@
 "use client";
 
-import { Gantt } from "@svar-ui/react-gantt";
-import "@svar-ui/react-gantt/style.css";
+import { Gantt, Willow, WillowDark } from "@svar-ui/react-gantt";
+import "@svar-ui/react-gantt/all.css";
+import { useThemeStore } from "~/store/useThemeStore";
 
 const tasks = [
   {
@@ -50,9 +51,14 @@ const columns = [
 ];
 
 export default function GanttPage() {
+  const { theme } = useThemeStore();
+  const ThemeWrapper = theme === "dark" ? WillowDark : Willow;
+
   return (
     <div className="h-full w-full">
-      <Gantt tasks={tasks} scales={scales} columns={columns} />
+      <ThemeWrapper fonts={false}>
+        <Gantt tasks={tasks} scales={scales} columns={columns} />
+      </ThemeWrapper>
     </div>
   );
 }
