@@ -870,34 +870,38 @@ export type GanttFeatureItemProps = GanttFeature & {
   className?: string;
 };
 
-export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
+// Drag layer component - only mounted on hover
+type GanttFeatureItemDragLayerProps = {
+  feature: GanttFeature;
+  startAt: Date;
+  endAt: Date | null;
+  setStartAt: (date: Date) => void;
+  setEndAt: (date: Date | null) => void;
+  onMove?: (id: string, startDate: Date, endDate: Date | null) => void;
+  onSelectItem?: (id: string, anchorEl: HTMLElement) => void;
+  children?: ReactNode;
+  width: number;
+  offset: number;
+  addRange: (date: Date, amount: number) => Date;
+  scrollX: number;
+  gantt: GanttContextProps;
+};
+
+const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
+  feature,
+  startAt,
+  endAt,
+  setStartAt,
+  setEndAt,
   onMove,
   onSelectItem,
   children,
-  className,
-  ...feature
+  width,
+  offset,
+  addRange,
+  scrollX,
+  gantt,
 }) => {
-  const [scrollX] = useGanttScrollX();
-  const gantt = useContext(GanttContext);
-  const timelineStartDate = useMemo(
-    () => new Date(gantt.timelineData.at(0)?.year ?? 0, 0, 1),
-    [gantt.timelineData]
-  );
-  const [startAt, setStartAt] = useState<Date>(feature.startAt);
-  const [endAt, setEndAt] = useState<Date | null>(feature.endAt);
-
-  // Memoize expensive calculations
-  const width = useMemo(
-    () => getWidth(startAt, endAt, gantt),
-    [startAt, endAt, gantt]
-  );
-  const offset = useMemo(
-    () => getOffset(startAt, timelineStartDate, gantt),
-    [startAt, timelineStartDate, gantt]
-  );
-
-  const addRange = useMemo(() => getAddRange(gantt.range), [gantt.range]);
-
   const [previousMouseX, setPreviousMouseX] = useState(0);
   const [previousStartAt, setPreviousStartAt] = useState(startAt);
   const [previousEndAt, setPreviousEndAt] = useState(endAt);
@@ -934,7 +938,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
       setStartAt(newStartDate);
       setEndAt(newEndDate);
     }
-  }, [gantt, scrollX, previousMouseX, previousStartAt, previousEndAt]);
+  }, [gantt, scrollX, previousMouseX, previousStartAt, previousEndAt, setStartAt, setEndAt]);
 
   const onDragEnd = useCallback(
     () => onMove?.(feature.id, startAt, endAt),
@@ -954,7 +958,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
 
       setStartAt(newStartAt);
     }
-  }, [gantt, scrollX]);
+  }, [gantt, scrollX, setStartAt]);
 
   const handleRightDragMove = useCallback((event: any) => {
     if (event.activatorEvent && event.delta) {
@@ -965,67 +969,151 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
 
       setEndAt(newEndAt);
     }
-  }, [gantt, scrollX]);
+  }, [gantt, scrollX, setEndAt]);
+
+  return (
+    <div
+      className="pointer-events-auto absolute top-0.5"
+      style={{
+        height: "calc(var(--gantt-row-height) - 4px)",
+        width: Math.round(width),
+        left: Math.round(offset),
+      }}
+    >
+      {onMove && (
+        <DndContext
+          modifiers={[restrictToHorizontalAxis]}
+          onDragEnd={onDragEnd}
+          onDragMove={handleLeftDragMove}
+          sensors={[mouseSensor]}
+        >
+          <GanttFeatureDragHelper
+            date={startAt}
+            direction="left"
+            featureId={feature.id}
+          />
+        </DndContext>
+      )}
+      <DndContext
+        modifiers={[restrictToHorizontalAxis]}
+        onDragEnd={onDragEnd}
+        onDragMove={handleItemDragMove}
+        onDragStart={handleItemDragStart}
+        sensors={[mouseSensor]}
+      >
+        <GanttFeatureItemCard
+          id={feature.id}
+          statusColor={feature.status.color}
+          onClick={handleCardClick}
+        >
+          {children ?? (
+            <p className="flex-1 truncate text-xs">{feature.name}</p>
+          )}
+        </GanttFeatureItemCard>
+      </DndContext>
+      {onMove && (
+        <DndContext
+          modifiers={[restrictToHorizontalAxis]}
+          onDragEnd={onDragEnd}
+          onDragMove={handleRightDragMove}
+          sensors={[mouseSensor]}
+        >
+          <GanttFeatureDragHelper
+            date={endAt ?? addRange(startAt, 2)}
+            direction="right"
+            featureId={feature.id}
+          />
+        </DndContext>
+      )}
+    </div>
+  );
+};
+
+export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
+  onMove,
+  onSelectItem,
+  children,
+  className,
+  ...feature
+}) => {
+  const [scrollX] = useGanttScrollX();
+  const gantt = useContext(GanttContext);
+  const timelineStartDate = useMemo(
+    () => new Date(gantt.timelineData.at(0)?.year ?? 0, 0, 1),
+    [gantt.timelineData]
+  );
+  const [startAt, setStartAt] = useState<Date>(feature.startAt);
+  const [endAt, setEndAt] = useState<Date | null>(feature.endAt);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Memoize expensive calculations
+  const width = useMemo(
+    () => getWidth(startAt, endAt, gantt),
+    [startAt, endAt, gantt]
+  );
+  const offset = useMemo(
+    () => getOffset(startAt, timelineStartDate, gantt),
+    [startAt, timelineStartDate, gantt]
+  );
+
+  const addRange = useMemo(() => getAddRange(gantt.range), [gantt.range]);
+
+  const handleCardClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    onSelectItem?.(feature.id, event.currentTarget);
+  }, [onSelectItem, feature.id]);
 
   return (
     <div
       className={cn("relative flex w-max min-w-full py-0.5", className)}
       style={{ height: "var(--gantt-row-height)" }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div
-        className="pointer-events-auto absolute top-0.5"
-        style={{
-          height: "calc(var(--gantt-row-height) - 4px)",
-          width: Math.round(width),
-          left: Math.round(offset),
-        }}
-      >
-        {onMove && (
-          <DndContext
-            modifiers={[restrictToHorizontalAxis]}
-            onDragEnd={onDragEnd}
-            onDragMove={handleLeftDragMove}
-            sensors={[mouseSensor]}
-          >
-            <GanttFeatureDragHelper
-              date={startAt}
-              direction="left"
-              featureId={feature.id}
-            />
-          </DndContext>
-        )}
-        <DndContext
-          modifiers={[restrictToHorizontalAxis]}
-          onDragEnd={onDragEnd}
-          onDragMove={handleItemDragMove}
-          onDragStart={handleItemDragStart}
-          sensors={[mouseSensor]}
+      {isHovered ? (
+        <GanttFeatureItemDragLayer
+          feature={feature}
+          startAt={startAt}
+          endAt={endAt}
+          setStartAt={setStartAt}
+          setEndAt={setEndAt}
+          onMove={onMove}
+          onSelectItem={onSelectItem}
+          width={width}
+          offset={offset}
+          addRange={addRange}
+          scrollX={scrollX}
+          gantt={gantt}
         >
-          <GanttFeatureItemCard
-            id={feature.id}
-            statusColor={feature.status.color}
+          {children}
+        </GanttFeatureItemDragLayer>
+      ) : (
+        <div
+          className="pointer-events-auto absolute top-0.5"
+          style={{
+            height: "calc(var(--gantt-row-height) - 4px)",
+            width: Math.round(width),
+            left: Math.round(offset),
+          }}
+        >
+          <Card
+            className="h-full w-full rounded-md bg-[var(--bg-card)] border border-[var(--grid-line)] p-2 text-xs shadow-sm relative overflow-hidden cursor-pointer hover:shadow-md hover:border-[var(--timeline-accent)] hover:scale-[1.02] transition-all duration-150"
             onClick={handleCardClick}
           >
-            {children ?? (
-              <p className="flex-1 truncate text-xs">{feature.name}</p>
+            {/* Left accent bar */}
+            {feature.status.color && (
+              <div
+                className="absolute left-0 top-0 bottom-0 w-1"
+                style={{ backgroundColor: feature.status.color }}
+              />
             )}
-          </GanttFeatureItemCard>
-        </DndContext>
-        {onMove && (
-          <DndContext
-            modifiers={[restrictToHorizontalAxis]}
-            onDragEnd={onDragEnd}
-            onDragMove={handleRightDragMove}
-            sensors={[mouseSensor]}
-          >
-            <GanttFeatureDragHelper
-              date={endAt ?? addRange(startAt, 2)}
-              direction="right"
-              featureId={feature.id}
-            />
-          </DndContext>
-        )}
-      </div>
+            <div className="flex h-full w-full items-center justify-between gap-2 text-left font-mono">
+              {children ?? (
+                <p className="flex-1 truncate text-xs">{feature.name}</p>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 });
