@@ -487,6 +487,7 @@ export type GanttSidebarItemProps = {
   onToggleExpand?: () => void;
   isSubtask?: boolean;
   onAddSubtask?: () => void;
+  onRename?: (id: string, newName: string) => void;
 };
 
 export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
@@ -498,8 +499,13 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
   onToggleExpand,
   isSubtask = false,
   onAddSubtask,
+  onRename,
 }) => {
   const gantt = useContext(GanttContext);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(feature.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const tempEndAt =
     feature.endAt && isSameDay(feature.startAt, feature.endAt)
       ? addDays(feature.endAt, 1)
@@ -535,6 +541,41 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
     event.stopPropagation();
     onAddSubtask?.();
   };
+
+  const handleNameDoubleClick: MouseEventHandler<HTMLParagraphElement> = (event) => {
+    if (onRename) {
+      event.stopPropagation();
+      setIsEditing(true);
+      setEditValue(feature.name);
+    }
+  };
+
+  const commitEdit = useCallback(() => {
+    if (editValue.trim() && editValue.trim() !== feature.name) {
+      onRename?.(feature.id, editValue.trim());
+    }
+    setIsEditing(false);
+  }, [editValue, feature.id, feature.name, onRename]);
+
+  const cancelEdit = useCallback(() => {
+    setEditValue(feature.name);
+    setIsEditing(false);
+  }, [feature.name]);
+
+  const handleInputKeyDown: KeyboardEventHandler<HTMLInputElement> = (event) => {
+    if (event.key === "Enter") {
+      commitEdit();
+    } else if (event.key === "Escape") {
+      cancelEdit();
+    }
+  };
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
 
   return (
     <div
@@ -578,9 +619,24 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = memo(({
       />
 
       {/* Feature name */}
-      <p className="pointer-events-none flex-1 truncate text-left font-medium group-hover:text-[var(--text-primary)] transition-colors">
-        {feature.name}
-      </p>
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleInputKeyDown}
+          onBlur={commitEdit}
+          className="flex-1 px-1 py-0.5 text-xs font-medium bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-[var(--timeline-accent)]"
+        />
+      ) : (
+        <p
+          className="flex-1 truncate text-left font-medium group-hover:text-[var(--text-primary)] transition-colors cursor-text"
+          onDoubleClick={handleNameDoubleClick}
+        >
+          {feature.name}
+        </p>
+      )}
 
       {/* Duration */}
       <p className="pointer-events-none text-muted-foreground font-mono group-hover:text-[var(--text-primary)] transition-colors">{duration}</p>
@@ -891,7 +947,7 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
 
   return (
     <Card
-      className="h-full w-full rounded-md bg-[var(--bg-card)] border border-[var(--grid-line)] p-2 text-xs shadow-sm relative overflow-hidden cursor-pointer hover:shadow-md hover:border-[var(--timeline-accent)] hover:scale-[1.02] transition-all duration-150"
+      className="h-full w-full rounded-md bg-[var(--bg-card)] border border-[var(--grid-line)] p-2 text-xs shadow-sm relative overflow-hidden cursor-pointer hover:shadow-md hover:border-[var(--timeline-accent)] hover:brightness-[1.08] hover:ring-1 hover:ring-[var(--timeline-accent)] transition-all duration-150"
       onClick={onClick}
     >
       {/* Left accent bar */}
@@ -1145,7 +1201,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
           </GanttFeatureItemDragLayer>
         ) : (
           <Card
-            className="h-full w-full rounded-md bg-[var(--bg-card)] border border-[var(--grid-line)] p-2 text-xs shadow-sm relative overflow-hidden cursor-pointer hover:shadow-md hover:border-[var(--timeline-accent)] hover:scale-[1.02] transition-all duration-150"
+            className="h-full w-full rounded-md bg-[var(--bg-card)] border border-[var(--grid-line)] p-2 text-xs shadow-sm relative overflow-hidden cursor-pointer hover:shadow-md hover:border-[var(--timeline-accent)] hover:brightness-[1.08] hover:ring-1 hover:ring-[var(--timeline-accent)] transition-all duration-150"
             onClick={handleCardClick}
           >
             {/* Left accent bar */}

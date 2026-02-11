@@ -177,6 +177,13 @@ export default function DashboardGantt() {
     });
   }, [allFeatures, addSubtask]);
 
+  // Rename handler
+  const handleRename = useCallback((id: string, newName: string) => {
+    if (newName.trim()) {
+      updateFeature(id, { name: newName.trim() });
+    }
+  }, [updateFeature]);
+
   // Get selected feature (from full feature list to access coverImage)
   const selectedFeature = allFeatures.find((item) => item.feature.id === selectedFeatureId)?.feature;
 
@@ -216,6 +223,7 @@ export default function DashboardGantt() {
                           isExpanded={isExpanded}
                           onToggleExpand={() => toggleCollapse(parent.id)}
                           onAddSubtask={() => handleAddSubtask(parent.id)}
+                          onRename={handleRename}
                         />
                         {/* Subtask items (only when expanded) */}
                         {isExpanded && subtasks.map((subtask) => (
@@ -223,6 +231,7 @@ export default function DashboardGantt() {
                             key={subtask.id}
                             feature={subtask}
                             isSubtask={true}
+                            onRename={handleRename}
                           />
                         ))}
                       </div>
