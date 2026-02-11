@@ -216,4 +216,143 @@ body {
   --wx-icon-color: var(--text-secondary);
   --wx-color-primary: var(--accent-primary);
   --wx-color-danger: var(--status-red);
+
+  /* Flex layout to fill container height */
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.wx-willow-theme .wx-gantt,
+.wx-willow-dark-theme .wx-gantt {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+/* ============================================
+   Bryntum Gantt Theme Integration
+   Match Kibo Gantt styling
+   ============================================ */
+
+.bryntum-gantt-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* Bryntum container background */
+.bryntum-gantt-container .b-gantt {
+  background: var(--bg-card);
+  border: none;
+}
+
+/* Grid header styling */
+.bryntum-gantt-container .b-grid-header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+/* Grid cell borders */
+.bryntum-gantt-container .b-grid-cell {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Timeline header */
+.bryntum-gantt-container .b-sch-timeaxiscolumn {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+.bryntum-gantt-container .b-sch-header-timeaxis-cell {
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+/* Grid lines */
+.bryntum-gantt-container .b-sch-vertical-line {
+  border-color: var(--grid-line);
+}
+
+/* Task bars - match Kibo styling */
+.bryntum-gantt-container .b-gantt-task {
+  background: var(--gantt-task-bg);
+  border: 1px solid var(--gantt-task-border);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.bryntum-gantt-container .b-gantt-task-content {
+  color: var(--gantt-task-font);
+}
+
+/* Task progress fill */
+.bryntum-gantt-container .b-gantt-task-percent-bar {
+  background: var(--gantt-task-fill);
+  border-radius: 6px;
+}
+
+/* Parent/summary tasks */
+.bryntum-gantt-container .b-gantt-task.b-gantt-task-parent {
+  background: var(--gantt-summary-bg);
+  border-color: var(--gantt-summary-border);
+}
+
+.bryntum-gantt-container .b-gantt-task.b-gantt-task-parent .b-gantt-task-content {
+  color: var(--gantt-summary-font);
+}
+
+.bryntum-gantt-container .b-gantt-task.b-gantt-task-parent .b-gantt-task-percent-bar {
+  background: var(--gantt-summary-fill);
+}
+
+/* Milestone styling */
+.bryntum-gantt-container .b-gantt-task.b-milestone {
+  background: var(--gantt-milestone-bg);
+  border-color: var(--gantt-milestone-border);
+  border-radius: 3px;
+}
+
+/* Hover state */
+.bryntum-gantt-container .b-gantt-task:hover {
+  opacity: 0.9;
+  cursor: pointer;
+}
+
+/* Selected state */
+.bryntum-gantt-container .b-gantt-task.b-selected {
+  box-shadow: 0 0 0 2px var(--accent-primary);
+}
+
+/* Row backgrounds */
+.bryntum-gantt-container .b-grid-row {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+.bryntum-gantt-container .b-grid-row.b-even {
+  background: var(--bg-accent);
+}
+
+/* Today line */
+.bryntum-gantt-container .b-sch-current-time {
+  background-color: var(--status-blue);
+  opacity: 0.4;
+}
+
+/* Dependency lines */
+.bryntum-gantt-container .b-sch-dependency {
+  stroke: var(--text-muted);
+  stroke-width: 2;
+}
+
+/* Scrollbar styling */
+.bryntum-gantt-container .b-grid-scrollbar {
+  background: var(--bg-accent);
+}
+
+.bryntum-gantt-container .b-grid-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 4px;
 }
