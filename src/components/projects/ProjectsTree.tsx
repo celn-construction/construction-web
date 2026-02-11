@@ -15,7 +15,7 @@ import { useGroupedFeaturesWithRows, useGroups } from '@/store/hooks/useGanttFea
 import type { GanttFeature } from '@/types/gantt-types';
 
 // Static construction document folder structure (same for every task)
-const folderData = [
+export const folderData = [
   {
     id: 'rfi',
     name: 'RFI',
@@ -53,19 +53,98 @@ const folderData = [
   },
 ];
 
-export default function ProjectsTree() {
+export interface Selection {
+  type: 'task' | 'folder';
+  nodeId: string;
+  taskId: string;
+  folderName?: string;
+  parentFolderName?: string;
+}
+
+interface ProjectsTreeProps {
+  selectedNodeId: string | null;
+  onSelect: (selection: Selection | null) => void;
+}
+
+export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeProps) {
   const groups = useGroups();
   const { grouped } = useGroupedFeaturesWithRows();
 
   // Get all group IDs for default expansion
   const defaultExpandedIds = groups.map((group) => `group-${group}`);
 
+  // Handle selection change
+  const handleSelectionChange = (selectedIds: string[]) => {
+    const nodeId = selectedIds[0];
+    if (!nodeId) {
+      onSelect(null);
+      return;
+    }
+
+    // Ignore group selections
+    if (nodeId.startsWith('group-')) {
+      onSelect(null);
+      return;
+    }
+
+    // Parse task selection: task-{featureId}
+    if (nodeId.startsWith('task-') && !nodeId.includes('-', 5)) {
+      const taskId = nodeId.substring(5);
+      onSelect({
+        type: 'task',
+        nodeId,
+        taskId,
+      });
+      return;
+    }
+
+    // Parse folder selection: task-{featureId}-{folderId} or task-{featureId}-{folderId}-{childId}
+    const parts = nodeId.split('-');
+    if (parts.length >= 3 && parts[0] === 'task' && parts[1] && parts[2]) {
+      const taskId = parts[1];
+      const folderId = parts[2];
+
+      // Find folder name
+      let folderName: string;
+      let parentFolderName: string | undefined;
+
+      if (parts.length === 3) {
+        // Top-level folder
+        const folder = folderData.find((f) => f.id === folderId);
+        folderName = folder?.name ?? folderId;
+      } else if (parts.length === 4 && parts[3]) {
+        // Sub-folder
+        const childId = parts[3];
+        const parentFolder = folderData.find((f) => f.id === folderId);
+        const childFolder = parentFolder?.children?.find((c) => c.id === childId);
+        folderName = childFolder?.name ?? childId;
+        parentFolderName = parentFolder?.name;
+      } else {
+        // Fallback
+        folderName = folderId;
+      }
+
+      onSelect({
+        type: 'folder',
+        nodeId,
+        taskId,
+        folderName,
+        parentFolderName,
+      });
+      return;
+    }
+
+    onSelect(null);
+  };
+
   return (
     <TreeProvider
       defaultExpandedIds={defaultExpandedIds}
       showLines={true}
       showIcons={true}
-      selectable={false}
+      selectable={true}
+      selectedIds={selectedNodeId ? [selectedNodeId] : []}
+      onSelectionChange={handleSelectionChange}
     >
       <TreeView className="w-full">
         {groups.map((groupName, groupIndex) => {

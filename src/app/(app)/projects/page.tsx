@@ -1,13 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { LayoutGrid } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ProjectsTree from '@/components/projects/ProjectsTree';
+import ProjectsTree, { type Selection } from '@/components/projects/ProjectsTree';
+import { ProjectDetailPanel } from '@/components/projects/ProjectDetailPanel';
 import { useGroupedFeaturesWithRows, useGroups } from '@/store/hooks/useGanttFeatures';
 
 export default function ProjectsPage() {
   const groups = useGroups();
   const { flatList } = useGroupedFeaturesWithRows();
+  const [selection, setSelection] = useState<Selection | null>(null);
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)]">
@@ -33,14 +36,30 @@ export default function ProjectsPage() {
         </div>
       </motion.div>
 
-      {/* Projects Tree */}
+      {/* Split View: Tree + Detail Panel */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.15 }}
-        className="flex-1 overflow-auto p-6"
+        className="flex-1 flex overflow-hidden"
       >
-        <ProjectsTree />
+        {/* Tree Pane - hidden on mobile when item selected */}
+        <div
+          className={`w-full lg:w-80 border-r border-[var(--blueprint-line)] overflow-auto p-6 ${
+            selection ? 'hidden lg:block' : 'block'
+          }`}
+        >
+          <ProjectsTree selectedNodeId={selection?.nodeId || null} onSelect={setSelection} />
+        </div>
+
+        {/* Detail Panel - hidden on mobile when nothing selected */}
+        <div
+          className={`flex-1 bg-white dark:bg-[var(--bg-card)] ${
+            selection ? 'block' : 'hidden lg:block'
+          }`}
+        >
+          <ProjectDetailPanel selection={selection} onBack={() => setSelection(null)} />
+        </div>
       </motion.div>
     </div>
   );
