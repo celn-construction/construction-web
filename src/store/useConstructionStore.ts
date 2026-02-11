@@ -34,6 +34,10 @@ interface ConstructionState {
   statuses: Record<string, GanttStatus>;
   collapsedFeatureIds: Set<string>;
 
+  // ========== UNDO/REDO (session-only, not persisted) ==========
+  _history: GanttFeature[][];
+  _historyIndex: number;
+
   // ========== ACTIONS ==========
   // Project switching
   switchProject: (projectId: string) => void;
@@ -56,6 +60,11 @@ interface ConstructionState {
   // Hierarchy operations
   addSubtask: (parentId: FeatureId, subtask: GanttFeature) => void;
   toggleFeatureCollapse: (featureId: FeatureId) => void;
+
+  // Undo/Redo
+  undo: () => void;
+  redo: () => void;
+  _pushHistory: () => void;
 }
 
 interface ConstructionSelectors {
@@ -344,6 +353,8 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
         groups: DEFAULT_GROUPS,
         statuses: DEFAULT_STATUSES,
         collapsedFeatureIds: new Set<string>(),
+        _history: [],
+        _historyIndex: -1,
 
         // ========== ACTIONS ==========
 
@@ -383,11 +394,13 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
 
         addFeature: (feature) =>
           set((state) => {
+            get()._pushHistory();
             state.features.push(feature);
           }),
 
         updateFeature: (id, updates) =>
           set((state) => {
+            get()._pushHistory();
             const index = state.features.findIndex((f) => f.id === id);
             const existing = state.features[index];
             if (index !== -1 && existing) {
@@ -398,12 +411,14 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
 
         removeFeature: (id) =>
           set((state) => {
+            get()._pushHistory();
             // Cascade delete: remove the feature and all its subtasks
             state.features = state.features.filter((f) => f.id !== id && f.parentId !== id);
           }),
 
         moveFeature: (id, startAt, endAt) =>
           set((state) => {
+            get()._pushHistory();
             const feature = state.features.find((f) => f.id === id);
             if (feature) {
               feature.startAt = startAt;
@@ -413,6 +428,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
 
         updateMultipleFeatures: (updates) =>
           set((state) => {
+            get()._pushHistory();
             updates.forEach(({ id, changes }) => {
               const feature = state.features.find((f) => f.id === id);
               if (feature) {
@@ -423,6 +439,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
 
         reorderGroup: (groupName, featureIds) =>
           set((state) => {
+            get()._pushHistory();
             const groupFeatures = state.features.filter((f) => f.group === groupName);
             const reordered = featureIds
               .map((id) => groupFeatures.find((f) => f.id === id))
@@ -445,6 +462,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
             // Reject if parent is already a subtask (only 1 level deep)
             if (parent.parentId) return;
 
+            get()._pushHistory();
             // Set the subtask's group and parentId
             subtask.group = parent.group;
             subtask.parentId = parentId;
@@ -457,6 +475,57 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
               state.collapsedFeatureIds.delete(featureId);
             } else {
               state.collapsedFeatureIds.add(featureId);
+            }
+          }),
+
+        // ========== UNDO/REDO ==========
+
+        _pushHistory: () =>
+          set((state) => {
+            // Deep clone current features (handle Date objects properly)
+            const snapshot = state.features.map((f) => ({
+              ...f,
+              startAt: new Date(f.startAt.getTime()),
+              endAt: new Date(f.endAt.getTime()),
+            }));
+
+            // Truncate any redo entries beyond current index
+            state._history = state._history.slice(0, state._historyIndex + 1);
+
+            // Push snapshot
+            state._history.push(snapshot);
+
+            // Cap at 50 entries
+            if (state._history.length > 50) {
+              state._history.shift();
+            } else {
+              state._historyIndex++;
+            }
+          }),
+
+        undo: () =>
+          set((state) => {
+            if (state._historyIndex >= 0) {
+              // Restore features from history
+              state.features = state._history[state._historyIndex].map((f) => ({
+                ...f,
+                startAt: new Date(f.startAt.getTime()),
+                endAt: new Date(f.endAt.getTime()),
+              }));
+              state._historyIndex--;
+            }
+          }),
+
+        redo: () =>
+          set((state) => {
+            if (state._historyIndex < state._history.length - 1) {
+              state._historyIndex++;
+              // Restore features from history
+              state.features = state._history[state._historyIndex + 1].map((f) => ({
+                ...f,
+                startAt: new Date(f.startAt.getTime()),
+                endAt: new Date(f.endAt.getTime()),
+              }));
             }
           }),
 

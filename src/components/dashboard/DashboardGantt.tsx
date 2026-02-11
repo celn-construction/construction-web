@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { GanttChart } from 'lucide-react';
+import { GanttChart, Undo2, Redo2 } from 'lucide-react';
 import {
   Popover,
   PopoverAnchor,
@@ -36,6 +36,10 @@ import {
   useCollapsedFeatureIds,
   useToggleFeatureCollapse,
   useAddSubtask,
+  useUndo,
+  useRedo,
+  useCanUndo,
+  useCanRedo,
 } from '@/store/hooks';
 
 export default function DashboardGantt() {
@@ -46,6 +50,10 @@ export default function DashboardGantt() {
   const collapsedIds = useCollapsedFeatureIds();
   const toggleCollapse = useToggleFeatureCollapse();
   const addSubtask = useAddSubtask();
+  const undo = useUndo();
+  const redo = useRedo();
+  const canUndo = useCanUndo();
+  const canRedo = useCanRedo();
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<{ id: string; name: string } | null>(null);
   const anchorRef = useRef<HTMLElement | null>(null);
@@ -102,6 +110,23 @@ export default function DashboardGantt() {
 
   // Sync ref with state
   selectedFeatureIdRef.current = selectedFeatureId;
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      if (mod && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo]);
 
   // Close popover when anchor scrolls off-screen
   useEffect(() => {
@@ -200,6 +225,24 @@ export default function DashboardGantt() {
         <h2 className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>
           Project Schedule
         </h2>
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            className="p-1.5 rounded hover:bg-[var(--bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Undo (Ctrl+Z)"
+          >
+            <Undo2 className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} />
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            className="p-1.5 rounded hover:bg-[var(--bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Redo (Ctrl+Shift+Z)"
+          >
+            <Redo2 className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} />
+          </button>
+        </div>
       </div>
 
       {/* Gantt content */}

@@ -81,3 +81,31 @@ export function useAddSubtask() {
 export function useToggleFeatureCollapse() {
   return useConstructionStore((state) => state.toggleFeatureCollapse);
 }
+
+/**
+ * Hook to get undo action
+ */
+export function useUndo() {
+  return useConstructionStore((state) => state.undo);
+}
+
+/**
+ * Hook to get redo action
+ */
+export function useRedo() {
+  return useConstructionStore((state) => state.redo);
+}
+
+/**
+ * Hook to check if undo is available
+ */
+export function useCanUndo() {
+  return useConstructionStore((state) => state._historyIndex >= 0);
+}
+
+/**
+ * Hook to check if redo is available
+ */
+export function useCanRedo() {
+  return useConstructionStore((state) => state._historyIndex < state._history.length - 1);
+}

@@ -21,4 +21,8 @@ export {
   useMoveFeature,
   useAddSubtask,
   useToggleFeatureCollapse,
+  useUndo,
+  useRedo,
+  useCanUndo,
+  useCanRedo,
 } from './useFeatureActions';
