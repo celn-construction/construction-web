@@ -542,6 +542,10 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
                 },
               ])
             ),
+            // Persist live state so it rehydrates correctly
+            features: state.features,
+            groups: state.groups,
+            collapsedFeatureIds: Array.from(state.collapsedFeatureIds),
           };
         },
         // Rehydrate dates from localStorage (JSON serializes them as strings)
@@ -574,22 +578,27 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
           if (state && Array.isArray((state as any).collapsedFeatureIds)) {
             state.collapsedFeatureIds = new Set((state as any).collapsedFeatureIds);
           }
+
+          // CRITICAL FIX: ensure live state matches current project after rehydration
+          if (state?.currentProjectId && state.projectData?.[state.currentProjectId]) {
+            const data = state.projectData[state.currentProjectId];
+            state.features = data.features;
+            state.groups = data.groups;
+            state.collapsedFeatureIds = data.collapsedFeatureIds;
+          }
         },
         migrate: (persistedState: unknown, version: number) => {
           if (version < 5) {
             // Migrate v4 to v5: wrap single-project data into multi-project structure
             const v4State = persistedState as any;
             if (v4State?.features && v4State?.groups) {
-              // The v4 data becomes the data for a null project (will be set on first load)
+              // Carry forward as top-level live state (first switchProject call will save it properly)
               return {
                 currentProjectId: null,
-                projectData: {
-                  _default: {
-                    features: v4State.features,
-                    groups: v4State.groups,
-                    collapsedFeatureIds: v4State.collapsedFeatureIds || [],
-                  },
-                },
+                projectData: {},
+                features: v4State.features,
+                groups: v4State.groups,
+                collapsedFeatureIds: v4State.collapsedFeatureIds || [],
               };
             }
             return {

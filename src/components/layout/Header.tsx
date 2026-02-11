@@ -21,7 +21,10 @@ export default function Header() {
   const pathname = usePathname();
 
   // Project management
-  const { data: projects = [], isLoading: projectsLoading } = api.project.list.useQuery();
+  const { data: projects = [], isLoading: projectsLoading } = api.project.list.useQuery(
+    undefined,
+    { retry: false }
+  );
   const currentProjectId = useCurrentProjectId();
   const switchProject = useSwitchProject();
 
