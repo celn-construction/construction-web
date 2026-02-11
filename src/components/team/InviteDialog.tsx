@@ -15,13 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import RoleSelect from './RoleSelect';
 
 interface InviteDialogProps {
   open: boolean;
@@ -61,12 +55,6 @@ export default function InviteDialog({
     createInvitation.mutate({ organizationId, email, role });
   };
 
-  const roleDescriptions = {
-    admin: 'Full access to all settings and team management',
-    project_manager: 'Manage projects, tasks, and team assignments',
-    member: 'View and contribute to assigned projects',
-    viewer: 'Read-only access to projects',
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,50 +92,7 @@ export default function InviteDialog({
               <Label htmlFor="role" className="text-sm font-medium">
                 Role
               </Label>
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger id="role" className="h-10">
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">
-                    <div className="py-1">
-                      <div className="font-medium">Admin</div>
-                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                        {roleDescriptions.admin}
-                      </div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="project_manager">
-                    <div className="py-1">
-                      <div className="font-medium">Project Manager</div>
-                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                        {roleDescriptions.project_manager}
-                      </div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="member">
-                    <div className="py-1">
-                      <div className="font-medium">Member</div>
-                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                        {roleDescriptions.member}
-                      </div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="viewer">
-                    <div className="py-1">
-                      <div className="font-medium">Viewer</div>
-                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                        {roleDescriptions.viewer}
-                      </div>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              {role && (
-                <p className="text-xs text-[var(--text-muted)] mt-1">
-                  {roleDescriptions[role as keyof typeof roleDescriptions]}
-                </p>
-              )}
+              <RoleSelect value={role} onValueChange={setRole} />
             </div>
           </div>
           <DialogFooter>
