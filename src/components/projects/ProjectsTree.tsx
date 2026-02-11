@@ -11,8 +11,9 @@ import {
   TreeIcon,
   TreeLabel,
 } from '@/components/kibo-ui/tree';
-import { useGroupedFeaturesWithRows, useGroups } from '@/store/hooks/useGanttFeatures';
+import { useGroupedFeaturesWithRows, useGroups, useCurrentProjectId } from '@/store/hooks/useGanttFeatures';
 import type { GanttFeature } from '@/types/gantt-types';
+import { api } from '@/trpc/react';
 
 // Static construction document folder structure (same for every task)
 export const folderData = [
@@ -59,6 +60,7 @@ export interface Selection {
   taskId: string;
   folderName?: string;
   parentFolderName?: string;
+  folderId?: string;
 }
 
 interface ProjectsTreeProps {
@@ -66,9 +68,114 @@ interface ProjectsTreeProps {
   onSelect: (selection: Selection | null) => void;
 }
 
+// Component to display folder with document count badge
+interface FolderNodeProps {
+  folder: typeof folderData[0];
+  taskId: string;
+  projectId: string | null;
+  organizationId: string | undefined;
+  groupIndex: number;
+  isLastTask: boolean;
+  folderIndex: number;
+  isLastFolder: boolean;
+  groupsLength: number;
+}
+
+function FolderNode({
+  folder,
+  taskId,
+  projectId,
+  organizationId,
+  groupIndex,
+  isLastTask,
+  folderIndex,
+  isLastFolder,
+  groupsLength,
+}: FolderNodeProps) {
+  const folderId = `${taskId}-${folder.id}`;
+
+  // Get document counts for this task
+  const { data: counts } = api.document.countByTask.useQuery(
+    {
+      organizationId: organizationId!,
+      projectId: projectId!,
+      taskId: taskId.replace('task-', ''),
+    },
+    {
+      enabled: !!organizationId && !!projectId,
+    }
+  );
+
+  const documentCount = counts?.[folder.id] || 0;
+
+  return (
+    <TreeNode
+      key={folderId}
+      nodeId={folderId}
+      isLast={isLastFolder}
+      level={2}
+      parentPath={[groupIndex === groupsLength - 1, isLastTask]}
+    >
+      <TreeNodeTrigger>
+        <TreeExpander hasChildren={!folder.isLeaf} />
+        <TreeIcon hasChildren={!folder.isLeaf} icon={<Folder className="w-4 h-4 text-amber-500" />} />
+        <TreeLabel className="font-medium">
+          <div className="flex items-center gap-2">
+            <span>{folder.name}</span>
+            {documentCount > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-medium">
+                {documentCount}
+              </span>
+            )}
+          </div>
+        </TreeLabel>
+      </TreeNodeTrigger>
+      {!folder.isLeaf && folder.children && (
+        <TreeNodeContent hasChildren={true}>
+          {folder.children.map((child, childIndex) => {
+            const childId = `${folderId}-${child.id}`;
+            const isLastChild = childIndex === folder.children!.length - 1;
+            const childDocCount = counts?.[child.id] || 0;
+
+            return (
+              <TreeNode
+                key={childId}
+                nodeId={childId}
+                isLast={isLastChild}
+                level={3}
+                parentPath={[groupIndex === groupsLength - 1, isLastTask, isLastFolder]}
+              >
+                <TreeNodeTrigger>
+                  <TreeExpander hasChildren={false} />
+                  <TreeIcon hasChildren={false} icon={<FileText className="w-4 h-4 text-gray-500" />} />
+                  <TreeLabel>
+                    <div className="flex items-center gap-2">
+                      <span>{child.name}</span>
+                      {childDocCount > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 rounded-full font-medium">
+                          {childDocCount}
+                        </span>
+                      )}
+                    </div>
+                  </TreeLabel>
+                </TreeNodeTrigger>
+              </TreeNode>
+            );
+          })}
+        </TreeNodeContent>
+      )}
+    </TreeNode>
+  );
+}
+
 export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeProps) {
   const groups = useGroups();
   const { grouped } = useGroupedFeaturesWithRows();
+  const currentProjectId = useCurrentProjectId();
+
+  // Get project to access organizationId
+  const { data: projects = [] } = api.project.list.useQuery();
+  const currentProject = projects.find((p) => p.id === currentProjectId);
 
   // Get all group IDs for default expansion
   const defaultExpandedIds = groups.map((group) => `group-${group}`);
@@ -108,10 +215,13 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
       let folderName: string;
       let parentFolderName: string | undefined;
 
+      let actualFolderId: string;
+
       if (parts.length === 3) {
         // Top-level folder
         const folder = folderData.find((f) => f.id === folderId);
         folderName = folder?.name ?? folderId;
+        actualFolderId = folderId;
       } else if (parts.length === 4 && parts[3]) {
         // Sub-folder
         const childId = parts[3];
@@ -119,9 +229,11 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
         const childFolder = parentFolder?.children?.find((c) => c.id === childId);
         folderName = childFolder?.name ?? childId;
         parentFolderName = parentFolder?.name;
+        actualFolderId = childId;
       } else {
         // Fallback
         folderName = folderId;
+        actualFolderId = folderId;
       }
 
       onSelect({
@@ -130,6 +242,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
         taskId,
         folderName,
         parentFolderName,
+        folderId: actualFolderId,
       });
       return;
     }
@@ -210,62 +323,21 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
                       </TreeNodeTrigger>
                       <TreeNodeContent hasChildren={true}>
                         {folderData.map((folder, folderIndex) => {
-                          const folderId = `${taskId}-${folder.id}`;
                           const isLastFolder = folderIndex === folderData.length - 1;
 
                           return (
-                            <TreeNode
-                              key={folderId}
-                              nodeId={folderId}
-                              isLast={isLastFolder}
-                              level={2}
-                              parentPath={[
-                                groupIndex === groups.length - 1,
-                                isLastTask,
-                              ]}
-                            >
-                              <TreeNodeTrigger>
-                                <TreeExpander hasChildren={!folder.isLeaf} />
-                                <TreeIcon
-                                  hasChildren={!folder.isLeaf}
-                                  icon={<Folder className="w-4 h-4 text-amber-500" />}
-                                />
-                                <TreeLabel className="font-medium">
-                                  {folder.name}
-                                </TreeLabel>
-                              </TreeNodeTrigger>
-                              {!folder.isLeaf && folder.children && (
-                                <TreeNodeContent hasChildren={true}>
-                                  {folder.children.map((child, childIndex) => {
-                                    const childId = `${folderId}-${child.id}`;
-                                    const isLastChild = childIndex === folder.children!.length - 1;
-
-                                    return (
-                                      <TreeNode
-                                        key={childId}
-                                        nodeId={childId}
-                                        isLast={isLastChild}
-                                        level={3}
-                                        parentPath={[
-                                          groupIndex === groups.length - 1,
-                                          isLastTask,
-                                          isLastFolder,
-                                        ]}
-                                      >
-                                        <TreeNodeTrigger>
-                                          <TreeExpander hasChildren={false} />
-                                          <TreeIcon
-                                            hasChildren={false}
-                                            icon={<FileText className="w-4 h-4 text-gray-500" />}
-                                          />
-                                          <TreeLabel>{child.name}</TreeLabel>
-                                        </TreeNodeTrigger>
-                                      </TreeNode>
-                                    );
-                                  })}
-                                </TreeNodeContent>
-                              )}
-                            </TreeNode>
+                            <FolderNode
+                              key={`${taskId}-${folder.id}`}
+                              folder={folder}
+                              taskId={taskId}
+                              projectId={currentProjectId}
+                              organizationId={currentProject?.organizationId}
+                              groupIndex={groupIndex}
+                              isLastTask={isLastTask}
+                              folderIndex={folderIndex}
+                              isLastFolder={isLastFolder}
+                              groupsLength={groups.length}
+                            />
                           );
                         })}
                       </TreeNodeContent>

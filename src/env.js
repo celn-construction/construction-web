@@ -13,6 +13,7 @@ export const env = createEnv({
       .default("development"),
     RESEND_API_KEY: z.string().optional(),
     APP_URL: z.string().url().default("http://localhost:5050"),
+    BLOB_READ_WRITE_TOKEN: z.string().min(1),
   },
 
   /**
@@ -33,6 +34,7 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     APP_URL: process.env.APP_URL,
+    BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**
