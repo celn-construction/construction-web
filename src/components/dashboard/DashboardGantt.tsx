@@ -44,33 +44,35 @@ export default function DashboardGantt() {
   const [selectedDoc, setSelectedDoc] = useState<{ id: string; name: string } | null>(null);
   const anchorRef = useRef<HTMLElement | null>(null);
   const ganttContentRef = useRef<HTMLDivElement>(null);
+  const selectedFeatureIdRef = useRef<string | null>(null);
 
-  // Adapter: Filter out features without dates and map to Kibo's type
-  const kiboFeatures: KiboFeature[] = useMemo(
-    () =>
-      allFeatures
-        .filter((item) => item.feature.startAt && item.feature.endAt)
-        .map((item) => ({
-          id: item.feature.id,
-          name: item.feature.name,
-          startAt: item.feature.startAt!,
-          endAt: item.feature.endAt!,
-          status: item.feature.status,
-        })),
-    [allFeatures]
-  );
-
-  // Group Kibo features by group
+  // Group features by group in a single pass (optimized O(n) instead of O(n²))
   const kiboGrouped = useMemo(() => {
     const result: Record<string, KiboFeature[]> = {};
+
+    // Initialize empty arrays for all groups
     for (const groupName of groups) {
-      result[groupName] = kiboFeatures.filter((f) => {
-        const originalFeature = allFeatures.find((item) => item.feature.id === f.id);
-        return originalFeature?.feature.group === groupName;
-      });
+      result[groupName] = [];
     }
+
+    // Single pass: filter features with dates and group them
+    for (const item of allFeatures) {
+      if (item.feature.startAt && item.feature.endAt && item.feature.group) {
+        const groupName = item.feature.group;
+        if (result[groupName]) {
+          result[groupName].push({
+            id: item.feature.id,
+            name: item.feature.name,
+            startAt: item.feature.startAt,
+            endAt: item.feature.endAt,
+            status: item.feature.status,
+          });
+        }
+      }
+    }
+
     return result;
-  }, [groups, kiboFeatures, allFeatures]);
+  }, [groups, allFeatures]);
 
   // Compute sub-row counts for each group to ensure sidebar/timeline height sync
   const subRowCounts = useMemo(() => {
@@ -82,22 +84,25 @@ export default function DashboardGantt() {
     return counts;
   }, [groups, kiboGrouped]);
 
-  // Move handler
-  const handleMove = (id: string, startDate: Date, endDate: Date | null) => {
-    moveFeature(id, startDate, endDate ?? startDate);
-  };
+  // Sync ref with state
+  selectedFeatureIdRef.current = selectedFeatureId;
 
-  // Select handler
+  // Move handler - memoized with stable dependency
+  const handleMove = useCallback((id: string, startDate: Date, endDate: Date | null) => {
+    moveFeature(id, startDate, endDate ?? startDate);
+  }, [moveFeature]);
+
+  // Select handler - stable callback using ref
   const handleSelectItem = useCallback((id: string, anchorEl: HTMLElement) => {
     // Toggle: if clicking the same bar, close the popover
-    if (selectedFeatureId === id) {
+    if (selectedFeatureIdRef.current === id) {
       setSelectedFeatureId(null);
       anchorRef.current = null;
     } else {
       setSelectedFeatureId(id);
       anchorRef.current = anchorEl;
     }
-  }, [selectedFeatureId]);
+  }, []);
 
   // Cover image change handler
   const handleCoverImageChange = useCallback((imageUrl: string | undefined) => {
@@ -156,6 +161,7 @@ export default function DashboardGantt() {
                     features={kiboGrouped[groupName] || []}
                     onMove={handleMove}
                     onSelectItem={handleSelectItem}
+                    subRowCount={subRowCounts[groupName]}
                   />
                 </GanttFeatureListGroup>
               ))}
