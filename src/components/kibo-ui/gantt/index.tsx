@@ -655,53 +655,6 @@ export const GanttAddFeatureHelper: FC<GanttAddFeatureHelperProps> = ({
   );
 };
 
-export type GanttColumnProps = {
-  index: number;
-  isColumnSecondary?: (item: number) => boolean;
-};
-
-export const GanttColumn: FC<GanttColumnProps> = memo(({
-  index,
-  isColumnSecondary,
-}) => {
-  const gantt = useContext(GanttContext);
-  const [dragging] = useGanttDragging();
-  const [hovering, setHovering] = useState(false);
-  const [mouseY, setMouseY] = useState(0);
-  const columnRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseEnter = () => setHovering(true);
-  const handleMouseLeave = () => setHovering(false);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (columnRef.current) {
-      const rect = columnRef.current.getBoundingClientRect();
-      setMouseY(e.clientY - rect.top);
-    }
-  }, []);
-
-  return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: "This is a clickable column"
-    // biome-ignore lint/nursery/noNoninteractiveElementInteractions: "This is a clickable column"
-    <div
-      className={cn(
-        "group relative h-full overflow-hidden",
-        isColumnSecondary?.(index) ? "bg-transparent" : ""
-      )}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onMouseMove={hovering && !dragging && gantt.onAddItem ? handleMouseMove : undefined}
-      ref={columnRef}
-    >
-      {!dragging && hovering && gantt.onAddItem ? (
-        <GanttAddFeatureHelper top={mouseY} />
-      ) : null}
-    </div>
-  );
-}, (prev, next) => prev.index === next.index);
-
-GanttColumn.displayName = "GanttColumn";
-
 export type GanttColumnsProps = {
   columns: number;
   isColumnSecondary?: (item: number) => boolean;
@@ -712,21 +665,49 @@ export const GanttColumns: FC<GanttColumnsProps> = ({
   isColumnSecondary,
 }) => {
   const id = useId();
+  const gantt = useContext(GanttContext);
+  const [dragging] = useGanttDragging();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hoverInfo, setHoverInfo] = useState<{ mouseY: number } | null>(null);
+
+  const showHelper = !dragging && gantt.onAddItem;
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      setHoverInfo({ mouseY: e.clientY - rect.top });
+    },
+    []
+  );
+
+  const handleMouseLeave = useCallback(() => setHoverInfo(null), []);
 
   return (
     <div
-      className="divide grid h-full w-full divide-x divide-[var(--grid-line)]"
+      className="divide grid h-full w-full divide-x divide-[var(--grid-line)] relative"
       style={{
         gridTemplateColumns: `repeat(${columns}, var(--gantt-column-width))`,
       }}
+      ref={containerRef}
+      onMouseMove={showHelper ? handleMouseMove : undefined}
+      onMouseLeave={showHelper ? handleMouseLeave : undefined}
     >
+      {/* Plain divs — no component, no hooks, no state */}
       {Array.from({ length: columns }).map((_, index) => (
-        <GanttColumn
-          index={index}
-          isColumnSecondary={isColumnSecondary}
+        <div
+          className={cn(
+            "group relative h-full overflow-hidden",
+            isColumnSecondary?.(index) ? "bg-transparent" : ""
+          )}
           key={`${id}-${index}`}
         />
       ))}
+
+      {/* Single helper instance for the entire container */}
+      {showHelper && hoverInfo ? (
+        <GanttAddFeatureHelper top={hoverInfo.mouseY} />
+      ) : null}
     </div>
   );
 };
