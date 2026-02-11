@@ -81,3 +81,16 @@ export function useAddSubtask() {
 export function useToggleFeatureCollapse() {
   return useConstructionStore((state) => state.toggleFeatureCollapse);
 }
+
+/**
+ * Hook to get dependency actions
+ */
+export function useDependencyActions() {
+  return useConstructionStore(
+    useShallow((state) => ({
+      addDependency: state.addDependency,
+      removeDependency: state.removeDependency,
+      removeDependenciesForFeature: state.removeDependenciesForFeature,
+    }))
+  );
+}

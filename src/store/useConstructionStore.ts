@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { enableMapSet } from 'immer';
-import type { GanttFeature, GanttStatus } from '@/types/gantt-types';
+import type { GanttFeature, GanttStatus, GanttDependency } from '@/types/gantt-types';
 
 enableMapSet();
 
@@ -19,6 +19,7 @@ interface ProjectData {
   features: GanttFeature[];
   groups: GroupName[];
   collapsedFeatureIds: Set<string>;
+  dependencies: GanttDependency[];
 }
 
 interface ConstructionState {
@@ -28,6 +29,7 @@ interface ConstructionState {
 
   // ========== DOMAIN DATA (active project) ==========
   features: GanttFeature[];
+  dependencies: GanttDependency[];
 
   // ========== METADATA ==========
   groups: GroupName[];
@@ -56,6 +58,11 @@ interface ConstructionState {
   // Hierarchy operations
   addSubtask: (parentId: FeatureId, subtask: GanttFeature) => void;
   toggleFeatureCollapse: (featureId: FeatureId) => void;
+
+  // Dependency operations
+  addDependency: (sourceId: FeatureId, targetId: FeatureId) => void;
+  removeDependency: (id: string) => void;
+  removeDependenciesForFeature: (featureId: FeatureId) => void;
 }
 
 interface ConstructionSelectors {
@@ -74,6 +81,10 @@ interface ConstructionSelectors {
   // Hierarchy queries
   getSubtasks: (parentId: FeatureId) => GanttFeature[];
   isCollapsed: (featureId: FeatureId) => boolean;
+
+  // Dependency queries
+  getDependencies: () => GanttDependency[];
+  getDependenciesForFeature: (featureId: FeatureId) => GanttDependency[];
 }
 
 // ============================================================================
@@ -329,6 +340,46 @@ const DEFAULT_FEATURES: GanttFeature[] = [
   },
 ];
 
+// Sample dependencies to demonstrate the feature
+const DEFAULT_DEPENDENCIES: GanttDependency[] = [
+  {
+    id: 'dep-1',
+    sourceId: 'task-1', // Site Survey
+    targetId: 'task-2', // Demolition
+    type: 'FS',
+  },
+  {
+    id: 'dep-2',
+    sourceId: 'task-2', // Demolition
+    targetId: 'task-3', // Grading & Excavation
+    type: 'FS',
+  },
+  {
+    id: 'dep-3',
+    sourceId: 'task-3', // Grading & Excavation
+    targetId: 'task-4', // Footings
+    type: 'FS',
+  },
+  {
+    id: 'dep-4',
+    sourceId: 'task-4', // Footings
+    targetId: 'task-5', // Slab Pour
+    type: 'FS',
+  },
+  {
+    id: 'dep-5',
+    sourceId: 'task-5', // Slab Pour
+    targetId: 'task-6', // Waterproofing
+    type: 'FS',
+  },
+  {
+    id: 'dep-6',
+    sourceId: 'task-6', // Waterproofing
+    targetId: 'task-7', // Structural Steel
+    type: 'FS',
+  },
+];
+
 // ============================================================================
 // STORE IMPLEMENTATION
 // ============================================================================
@@ -341,6 +392,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
         currentProjectId: null,
         projectData: {},
         features: DEFAULT_FEATURES,
+        dependencies: DEFAULT_DEPENDENCIES,
         groups: DEFAULT_GROUPS,
         statuses: DEFAULT_STATUSES,
         collapsedFeatureIds: new Set<string>(),
@@ -355,6 +407,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
                 features: state.features,
                 groups: state.groups,
                 collapsedFeatureIds: state.collapsedFeatureIds,
+                dependencies: state.dependencies,
               };
             }
 
@@ -364,6 +417,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
               state.features = projectData.features;
               state.groups = projectData.groups;
               state.collapsedFeatureIds = projectData.collapsedFeatureIds;
+              state.dependencies = projectData.dependencies;
             } else {
               // First time visiting this project - use defaults based on project ID
               // We'll use the index (0 or 1) to determine which defaults to use
@@ -376,6 +430,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
                 state.groups = RESIDENTIAL_GROUPS;
               }
               state.collapsedFeatureIds = new Set<string>();
+              state.dependencies = [];
             }
 
             state.currentProjectId = projectId;
@@ -400,6 +455,10 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
           set((state) => {
             // Cascade delete: remove the feature and all its subtasks
             state.features = state.features.filter((f) => f.id !== id && f.parentId !== id);
+            // Remove all dependencies involving this feature
+            state.dependencies = state.dependencies.filter(
+              (d) => d.sourceId !== id && d.targetId !== id
+            );
           }),
 
         moveFeature: (id, startAt, endAt) =>
@@ -460,6 +519,44 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
             }
           }),
 
+        addDependency: (sourceId, targetId) =>
+          set((state) => {
+            // Validation: no self-links
+            if (sourceId === targetId) return;
+
+            // Validation: no duplicates
+            const exists = state.dependencies.some(
+              (d) => d.sourceId === sourceId && d.targetId === targetId
+            );
+            if (exists) return;
+
+            // Validation: both features exist
+            const sourceExists = state.features.some((f) => f.id === sourceId);
+            const targetExists = state.features.some((f) => f.id === targetId);
+            if (!sourceExists || !targetExists) return;
+
+            // Create new dependency with UUID
+            const newDependency: GanttDependency = {
+              id: `dep-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              sourceId,
+              targetId,
+              type: 'FS',
+            };
+            state.dependencies.push(newDependency);
+          }),
+
+        removeDependency: (id) =>
+          set((state) => {
+            state.dependencies = state.dependencies.filter((d) => d.id !== id);
+          }),
+
+        removeDependenciesForFeature: (featureId) =>
+          set((state) => {
+            state.dependencies = state.dependencies.filter(
+              (d) => d.sourceId !== featureId && d.targetId !== featureId
+            );
+          }),
+
         // ========== SELECTORS ==========
 
         getFeaturesByGroup: (groupName) => {
@@ -515,6 +612,16 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
         isCollapsed: (featureId) => {
           return get().collapsedFeatureIds.has(featureId);
         },
+
+        getDependencies: () => {
+          return get().dependencies;
+        },
+
+        getDependenciesForFeature: (featureId) => {
+          return get().dependencies.filter(
+            (d) => d.sourceId === featureId || d.targetId === featureId
+          );
+        },
       })),
       {
         name: 'construction-storage',
@@ -527,6 +634,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
               features: state.features,
               groups: state.groups,
               collapsedFeatureIds: state.collapsedFeatureIds,
+              dependencies: state.dependencies,
             };
           }
 
@@ -539,6 +647,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
                   features: data.features,
                   groups: data.groups,
                   collapsedFeatureIds: Array.from(data.collapsedFeatureIds),
+                  dependencies: data.dependencies,
                 },
               ])
             ),
@@ -546,6 +655,7 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
             features: state.features,
             groups: state.groups,
             collapsedFeatureIds: Array.from(state.collapsedFeatureIds),
+            dependencies: state.dependencies,
           };
         },
         // Rehydrate dates from localStorage (JSON serializes them as strings)
@@ -582,9 +692,12 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
           // CRITICAL FIX: ensure live state matches current project after rehydration
           if (state?.currentProjectId && state.projectData?.[state.currentProjectId]) {
             const data = state.projectData[state.currentProjectId];
-            state.features = data.features;
-            state.groups = data.groups;
-            state.collapsedFeatureIds = data.collapsedFeatureIds;
+            if (data) {
+              state.features = data.features;
+              state.groups = data.groups;
+              state.collapsedFeatureIds = data.collapsedFeatureIds;
+              state.dependencies = data.dependencies || [];
+            }
           }
         },
         migrate: (persistedState: unknown, version: number) => {
@@ -599,16 +712,23 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
                 features: v4State.features,
                 groups: v4State.groups,
                 collapsedFeatureIds: v4State.collapsedFeatureIds || [],
+                dependencies: [],
               };
             }
             return {
               currentProjectId: null,
               projectData: {},
+              dependencies: [],
             };
           }
           return persistedState as {
             currentProjectId: string | null;
-            projectData: Record<string, { features: GanttFeature[]; groups: GroupName[]; collapsedFeatureIds: string[] }>
+            projectData: Record<string, {
+              features: GanttFeature[];
+              groups: GroupName[];
+              collapsedFeatureIds: string[];
+              dependencies: GanttDependency[];
+            }>;
           };
         },
       }

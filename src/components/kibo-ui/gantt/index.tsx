@@ -1445,6 +1445,262 @@ export const GanttMarker: FC<
 
 GanttMarker.displayName = "GanttMarker";
 
+// Dependency layer types
+export type GanttDependency = {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  type: 'FS';
+};
+
+export type GanttDependencyLayerProps = {
+  dependencies: GanttDependency[];
+  features: Array<{ feature: GanttFeature; rowIndex: number }>;
+  onRemoveDependency?: (id: string) => void;
+  onAddDependency?: (sourceId: string, targetId: string) => void;
+};
+
+export const GanttDependencyLayer: FC<GanttDependencyLayerProps> = memo(({
+  dependencies,
+  features,
+  onRemoveDependency,
+  onAddDependency,
+}) => {
+  const gantt = useContext(GanttContext);
+  const timelineStartDate = useMemo(
+    () => new Date(gantt.timelineData.at(0)?.year ?? 0, 0, 1),
+    [gantt.timelineData]
+  );
+
+  const [linkingSource, setLinkingSource] = useState<string | null>(null);
+  const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
+  const [hoveredFeature, setHoveredFeature] = useState<string | null>(null);
+  const [selectedDependency, setSelectedDependency] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  // Build feature position map
+  const featurePositions = useMemo(() => {
+    const map = new Map<string, { left: number; right: number; centerY: number; rowIndex: number }>();
+    features.forEach(({ feature, rowIndex }) => {
+      if (!feature.startAt || !feature.endAt) return;
+      const left = getOffset(feature.startAt, timelineStartDate, gantt);
+      const width = getWidth(feature.startAt, feature.endAt, gantt);
+      const right = left + width;
+      const centerY = rowIndex * gantt.rowHeight + gantt.rowHeight / 2;
+      map.set(feature.id, { left, right, centerY, rowIndex });
+    });
+    return map;
+  }, [features, timelineStartDate, gantt]);
+
+  // Generate path for FS dependency
+  const generatePath = useCallback((
+    sourcePos: { right: number; centerY: number },
+    targetPos: { left: number; centerY: number }
+  ) => {
+    const indent = 20;
+    const sx = sourcePos.right;
+    const sy = sourcePos.centerY;
+    const tx = targetPos.left;
+    const ty = targetPos.centerY;
+
+    if (tx >= sx) {
+      // Target is to the right (standard case)
+      const midX = sx + indent;
+      return `M ${sx} ${sy} H ${midX} V ${ty} H ${tx}`;
+    } else {
+      // Target is to the left (S-shaped path)
+      const midX = (sx + tx) / 2;
+      return `M ${sx} ${sy} H ${sx + indent} V ${(sy + ty) / 2} H ${tx - indent} V ${ty} H ${tx}`;
+    }
+  }, []);
+
+  // Handle linking mode
+  const handlePointerDown = useCallback((e: React.PointerEvent, featureId: string) => {
+    e.stopPropagation();
+    setLinkingSource(featureId);
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (linkingSource && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect();
+      setCursorPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    }
+  }, [linkingSource]);
+
+  const handlePointerUp = useCallback((targetId: string) => {
+    if (linkingSource && linkingSource !== targetId && onAddDependency) {
+      onAddDependency(linkingSource, targetId);
+    }
+    setLinkingSource(null);
+    setCursorPosition(null);
+    setHoveredFeature(null);
+  }, [linkingSource, onAddDependency]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedDependency && onRemoveDependency) {
+      onRemoveDependency(selectedDependency);
+      setSelectedDependency(null);
+    }
+  }, [selectedDependency, onRemoveDependency]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  return (
+    <svg
+      ref={svgRef}
+      className="absolute top-0 left-0 w-full h-full pointer-events-none"
+      style={{
+        marginTop: 'var(--gantt-header-height)',
+        zIndex: 5,
+      }}
+      onPointerMove={handlePointerMove}
+      onPointerUp={() => {
+        if (linkingSource) {
+          setLinkingSource(null);
+          setCursorPosition(null);
+        }
+      }}
+    >
+      <defs>
+        <marker
+          id="arrowhead"
+          markerWidth="10"
+          markerHeight="10"
+          refX="9"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+        >
+          <path d="M0,0 L0,6 L9,3 z" fill="var(--timeline-accent)" />
+        </marker>
+        <marker
+          id="arrowhead-selected"
+          markerWidth="10"
+          markerHeight="10"
+          refX="9"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+        >
+          <path d="M0,0 L0,6 L9,3 z" fill="var(--timeline-accent-bright)" />
+        </marker>
+      </defs>
+
+      {/* Render dependencies */}
+      {dependencies.map((dep) => {
+        const sourcePos = featurePositions.get(dep.sourceId);
+        const targetPos = featurePositions.get(dep.targetId);
+        if (!sourcePos || !targetPos) return null;
+
+        const path = generatePath(sourcePos, targetPos);
+        const isSelected = selectedDependency === dep.id;
+
+        return (
+          <g key={dep.id}>
+            {/* Invisible wider path for easier clicking */}
+            <path
+              d={path}
+              stroke="transparent"
+              strokeWidth="12"
+              fill="none"
+              className="pointer-events-auto cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedDependency(dep.id);
+              }}
+            />
+            {/* Visible path */}
+            <path
+              d={path}
+              stroke={isSelected ? 'var(--timeline-accent-bright)' : 'var(--timeline-accent)'}
+              strokeWidth={isSelected ? '2.5' : '2'}
+              fill="none"
+              markerEnd={isSelected ? 'url(#arrowhead-selected)' : 'url(#arrowhead)'}
+              className="pointer-events-none"
+              opacity={isSelected ? '1' : '0.7'}
+            />
+            {/* Delete button on hover */}
+            {isSelected && (
+              <g transform={`translate(${(sourcePos.right + targetPos.left) / 2}, ${(sourcePos.centerY + targetPos.centerY) / 2})`}>
+                <circle
+                  r="10"
+                  fill="var(--bg-destructive)"
+                  className="pointer-events-auto cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onRemoveDependency) {
+                      onRemoveDependency(dep.id);
+                      setSelectedDependency(null);
+                    }
+                  }}
+                />
+                <text
+                  x="0"
+                  y="0"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fill="white"
+                  fontSize="12"
+                  fontWeight="bold"
+                  className="pointer-events-none select-none"
+                >
+                  ×
+                </text>
+              </g>
+            )}
+          </g>
+        );
+      })}
+
+      {/* Connection handles on features */}
+      {features.map(({ feature }) => {
+        const pos = featurePositions.get(feature.id);
+        if (!pos) return null;
+
+        return (
+          <circle
+            key={`handle-${feature.id}`}
+            cx={pos.right}
+            cy={pos.centerY}
+            r="6"
+            fill="var(--timeline-accent)"
+            stroke="white"
+            strokeWidth="2"
+            className="pointer-events-auto cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
+            onPointerDown={(e) => handlePointerDown(e, feature.id)}
+            onPointerEnter={() => setHoveredFeature(feature.id)}
+            onPointerLeave={() => setHoveredFeature(null)}
+            onPointerUp={() => handlePointerUp(feature.id)}
+          />
+        );
+      })}
+
+      {/* Temporary line while linking */}
+      {linkingSource && cursorPosition && (() => {
+        const sourcePos = featurePositions.get(linkingSource);
+        if (!sourcePos) return null;
+        return (
+          <line
+            x1={sourcePos.right}
+            y1={sourcePos.centerY}
+            x2={cursorPosition.x}
+            y2={cursorPosition.y}
+            stroke="var(--timeline-accent)"
+            strokeWidth="2"
+            strokeDasharray="5,5"
+            className="pointer-events-none"
+          />
+        );
+      })()}
+    </svg>
+  );
+});
+
+GanttDependencyLayer.displayName = "GanttDependencyLayer";
+
 export type GanttProviderProps = {
   range?: Range;
   zoom?: number;

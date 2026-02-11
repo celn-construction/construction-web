@@ -18,3 +18,14 @@ export type GanttFeature = {
   progress?: number;
   parentId?: string; // If set, this is a subtask
 };
+
+// Dependency types for Gantt task relationships
+export type DependencyType = 'FS'; // Finish-to-Start (most common in construction)
+// Future: 'SS' | 'FF' | 'SF'
+
+export type GanttDependency = {
+  id: string;
+  sourceId: string; // source feature ID (predecessor)
+  targetId: string; // target feature ID (successor)
+  type: DependencyType; // 'FS' for now
+};

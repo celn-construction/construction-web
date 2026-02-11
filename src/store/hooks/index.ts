@@ -11,6 +11,8 @@ export {
   useCollapsedFeatureIds,
   useCurrentProjectId,
   useSwitchProject,
+  useDependencies,
+  useDependenciesForFeature,
 } from './useGanttFeatures';
 
 export {
@@ -21,4 +23,5 @@ export {
   useMoveFeature,
   useAddSubtask,
   useToggleFeatureCollapse,
+  useDependencyActions,
 } from './useFeatureActions';

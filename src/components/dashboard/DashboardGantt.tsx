@@ -23,6 +23,7 @@ import {
   GanttFeatureListGroup,
   GanttFeatureRow,
   GanttToday,
+  GanttDependencyLayer,
   computeSubRows,
   type GanttFeature as KiboFeature,
 } from '@/components/kibo-ui/gantt';
@@ -36,6 +37,8 @@ import {
   useCollapsedFeatureIds,
   useToggleFeatureCollapse,
   useAddSubtask,
+  useDependencies,
+  useDependencyActions,
 } from '@/store/hooks';
 
 export default function DashboardGantt() {
@@ -46,6 +49,8 @@ export default function DashboardGantt() {
   const collapsedIds = useCollapsedFeatureIds();
   const toggleCollapse = useToggleFeatureCollapse();
   const addSubtask = useAddSubtask();
+  const dependencies = useDependencies();
+  const { addDependency, removeDependency } = useDependencyActions();
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<{ id: string; name: string } | null>(null);
   const anchorRef = useRef<HTMLElement | null>(null);
@@ -245,6 +250,14 @@ export default function DashboardGantt() {
           <GanttTimeline>
             <GanttHeader />
             <GanttFeatureList>
+              {/* Dependency layer - renders arrows between tasks */}
+              <GanttDependencyLayer
+                dependencies={dependencies}
+                features={allFeatures}
+                onRemoveDependency={removeDependency}
+                onAddDependency={addDependency}
+              />
+
               {groups.map((groupName) => (
                 <GanttFeatureListGroup key={groupName}>
                   {grouped[groupName]?.map((parent) => {
