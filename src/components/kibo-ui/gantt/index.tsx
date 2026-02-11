@@ -27,7 +27,7 @@ import {
 import { atom, useAtom } from "jotai";
 import throttle from "lodash.throttle";
 import { PencilIcon, PlusIcon, TrashIcon, ChevronRight } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 
 import type {
   CSSProperties,
@@ -59,6 +59,8 @@ import { cn } from "src/lib/utils";
 
 const draggingAtom = atom(false);
 const scrollXAtom = atom(0);
+const draggingFeatureIdAtom = atom<string | null>(null);
+const dragHighlightAtom = atom<{ startAt: Date; endAt: Date | null } | null>(null);
 
 export const useGanttDragging = () => useAtom(draggingAtom);
 export const useGanttScrollX = () => useAtom(scrollXAtom);
@@ -809,8 +811,26 @@ export const GanttColumns: FC<GanttColumnsProps> = ({
   const [dragging] = useGanttDragging();
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverInfo, setHoverInfo] = useState<{ mouseY: number } | null>(null);
+  // Improvement #7: Read drag highlight atom
+  const [dragHighlight] = useAtom(dragHighlightAtom);
 
   const showHelper = !dragging && gantt.onAddItem;
+
+  // Improvement #7: Calculate highlight overlay position
+  const timelineStartDate = useMemo(
+    () => new Date(gantt.timelineData.at(0)?.year ?? 0, 0, 1),
+    [gantt.timelineData]
+  );
+
+  const highlightStyle = useMemo(() => {
+    if (!dragHighlight) return null;
+    const highlightOffset = getOffset(dragHighlight.startAt, timelineStartDate, gantt);
+    const highlightWidth = getWidth(dragHighlight.startAt, dragHighlight.endAt, gantt);
+    return {
+      left: Math.round(highlightOffset),
+      width: Math.round(highlightWidth),
+    };
+  }, [dragHighlight, timelineStartDate, gantt]);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -843,6 +863,20 @@ export const GanttColumns: FC<GanttColumnsProps> = ({
           key={`${id}-${index}`}
         />
       ))}
+
+      {/* Improvement #7: Grid column highlight overlay */}
+      {highlightStyle && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.08 }}
+          exit={{ opacity: 0 }}
+          className="absolute top-0 h-full pointer-events-none bg-[var(--timeline-accent)]"
+          style={{
+            left: highlightStyle.left,
+            width: highlightStyle.width,
+          }}
+        />
+      )}
 
       {/* Single helper instance for the entire container */}
       {showHelper && hoverInfo ? (
@@ -971,10 +1005,14 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
   onClick,
 }) => {
   const [, setDragging] = useGanttDragging();
+  const [, setDraggingFeatureId] = useAtom(draggingFeatureIdAtom);
   const { attributes, listeners, setNodeRef } = useDraggable({ id });
   const isPressed = Boolean(attributes["aria-pressed"]);
 
-  useEffect(() => setDragging(isPressed), [isPressed, setDragging]);
+  useEffect(() => {
+    setDragging(isPressed);
+    setDraggingFeatureId(isPressed ? id : null);
+  }, [isPressed, setDragging, setDraggingFeatureId, id]);
 
   return (
     <Card
@@ -988,17 +1026,25 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({
           style={{ backgroundColor: statusColor }}
         />
       )}
-      <div
+      {/* Improvement #4: Motion wrapper for drag elevation */}
+      <motion.div
         className={cn(
           "flex h-full w-full items-center justify-between gap-2 text-left font-mono",
           isPressed && "cursor-grabbing"
         )}
+        animate={{
+          scale: isPressed ? 1.02 : 1,
+          boxShadow: isPressed
+            ? "0 10px 15px -3px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.15)"
+            : "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
         {...attributes}
         {...listeners}
         ref={setNodeRef}
       >
         {children}
-      </div>
+      </motion.div>
     </Card>
   );
 };
@@ -1047,6 +1093,13 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
   const [previousMouseX, setPreviousMouseX] = useState(0);
   const [previousStartAt, setPreviousStartAt] = useState(startAt);
   const [previousEndAt, setPreviousEndAt] = useState(endAt);
+  // Improvement #2: Drag active state
+  const [isDragActive, setIsDragActive] = useState(false);
+  // Improvement #3: Ghost position state
+  const [originalOffset, setOriginalOffset] = useState(offset);
+  const [originalWidth, setOriginalWidth] = useState(width);
+  // Improvement #7: Drag highlight atom
+  const [, setDragHighlight] = useAtom(dragHighlightAtom);
 
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
@@ -1061,8 +1114,15 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
       setPreviousMouseX(mouseX);
       setPreviousStartAt(startAt);
       setPreviousEndAt(endAt);
+      // Improvement #2: Set drag active
+      setIsDragActive(true);
+      // Improvement #3: Capture original position
+      setOriginalOffset(offset);
+      setOriginalWidth(width);
+      // Improvement #7: Set drag highlight
+      setDragHighlight({ startAt, endAt });
     }
-  }, [gantt, scrollX, startAt, endAt]);
+  }, [gantt, scrollX, startAt, endAt, offset, width, setDragHighlight]);
 
   const handleItemDragMove = useCallback((event: any) => {
     if (event.activatorEvent && event.delta) {
@@ -1077,15 +1137,32 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
       const newStartDate = addDays(previousStartAt, delta);
       const newEndDate = previousEndAt ? addDays(previousEndAt, delta) : null;
 
-      setStartAt(newStartDate);
-      setEndAt(newEndDate);
+      // Improvement #1: Snap to day
+      setStartAt(startOfDay(newStartDate));
+      setEndAt(newEndDate ? startOfDay(newEndDate) : null);
+      // Improvement #7: Update drag highlight
+      setDragHighlight({ startAt: startOfDay(newStartDate), endAt: newEndDate ? startOfDay(newEndDate) : null });
     }
-  }, [gantt, scrollX, previousMouseX, previousStartAt, previousEndAt, setStartAt, setEndAt]);
+  }, [gantt, scrollX, previousMouseX, previousStartAt, previousEndAt, setStartAt, setEndAt, setDragHighlight]);
 
   const onDragEnd = useCallback(
-    () => onMove?.(feature.id, startAt, endAt),
-    [onMove, feature.id, startAt, endAt]
+    () => {
+      onMove?.(feature.id, startAt, endAt);
+      // Improvement #2: Clear drag active
+      setIsDragActive(false);
+      // Improvement #7: Clear drag highlight
+      setDragHighlight(null);
+    },
+    [onMove, feature.id, startAt, endAt, setDragHighlight]
   );
+
+  // Improvement #2: Drag cancel handler
+  const onDragCancel = useCallback(() => {
+    setStartAt(previousStartAt);
+    setEndAt(previousEndAt);
+    setIsDragActive(false);
+    setDragHighlight(null);
+  }, [previousStartAt, previousEndAt, setStartAt, setEndAt, setDragHighlight]);
 
   const handleLeftDragMove = useCallback((event: any) => {
     if (event.activatorEvent && event.delta) {
@@ -1094,9 +1171,12 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
         event.activatorEvent.clientX - (ganttRect?.left ?? 0) + event.delta.x + scrollX - gantt.sidebarWidth;
       const newStartAt = getDateByMousePosition(gantt, x);
 
-      setStartAt(newStartAt);
+      // Improvement #1: Snap to day
+      setStartAt(startOfDay(newStartAt));
+      // Improvement #7: Update drag highlight
+      setDragHighlight({ startAt: startOfDay(newStartAt), endAt });
     }
-  }, [gantt, scrollX, setStartAt]);
+  }, [gantt, scrollX, setStartAt, endAt, setDragHighlight]);
 
   const handleRightDragMove = useCallback((event: any) => {
     if (event.activatorEvent && event.delta) {
@@ -1105,16 +1185,86 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
         event.activatorEvent.clientX - (ganttRect?.left ?? 0) + event.delta.x + scrollX - gantt.sidebarWidth;
       const newEndAt = getDateByMousePosition(gantt, x);
 
-      setEndAt(newEndAt);
+      // Improvement #1: Snap to day
+      setEndAt(startOfDay(newEndAt));
+      // Improvement #7: Update drag highlight
+      setDragHighlight({ startAt, endAt: startOfDay(newEndAt) });
     }
-  }, [gantt, scrollX, setEndAt]);
+  }, [gantt, scrollX, setEndAt, startAt, setDragHighlight]);
+
+  // Improvement #2: Escape key handler
+  useEffect(() => {
+    if (!isDragActive) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onDragCancel();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isDragActive, onDragCancel]);
+
+  // Improvement #6: Calculate day delta for indicator
+  const dayDelta = useMemo(() => {
+    if (!isDragActive) return 0;
+    return differenceInDays(startAt, previousStartAt);
+  }, [isDragActive, startAt, previousStartAt]);
+
+  const deltaText = useMemo(() => {
+    if (dayDelta === 0) return null;
+    const absDelta = Math.abs(dayDelta);
+    const sign = dayDelta > 0 ? "+" : "-";
+    if (absDelta >= 7) {
+      const weeks = Math.round(absDelta / 7);
+      return `${sign}${weeks} week${weeks !== 1 ? "s" : ""}`;
+    }
+    return `${sign}${absDelta} day${absDelta !== 1 ? "s" : ""}`;
+  }, [dayDelta]);
 
   return (
     <>
+      {/* Improvement #3: Ghost outline at original position */}
+      <AnimatePresence>
+        {isDragActive && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.4 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-0 rounded-md border-2 border-dashed border-[var(--timeline-accent)]"
+            style={{
+              left: Math.round(originalOffset),
+              width: Math.round(originalWidth),
+              height: "calc(var(--gantt-row-height) - 4px)",
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Improvement #6: Date delta indicator */}
+      <AnimatePresence>
+        {isDragActive && deltaText && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: -8 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium shadow-md z-50"
+            style={{
+              backgroundColor: dayDelta > 0 ? "rgb(59, 130, 246)" : "rgb(239, 68, 68)",
+              color: "white",
+            }}
+          >
+            {deltaText}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {onMove && (
         <DndContext
           modifiers={[restrictToHorizontalAxis]}
           onDragEnd={onDragEnd}
+          onDragCancel={onDragCancel}
           onDragMove={handleLeftDragMove}
           sensors={[mouseSensor]}
         >
@@ -1128,6 +1278,7 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
       <DndContext
         modifiers={[restrictToHorizontalAxis]}
         onDragEnd={onDragEnd}
+        onDragCancel={onDragCancel}
         onDragMove={handleItemDragMove}
         onDragStart={handleItemDragStart}
         sensors={[mouseSensor]}
@@ -1146,6 +1297,7 @@ const GanttFeatureItemDragLayer: FC<GanttFeatureItemDragLayerProps> = ({
         <DndContext
           modifiers={[restrictToHorizontalAxis]}
           onDragEnd={onDragEnd}
+          onDragCancel={onDragCancel}
           onDragMove={handleRightDragMove}
           sensors={[mouseSensor]}
         >
@@ -1177,6 +1329,9 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
   const [endAt, setEndAt] = useState<Date | null>(feature.endAt);
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  // Improvement #4: Read dragging feature ID for z-index
+  const [draggingFeatureId] = useAtom(draggingFeatureIdAtom);
+  const isDraggingThis = draggingFeatureId === feature.id;
 
   // Memoize expensive calculations
   const width = useMemo(
@@ -1203,14 +1358,26 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div
+      {/* Improvement #5: Motion wrapper for smooth settle animation */}
+      <motion.div
         ref={cardRef}
         className="pointer-events-auto absolute top-0.5"
         style={{
           height: "calc(var(--gantt-row-height) - 4px)",
           width: Math.round(width),
           left: Math.round(offset),
+          // Improvement #4: Increase z-index when dragging
+          zIndex: isDraggingThis ? 50 : 1,
         }}
+        animate={{
+          width: Math.round(width),
+          left: Math.round(offset),
+        }}
+        transition={
+          isDraggingThis
+            ? { duration: 0 }
+            : { type: "spring", stiffness: 400, damping: 25 }
+        }
       >
         {isHovered ? (
           <GanttFeatureItemDragLayer
@@ -1249,7 +1416,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = memo(({
             </div>
           </Card>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 });
