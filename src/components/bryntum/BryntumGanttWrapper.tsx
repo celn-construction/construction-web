@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
 import '@bryntum/gantt/gantt.css';
 import { X } from 'lucide-react';
 import { useThemeStore } from '~/store/useThemeStore';
 import { Box, Popover } from '@mui/material';
+
+const POPOVER_WIDTH = 320;
+const POPOVER_GAP = 8;
+const ESTIMATED_POPOVER_HEIGHT = 200;
 
 export default function BryntumGanttWrapper() {
   const theme = useThemeStore((state) => state.theme);
@@ -13,9 +17,21 @@ export default function BryntumGanttWrapper() {
   // Popover state
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTaskName, setSelectedTaskName] = useState<string>('');
-  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null);
+  const [popoverPlacement, setPopoverPlacement] = useState<{
+    anchorPosition: { top: number; left: number };
+    transformOrigin: { vertical: 'center' | 'top' | 'bottom'; horizontal: 'left' | 'right' };
+    paperMargin: string;
+  } | null>(null);
   const [coverImages, setCoverImages] = useState<Record<string, string | undefined>>({});
   const [selectedDoc, setSelectedDoc] = useState<{ id: string; name: string } | null>(null);
+
+  // Ref to track selectedTaskId without triggering callback recreation
+  const selectedTaskIdRef = useRef<string | null>(null);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    selectedTaskIdRef.current = selectedTaskId;
+  }, [selectedTaskId]);
 
   useEffect(() => {
     // Load Font Awesome for Bryntum icons
@@ -58,20 +74,58 @@ export default function BryntumGanttWrapper() {
   // Handle task bar click
   const handleTaskClick = useCallback(({ taskRecord, event }: any) => {
     const id = String(taskRecord.id);
-    if (selectedTaskId === id) {
+    if (selectedTaskIdRef.current === id) {
       setSelectedTaskId(null);
-      setPopoverPosition(null);
+      setPopoverPlacement(null);
     } else {
       setSelectedTaskId(id);
       setSelectedTaskName(taskRecord.name);
-      // Capture click coordinates for popover positioning
-      setPopoverPosition({
-        top: event.clientY,
-        left: event.clientX
-      });
+
+      // Find the task bar element to anchor to its edge
+      const barElement = event.target.closest('.b-gantt-task');
+
+      if (barElement) {
+        const rect = barElement.getBoundingClientRect();
+
+        // Horizontal positioning: check if popover would overflow right edge
+        const shouldFlipLeft = window.innerWidth - rect.right < POPOVER_WIDTH + POPOVER_GAP;
+        const anchorLeft = shouldFlipLeft
+          ? rect.left - POPOVER_GAP
+          : rect.right + POPOVER_GAP;
+        const horizontalOrigin = shouldFlipLeft ? 'right' : 'left';
+        const paperMargin = shouldFlipLeft ? '0 8px 0 0' : '0 0 0 8px';
+
+        // Vertical positioning: start with center, adjust if overflow
+        let anchorTop = rect.top + rect.height / 2;
+        let verticalOrigin: 'center' | 'top' | 'bottom' = 'center';
+
+        // Check top overflow
+        if (anchorTop - ESTIMATED_POPOVER_HEIGHT / 2 < 0) {
+          anchorTop = rect.top;
+          verticalOrigin = 'top';
+        }
+        // Check bottom overflow
+        else if (anchorTop + ESTIMATED_POPOVER_HEIGHT / 2 > window.innerHeight) {
+          anchorTop = rect.bottom;
+          verticalOrigin = 'bottom';
+        }
+
+        setPopoverPlacement({
+          anchorPosition: { top: anchorTop, left: anchorLeft },
+          transformOrigin: { vertical: verticalOrigin, horizontal: horizontalOrigin },
+          paperMargin
+        });
+      } else {
+        // Fallback: use raw click coordinates
+        setPopoverPlacement({
+          anchorPosition: { top: event.clientY, left: event.clientX },
+          transformOrigin: { vertical: 'center', horizontal: 'left' },
+          paperMargin: '0 0 0 8px'
+        });
+      }
     }
     setSelectedDoc(null);
-  }, [selectedTaskId]);
+  }, []);
 
   // Handle cover image change
   const handleCoverImageChange = useCallback((imageUrl: string | undefined) => {
@@ -84,7 +138,9 @@ export default function BryntumGanttWrapper() {
   const handleDocumentSelect = useCallback((docId: string, docName: string) => {
     setSelectedDoc({ id: docId, name: docName });
   }, []);
-  const ganttConfig = {
+
+  // Memoize ganttConfig to prevent BryntumGantt reinitialization
+  const ganttConfig = useMemo(() => ({
     height: '100%',
     // Disable CSS compatibility warnings since we use custom styling
     detectCSSCompatibilityIssues: false,
@@ -131,7 +187,7 @@ export default function BryntumGanttWrapper() {
     listeners: {
       taskClick: handleTaskClick
     }
-  };
+  }), [handleTaskClick]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
@@ -152,21 +208,14 @@ export default function BryntumGanttWrapper() {
 
       {/* Popover for task details */}
       <Popover
-        open={!!selectedTaskId && !!popoverPosition}
+        open={!!selectedTaskId && !!popoverPlacement}
         anchorReference="anchorPosition"
-        anchorPosition={popoverPosition ?? undefined}
-        onClose={() => { setSelectedTaskId(null); setPopoverPosition(null); setSelectedDoc(null); }}
-        anchorOrigin={{
-          vertical: 'center',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'center',
-          horizontal: 'left',
-        }}
+        anchorPosition={popoverPlacement?.anchorPosition}
+        onClose={() => { setSelectedTaskId(null); setPopoverPlacement(null); setSelectedDoc(null); }}
+        transformOrigin={popoverPlacement?.transformOrigin ?? { vertical: 'center', horizontal: 'left' }}
         slotProps={{
           paper: {
-            sx: { ml: 1 }
+            sx: { m: popoverPlacement?.paperMargin ?? '0 0 0 8px' }
           }
         }}
       >
