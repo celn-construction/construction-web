@@ -10,6 +10,30 @@ function generateSlug(name: string): string {
     .trim();
 }
 
+async function generateUniqueSlug(
+  name: string,
+  db: any,
+): Promise<string> {
+  const baseSlug = generateSlug(name);
+  let slug = baseSlug;
+  let counter = 1;
+
+  // Keep trying until we find a unique slug
+  while (true) {
+    const existing = await db.organization.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return slug;
+    }
+
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+}
+
 export const onboardingRouter = createTRPCRouter({
   getStatus: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.db.user.findUnique({
@@ -26,7 +50,7 @@ export const onboardingRouter = createTRPCRouter({
     .input(createOrganizationSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
-      const slug = generateSlug(input.name);
+      const slug = await generateUniqueSlug(input.name, ctx.db);
 
       // Use transaction to ensure atomicity
       const result = await ctx.db.$transaction(async (tx) => {
