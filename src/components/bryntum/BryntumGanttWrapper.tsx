@@ -5,7 +5,7 @@ import { BryntumGantt } from '@bryntum/gantt-react';
 import '@bryntum/gantt/gantt.css';
 import { X } from 'lucide-react';
 import { useThemeStore } from '~/store/useThemeStore';
-import { Popover, PopoverAnchor, PopoverContent } from '~/components/ui/popover';
+import { Box, Popover } from '@mui/material';
 
 export default function BryntumGanttWrapper() {
   const theme = useThemeStore((state) => state.theme);
@@ -105,37 +105,56 @@ export default function BryntumGanttWrapper() {
       </div>
 
       {/* Popover for task details */}
-      <Popover open={!!selectedTaskId} onOpenChange={(open) => { if (!open) { setSelectedTaskId(null); setSelectedDoc(null); } }}>
-        <PopoverAnchor virtualRef={anchorRef as React.RefObject<any>} />
-        <PopoverContent
-          side="right"
-          align="start"
-          sideOffset={8}
-          className="w-80"
-        >
-          <div>
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-                  {selectedTaskName}
-                </h3>
-              </div>
-              <button
-                onClick={() => setSelectedTaskId(null)}
-                className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-              </button>
-            </div>
-            <div
-              className="text-xs rounded-md p-3 border border-dashed border-[var(--border-color)]"
-              style={{ color: 'var(--text-secondary)' }}
+      <Popover
+        open={!!selectedTaskId}
+        anchorEl={anchorRef.current}
+        onClose={() => { setSelectedTaskId(null); setSelectedDoc(null); }}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+        sx={{ ml: 1 }}
+      >
+        <Box sx={{ width: 320, p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+            <Box>
+              <Box component="h3" sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
+                {selectedTaskName}
+              </Box>
+            </Box>
+            <Box
+              component="button"
+              onClick={() => setSelectedTaskId(null)}
+              sx={{
+                p: 0.5,
+                borderRadius: 1,
+                border: 'none',
+                bgcolor: 'transparent',
+                cursor: 'pointer',
+                '&:hover': { bgcolor: 'action.hover' },
+                transition: 'background-color 0.2s',
+              }}
+              aria-label="Close"
             >
-              Task details panel (folder tree removed during migration)
-            </div>
-          </div>
-        </PopoverContent>
+              <X size={16} style={{ color: 'var(--text-secondary)' }} />
+            </Box>
+          </Box>
+          <Box
+            sx={{
+              fontSize: '0.75rem',
+              borderRadius: 1,
+              p: 1.5,
+              border: '1px dashed var(--border-color)',
+              color: 'text.secondary',
+            }}
+          >
+            Task details panel (folder tree removed during migration)
+          </Box>
+        </Box>
       </Popover>
     </div>
   );
