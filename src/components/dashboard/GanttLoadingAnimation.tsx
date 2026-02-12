@@ -1,90 +1,144 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Box, Typography } from '@mui/material';
 
 export default function GanttLoadingAnimation() {
   return (
-    <div className="flex flex-col items-center justify-center h-full relative overflow-hidden">
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       {/* Blueprint grid background */}
-      <div
-        className="absolute inset-0 opacity-[0.015]"
-        style={{
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.015,
           backgroundImage: `
-            linear-gradient(var(--accent-primary) 1px, transparent 1px),
-            linear-gradient(90deg, var(--accent-primary) 1px, transparent 1px)
+            linear-gradient(currentColor 1px, transparent 1px),
+            linear-gradient(90deg, currentColor 1px, transparent 1px)
           `,
           backgroundSize: '24px 24px',
+          color: 'text.primary',
         }}
       />
 
       {/* Construction crane mechanism */}
-      <div className="relative w-64 h-40 mb-8">
+      <Box sx={{ position: 'relative', width: 256, height: 160, mb: 4 }}>
         {/* Crane arm */}
-        <motion.div
-          className="absolute left-1/2 -translate-x-1/2 origin-bottom"
-          style={{ bottom: '20%', width: '2px', height: '80px' }}
+        <Box
+          component={motion.div}
+          sx={{
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            transformOrigin: 'bottom',
+            bottom: '20%',
+            width: '2px',
+            height: '80px',
+          }}
           animate={{ rotate: [-5, 5, -5] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <div
-            className="w-full h-full"
-            style={{ backgroundColor: 'var(--accent-primary)', opacity: 0.3 }}
-          />
+          <Box sx={{ width: '100%', height: '100%', bgcolor: 'text.primary', opacity: 0.3 }} />
           {/* Horizontal beam */}
-          <motion.div
-            className="absolute -top-1 left-1/2 -translate-x-1/2 h-1"
-            style={{
+          <Box
+            component={motion.div}
+            sx={{
+              position: 'absolute',
+              top: -4,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              height: '4px',
               width: '120px',
-              backgroundColor: 'var(--accent-primary)',
-              opacity: 0.3
+              bgcolor: 'text.primary',
+              opacity: 0.3,
             }}
           />
-        </motion.div>
+        </Box>
 
         {/* Hanging cable */}
-        <motion.div
-          className="absolute left-1/2 origin-top"
-          style={{
+        <Box
+          component={motion.div}
+          sx={{
+            position: 'absolute',
+            left: '50%',
+            transformOrigin: 'top',
             top: '20%',
             width: '1px',
             height: '60px',
-            backgroundColor: 'var(--accent-primary)',
-            opacity: 0.2
+            bgcolor: 'text.primary',
+            opacity: 0.2,
           }}
           animate={{
             x: [-20, 20, -20],
-            height: ['60px', '50px', '60px']
+            height: ['60px', '50px', '60px'],
           }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         >
           {/* Load block */}
-          <motion.div
-            className="absolute left-1/2 -translate-x-1/2 bottom-0"
-            style={{
+          <Box
+            component={motion.div}
+            sx={{
+              position: 'absolute',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              bottom: 0,
               width: '32px',
               height: '24px',
-              backgroundColor: 'var(--accent-primary)',
+              bgcolor: 'text.primary',
               opacity: 0.4,
-              border: '1px solid var(--accent-primary)',
+              border: 1,
+              borderColor: 'text.primary',
             }}
-            animate={{
-              rotate: [-2, 2, -2],
-            }}
+            animate={{ rotate: [-2, 2, -2] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
-        </motion.div>
+        </Box>
 
         {/* Building progress bars */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 space-y-2">
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 192,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+          }}
+        >
           {[0, 1, 2, 3].map((i) => (
-            <div
+            <Box
               key={i}
-              className="h-1 relative overflow-hidden rounded-full"
-              style={{ backgroundColor: 'var(--bg-hover)' }}
+              sx={{
+                height: 4,
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: 2,
+                bgcolor: 'action.hover',
+              }}
             >
-              <motion.div
-                className="h-full absolute left-0 top-0 rounded-full"
-                style={{ backgroundColor: 'var(--accent-primary)', opacity: 0.3 }}
+              <Box
+                component={motion.div}
+                sx={{
+                  height: '100%',
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  borderRadius: 2,
+                  bgcolor: 'text.primary',
+                  opacity: 0.3,
+                }}
                 initial={{ width: '0%' }}
                 animate={{ width: '100%' }}
                 transition={{
@@ -92,66 +146,87 @@ export default function GanttLoadingAnimation() {
                   delay: i * 0.3,
                   repeat: Infinity,
                   repeatDelay: 1.2,
-                  ease: 'easeInOut'
+                  ease: 'easeInOut',
                 }}
               />
-            </div>
+            </Box>
           ))}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Status display */}
-      <div className="flex flex-col items-center gap-3">
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
         {/* Loading text with monospace engineering feel */}
-        <motion.div
-          className="flex items-center gap-3"
+        <Box
+          component={motion.div}
+          sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <div
-            className="w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: 'var(--status-amber)' }}
+          <Box
+            sx={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              bgcolor: '#a3a3a3',
+            }}
           />
-          <p
-            className="text-xs font-mono uppercase tracking-[0.2em]"
-            style={{ color: 'var(--text-secondary)' }}
+          <Typography
+            variant="caption"
+            sx={{
+              fontFamily: 'monospace',
+              textTransform: 'uppercase',
+              letterSpacing: '0.2em',
+              color: 'text.secondary',
+            }}
           >
             Building Schedule
-          </p>
-        </motion.div>
+          </Typography>
+        </Box>
 
         {/* Progress counter */}
-        <motion.div
-          className="flex items-baseline gap-1 font-mono text-[10px] tracking-wider"
-          style={{ color: 'var(--text-muted)' }}
+        <Box
+          component={motion.div}
+          sx={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: 0.5,
+            fontFamily: 'monospace',
+            fontSize: '0.625rem',
+            letterSpacing: '0.05em',
+            color: 'text.disabled',
+          }}
           initial={{ opacity: 0 }}
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         >
           <span>[</span>
-          <motion.span
+          <Box
+            component={motion.span}
             animate={{ opacity: [0, 1, 0] }}
             transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 0.2 }}
           >
             ▓
-          </motion.span>
-          <motion.span
+          </Box>
+          <Box
+            component={motion.span}
             animate={{ opacity: [0, 1, 0] }}
             transition={{ duration: 0.6, delay: 0.2, repeat: Infinity, repeatDelay: 0.2 }}
           >
             ▓
-          </motion.span>
-          <motion.span
+          </Box>
+          <Box
+            component={motion.span}
             animate={{ opacity: [0, 1, 0] }}
             transition={{ duration: 0.6, delay: 0.4, repeat: Infinity, repeatDelay: 0.2 }}
           >
             ▓
-          </motion.span>
-          <span className="opacity-30">░░░░░</span>
+          </Box>
+          <span style={{ opacity: 0.3 }}>░░░░░</span>
           <span>]</span>
-        </motion.div>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 }
