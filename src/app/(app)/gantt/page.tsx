@@ -147,7 +147,7 @@ export default function GanttPage() {
 
   return (
     <>
-      <div className="h-full w-full p-6">
+      <div style={{ height: '100%', width: '100%', padding: '24px' }}>
         <Card className="relative h-full w-full overflow-hidden border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm flex flex-col">
           <AnimatePresence mode="wait">
             {isLoading ? (

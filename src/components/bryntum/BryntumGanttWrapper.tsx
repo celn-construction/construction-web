@@ -88,19 +88,19 @@ export default function BryntumGanttWrapper() {
   };
 
   return (
-    <div className="flex flex-col h-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)]">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
       {/* Header matching Kibo Gantt style */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-color)]">
-        <svg className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>
+        <svg style={{ width: '16px', height: '16px', color: 'var(--text-secondary)' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
         </svg>
-        <h2 className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>
+        <h2 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500, color: 'var(--text-secondary)' }}>
           Bryntum Schedule
         </h2>
       </div>
 
       {/* Gantt content */}
-      <div className="flex-1 overflow-hidden bryntum-gantt-container">
+      <div style={{ flex: 1, overflow: 'hidden' }} className="bryntum-gantt-container">
         <BryntumGantt {...ganttConfig} />
       </div>
 

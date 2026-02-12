@@ -2,42 +2,91 @@
 
 import { FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Box, Typography, Stack } from '@mui/material';
 import DocumentTree from '@/components/documents/DocumentTree';
 
 export default function DocumentsPage() {
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)]">
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        bgcolor: 'background.default',
+      }}
+    >
       {/* Header */}
-      <motion.div
+      <Box
+        component={motion.div}
         initial={{ y: -8, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="flex items-center justify-between px-6 py-4 border-b border-[var(--blueprint-line)] bg-white dark:bg-[var(--bg-card)] transition-colors duration-300"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 3,
+          py: 2,
+          borderBottom: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+        }}
       >
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-md bg-[var(--blueprint-accent)]/10 border border-[var(--blueprint-accent)]/30">
-            <FileText className="w-5 h-5 text-[var(--blueprint-accent)]" />
-          </div>
-          <div className="flex flex-col">
-            <h1 className="text-sm font-semibold tracking-wider uppercase font-[family-name:var(--font-mono-blueprint)] text-gray-900 dark:text-white">
+        <Stack direction="row" alignItems="center" gap={1.5}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 36,
+              height: 36,
+              borderRadius: 1.5,
+              bgcolor: 'action.hover',
+              border: 1,
+              borderColor: 'divider',
+            }}
+          >
+            <FileText size={20} />
+          </Box>
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'text.primary',
+              }}
+            >
               Construction Documents
-            </h1>
-            <p className="text-[10px] text-gray-500 dark:text-[var(--text-muted)] font-[family-name:var(--font-mono-blueprint)]">
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.disabled',
+                fontSize: '0.625rem',
+              }}
+            >
               REV {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '.')}
-            </p>
-          </div>
-        </div>
-      </motion.div>
+            </Typography>
+          </Box>
+        </Stack>
+      </Box>
 
       {/* Document Tree */}
-      <motion.div
+      <Box
+        component={motion.div}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.15 }}
-        className="flex-1 overflow-auto p-6"
+        sx={{
+          flex: 1,
+          overflow: 'auto',
+          p: 3,
+        }}
       >
         <DocumentTree />
-      </motion.div>
-    </div>
+      </Box>
+    </Box>
   );
 }

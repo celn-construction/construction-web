@@ -1,16 +1,25 @@
-"use client";
+'use client';
+
+import { Box, Typography, Stack } from '@mui/material';
 
 export default function TimelinePage() {
   return (
-    <div className="flex h-full items-center justify-center">
-      <div className="text-center space-y-4">
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+    <Box
+      sx={{
+        display: 'flex',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Stack spacing={2} sx={{ textAlign: 'center' }}>
+        <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
           Timeline View
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400">
+        </Typography>
+        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
           Timeline functionality is being reimplemented.
-        </p>
-      </div>
-    </div>
+        </Typography>
+      </Stack>
+    </Box>
   );
 }

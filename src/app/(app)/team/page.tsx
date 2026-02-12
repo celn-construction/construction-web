@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Box, Typography, Tabs, Tab, Paper } from '@mui/material';
 import { api } from '~/trpc/react';
 import { canInviteMembers } from '~/lib/permissions';
 import { Button } from '@/components/ui/button';
@@ -35,89 +36,99 @@ export default function TeamPage() {
   const pendingCount = invitations.filter((inv) => inv.status === 'pending').length;
 
   return (
-    <motion.div
+    <Box
+      component={motion.div}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="p-6 max-w-3xl mx-auto"
+      sx={{
+        p: 3,
+        maxWidth: 800,
+        mx: 'auto',
+      }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Team</h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 3,
+        }}
+      >
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
+            Team
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.disabled', mt: 0.5 }}>
             {organization?.name || 'Manage your team members and invitations'}
-          </p>
-        </div>
+          </Typography>
+        </Box>
         {canManage && (
           <Button onClick={() => setInviteDialogOpen(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
             Invite
           </Button>
         )}
-      </div>
+      </Box>
 
       {/* Tabs */}
-      <div className="mb-6">
-        <div className="flex gap-6 border-b border-[var(--border-color)]">
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`pb-3 px-1 text-sm font-medium transition-colors relative ${
-              activeTab === 'members'
-                ? 'text-[var(--text-primary)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            Members ({members.length})
-            {activeTab === 'members' && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent-primary)]"
-              />
-            )}
-          </button>
+      <Box sx={{ mb: 3 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, newValue) => setActiveTab(newValue)}
+          sx={{
+            borderBottom: 1,
+            borderColor: 'divider',
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.875rem',
+            },
+          }}
+        >
+          <Tab label={`Members (${members.length})`} value="members" />
           {pendingCount > 0 && (
-            <button
-              onClick={() => setActiveTab('pending')}
-              className={`pb-3 px-1 text-sm font-medium transition-colors relative ${
-                activeTab === 'pending'
-                  ? 'text-[var(--text-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
-            >
-              Pending ({pendingCount})
-              {activeTab === 'pending' && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent-primary)]"
-                />
-              )}
-            </button>
+            <Tab label={`Pending (${pendingCount})`} value="pending" />
           )}
-        </div>
-      </div>
+        </Tabs>
+      </Box>
 
       {/* Tab Content */}
       <AnimatePresence mode="wait">
         {activeTab === 'members' ? (
-          <motion.div
+          <Paper
+            component={motion.div}
             key="members"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-4"
+            elevation={0}
+            sx={{
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 2,
+              p: 2,
+            }}
           >
             <MembersList members={members} isLoading={membersLoading} />
-          </motion.div>
+          </Paper>
         ) : (
-          <motion.div
+          <Paper
+            component={motion.div}
             key="pending"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-4"
+            elevation={0}
+            sx={{
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 2,
+              p: 2,
+            }}
           >
             {pendingCount > 0 ? (
               <PendingInvitesList
@@ -127,11 +138,17 @@ export default function TeamPage() {
                 canManage={canManage}
               />
             ) : (
-              <p className="text-center text-[var(--text-muted)] py-8">
+              <Typography
+                sx={{
+                  textAlign: 'center',
+                  color: 'text.disabled',
+                  py: 4,
+                }}
+              >
                 No pending invitations
-              </p>
+              </Typography>
             )}
-          </motion.div>
+          </Paper>
         )}
       </AnimatePresence>
 
@@ -143,6 +160,6 @@ export default function TeamPage() {
           organizationId={organizationId}
         />
       )}
-    </motion.div>
+    </Box>
   );
 }

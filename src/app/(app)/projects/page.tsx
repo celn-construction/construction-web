@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { LayoutGrid } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Box, Typography, Stack, Divider } from '@mui/material';
 import ProjectsTree, { type Selection } from '@/components/projects/ProjectsTree';
 import { ProjectDetailPanel } from '@/components/projects/ProjectDetailPanel';
 import { useGroupedFeaturesWithRows, useGroups } from '@/store/hooks/useGanttFeatures';
@@ -54,65 +55,145 @@ export default function ProjectsPage() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)]">
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        bgcolor: 'background.default',
+      }}
+    >
       {/* Header */}
-      <motion.div
+      <Box
+        component={motion.div}
         initial={{ y: -8, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="flex items-center justify-between px-6 py-4 border-b border-[var(--blueprint-line)] bg-white dark:bg-[var(--bg-card)] transition-colors duration-300"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 3,
+          py: 2,
+          borderBottom: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+        }}
       >
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-md bg-[var(--blueprint-accent)]/10 border border-[var(--blueprint-accent)]/30">
-            <LayoutGrid className="w-5 h-5 text-[var(--blueprint-accent)]" />
-          </div>
-          <div className="flex flex-col">
-            <h1 className="text-sm font-semibold tracking-wider uppercase font-[family-name:var(--font-mono-blueprint)] text-gray-900 dark:text-white">
+        <Stack direction="row" alignItems="center" gap={1.5}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 36,
+              height: 36,
+              borderRadius: 1.5,
+              bgcolor: 'action.hover',
+              border: 1,
+              borderColor: 'divider',
+            }}
+          >
+            <LayoutGrid size={20} />
+          </Box>
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'text.primary',
+              }}
+            >
               Construction Phases
-            </h1>
-            <p className="text-[10px] text-gray-500 dark:text-[var(--text-muted)] font-[family-name:var(--font-mono-blueprint)]">
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.disabled',
+                fontSize: '0.625rem',
+              }}
+            >
               {groups.length} PHASES • {flatList.length} TASKS
-            </p>
-          </div>
-        </div>
-      </motion.div>
+            </Typography>
+          </Box>
+        </Stack>
+      </Box>
 
       {/* Split View: Tree + Detail Panel */}
-      <motion.div
+      <Box
+        component={motion.div}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.15 }}
-        className="flex-1 flex overflow-hidden"
+        sx={{
+          flex: 1,
+          display: 'flex',
+          overflow: 'hidden',
+        }}
       >
-        {/* Tree Pane - hidden on mobile when item selected */}
-        <div
-          className={`w-full lg:shrink-0 overflow-auto p-6 ${
-            selection ? 'hidden lg:block' : 'block'
-          } max-lg:!w-full`}
-          style={{ width: sidebarWidth }}
+        {/* Tree Pane */}
+        <Box
+          sx={{
+            width: { xs: '100%', lg: sidebarWidth },
+            display: { xs: selection ? 'none' : 'block', lg: 'block' },
+            flexShrink: 0,
+            overflow: 'auto',
+            p: 3,
+          }}
         >
           <ProjectsTree selectedNodeId={selection?.nodeId || null} onSelect={setSelection} />
-        </div>
+        </Box>
 
         {/* Drag Handle - Desktop Only */}
-        <div className="w-0 relative hidden lg:flex">
-          <div
-            className="absolute inset-y-0 -left-1 w-2 cursor-col-resize flex items-center justify-center group"
+        <Box
+          sx={{
+            width: 0,
+            position: 'relative',
+            display: { xs: 'none', lg: 'flex' },
+          }}
+        >
+          <Box
             onMouseDown={onDragHandleMouseDown}
+            sx={{
+              position: 'absolute',
+              insetY: 0,
+              left: -4,
+              width: 8,
+              cursor: 'col-resize',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              '&:hover .drag-line': {
+                bgcolor: 'text.primary',
+              },
+            }}
           >
-            <div className="w-px h-full bg-[var(--blueprint-line)] group-hover:bg-[var(--blueprint-accent)] transition-colors" />
-          </div>
-        </div>
+            <Box
+              className="drag-line"
+              sx={{
+                width: '1px',
+                height: '100%',
+                bgcolor: 'divider',
+                transition: 'background-color 0.2s',
+              }}
+            />
+          </Box>
+        </Box>
 
-        {/* Detail Panel - hidden on mobile when nothing selected */}
-        <div
-          className={`flex-1 min-w-0 bg-white dark:bg-[var(--bg-card)] ${
-            selection ? 'block' : 'hidden lg:block'
-          }`}
+        {/* Detail Panel */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            bgcolor: 'background.paper',
+            display: { xs: selection ? 'block' : 'none', lg: 'block' },
+          }}
         >
           <ProjectDetailPanel selection={selection} onBack={() => setSelection(null)} />
-        </div>
-      </motion.div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 }
