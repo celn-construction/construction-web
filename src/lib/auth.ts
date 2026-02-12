@@ -15,8 +15,10 @@ export const auth = betterAuth({
   }),
   trustedOrigins: [
     "http://localhost:5050",
+    "https://localhost:5050",
     process.env.BETTER_AUTH_URL || "",
     process.env.APP_URL || "",
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "",
   ].filter(Boolean),
   session: {
     cookieCache: {
