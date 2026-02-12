@@ -1,11 +1,4 @@
-@import "tailwindcss";
-
-@theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-}
-
-@custom-variant dark (&:where(.dark, .dark *));
+/* CSS Variables for SVAR/Bryntum Gantt and Theme Integration */
 
 :root {
   --bg-primary: #fafafa;
