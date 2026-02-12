@@ -183,11 +183,11 @@ export function OnboardingWizardV2() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     borderRadius: 3,
-                    bgcolor: 'var(--accent-primary)',
+                    bgcolor: '#000',
                     color: 'white',
                   }}
                 >
-                  <LogoIcon sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 } }} />
+                  <LogoIcon sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 }, color: 'white' }} />
                 </Box>
               </Box>
 
