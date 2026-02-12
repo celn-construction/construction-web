@@ -299,11 +299,10 @@ export function OnboardingWizard() {
                   ) : (
                     <Button
                       variant="contained"
-                      onClick={handleSubmit}
-                      disabled={completeMutation.isPending}
+                      onClick={completeMutation.isPending ? undefined : handleSubmit}
                       endIcon={
                         completeMutation.isPending ? (
-                          <CircularProgress size={16} color="inherit" />
+                          <CircularProgress size={16} sx={{ color: 'primary.contrastText' }} />
                         ) : (
                           <ArrowRight size={16} />
                         )
@@ -312,11 +311,13 @@ export function OnboardingWizard() {
                         height: 48,
                         borderRadius: 2,
                         px: 3,
+                        opacity: completeMutation.isPending ? 0.7 : 1,
+                        cursor: completeMutation.isPending ? 'default' : 'pointer',
                         '& .MuiButton-endIcon': {
                           transition: 'transform 0.2s',
                         },
                         '&:hover .MuiButton-endIcon': {
-                          transform: 'translateX(4px)',
+                          transform: completeMutation.isPending ? 'none' : 'translateX(4px)',
                         },
                       }}
                     >

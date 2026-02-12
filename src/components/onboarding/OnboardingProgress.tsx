@@ -80,6 +80,12 @@ export function OnboardingProgress({
                       stiffness: 300,
                       damping: 20,
                     }}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      lineHeight: 0,
+                    }}
                   >
                     <Check size={18} strokeWidth={3} />
                   </Box>
