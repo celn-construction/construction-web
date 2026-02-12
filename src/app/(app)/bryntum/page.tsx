@@ -9,8 +9,10 @@ const BryntumGanttWrapper = dynamic(
 
 export default function BryntumPage() {
   return (
-    <div className="h-full w-full">
-      <BryntumGanttWrapper />
+    <div style={{ height: '100%', width: '100%', padding: '24px' }}>
+      <div style={{ height: '100%', width: '100%' }}>
+        <BryntumGanttWrapper />
+      </div>
     </div>
   );
 }
