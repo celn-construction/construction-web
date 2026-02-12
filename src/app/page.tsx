@@ -287,14 +287,14 @@ export default function Home() {
                         sx={{
                           width: 40,
                           height: 40,
-                          bgcolor: 'success.light',
+                          bgcolor: 'action.hover',
                           borderRadius: 1.5,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <Calendar size={20} style={{ color: '#16a34a' }} />
+                        <Calendar size={20} />
                       </Box>
                       <Box>
                         <Typography
@@ -325,14 +325,14 @@ export default function Home() {
                         sx={{
                           width: 40,
                           height: 40,
-                          bgcolor: 'info.light',
+                          bgcolor: 'action.hover',
                           borderRadius: 1.5,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <Users size={20} style={{ color: '#2563eb' }} />
+                        <Users size={20} />
                       </Box>
                       <Box>
                         <Typography

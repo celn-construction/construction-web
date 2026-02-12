@@ -1,47 +1,60 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 
-// Light theme matching existing CSS variables
+// Light theme - monochrome (black, gray, white)
 export const lightTheme: Theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#171717', // --accent-primary
+      main: '#171717', // near-black
+      light: '#404040',
+      dark: '#000000',
     },
     secondary: {
-      main: '#737373', // --text-secondary
+      main: '#737373', // medium gray
+      light: '#a3a3a3',
+      dark: '#525252',
     },
     error: {
-      main: '#dc2626', // --status-red
+      main: '#404040', // dark gray (monochrome)
+      light: '#737373',
+      dark: '#171717',
     },
     warning: {
-      main: '#d97706', // --status-amber
+      main: '#525252', // medium-dark gray (monochrome)
+      light: '#737373',
+      dark: '#404040',
     },
     info: {
-      main: '#2563eb', // --status-blue
+      main: '#525252', // medium-dark gray (monochrome)
+      light: '#737373',
+      dark: '#404040',
     },
     success: {
-      main: '#16a34a', // --status-green
+      main: '#525252', // medium-dark gray (monochrome)
+      light: '#737373',
+      dark: '#404040',
     },
     background: {
-      default: '#fafafa', // --bg-primary
-      paper: '#ffffff', // --bg-secondary
+      default: '#fafafa', // off-white
+      paper: '#ffffff', // white
     },
     text: {
-      primary: '#171717', // --text-primary
-      secondary: '#737373', // --text-secondary
-      disabled: '#a3a3a3', // --text-muted
+      primary: '#171717', // near-black
+      secondary: '#737373', // medium gray
+      disabled: '#a3a3a3', // light gray
     },
-    divider: '#e5e5e5', // --border-color
+    divider: '#e5e5e5', // very light gray
     action: {
-      hover: '#f0f0f0', // --bg-hover
-      selected: 'rgba(23, 23, 23, 0.06)', // --accent-subtle
+      hover: '#f5f5f5', // very light gray
+      selected: 'rgba(23, 23, 23, 0.06)',
+      disabled: '#d4d4d4',
     },
   },
   typography: {
     fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
   },
   shape: {
-    borderRadius: 8, // matches rounded-lg
+    borderRadius: 8,
   },
   components: {
     MuiCssBaseline: {
@@ -74,7 +87,7 @@ declare module '@mui/material/styles' {
     };
     warm: {
       main: string;
-      hover: string;
+      dark: string;
     };
     grid: {
       line: string;
@@ -100,7 +113,7 @@ declare module '@mui/material/styles' {
     };
     warm?: {
       main?: string;
-      hover?: string;
+      dark?: string;
     };
     grid?: {
       line?: string;
@@ -114,72 +127,85 @@ declare module '@mui/material/styles' {
 
 // Add custom properties to light theme
 lightTheme.palette.card = {
-  background: '#ffffff', // --bg-card
+  background: '#ffffff',
 };
 lightTheme.palette.input = {
-  background: '#f5f5f5', // --bg-input
+  background: '#f5f5f5',
 };
 lightTheme.palette.sidebar = {
-  background: '#f5f5f5', // --bg-sidebar
-  border: 'rgba(0, 0, 0, 0.08)', // --sidebar-border
-  indicator: '#171717', // --sidebar-indicator
-  activeBg: 'rgba(23, 23, 23, 0.06)', // --sidebar-active-bg
-  hoverBg: 'rgba(23, 23, 23, 0.04)', // --sidebar-hover-bg
+  background: '#f5f5f5',
+  border: 'rgba(0, 0, 0, 0.08)',
+  indicator: '#171717',
+  activeBg: 'rgba(23, 23, 23, 0.06)',
+  hoverBg: 'rgba(23, 23, 23, 0.04)',
 };
 lightTheme.palette.warm = {
-  main: '#d97706', // --accent-warm
-  hover: '#b45309', // --accent-warm-hover
+  main: '#171717', // monochrome - black instead of orange
+  dark: '#000000',
 };
 lightTheme.palette.grid = {
-  line: 'rgba(0, 0, 0, 0.04)', // --grid-line
+  line: 'rgba(0, 0, 0, 0.04)',
 };
 lightTheme.palette.timeline = {
-  accent: '#171717', // --timeline-accent
-  accentSubtle: 'rgba(23, 23, 23, 0.06)', // --timeline-accent-subtle
+  accent: '#171717',
+  accentSubtle: 'rgba(23, 23, 23, 0.06)',
 };
 
-// Dark theme matching existing CSS variables
+// Dark theme - monochrome (black, gray, white)
 export const darkTheme: Theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#fafafa', // --accent-primary
+      main: '#fafafa', // off-white
+      light: '#ffffff',
+      dark: '#d4d4d4',
     },
     secondary: {
-      main: '#a3a3a3', // --text-secondary
+      main: '#a3a3a3', // light gray
+      light: '#d4d4d4',
+      dark: '#737373',
     },
     error: {
-      main: '#f87171', // --status-red
+      main: '#d4d4d4', // light gray (monochrome)
+      light: '#fafafa',
+      dark: '#a3a3a3',
     },
     warning: {
-      main: '#fbbf24', // --status-amber
+      main: '#a3a3a3', // medium-light gray (monochrome)
+      light: '#d4d4d4',
+      dark: '#737373',
     },
     info: {
-      main: '#60a5fa', // --status-blue
+      main: '#a3a3a3', // medium-light gray (monochrome)
+      light: '#d4d4d4',
+      dark: '#737373',
     },
     success: {
-      main: '#4ade80', // --status-green
+      main: '#a3a3a3', // medium-light gray (monochrome)
+      light: '#d4d4d4',
+      dark: '#737373',
     },
     background: {
-      default: '#0a0a0a', // --bg-primary
-      paper: '#141414', // --bg-secondary
+      default: '#0a0a0a', // near-black
+      paper: '#141414', // very dark gray
     },
     text: {
-      primary: '#fafafa', // --text-primary
-      secondary: '#a3a3a3', // --text-secondary
-      disabled: '#737373', // --text-muted
+      primary: '#fafafa', // off-white
+      secondary: '#a3a3a3', // light gray
+      disabled: '#737373', // medium gray
     },
-    divider: '#262626', // --border-color
+    divider: '#262626', // dark gray
     action: {
-      hover: '#262626', // --bg-hover
-      selected: 'rgba(250, 250, 250, 0.06)', // --accent-subtle
+      hover: '#1f1f1f', // very dark gray
+      selected: 'rgba(250, 250, 250, 0.06)',
+      disabled: '#404040',
     },
   },
   typography: {
     fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
   },
   shape: {
-    borderRadius: 8, // matches rounded-lg
+    borderRadius: 8,
   },
   components: {
     MuiCssBaseline: {
@@ -196,26 +222,26 @@ export const darkTheme: Theme = createTheme({
 
 // Add custom properties to dark theme
 darkTheme.palette.card = {
-  background: '#171717', // --bg-card
+  background: '#171717',
 };
 darkTheme.palette.input = {
-  background: '#1f1f1f', // --bg-input
+  background: '#1f1f1f',
 };
 darkTheme.palette.sidebar = {
-  background: '#111111', // --bg-sidebar
-  border: 'rgba(255, 255, 255, 0.08)', // --sidebar-border
-  indicator: '#fafafa', // --sidebar-indicator
-  activeBg: 'rgba(250, 250, 250, 0.08)', // --sidebar-active-bg
-  hoverBg: 'rgba(250, 250, 250, 0.04)', // --sidebar-hover-bg
+  background: '#111111',
+  border: 'rgba(255, 255, 255, 0.08)',
+  indicator: '#fafafa',
+  activeBg: 'rgba(250, 250, 250, 0.08)',
+  hoverBg: 'rgba(250, 250, 250, 0.04)',
 };
 darkTheme.palette.warm = {
-  main: '#fbbf24', // --accent-warm
-  hover: '#f59e0b', // --accent-warm-hover
+  main: '#fafafa', // monochrome - white instead of yellow
+  dark: '#d4d4d4',
 };
 darkTheme.palette.grid = {
-  line: 'rgba(255, 255, 255, 0.04)', // --grid-line
+  line: 'rgba(255, 255, 255, 0.04)',
 };
 darkTheme.palette.timeline = {
-  accent: '#fafafa', // --timeline-accent
-  accentSubtle: 'rgba(250, 250, 250, 0.06)', // --timeline-accent-subtle
+  accent: '#fafafa',
+  accentSubtle: 'rgba(250, 250, 250, 0.06)',
 };

@@ -99,7 +99,7 @@ function ResetPasswordForm() {
             sx={{
               width: 64,
               height: 64,
-              bgcolor: 'error.light',
+              bgcolor: 'action.hover',
               borderRadius: 1.5,
               display: 'flex',
               alignItems: 'center',
@@ -108,7 +108,7 @@ function ResetPasswordForm() {
               mb: 3,
             }}
           >
-            <AlertCircle size={32} style={{ color: '#dc2626' }} />
+            <AlertCircle size={32} />
           </Box>
           <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 500, mb: 1.5 }}>
             Invalid Reset Link
@@ -202,7 +202,7 @@ function ResetPasswordForm() {
                   sx={{
                     width: 64,
                     height: 64,
-                    bgcolor: 'success.light',
+                    bgcolor: 'action.hover',
                     borderRadius: 1.5,
                     display: 'flex',
                     alignItems: 'center',
@@ -210,7 +210,7 @@ function ResetPasswordForm() {
                     mb: 3,
                   }}
                 >
-                  <CheckCircle size={32} style={{ color: '#16a34a' }} />
+                  <CheckCircle size={32} />
                 </Box>
                 <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 500, mb: 1.5 }}>
                   Password reset!
