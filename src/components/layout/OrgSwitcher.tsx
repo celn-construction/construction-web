@@ -2,10 +2,10 @@
 
 import { ChevronDown, Building2, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Box, Typography, Skeleton } from '@mui/material';
 import { api } from '@/trpc/react';
-import { useActiveOrganizationId, useSetActiveOrganization } from '@/store/useOrganizationStore';
+import { useClearProject } from '@/store/hooks';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,32 +16,32 @@ import {
 export default function OrgSwitcher() {
   const [orgMenuOpen, setOrgMenuOpen] = useState(false);
   const utils = api.useUtils();
+  const clearProject = useClearProject();
 
   const { data: organizations = [], isLoading: orgsLoading } = api.organization.list.useQuery(
     undefined,
     { retry: false }
   );
-  const activeOrganizationId = useActiveOrganizationId();
-  const setActiveOrganizationId = useSetActiveOrganization();
 
-  // Auto-set first organization on initial load or if stored org is invalid
-  useEffect(() => {
-    if (!orgsLoading && organizations.length > 0) {
-      const storedOrgExists = organizations.some((org) => org.id === activeOrganizationId);
-      if (!activeOrganizationId || !storedOrgExists) {
-        setActiveOrganizationId(organizations[0]!.id);
-      }
-    }
-  }, [activeOrganizationId, organizations, orgsLoading, setActiveOrganizationId]);
+  const { data: currentOrg, isLoading: currentOrgLoading } = api.organization.getCurrent.useQuery(
+    undefined,
+    { retry: false }
+  );
 
-  const currentOrg = organizations.find((org) => org.id === activeOrganizationId);
+  const switchOrganizationMutation = api.organization.switchOrganization.useMutation({
+    onSuccess: () => {
+      // Clear current project in Zustand
+      clearProject();
+      // Invalidate all org-scoped queries
+      void utils.organization.getCurrent.invalidate();
+      void utils.project.list.invalidate();
+      void utils.member.list.invalidate();
+      void utils.invitation.list.invalidate();
+    },
+  });
 
   const handleSwitch = (orgId: string) => {
-    setActiveOrganizationId(orgId);
-    // Invalidate all org-scoped queries - the Header will auto-select first project
-    void utils.project.list.invalidate();
-    void utils.member.list.invalidate();
-    void utils.invitation.list.invalidate();
+    switchOrganizationMutation.mutate({ organizationId: orgId });
   };
 
   // Single org: static text (no dropdown)
@@ -141,7 +141,7 @@ export default function OrgSwitcher() {
             </Typography>
           </Box>
           {organizations.map((org) => {
-            const isActive = org.id === activeOrganizationId;
+            const isActive = org.id === currentOrg?.id;
             return (
               <DropdownMenuItem key={org.id} onClick={() => handleSwitch(org.id)}>
                 <Box
