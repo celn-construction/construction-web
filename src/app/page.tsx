@@ -8,12 +8,12 @@ import { HeroImage } from '@/components/ui/optimized-image';
 import {
   Box,
   Container,
-  Grid,
   Stack,
   Typography,
   Button,
   Paper,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy';
 
 export default function Home() {
   const { data: session } = useSession();

@@ -158,7 +158,8 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
   const defaultExpandedItems = groups.map((group) => `group-${group}`);
 
   // Handle selection change
-  const handleSelectedItemsChange = (_event: React.SyntheticEvent, nodeId: string | null) => {
+  const handleSelectedItemsChange = (_event: React.SyntheticEvent | null, itemIds: string | null) => {
+    const nodeId = itemIds;
     if (!nodeId) {
       onSelect(null);
       return;

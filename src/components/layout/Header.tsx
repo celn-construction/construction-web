@@ -36,13 +36,16 @@ export default function Header() {
 
   // Notification management
   const utils = api.useUtils();
-  const { data: unreadCount = 0 } = api.notification.unreadCount.useQuery(undefined, {
-    retry: false,
-    enabled: !!activeOrganizationId,
-    refetchInterval: 30000,
-  });
+  const { data: unreadCount = 0 } = api.notification.unreadCount.useQuery(
+    { organizationId: activeOrganizationId ?? '' },
+    {
+      retry: false,
+      enabled: !!activeOrganizationId,
+      refetchInterval: 30000,
+    }
+  );
   const { data: notificationsData } = api.notification.list.useQuery(
-    { limit: 20 },
+    { organizationId: activeOrganizationId ?? '', limit: 20 },
     { retry: false, enabled: notifMenuOpen && !!activeOrganizationId }
   );
   const markAsRead = api.notification.markAsRead.useMutation({
@@ -394,7 +397,7 @@ export default function Header() {
                 {unreadCount > 0 && (
                   <Button
                     size="small"
-                    onClick={() => markAllAsRead.mutate()}
+                    onClick={() => markAllAsRead.mutate({ organizationId: activeOrganizationId ?? '' })}
                     disabled={markAllAsRead.isPending}
                     sx={{ fontSize: '12px', textTransform: 'none' }}
                   >
@@ -410,16 +413,11 @@ export default function Header() {
                       key={notification.id}
                       onClick={() => {
                         if (!notification.read) {
-                          markAsRead.mutate({ ids: [notification.id] });
+                          markAsRead.mutate({ organizationId: activeOrganizationId ?? '', ids: [notification.id] });
                         }
                       }}
-                      style={{
-                        cursor: 'pointer',
-                        backgroundColor: notification.read ? 'transparent' : 'var(--surface-secondary)',
-                        padding: '12px 16px',
-                      }}
                     >
-                      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', width: '100%' }}>
+                      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', width: '100%', cursor: 'pointer', p: 1.5 }}>
                         <Box
                           sx={{
                             width: 32,
