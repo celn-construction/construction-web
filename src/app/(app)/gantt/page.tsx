@@ -4,14 +4,9 @@ import { Gantt, Willow, WillowDark } from "@svar-ui/react-gantt";
 import "@svar-ui/react-gantt/all.css";
 import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Card } from "~/components/ui/card";
 import { useThemeStore } from "~/store/useThemeStore";
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-} from "~/components/ui/popover";
 import { X } from "lucide-react";
+import { Box, Card, Skeleton, Popover } from "@mui/material";
 
 const tasks = [
   {
@@ -68,32 +63,34 @@ function GanttLoadingSkeleton() {
       className="flex h-full w-full gap-4 p-4"
     >
       {/* Sidebar skeleton */}
-      <div className="w-80 space-y-2">
+      <Box sx={{ width: 320, display: 'flex', flexDirection: 'column', gap: 1 }}>
         {/* Header */}
-        <div className="h-12 bg-[var(--bg-hover)] rounded animate-pulse" />
+        <Skeleton variant="rectangular" height={48} sx={{ borderRadius: 1 }} />
         {/* Rows */}
         {[...Array(8)].map((_, i) => (
-          <div key={i} className="h-10 bg-[var(--bg-hover)] rounded animate-pulse" />
+          <Skeleton key={i} variant="rectangular" height={40} sx={{ borderRadius: 1 }} />
         ))}
-      </div>
+      </Box>
 
       {/* Timeline skeleton */}
-      <div className="flex-1 space-y-2">
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
         {/* Header */}
-        <div className="h-12 bg-[var(--bg-hover)] rounded animate-pulse" />
+        <Skeleton variant="rectangular" height={48} sx={{ borderRadius: 1 }} />
         {/* Bars */}
         {[...Array(8)].map((_, i) => (
-          <div key={i} className="flex gap-2">
-            <div
-              className="h-10 bg-[var(--bg-hover)] rounded animate-pulse"
-              style={{
+          <Box key={i} sx={{ display: 'flex', gap: 1 }}>
+            <Skeleton
+              variant="rectangular"
+              height={40}
+              sx={{
+                borderRadius: 1,
                 width: `${Math.random() * 40 + 20}%`,
                 marginLeft: `${Math.random() * 30}%`
               }}
             />
-          </div>
+          </Box>
         ))}
-      </div>
+      </Box>
     </motion.div>
   );
 }
@@ -173,37 +170,56 @@ export default function GanttPage() {
         </Card>
       </div>
 
-      <Popover open={!!selectedTaskId} onOpenChange={(open) => { if (!open) { setSelectedTaskId(null); setSelectedDoc(null); } }}>
-        <PopoverAnchor virtualRef={anchorRef as React.RefObject<any>} />
-        <PopoverContent
-          side="right"
-          align="start"
-          sideOffset={8}
-          className="w-80"
-        >
-          <div>
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-                  {selectedTaskName}
-                </h3>
-              </div>
-              <button
-                onClick={() => setSelectedTaskId(null)}
-                className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-              </button>
-            </div>
-            <div
-              className="text-xs rounded-md p-3 border border-dashed border-[var(--border-color)]"
-              style={{ color: 'var(--text-secondary)' }}
+      <Popover
+        open={!!selectedTaskId}
+        anchorEl={anchorRef.current}
+        onClose={() => { setSelectedTaskId(null); setSelectedDoc(null); }}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+        sx={{ ml: 1 }}
+      >
+        <Box sx={{ width: 320, p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+            <Box>
+              <Box component="h3" sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
+                {selectedTaskName}
+              </Box>
+            </Box>
+            <Box
+              component="button"
+              onClick={() => setSelectedTaskId(null)}
+              sx={{
+                p: 0.5,
+                borderRadius: 1,
+                border: 'none',
+                bgcolor: 'transparent',
+                cursor: 'pointer',
+                '&:hover': { bgcolor: 'action.hover' },
+                transition: 'background-color 0.2s',
+              }}
+              aria-label="Close"
             >
-              Task details panel (folder tree removed during migration)
-            </div>
-          </div>
-        </PopoverContent>
+              <X size={16} style={{ color: 'var(--text-secondary)' }} />
+            </Box>
+          </Box>
+          <Box
+            sx={{
+              fontSize: '0.75rem',
+              borderRadius: 1,
+              p: 1.5,
+              border: '1px dashed var(--border-color)',
+              color: 'text.secondary',
+            }}
+          >
+            Task details panel (folder tree removed during migration)
+          </Box>
+        </Box>
       </Popover>
     </>
   );

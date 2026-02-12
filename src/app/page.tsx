@@ -266,7 +266,7 @@ export default function Home() {
                 <HeroImage
                   src="/images/hero-construction.jpg"
                   alt="Construction site aerial view showing workers and rebar foundation"
-                  className="h-[500px] lg:h-[600px] shadow-sm"
+                  sx={{ height: { xs: 500, lg: 600 }, boxShadow: 1 }}
                   priority
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   overlayOpacity={40}

@@ -2,9 +2,9 @@
 
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { FileUp, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { Box, Typography } from '@mui/material';
+import { FileUp } from 'lucide-react';
+import { Box, Typography, CircularProgress } from '@mui/material';
+import { useSnackbar } from '@/hooks/useSnackbar';
 
 export interface FileDropzoneProps {
   projectId: string;
@@ -24,6 +24,7 @@ export function FileDropzone({
   disabled = false,
 }: FileDropzoneProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { showSnackbar } = useSnackbar();
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
@@ -49,16 +50,16 @@ export function FileDropzone({
           throw new Error(error.error || 'Upload failed');
         }
 
-        toast.success('File uploaded successfully');
+        showSnackbar('File uploaded successfully', 'success');
         onUploadComplete();
       } catch (error) {
         console.error('Upload error:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to upload file');
+        showSnackbar(error instanceof Error ? error.message : 'Failed to upload file', 'error');
       } finally {
         setIsLoading(false);
       }
     },
-    [projectId, taskId, folderId, onUploadComplete]
+    [projectId, taskId, folderId, onUploadComplete, showSnackbar]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -106,7 +107,7 @@ export function FileDropzone({
     >
       <input {...getInputProps()} />
       {isLoading ? (
-        <Loader2 size={32} style={{ color: 'var(--text-secondary)' }} className="animate-spin" />
+        <CircularProgress size={32} sx={{ color: 'text.secondary' }} />
       ) : (
         <FileUp size={32} style={{ color: 'var(--text-disabled)' }} />
       )}
