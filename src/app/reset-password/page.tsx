@@ -1,63 +1,72 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { Lock, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { LogoIcon } from "@/components/ui/Logo";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Lock, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { LogoIcon } from '@/components/ui/Logo';
+import {
+  Box,
+  TextField,
+  Typography,
+  Alert,
+  InputAdornment,
+  IconButton,
+  Stack,
+  Paper,
+} from '@mui/material';
 
 function ResetPasswordForm() {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get token from URL on client side only
     const params = new URLSearchParams(window.location.search);
-    setToken(params.get("token"));
+    setToken(params.get('token'));
   }, []);
 
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError('Passwords do not match');
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError('Password must be at least 8 characters');
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await fetch("/api/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to reset password");
+        throw new Error(data.error || 'Failed to reset password');
       }
 
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -66,172 +75,313 @@ function ResetPasswordForm() {
   // No token provided
   if (!token) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
-        <div className="w-full max-w-md bg-white dark:bg-[var(--bg-card)] rounded-lg p-12 shadow-sm dark:shadow-black/20 text-center">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-md flex items-center justify-center mx-auto mb-6">
-            <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
-          </div>
-          <h1 className="text-2xl font-medium text-gray-800 dark:text-[var(--text-primary)] mb-3">Invalid Reset Link</h1>
-          <p className="text-gray-500 dark:text-[var(--text-secondary)] mb-8">
+      <Box
+        sx={{
+          minHeight: '100vh',
+          bgcolor: 'background.default',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 3,
+        }}
+      >
+        <Paper
+          elevation={1}
+          sx={{
+            width: '100%',
+            maxWidth: 500,
+            borderRadius: 2,
+            p: 6,
+            textAlign: 'center',
+          }}
+        >
+          <Box
+            sx={{
+              width: 64,
+              height: 64,
+              bgcolor: 'error.light',
+              borderRadius: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 3,
+            }}
+          >
+            <AlertCircle size={32} style={{ color: '#dc2626' }} />
+          </Box>
+          <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 500, mb: 1.5 }}>
+            Invalid Reset Link
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
             This password reset link is invalid or has expired. Please request a new one.
-          </p>
-          <Link
+          </Typography>
+          <Button
+            component={Link}
             href="/forgot-password"
             className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group"
           >
             Request new link
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-      </div>
+          </Button>
+        </Paper>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-0 bg-white dark:bg-[var(--bg-card)] rounded-lg overflow-hidden shadow-sm dark:shadow-black/20">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 3,
+      }}
+    >
+      <Paper
+        elevation={1}
+        sx={{
+          width: '100%',
+          maxWidth: 1200,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}
+      >
         {/* Left side - Form */}
-        <div className="p-12 lg:p-16 flex flex-col justify-center">
-          <div className="mb-12">
-            <Link href="/" className="flex items-center gap-3 mb-8 w-fit hover:opacity-80 transition-opacity">
-              <div className="w-12 h-12 bg-[var(--accent-primary)] dark:bg-gray-700 rounded-md flex items-center justify-center">
+        <Box
+          sx={{
+            p: { xs: 6, lg: 8 },
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}
+        >
+          <Box sx={{ mb: 6 }}>
+            <Stack
+              component={Link}
+              href="/"
+              direction="row"
+              alignItems="center"
+              gap={1.5}
+              sx={{
+                mb: 4,
+                width: 'fit-content',
+                textDecoration: 'none',
+                '&:hover': { opacity: 0.8 },
+                transition: 'opacity 0.2s',
+              }}
+            >
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  bgcolor: 'warm.main',
+                  borderRadius: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <LogoIcon size={28} />
-              </div>
-              <span className="text-gray-800 dark:text-[var(--text-primary)] text-lg font-medium">BuildTrack Pro</span>
-            </Link>
+              </Box>
+              <Typography
+                variant="h6"
+                sx={{ color: 'text.primary', fontWeight: 500 }}
+              >
+                BuildTrack Pro
+              </Typography>
+            </Stack>
 
             {success ? (
               <>
-                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-md flex items-center justify-center mb-6">
-                  <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-                </div>
-                <h1 className="text-2xl font-medium text-gray-800 dark:text-[var(--text-primary)] mb-3">Password reset!</h1>
-                <p className="text-gray-500 dark:text-[var(--text-secondary)]">
+                <Box
+                  sx={{
+                    width: 64,
+                    height: 64,
+                    bgcolor: 'success.light',
+                    borderRadius: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 3,
+                  }}
+                >
+                  <CheckCircle size={32} style={{ color: '#16a34a' }} />
+                </Box>
+                <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 500, mb: 1.5 }}>
+                  Password reset!
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
                   Your password has been successfully reset. You can now sign in with your new password.
-                </p>
+                </Typography>
               </>
             ) : (
               <>
-                <h1 className="text-2xl font-medium text-gray-800 dark:text-[var(--text-primary)] mb-3">Set new password</h1>
-                <p className="text-gray-500 dark:text-[var(--text-secondary)]">
+                <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 500, mb: 1.5 }}>
+                  Set new password
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
                   Your new password must be at least 8 characters long.
-                </p>
+                </Typography>
               </>
             )}
-          </div>
+          </Box>
 
           {success ? (
-            <button
-              onClick={() => router.push("/sign-in")}
+            <Button
+              onClick={() => router.push('/sign-in')}
               className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
             >
               Continue to sign in
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+            </Button>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm">
-                  {error}
-                </div>
-              )}
+            <Box component="form" onSubmit={handleSubmit}>
+              <Stack spacing={3}>
+                {error && (
+                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                    {error}
+                  </Alert>
+                )}
 
-              <div>
-                <label htmlFor="password" className="block text-sm text-gray-700 dark:text-[var(--text-secondary)] mb-2">
-                  New password
-                </label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                    <Lock className="w-5 h-5 text-gray-400 dark:text-[var(--text-muted)]" />
-                  </div>
-                  <input
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    New password
+                  </Typography>
+                  <TextField
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter new password"
-                    className="w-full pl-12 pr-12 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                    fullWidth
                     required
-                    minLength={8}
+                    inputProps={{ minLength: 8 }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Lock size={20} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                          >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'input.background',
+                      },
+                    }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[var(--text-muted)] hover:text-gray-600 dark:hover:text-[var(--text-secondary)]"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
+                </Box>
 
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm text-gray-700 dark:text-[var(--text-secondary)] mb-2">
-                  Confirm new password
-                </label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                    <Lock className="w-5 h-5 text-gray-400 dark:text-[var(--text-muted)]" />
-                  </div>
-                  <input
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    Confirm new password
+                  </Typography>
+                  <TextField
                     id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
+                    type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
-                    className="w-full pl-12 pr-12 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                    fullWidth
                     required
-                    minLength={8}
+                    inputProps={{ minLength: 8 }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Lock size={20} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            edge="end"
+                          >
+                            {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'input.background',
+                      },
+                    }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[var(--text-muted)] hover:text-gray-600 dark:hover:text-[var(--text-secondary)]"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
+                </Box>
 
-              <Button
-                type="submit"
-                loading={loading}
-                className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
-              >
-                Reset password
-                {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
-              </Button>
-            </form>
+                <Button
+                  type="submit"
+                  loading={loading}
+                  className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
+                >
+                  Reset password
+                  {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+                </Button>
+              </Stack>
+            </Box>
           )}
-        </div>
+        </Box>
 
         {/* Right side - Image */}
-        <div className="relative hidden lg:block">
+        <Box
+          sx={{
+            position: 'relative',
+            display: { xs: 'none', lg: 'block' },
+          }}
+        >
           <Image
             src="/images/auth-construction.jpg"
             alt="Construction site"
             fill
-            className="object-cover"
+            style={{ objectFit: 'cover' }}
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent flex items-end p-8">
-            <div>
-              <h2 className="text-white text-xl font-medium mb-2">Secure Your Account</h2>
-              <p className="text-white/80">
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              p: 4,
+            }}
+          >
+            <Box>
+              <Typography
+                variant="h6"
+                sx={{ color: 'white', fontWeight: 500, mb: 1 }}
+              >
+                Secure Your Account
+              </Typography>
+              <Typography sx={{ color: 'rgba(255,255,255,0.8)' }}>
                 Choose a strong password to keep your projects and data safe.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
+    </Box>
   );
 }
 

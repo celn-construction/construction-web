@@ -1,28 +1,39 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from "lucide-react";
-import { signUp } from "@/lib/auth-client";
-import { LogoIcon } from "@/components/ui/Logo";
+import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from 'lucide-react';
+import { signUp } from '@/lib/auth-client';
+import { LogoIcon } from '@/components/ui/Logo';
+import {
+  Box,
+  TextField,
+  Typography,
+  Alert,
+  InputAdornment,
+  IconButton,
+  Stack,
+  Paper,
+  Button,
+} from '@mui/material';
 
 export default function SignUpPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const inviteToken = searchParams.get("invite");
+  const inviteToken = searchParams.get('invite');
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
     setLoading(true);
 
     try {
@@ -33,156 +44,290 @@ export default function SignUpPage() {
       });
 
       if (result.error) {
-        setError(result.error.message || "Sign up failed");
+        setError(result.error.message || 'Sign up failed');
       } else {
-        // If there's an invite token, redirect to the invite page
         if (inviteToken) {
           router.push(`/invite/${inviteToken}`);
         } else {
-          router.push("/onboarding");
+          router.push('/onboarding');
         }
       }
     } catch (err) {
-      setError("An unexpected error occurred");
+      setError('An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-0 bg-white dark:bg-[var(--bg-card)] rounded-lg overflow-hidden shadow-sm dark:shadow-black/20">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 3,
+      }}
+    >
+      <Paper
+        elevation={1}
+        sx={{
+          width: '100%',
+          maxWidth: 1200,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}
+      >
         {/* Left side - Form */}
-        <div className="p-12 lg:p-16 flex flex-col justify-center">
-          <div className="mb-12">
-            <Link href="/" className="flex items-center gap-3 mb-8 w-fit hover:opacity-80 transition-opacity">
-              <div className="w-12 h-12 bg-[var(--accent-primary)] dark:bg-gray-700 rounded-md flex items-center justify-center">
+        <Box
+          sx={{
+            p: { xs: 6, lg: 8 },
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}
+        >
+          <Box sx={{ mb: 6 }}>
+            <Stack
+              component={Link}
+              href="/"
+              direction="row"
+              alignItems="center"
+              gap={1.5}
+              sx={{
+                mb: 4,
+                width: 'fit-content',
+                textDecoration: 'none',
+                '&:hover': { opacity: 0.8 },
+                transition: 'opacity 0.2s',
+              }}
+            >
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  bgcolor: 'warm.main',
+                  borderRadius: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <LogoIcon size={28} />
-              </div>
-              <span className="text-gray-800 dark:text-[var(--text-primary)] text-lg font-medium">BuildTrack Pro</span>
-            </Link>
-            <h1 className="text-2xl font-medium text-gray-800 dark:text-[var(--text-primary)] mb-3">Create account</h1>
-            <p className="text-gray-500 dark:text-[var(--text-secondary)]">Get started with your project management</p>
-          </div>
+              </Box>
+              <Typography
+                variant="h6"
+                sx={{ color: 'text.primary', fontWeight: 500 }}
+              >
+                BuildTrack Pro
+              </Typography>
+            </Stack>
+            <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 500, mb: 1.5 }}>
+              Create account
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Get started with your project management
+            </Typography>
+          </Box>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm">
-                {error}
-              </div>
-            )}
+          <Box component="form" onSubmit={handleSubmit}>
+            <Stack spacing={3}>
+              {error && (
+                <Alert severity="error" sx={{ borderRadius: 3 }}>
+                  {error}
+                </Alert>
+              )}
 
-            <div>
-              <label htmlFor="name" className="block text-sm text-gray-700 dark:text-[var(--text-secondary)] mb-2">
-                Full name
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                  <User className="w-5 h-5 text-gray-400 dark:text-[var(--text-muted)]" />
-                </div>
-                <input
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'text.secondary', mb: 1 }}
+                >
+                  Full name
+                </Typography>
+                <TextField
                   id="name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
-                  className="w-full pl-12 pr-4 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                  fullWidth
                   required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <User size={20} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'input.background',
+                    },
+                  }}
                 />
-              </div>
-            </div>
+              </Box>
 
-            <div>
-              <label htmlFor="email" className="block text-sm text-gray-700 dark:text-[var(--text-secondary)] mb-2">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                  <Mail className="w-5 h-5 text-gray-400 dark:text-[var(--text-muted)]" />
-                </div>
-                <input
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'text.secondary', mb: 1 }}
+                >
+                  Email address
+                </Typography>
+                <TextField
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your.email@company.com"
-                  className="w-full pl-12 pr-4 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                  fullWidth
                   required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Mail size={20} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'input.background',
+                    },
+                  }}
                 />
-              </div>
-            </div>
+              </Box>
 
-            <div>
-              <label htmlFor="password" className="block text-sm text-gray-700 dark:text-[var(--text-secondary)] mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                  <Lock className="w-5 h-5 text-gray-400 dark:text-[var(--text-muted)]" />
-                </div>
-                <input
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'text.secondary', mb: 1 }}
+                >
+                  Password
+                </Typography>
+                <TextField
                   id="password"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Min 8 characters"
-                  className="w-full pl-12 pr-12 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                  fullWidth
                   required
-                  minLength={8}
+                  inputProps={{ minLength: 8 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock size={20} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                        >
+                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'input.background',
+                    },
+                  }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[var(--text-muted)] hover:text-gray-600 dark:hover:text-[var(--text-secondary)]"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
+              </Box>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[var(--accent-primary)] dark:bg-[var(--accent-purple)] text-white py-4 rounded-md hover:opacity-90 dark:hover:bg-[var(--accent-purple)]/90 transition-colors flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {loading ? "Creating account..." : "Create account"}
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </form>
+              <Button
+                type="submit"
+                disabled={loading}
+                variant="contained"
+                size="large"
+                endIcon={<ArrowRight />}
+                sx={{
+                  bgcolor: 'warm.main',
+                  color: 'white',
+                  py: 2,
+                  '&:hover': {
+                    bgcolor: 'warm.dark',
+                    '& .MuiSvgIcon-root': {
+                      transform: 'translateX(4px)',
+                    },
+                  },
+                  '& .MuiSvgIcon-root': {
+                    transition: 'transform 0.2s',
+                  },
+                  '&.Mui-disabled': {
+                    opacity: 0.5,
+                  },
+                }}
+              >
+                {loading ? 'Creating account...' : 'Create account'}
+              </Button>
+            </Stack>
+          </Box>
 
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500 dark:text-[var(--text-secondary)]">
-              Already have an account?{" "}
-              <Link href="/sign-in" className="text-gray-800 dark:text-[var(--accent-purple)] hover:underline">
+          <Box sx={{ mt: 4, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Already have an account?{' '}
+              <Typography
+                component={Link}
+                href="/sign-in"
+                variant="body2"
+                sx={{
+                  color: 'text.primary',
+                  textDecoration: 'none',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
                 Sign in
-              </Link>
-            </p>
-          </div>
-        </div>
+              </Typography>
+            </Typography>
+          </Box>
+        </Box>
 
         {/* Right side - Image */}
-        <div className="relative hidden lg:block">
+        <Box
+          sx={{
+            position: 'relative',
+            display: { xs: 'none', lg: 'block' },
+          }}
+        >
           <Image
             src="/images/auth-construction.jpg"
             alt="Construction site"
             fill
-            className="object-cover"
+            style={{ objectFit: 'cover' }}
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent flex items-end p-8">
-            <div>
-              <h2 className="text-white text-xl font-medium mb-2">Start Building Today</h2>
-              <p className="text-white/80">
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              p: 4,
+            }}
+          >
+            <Box>
+              <Typography
+                variant="h6"
+                sx={{ color: 'white', fontWeight: 500, mb: 1 }}
+              >
+                Start Building Today
+              </Typography>
+              <Typography sx={{ color: 'rgba(255,255,255,0.8)' }}>
                 Join thousands of construction professionals managing their projects with BuildTrack Pro.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

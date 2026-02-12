@@ -1,31 +1,44 @@
-"use client";
+'use client';
 
-import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
-import { signIn } from "@/lib/auth-client";
-import { Button } from "@/components/ui/button";
-import { LogoIcon } from "@/components/ui/Logo";
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { signIn } from '@/lib/auth-client';
+import { Button } from '@/components/ui/button';
+import { LogoIcon } from '@/components/ui/Logo';
+import {
+  Box,
+  TextField,
+  Typography,
+  Alert,
+  Checkbox,
+  FormControlLabel,
+  InputAdornment,
+  IconButton,
+  Stack,
+  Paper,
+  CircularProgress,
+} from '@mui/material';
 
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const inviteToken = searchParams.get("invite");
+  const inviteToken = searchParams.get('invite');
   const callbackUrl = inviteToken
     ? `/invite/${inviteToken}`
-    : (searchParams.get("callbackUrl") || "/dashboard");
+    : (searchParams.get('callbackUrl') || '/dashboard');
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
     setLoading(true);
 
     try {
@@ -38,152 +51,283 @@ function SignInForm() {
             router.refresh();
           },
           onError: (ctx) => {
-            setError(ctx.error.message || "Sign in failed");
+            setError(ctx.error.message || 'Sign in failed');
             setLoading(false);
           },
         },
       });
     } catch (err) {
-      setError("An unexpected error occurred");
+      setError('An unexpected error occurred');
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center p-6 transition-colors">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-0 bg-white dark:bg-[var(--bg-card)] rounded-lg overflow-hidden shadow-sm dark:shadow-black/20">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 3,
+      }}
+    >
+      <Paper
+        elevation={1}
+        sx={{
+          width: '100%',
+          maxWidth: 1200,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}
+      >
         {/* Left side - Form */}
-        <div className="p-12 lg:p-16 flex flex-col justify-center">
-          <div className="mb-12">
-            <Link href="/" className="flex items-center gap-3 mb-8 w-fit hover:opacity-80 transition-opacity">
-              <div className="w-12 h-12 bg-[var(--accent-primary)] dark:bg-gray-700 rounded-md flex items-center justify-center">
+        <Box
+          sx={{
+            p: { xs: 6, lg: 8 },
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}
+        >
+          <Box sx={{ mb: 6 }}>
+            <Stack
+              component={Link}
+              href="/"
+              direction="row"
+              alignItems="center"
+              gap={1.5}
+              sx={{
+                mb: 4,
+                width: 'fit-content',
+                textDecoration: 'none',
+                '&:hover': { opacity: 0.8 },
+                transition: 'opacity 0.2s',
+              }}
+            >
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  bgcolor: 'warm.main',
+                  borderRadius: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <LogoIcon size={28} />
-              </div>
-              <span className="text-gray-800 dark:text-[var(--text-primary)] text-lg font-medium">BuildTrack Pro</span>
-            </Link>
-            <h1 className="text-2xl font-medium text-gray-800 dark:text-[var(--text-primary)] mb-3">Welcome back</h1>
-            <p className="text-gray-500 dark:text-[var(--text-secondary)]">Sign in to continue to your dashboard</p>
-          </div>
+              </Box>
+              <Typography
+                variant="h6"
+                sx={{ color: 'text.primary', fontWeight: 500 }}
+              >
+                BuildTrack Pro
+              </Typography>
+            </Stack>
+            <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 500, mb: 1.5 }}>
+              Welcome back
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Sign in to continue to your dashboard
+            </Typography>
+          </Box>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm">
-                {error}
-              </div>
-            )}
+          <Box component="form" onSubmit={handleSubmit}>
+            <Stack spacing={3}>
+              {error && (
+                <Alert severity="error" sx={{ borderRadius: 3 }}>
+                  {error}
+                </Alert>
+              )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm text-gray-700 dark:text-[var(--text-secondary)] mb-2">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                  <Mail className="w-5 h-5 text-gray-400 dark:text-[var(--text-muted)]" />
-                </div>
-                <input
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'text.secondary', mb: 1 }}
+                >
+                  Email address
+                </Typography>
+                <TextField
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your.email@company.com"
-                  className="w-full pl-12 pr-4 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                  fullWidth
                   required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Mail size={20} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'input.background',
+                    },
+                  }}
                 />
-              </div>
-            </div>
+              </Box>
 
-            <div>
-              <label htmlFor="password" className="block text-sm text-gray-700 dark:text-[var(--text-secondary)] mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                  <Lock className="w-5 h-5 text-gray-400 dark:text-[var(--text-muted)]" />
-                </div>
-                <input
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'text.secondary', mb: 1 }}
+                >
+                  Password
+                </Typography>
+                <TextField
                   id="password"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full pl-12 pr-12 py-4 bg-[var(--bg-input)] dark:bg-[var(--bg-input)] text-gray-900 dark:text-[var(--text-primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] transition-all placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)]"
+                  fullWidth
                   required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock size={20} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                        >
+                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'input.background',
+                    },
+                  }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[var(--text-muted)] hover:text-gray-600 dark:hover:text-[var(--text-secondary)]"
+              </Box>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <FormControlLabel
+                  control={<Checkbox size="small" />}
+                  label={
+                    <Typography variant="body2" color="text.secondary">
+                      Remember me
+                    </Typography>
+                  }
+                />
+                <Typography
+                  component={Link}
+                  href="/forgot-password"
+                  variant="body2"
+                  sx={{
+                    color: 'text.primary',
+                    textDecoration: 'none',
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
+                  Forgot password?
+                </Typography>
+              </Box>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded border-gray-300 dark:border-[var(--border-color)] text-gray-800 dark:text-[var(--accent-purple)] focus:ring-gray-800 dark:focus:ring-[var(--accent-purple)] dark:bg-[var(--bg-input)]"
-                />
-                <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">Remember me</span>
-              </label>
-              <Link href="/forgot-password" className="text-sm text-gray-800 dark:text-[var(--accent-purple)] hover:underline">
-                Forgot password?
-              </Link>
-            </div>
+              <Button
+                type="submit"
+                loading={loading}
+                className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
+              >
+                Sign in
+                {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+              </Button>
+            </Stack>
+          </Box>
 
-            <Button
-              type="submit"
-              loading={loading}
-              className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
-            >
-              Sign in
-              {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
-            </Button>
-          </form>
-
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500 dark:text-[var(--text-secondary)]">
-              Don&apos;t have an account?{" "}
-              <Link href="/sign-up" className="text-gray-800 dark:text-[var(--accent-purple)] hover:underline">
+          <Box sx={{ mt: 4, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Don&apos;t have an account?{' '}
+              <Typography
+                component={Link}
+                href="/sign-up"
+                variant="body2"
+                sx={{
+                  color: 'text.primary',
+                  textDecoration: 'none',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
                 Sign up
-              </Link>
-            </p>
-          </div>
-        </div>
+              </Typography>
+            </Typography>
+          </Box>
+        </Box>
 
         {/* Right side - Image */}
-        <div className="relative hidden lg:block">
+        <Box
+          sx={{
+            position: 'relative',
+            display: { xs: 'none', lg: 'block' },
+          }}
+        >
           <Image
             src="/images/auth-construction.jpg"
             alt="Construction site"
             fill
-            className="object-cover"
+            style={{ objectFit: 'cover' }}
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent flex items-end p-8">
-            <div>
-              <h2 className="text-white text-xl font-medium mb-2">Manage Your Projects</h2>
-              <p className="text-white/80">
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              p: 4,
+            }}
+          >
+            <Box>
+              <Typography
+                variant="h6"
+                sx={{ color: 'white', fontWeight: 500, mb: 1 }}
+              >
+                Manage Your Projects
+              </Typography>
+              <Typography sx={{ color: 'rgba(255,255,255,0.8)' }}>
                 Track construction schedules, monitor progress, and collaborate with your team in real-time.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
+    </Box>
   );
 }
 
 function SignInLoading() {
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] flex items-center justify-center transition-colors">
-      <div className="animate-pulse text-gray-500 dark:text-[var(--text-secondary)]">Loading...</div>
-    </div>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <CircularProgress />
+    </Box>
   );
 }
 
