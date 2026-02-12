@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { LoadingProvider } from "@/components/providers/LoadingProvider";
-import ThemeProvider from "@/components/providers/ThemeProvider";
+import ThemeRegistry from "@/components/providers/ThemeRegistry";
 
 export const metadata: Metadata = {
   title: "BuildTrack Pro",
@@ -29,10 +29,10 @@ export default function RootLayout({
     <html lang="en" className={geist.variable} suppressHydrationWarning>
       <body>
         <TRPCReactProvider>
-          <ThemeProvider>
+          <ThemeRegistry>
             <LoadingProvider>{children}</LoadingProvider>
             <Toaster position="bottom-right" richColors />
-          </ThemeProvider>
+          </ThemeRegistry>
         </TRPCReactProvider>
       </body>
     </html>

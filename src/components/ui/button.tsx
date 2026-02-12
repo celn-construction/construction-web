@@ -1,51 +1,59 @@
 'use client';
 
 import * as React from 'react';
-import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Button as MuiButton, IconButton, CircularProgress, type ButtonProps as MuiButtonProps } from '@mui/material';
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends Omit<MuiButtonProps, 'variant' | 'size'> {
   variant?: 'default' | 'outline' | 'ghost' | 'destructive';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   loading?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'default', size = 'default', loading = false, disabled, children, ...props }, ref) => {
+  ({ variant = 'default', size = 'default', loading = false, disabled, children, ...props }, ref) => {
+    // Map custom variants to MUI variants
+    const muiVariant =
+      variant === 'default' ? 'contained' :
+      variant === 'outline' ? 'outlined' :
+      variant === 'ghost' ? 'text' :
+      variant === 'destructive' ? 'contained' : 'contained';
+
+    // Map custom sizes to MUI sizes
+    const muiSize =
+      size === 'sm' ? 'small' :
+      size === 'lg' ? 'large' :
+      'medium';
+
+    // Handle icon button separately
+    if (size === 'icon') {
+      return (
+        <IconButton
+          ref={ref}
+          disabled={disabled || loading}
+          color={variant === 'destructive' ? 'error' : 'default'}
+          {...props}
+        >
+          {loading ? <CircularProgress size={20} /> : children}
+        </IconButton>
+      );
+    }
+
     return (
-      <button
-        className={cn(
-          'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-white dark:ring-offset-[var(--bg-card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-          {
-            'bg-[var(--accent-primary)] text-[var(--bg-primary)] hover:opacity-90':
-              variant === 'default',
-            'border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)]':
-              variant === 'outline',
-            'hover:bg-[var(--bg-hover)] text-[var(--text-primary)]': variant === 'ghost',
-            'bg-[var(--status-red)] text-white hover:opacity-90':
-              variant === 'destructive',
-          },
-          {
-            'h-10 px-4 py-2': size === 'default',
-            'h-9 rounded-md px-3': size === 'sm',
-            'h-11 rounded-md px-8': size === 'lg',
-            'h-10 w-10': size === 'icon',
-          },
-          className
-        )}
+      <MuiButton
         ref={ref}
+        variant={muiVariant}
+        size={muiSize}
+        color={variant === 'destructive' ? 'error' : 'primary'}
         disabled={disabled || loading}
+        startIcon={loading ? <CircularProgress size={16} /> : undefined}
         {...props}
       >
-        {loading && (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        )}
         {children}
-      </button>
+      </MuiButton>
     );
   }
 );
+
 Button.displayName = 'Button';
 
 export { Button };
