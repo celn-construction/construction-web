@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
+import { Box, Skeleton, Typography, SxProps, Theme } from '@mui/material';
 
 interface OptimizedImageProps {
   src: string;
   alt: string;
-  className?: string;
+  sx?: SxProps<Theme>;
   width?: number;
   height?: number;
   fill?: boolean;
@@ -17,29 +17,28 @@ interface OptimizedImageProps {
   quality?: number;
 }
 
-const ImageSkeleton = ({ className }: { className?: string }) => (
-  <div className={cn('animate-pulse bg-gray-200 dark:bg-gray-800', className)} aria-label="Loading image">
-    <div className="w-full h-full flex items-center justify-center">
-      <svg
-        className="w-12 h-12 text-gray-400 dark:text-gray-600"
-        fill="currentColor"
-        viewBox="0 0 20 20"
-      >
-        <path
-          fillRule="evenodd"
-          d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-          clipRule="evenodd"
-        />
-      </svg>
-    </div>
-  </div>
+const ImageSkeleton = ({ sx }: { sx?: SxProps<Theme> }) => (
+  <Skeleton
+    variant="rectangular"
+    sx={{ width: '100%', height: '100%', ...sx }}
+    aria-label="Loading image"
+  />
 );
 
-const ImageError = ({ className }: { className?: string }) => (
-  <div className={cn('bg-gray-100 dark:bg-gray-900 flex items-center justify-center', className)}>
-    <div className="text-center p-4">
-      <svg
-        className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-2"
+const ImageError = ({ sx }: { sx?: SxProps<Theme> }) => (
+  <Box
+    sx={{
+      bgcolor: 'background.paper',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...sx,
+    }}
+  >
+    <Box sx={{ textAlign: 'center', p: 2 }}>
+      <Box
+        component="svg"
+        sx={{ width: 48, height: 48, color: 'text.disabled', mx: 'auto', mb: 1 }}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -50,16 +49,18 @@ const ImageError = ({ className }: { className?: string }) => (
           strokeWidth={2}
           d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
         />
-      </svg>
-      <p className="text-sm text-gray-500 dark:text-gray-400">Failed to load image</p>
-    </div>
-  </div>
+      </Box>
+      <Typography variant="body2" color="text.secondary">
+        Failed to load image
+      </Typography>
+    </Box>
+  </Box>
 );
 
 export function OptimizedImage({
   src,
   alt,
-  className,
+  sx,
   width,
   height,
   fill = false,
@@ -80,19 +81,13 @@ export function OptimizedImage({
     setHasError(true);
   };
 
-  const containerClass = cn(
-    'relative overflow-hidden',
-    fill ? 'w-full h-full' : '',
-    className
-  );
-
   if (hasError) {
-    return <ImageError className={containerClass} />;
+    return <ImageError sx={sx} />;
   }
 
   return (
-    <div className={containerClass}>
-      {isLoading && <ImageSkeleton className={fill ? 'absolute inset-0' : className} />}
+    <Box sx={{ position: 'relative', overflow: 'hidden', ...(fill && { width: '100%', height: '100%' }), ...sx }}>
+      {isLoading && <ImageSkeleton sx={fill ? { position: 'absolute', inset: 0 } : undefined} />}
 
       <Image
         src={src}
@@ -103,15 +98,15 @@ export function OptimizedImage({
         priority={priority}
         quality={quality}
         sizes={sizes}
-        className={cn(
-          'transition-opacity duration-300',
-          isLoading ? 'opacity-0' : 'opacity-100',
-          fill ? `object-${objectFit}` : ''
-        )}
+        style={{
+          transition: 'opacity 0.3s',
+          opacity: isLoading ? 0 : 1,
+          objectFit: fill ? objectFit : undefined,
+        }}
         onLoad={handleLoad}
         onError={handleError}
       />
-    </div>
+    </Box>
   );
 }
 
@@ -126,19 +121,23 @@ export function HeroImage({
   overlay = true,
   overlayOpacity = 40,
   children,
-  className,
+  sx,
   ...props
 }: HeroImageProps) {
   return (
-    <div className={cn('relative overflow-hidden rounded-lg', className)}>
-      <OptimizedImage {...props} fill className="w-full h-full" />
+    <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: 2, ...sx }}>
+      <OptimizedImage {...props} fill sx={{ width: '100%', height: '100%' }} />
       {overlay && (
-        <div
-          className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"
-          style={{ opacity: overlayOpacity / 100 }}
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
+            opacity: overlayOpacity / 100,
+          }}
         />
       )}
-      {children && <div className="absolute inset-0 z-10">{children}</div>}
-    </div>
+      {children && <Box sx={{ position: 'absolute', inset: 0, zIndex: 10 }}>{children}</Box>}
+    </Box>
   );
 }

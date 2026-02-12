@@ -1,19 +1,21 @@
 import React from 'react';
+import { Box, Typography, SxProps, Theme } from '@mui/material';
 
 interface LogoIconProps {
   size?: number;
-  className?: string;
+  sx?: SxProps<Theme>;
 }
 
-export const LogoIcon: React.FC<LogoIconProps> = ({ size = 24, className = '' }) => {
+export const LogoIcon: React.FC<LogoIconProps> = ({ size = 24, sx }) => {
   return (
-    <svg
+    <Box
+      component="svg"
       width={size}
       height={size}
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={className}
+      sx={sx}
     >
       {/* Left column (full height I-beam) */}
       <rect x="3" y="3" width="3" height="18" rx="0.5" fill="currentColor" />
@@ -26,33 +28,33 @@ export const LogoIcon: React.FC<LogoIconProps> = ({ size = 24, className = '' })
 
       {/* Middle ascending bar (progress/tracking element) */}
       <rect x="10" y="9" width="2.5" height="12" rx="0.5" fill="currentColor" />
-    </svg>
+    </Box>
   );
 };
 
 interface LogoProps {
   size?: number;
-  className?: string;
+  sx?: SxProps<Theme>;
   showText?: boolean;
   textVariant?: 'default' | 'large';
 }
 
 export const Logo: React.FC<LogoProps> = ({
   size = 24,
-  className = '',
+  sx,
   showText = true,
   textVariant = 'default'
 }) => {
-  const textSize = textVariant === 'large' ? 'text-xl' : 'text-base';
+  const fontSize = textVariant === 'large' ? '1.25rem' : '1rem';
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ...sx }}>
       <LogoIcon size={size} />
       {showText && (
-        <span className={`font-semibold ${textSize}`}>
+        <Typography sx={{ fontWeight: 600, fontSize }}>
           BuildTrack Pro
-        </span>
+        </Typography>
       )}
-    </div>
+    </Box>
   );
 };

@@ -1,29 +1,28 @@
 import * as React from "react"
+import {
+  Card as MuiCard,
+  CardHeader as MuiCardHeader,
+  CardContent as MuiCardContent,
+  CardActions,
+  Typography,
+  type CardProps as MuiCardProps,
+} from '@mui/material'
 
-import { cn } from "src/lib/utils"
-
-const Card = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className
-    )}
-    {...props}
-  />
-))
+const Card = React.forwardRef<HTMLDivElement, MuiCardProps>(
+  ({ ...props }, ref) => (
+    <MuiCard ref={ref} {...props} />
+  )
+)
 Card.displayName = "Card"
 
 const CardHeader = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
+>(({ children, ...props }, ref) => (
+  <MuiCardHeader
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}
+    title={children}
     {...props}
   />
 ))
@@ -32,47 +31,34 @@ CardHeader.displayName = "CardHeader"
 const CardTitle = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
-      className
-    )}
-    {...props}
-  />
+>(({ children, ...props }, ref) => (
+  <Typography ref={ref} variant="h6" component="div" {...props}>
+    {children}
+  </Typography>
 ))
 CardTitle.displayName = "CardTitle"
 
 const CardDescription = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
-    {...props}
-  />
+>(({ children, ...props }, ref) => (
+  <Typography ref={ref} variant="body2" color="text.secondary" {...props}>
+    {children}
+  </Typography>
 ))
 CardDescription.displayName = "CardDescription"
 
 const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
-))
+>(({ ...props }, ref) => <MuiCardContent ref={ref} {...props} />)
 CardContent.displayName = "CardContent"
 
 const CardFooter = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
-    {...props}
-  />
+>(({ ...props }, ref) => (
+  <CardActions ref={ref} sx={{ pt: 0 }} {...props} />
 ))
 CardFooter.displayName = "CardFooter"
 

@@ -3,19 +3,19 @@
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { ImagePlus, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Box, Typography, IconButton, CircularProgress, SxProps, Theme } from '@mui/material';
 
 export interface ImageDropzoneProps {
   value?: string;
   onChange: (imageUrl: string | undefined) => void;
-  className?: string;
+  sx?: SxProps<Theme>;
   disabled?: boolean;
 }
 
 export function ImageDropzone({
   value,
   onChange,
-  className,
+  sx,
   disabled = false,
 }: ImageDropzoneProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -61,52 +61,96 @@ export function ImageDropzone({
 
   if (value) {
     return (
-      <div className={cn('relative group', className)}>
-        <img
+      <Box
+        sx={{
+          position: 'relative',
+          '&:hover .remove-button': { opacity: 1 },
+          ...sx,
+        }}
+      >
+        <Box
+          component="img"
           src={value}
           alt="Cover"
-          className="w-full h-32 object-cover rounded-lg"
+          sx={{
+            width: '100%',
+            height: 128,
+            objectFit: 'cover',
+            borderRadius: 2,
+          }}
         />
-        <button
-          type="button"
+        <IconButton
+          className="remove-button"
           onClick={handleRemove}
           disabled={disabled}
-          className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            bgcolor: 'rgba(0, 0, 0, 0.5)',
+            '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.7)' },
+            opacity: 0,
+            transition: 'opacity 0.2s',
+            color: 'white',
+          }}
         >
-          <X className="w-4 h-4 text-white" />
-        </button>
-      </div>
+          <X className="w-4 h-4" />
+        </IconButton>
+      </Box>
     );
   }
 
   return (
-    <div
+    <Box
       {...getRootProps()}
-      className={cn(
-        'relative flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors',
-        'border-gray-200 dark:border-[var(--border-color)]',
-        'hover:border-gray-300 dark:hover:border-gray-600',
-        isDragActive && 'border-blue-500 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/10',
-        (disabled || isLoading) && 'opacity-50 cursor-not-allowed',
-        className
-      )}
+      sx={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 1,
+        p: 2,
+        border: 2,
+        borderStyle: 'dashed',
+        borderColor: isDragActive ? 'primary.main' : 'divider',
+        borderRadius: 2,
+        cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
+        bgcolor: isDragActive ? 'action.hover' : 'transparent',
+        opacity: disabled || isLoading ? 0.5 : 1,
+        transition: 'all 0.2s',
+        '&:hover': {
+          borderColor: disabled || isLoading ? 'divider' : 'text.secondary',
+        },
+        ...sx,
+      }}
     >
       <input {...getInputProps()} />
-      <ImagePlus className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-      <div className="text-center">
-        <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+      <ImagePlus className="w-8 h-8" style={{ color: 'var(--text-muted)' }} />
+      <Box sx={{ textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary">
           {isDragActive ? 'Drop image here' : 'Drag & drop or click'}
-        </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+        </Typography>
+        <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5 }}>
           PNG, JPG, GIF up to 5MB
-        </p>
-      </div>
+        </Typography>
+      </Box>
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-black/50 rounded-lg">
-          <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-        </div>
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'rgba(255, 255, 255, 0.5)',
+            borderRadius: 2,
+          }}
+        >
+          <CircularProgress size={24} />
+        </Box>
       )}
-    </div>
+    </Box>
   );
 }
 

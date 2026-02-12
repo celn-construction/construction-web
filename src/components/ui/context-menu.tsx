@@ -1,185 +1,157 @@
 "use client"
 
 import * as React from "react"
-import * as ContextMenuPrimitive from "@radix-ui/react-context-menu"
-import { Check, ChevronRight, Circle } from "lucide-react"
+import { Menu, MenuItem, Divider, ListSubheader, Box } from '@mui/material'
 
-import { cn } from "src/lib/utils"
-
-const ContextMenu = ContextMenuPrimitive.Root
-
-const ContextMenuTrigger = ContextMenuPrimitive.Trigger
-
-const ContextMenuGroup = ContextMenuPrimitive.Group
-
-const ContextMenuPortal = ContextMenuPrimitive.Portal
-
-const ContextMenuSub = ContextMenuPrimitive.Sub
-
-const ContextMenuRadioGroup = ContextMenuPrimitive.RadioGroup
-
-const ContextMenuSubTrigger = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.SubTrigger>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubTrigger> & {
-    inset?: boolean
-  }
->(({ className, inset, children, ...props }, ref) => (
-  <ContextMenuPrimitive.SubTrigger
-    ref={ref}
-    className={cn(
-      "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
-      inset && "pl-8",
-      className
-    )}
-    {...props}
-  >
-    {children}
-    <ChevronRight className="ml-auto h-4 w-4" />
-  </ContextMenuPrimitive.SubTrigger>
-))
-ContextMenuSubTrigger.displayName = ContextMenuPrimitive.SubTrigger.displayName
-
-const ContextMenuSubContent = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.SubContent>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubContent>
->(({ className, ...props }, ref) => (
-  <ContextMenuPrimitive.SubContent
-    ref={ref}
-    className={cn(
-      "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-context-menu-content-transform-origin]",
-      className
-    )}
-    {...props}
-  />
-))
-ContextMenuSubContent.displayName = ContextMenuPrimitive.SubContent.displayName
-
-const ContextMenuContent = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <ContextMenuPrimitive.Portal>
-    <ContextMenuPrimitive.Content
-      ref={ref}
-      className={cn(
-        "z-50 max-h-[--radix-context-menu-content-available-height] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-context-menu-content-transform-origin]",
-        className
-      )}
-      {...props}
-    />
-  </ContextMenuPrimitive.Portal>
-))
-ContextMenuContent.displayName = ContextMenuPrimitive.Content.displayName
-
-const ContextMenuItem = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Item> & {
-    inset?: boolean
-  }
->(({ className, inset, ...props }, ref) => (
-  <ContextMenuPrimitive.Item
-    ref={ref}
-    className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      inset && "pl-8",
-      className
-    )}
-    {...props}
-  />
-))
-ContextMenuItem.displayName = ContextMenuPrimitive.Item.displayName
-
-const ContextMenuCheckboxItem = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.CheckboxItem>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.CheckboxItem>
->(({ className, children, checked, ...props }, ref) => (
-  <ContextMenuPrimitive.CheckboxItem
-    ref={ref}
-    className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      className
-    )}
-    checked={checked}
-    {...props}
-  >
-    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-      <ContextMenuPrimitive.ItemIndicator>
-        <Check className="h-4 w-4" />
-      </ContextMenuPrimitive.ItemIndicator>
-    </span>
-    {children}
-  </ContextMenuPrimitive.CheckboxItem>
-))
-ContextMenuCheckboxItem.displayName =
-  ContextMenuPrimitive.CheckboxItem.displayName
-
-const ContextMenuRadioItem = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.RadioItem>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.RadioItem>
->(({ className, children, ...props }, ref) => (
-  <ContextMenuPrimitive.RadioItem
-    ref={ref}
-    className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      className
-    )}
-    {...props}
-  >
-    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-      <ContextMenuPrimitive.ItemIndicator>
-        <Circle className="h-2 w-2 fill-current" />
-      </ContextMenuPrimitive.ItemIndicator>
-    </span>
-    {children}
-  </ContextMenuPrimitive.RadioItem>
-))
-ContextMenuRadioItem.displayName = ContextMenuPrimitive.RadioItem.displayName
-
-const ContextMenuLabel = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.Label>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Label> & {
-    inset?: boolean
-  }
->(({ className, inset, ...props }, ref) => (
-  <ContextMenuPrimitive.Label
-    ref={ref}
-    className={cn(
-      "px-2 py-1.5 text-sm font-semibold text-foreground",
-      inset && "pl-8",
-      className
-    )}
-    {...props}
-  />
-))
-ContextMenuLabel.displayName = ContextMenuPrimitive.Label.displayName
-
-const ContextMenuSeparator = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.Separator>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Separator>
->(({ className, ...props }, ref) => (
-  <ContextMenuPrimitive.Separator
-    ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-border", className)}
-    {...props}
-  />
-))
-ContextMenuSeparator.displayName = ContextMenuPrimitive.Separator.displayName
-
-const ContextMenuShortcut = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLSpanElement>) => {
-  return (
-    <span
-      className={cn(
-        "ml-auto text-xs tracking-widest text-muted-foreground",
-        className
-      )}
-      {...props}
-    />
-  )
+// Context to manage context menu state
+interface ContextMenuContextValue {
+  contextMenu: { mouseX: number; mouseY: number } | null;
+  setContextMenu: (value: { mouseX: number; mouseY: number } | null) => void;
 }
-ContextMenuShortcut.displayName = "ContextMenuShortcut"
+
+const ContextMenuContext = React.createContext<ContextMenuContextValue>({
+  contextMenu: null,
+  setContextMenu: () => {},
+});
+
+// Main ContextMenu component
+const ContextMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [contextMenu, setContextMenu] = React.useState<{ mouseX: number; mouseY: number } | null>(null);
+
+  return (
+    <ContextMenuContext.Provider value={{ contextMenu, setContextMenu }}>
+      {children}
+    </ContextMenuContext.Provider>
+  );
+};
+
+// ContextMenuTrigger - wraps the element that triggers the menu on right-click
+const ContextMenuTrigger: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const { setContextMenu } = React.useContext(ContextMenuContext);
+
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault();
+    setContextMenu(
+      contextMenu === null
+        ? { mouseX: event.clientX + 2, mouseY: event.clientY - 6 }
+        : null
+    );
+  };
+
+  return React.cloneElement(children, {
+    onContextMenu: handleContextMenu,
+  });
+};
+
+// ContextMenuContent - the actual MUI Menu
+const ContextMenuContent = React.forwardRef<
+  HTMLDivElement,
+  { children: React.ReactNode }
+>(({ children, ...props }, ref) => {
+  const { contextMenu, setContextMenu } = React.useContext(ContextMenuContext);
+
+  const handleClose = () => {
+    setContextMenu(null);
+  };
+
+  return (
+    <Menu
+      open={contextMenu !== null}
+      onClose={handleClose}
+      anchorReference="anchorPosition"
+      anchorPosition={
+        contextMenu !== null
+          ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+          : undefined
+      }
+      {...props}
+    >
+      {children}
+    </Menu>
+  );
+});
+ContextMenuContent.displayName = 'ContextMenuContent';
+
+// ContextMenuItem - maps to MUI MenuItem
+const ContextMenuItem = React.forwardRef<
+  HTMLLIElement,
+  { children: React.ReactNode; inset?: boolean; disabled?: boolean; onClick?: () => void }
+>(({ children, disabled, onClick, ...props }, ref) => {
+  const { setContextMenu } = React.useContext(ContextMenuContext);
+
+  const handleClick = () => {
+    onClick?.();
+    setContextMenu(null);
+  };
+
+  return (
+    <MenuItem ref={ref} onClick={handleClick} disabled={disabled} {...props}>
+      {children}
+    </MenuItem>
+  );
+});
+ContextMenuItem.displayName = 'ContextMenuItem';
+
+// ContextMenuCheckboxItem - MenuItem with checkbox
+const ContextMenuCheckboxItem = React.forwardRef<
+  HTMLLIElement,
+  { children: React.ReactNode; checked?: boolean; onCheckedChange?: (checked: boolean) => void }
+>(({ children, checked, onCheckedChange, ...props }, ref) => {
+  const { setContextMenu } = React.useContext(ContextMenuContext);
+
+  const handleClick = () => {
+    onCheckedChange?.(!checked);
+    setContextMenu(null);
+  };
+
+  return (
+    <MenuItem ref={ref} onClick={handleClick} {...props}>
+      {checked && <Box component="span" sx={{ mr: 1 }}>✓</Box>}
+      {children}
+    </MenuItem>
+  );
+});
+ContextMenuCheckboxItem.displayName = 'ContextMenuCheckboxItem';
+
+// ContextMenuRadioItem - MenuItem with radio
+const ContextMenuRadioItem = ContextMenuCheckboxItem;
+
+// ContextMenuLabel - maps to ListSubheader
+const ContextMenuLabel = React.forwardRef<
+  HTMLLIElement,
+  { children: React.ReactNode; inset?: boolean }
+>(({ children, ...props }, ref) => (
+  <ListSubheader {...props}>{children}</ListSubheader>
+));
+ContextMenuLabel.displayName = 'ContextMenuLabel';
+
+// ContextMenuSeparator - maps to Divider
+const ContextMenuSeparator = React.forwardRef<
+  HTMLHRElement,
+  React.HTMLAttributes<HTMLHRElement>
+>((props, ref) => <Divider sx={{ my: 0.5 }} />);
+ContextMenuSeparator.displayName = 'ContextMenuSeparator';
+
+// ContextMenuShortcut - for keyboard shortcuts display
+const ContextMenuShortcut: React.FC<React.HTMLAttributes<HTMLSpanElement>> = ({
+  children,
+  ...props
+}) => {
+  return (
+    <Box component="span" sx={{ ml: 'auto', fontSize: '0.75rem', opacity: 0.6 }} {...props}>
+      {children}
+    </Box>
+  );
+};
+ContextMenuShortcut.displayName = "ContextMenuShortcut";
+
+// Placeholder components for API compatibility
+const ContextMenuGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => <>{children}</>;
+const ContextMenuPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => <>{children}</>;
+const ContextMenuSub = ContextMenu;
+const ContextMenuSubContent = ContextMenuContent;
+const ContextMenuSubTrigger = ContextMenuItem;
+const ContextMenuRadioGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => <>{children}</>;
 
 export {
   ContextMenu,

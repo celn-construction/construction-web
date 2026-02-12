@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { CircularProgress, Backdrop, Box, Typography } from '@mui/material';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -9,10 +10,10 @@ interface LoadingSpinnerProps {
 }
 
 const sizeMap = {
-  sm: 'w-4 h-4',
-  md: 'w-8 h-8',
-  lg: 'w-12 h-12',
-  xl: 'w-16 h-16',
+  sm: 16,
+  md: 32,
+  lg: 48,
+  xl: 64,
 };
 
 export default function LoadingSpinner({
@@ -21,39 +22,39 @@ export default function LoadingSpinner({
   text
 }: LoadingSpinnerProps) {
   const spinner = (
-    <div className="flex flex-col items-center justify-center gap-3">
-      <motion.div
-        className={`${sizeMap[size]} border-4 border-gray-200 dark:border-[var(--border-color)] border-t-gray-800 dark:border-t-[var(--accent-purple)] rounded-full`}
-        animate={{ rotate: 360 }}
-        transition={{
-          duration: 1,
-          repeat: Infinity,
-          ease: 'linear',
-        }}
-      />
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+      <CircularProgress size={sizeMap[size]} />
       {text && (
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-sm text-gray-600 dark:text-[var(--text-secondary)]"
         >
-          {text}
-        </motion.p>
+          <Typography variant="body2" color="text.secondary">
+            {text}
+          </Typography>
+        </motion.div>
       )}
-    </div>
+    </Box>
   );
 
   if (fullScreen) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-white/80 dark:bg-[var(--bg-primary)]/80 backdrop-blur-sm z-50 flex items-center justify-center"
+      <Backdrop
+        open
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          backdropFilter: 'blur(4px)',
+        }}
       >
-        {spinner}
-      </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          {spinner}
+        </motion.div>
+      </Backdrop>
     );
   }
 
