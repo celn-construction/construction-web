@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { cn } from "~/lib/utils";
+import { Box, Typography, LinearProgress } from "@mui/material";
 
 interface OnboardingProgressProps {
   currentStep: number;
@@ -18,31 +18,46 @@ export function OnboardingProgress({
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
   return (
-    <motion.div
+    <Box
+      component={motion.div}
       initial={{ y: -8, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.2, duration: 0.4 }}
-      className="w-full space-y-4"
+      sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}
     >
       {/* Step circles */}
-      <div className="flex items-center justify-between">
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {labels.map((label, index) => {
           const isComplete = index < currentStep;
           const isActive = index === currentStep;
 
           return (
-            <div key={index} className="flex flex-col items-center gap-2">
-              <motion.div
-                className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
-                  isComplete &&
-                    "bg-[var(--accent-primary)] text-[var(--bg-primary)]",
-                  isActive &&
-                    "bg-[var(--accent-primary)] text-[var(--bg-primary)]",
-                  !isComplete &&
-                    !isActive &&
-                    "border-2 border-[var(--border-color)] text-[var(--text-muted)]"
-                )}
+            <Box key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              <Box
+                component={motion.div}
+                sx={{
+                  display: 'flex',
+                  width: 28,
+                  height: 28,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  ...(isComplete && {
+                    bgcolor: 'var(--accent-primary)',
+                    color: 'var(--bg-primary)',
+                  }),
+                  ...(isActive && {
+                    bgcolor: 'var(--accent-primary)',
+                    color: 'var(--bg-primary)',
+                  }),
+                  ...(!isComplete && !isActive && {
+                    border: '2px solid var(--border-color)',
+                    color: 'var(--text-muted)',
+                  }),
+                }}
                 animate={
                   isActive
                     ? {
@@ -56,7 +71,8 @@ export function OnboardingProgress({
                 }
               >
                 {isComplete ? (
-                  <motion.div
+                  <Box
+                    component={motion.div}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{
@@ -65,31 +81,37 @@ export function OnboardingProgress({
                       damping: 20,
                     }}
                   >
-                    <Check className="h-4 w-4" />
-                  </motion.div>
+                    <Check size={16} />
+                  </Box>
                 ) : (
                   index + 1
                 )}
-              </motion.div>
-              <span
-                className={cn(
-                  "text-xs transition-colors",
-                  isActive
-                    ? "text-[var(--text-primary)] font-medium"
-                    : "text-[var(--text-muted)]"
-                )}
+              </Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  transition: 'color 0.2s',
+                  ...(isActive
+                    ? { color: 'text.primary', fontWeight: 500 }
+                    : { color: 'text.disabled' }),
+                }}
               >
                 {label}
-              </span>
-            </div>
+              </Typography>
+            </Box>
           );
         })}
-      </div>
+      </Box>
 
       {/* Progress bar */}
-      <div className="relative h-1 w-full overflow-hidden rounded-full bg-[var(--bg-input)]">
-        <motion.div
-          className="h-full rounded-full bg-[var(--accent-primary)]"
+      <Box sx={{ position: 'relative', height: 4, width: '100%', overflow: 'hidden', borderRadius: 1, bgcolor: 'var(--bg-input)' }}>
+        <Box
+          component={motion.div}
+          sx={{
+            height: '100%',
+            borderRadius: 1,
+            bgcolor: 'var(--accent-primary)',
+          }}
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{
@@ -98,7 +120,7 @@ export function OnboardingProgress({
             damping: 30,
           }}
         />
-      </div>
-    </motion.div>
+      </Box>
+    </Box>
   );
 }

@@ -9,6 +9,7 @@ import { ImageDropzone } from '@/components/ui/image-dropzone';
 import { FileDropzone } from '@/components/documents/FileDropzone';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { api } from '@/trpc/react';
+import { Box, Typography, IconButton, LinearProgress, Paper } from '@mui/material';
 
 export interface Selection {
   type: 'task' | 'folder';
@@ -48,193 +49,306 @@ export function ProjectDetailPanel({ selection, onBack }: ProjectDetailPanelProp
   // Empty state - nothing selected
   if (!selection) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <FileText className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <FileText size={48} style={{ color: 'var(--text-disabled)', margin: '0 auto 12px' }} />
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             Select a task or folder to view details
-          </p>
-        </div>
-      </div>
+          </Typography>
+        </Box>
+      </Box>
     );
   }
 
   // Task selected
   if (selection.type === 'task' && task) {
     return (
-      <div className="h-full overflow-auto p-6">
+      <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
         {/* Mobile back button */}
         {onBack && (
-          <button
+          <IconButton
             onClick={onBack}
-            className="lg:hidden flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            sx={{
+              display: { lg: 'none' },
+              mb: 2,
+              color: 'text.secondary',
+              '&:hover': { color: 'text.primary' },
+            }}
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to tree
-          </button>
+            <ArrowLeft size={16} />
+            <Typography variant="body2" sx={{ ml: 1 }}>
+              Back to tree
+            </Typography>
+          </IconButton>
         )}
 
         {/* Group label */}
-        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 500,
+            color: 'text.disabled',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            display: 'block',
+            mb: 1,
+          }}
+        >
           {task.group}
-        </div>
+        </Typography>
 
         {/* Task name */}
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+        <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary', mb: 2 }}>
           {task.name}
-        </h2>
+        </Typography>
 
         {/* Status badge */}
-        <div className="flex items-center gap-2 mb-6">
-          <div
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: task.status.color }}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+          <Box
+            sx={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              bgcolor: task.status.color,
+            }}
           />
-          <span
-            className="text-sm font-medium"
-            style={{ color: task.status.color }}
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 500, color: task.status.color }}
           >
             {task.status.name}
-          </span>
-        </div>
+          </Typography>
+        </Box>
 
         {/* Progress bar */}
         {task.progress !== undefined && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
                 Progress
-              </span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 {task.progress}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div
-                className="h-2 rounded-full transition-all"
-                style={{
-                  width: `${task.progress}%`,
-                  backgroundColor: task.status.color,
-                }}
-              />
-            </div>
-          </div>
+              </Typography>
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={task.progress}
+              sx={{
+                height: 8,
+                borderRadius: 1,
+                bgcolor: 'action.hover',
+                '& .MuiLinearProgress-bar': {
+                  bgcolor: task.status.color,
+                  borderRadius: 1,
+                },
+              }}
+            />
+          </Box>
         )}
 
         {/* Dates */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 500,
+                color: 'text.disabled',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                display: 'block',
+                mb: 0.5,
+              }}
+            >
               Start Date
-            </div>
-            <div className="text-sm text-gray-900 dark:text-white">
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.primary' }}>
               {task.startAt ? format(new Date(task.startAt), 'MMM d, yyyy') : 'Not set'}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+            </Typography>
+          </Box>
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 500,
+                color: 'text.disabled',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                display: 'block',
+                mb: 0.5,
+              }}
+            >
               End Date
-            </div>
-            <div className="text-sm text-gray-900 dark:text-white">
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.primary' }}>
               {task.endAt ? format(new Date(task.endAt), 'MMM d, yyyy') : 'Not set'}
-            </div>
-          </div>
-        </div>
+            </Typography>
+          </Box>
+        </Box>
 
         {/* Cover photo */}
-        <div>
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+        <Box>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 500,
+              color: 'text.disabled',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              display: 'block',
+              mb: 1,
+            }}
+          >
             Cover Photo
-          </div>
+          </Typography>
           <ImageDropzone
             value={task.coverImage}
             onChange={(imageUrl) => {
               updateFeature(task.id, { coverImage: imageUrl });
             }}
           />
-        </div>
-      </div>
+        </Box>
+      </Box>
     );
   }
 
   // Folder selected
   if (selection.type === 'folder') {
     return (
-      <div className="h-full overflow-auto p-6">
+      <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
         {/* Mobile back button */}
         {onBack && (
-          <button
+          <IconButton
             onClick={onBack}
-            className="lg:hidden flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            sx={{
+              display: { lg: 'none' },
+              mb: 2,
+              color: 'text.secondary',
+              '&:hover': { color: 'text.primary' },
+            }}
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to tree
-          </button>
+            <ArrowLeft size={16} />
+            <Typography variant="body2" sx={{ ml: 1 }}>
+              Back to tree
+            </Typography>
+          </IconButton>
         )}
 
         {/* Folder icon and name */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-amber-500/10 border border-amber-500/30">
-            <Folder className="w-6 h-6 text-amber-500" />
-          </div>
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 48,
+              height: 48,
+              borderRadius: 2,
+              bgcolor: 'rgb(245, 158, 11, 0.1)',
+              border: '1px solid rgb(245, 158, 11, 0.3)',
+            }}
+          >
+            <Folder size={24} style={{ color: 'rgb(245, 158, 11)' }} />
+          </Box>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
             {selection.folderName}
-          </h2>
-        </div>
+          </Typography>
+        </Box>
 
         {/* Parent folder context */}
         {selection.parentFolderName && (
-          <div className="mb-4">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+          <Box sx={{ mb: 2 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 500,
+                color: 'text.disabled',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                display: 'block',
+                mb: 0.5,
+              }}
+            >
               Parent Folder
-            </div>
-            <div className="text-sm text-gray-900 dark:text-white">
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.primary' }}>
               {selection.parentFolderName}
-            </div>
-          </div>
+            </Typography>
+          </Box>
         )}
 
         {/* Parent task reference */}
         {task && (
-          <div className="mb-6">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+          <Box sx={{ mb: 3 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 500,
+                color: 'text.disabled',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                display: 'block',
+                mb: 0.5,
+              }}
+            >
               Task
-            </div>
-            <div className="text-sm text-gray-900 dark:text-white">
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.primary' }}>
               {task.name}
-            </div>
-          </div>
+            </Typography>
+          </Box>
         )}
 
         {/* Document upload and list */}
         {currentProject?.organizationId && currentProjectId && selection.folderId && (
-          <div className="mt-8 space-y-4">
-            <div>
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+          <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 500,
+                  color: 'text.disabled',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  display: 'block',
+                  mb: 1,
+                }}
+              >
                 Upload Documents
-              </div>
+              </Typography>
               <FileDropzone
                 projectId={currentProjectId}
                 taskId={selection.taskId}
                 folderId={selection.folderId}
                 onUploadComplete={handleUploadComplete}
               />
-            </div>
+            </Box>
 
-            <div>
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 500,
+                  color: 'text.disabled',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  display: 'block',
+                  mb: 1,
+                }}
+              >
                 Documents
-              </div>
+              </Typography>
               <DocumentList
                 organizationId={currentProject.organizationId}
                 projectId={currentProjectId}
                 taskId={selection.taskId}
                 folderId={selection.folderId}
               />
-            </div>
-          </div>
+            </Box>
+          </Box>
         )}
-      </div>
+      </Box>
     );
   }
 

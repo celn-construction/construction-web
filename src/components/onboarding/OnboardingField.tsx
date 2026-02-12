@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { type LucideIcon } from "lucide-react";
-import { cn } from "~/lib/utils";
+import { Box, Typography, FormHelperText } from "@mui/material";
 
 interface OnboardingFieldProps {
   label: string;
@@ -23,27 +23,37 @@ export function OnboardingField({
   error,
 }: OnboardingFieldProps) {
   return (
-    <motion.div variants={fieldVariants} className="space-y-1.5">
-      <label className="text-sm font-medium text-[var(--text-primary)]">
+    <Box component={motion.div} variants={fieldVariants} sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+      <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
         {label}
-      </label>
-      <div className="relative">
+      </Typography>
+      <Box sx={{ position: 'relative' }}>
         {Icon && (
-          <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
-            <Icon className="h-4 w-4 text-[var(--text-muted)]" />
-          </div>
+          <Box
+            sx={{
+              pointerEvents: 'none',
+              position: 'absolute',
+              left: 14,
+              top: '50%',
+              transform: 'translateY(-50%)',
+            }}
+          >
+            <Icon size={16} style={{ color: 'var(--text-muted)' }} />
+          </Box>
         )}
         {children}
-      </div>
+      </Box>
       {error && (
-        <motion.p
+        <FormHelperText
+          component={motion.p}
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-xs text-red-500"
+          error
+          sx={{ fontSize: '0.75rem' }}
         >
           {error}
-        </motion.p>
+        </FormHelperText>
       )}
-    </motion.div>
+    </Box>
   );
 }

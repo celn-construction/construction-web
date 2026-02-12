@@ -2,11 +2,11 @@ import "~/styles/globals.css";
 
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
-import { Toaster } from "sonner";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { LoadingProvider } from "@/components/providers/LoadingProvider";
 import ThemeRegistry from "@/components/providers/ThemeRegistry";
+import { SnackbarProvider } from "@/hooks/useSnackbar";
 
 export const metadata: Metadata = {
   title: "BuildTrack Pro",
@@ -30,8 +30,9 @@ export default function RootLayout({
       <body>
         <TRPCReactProvider>
           <ThemeRegistry>
-            <LoadingProvider>{children}</LoadingProvider>
-            <Toaster position="bottom-right" richColors />
+            <SnackbarProvider>
+              <LoadingProvider>{children}</LoadingProvider>
+            </SnackbarProvider>
           </ThemeRegistry>
         </TRPCReactProvider>
       </body>

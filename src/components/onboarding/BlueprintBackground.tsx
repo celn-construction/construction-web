@@ -1,15 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Box } from "@mui/material";
 
 export function BlueprintBackground() {
   return (
-    <motion.div
+    <Box
+      component={motion.div}
       initial={{ opacity: 0 }}
       animate={{ opacity: 0.02 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
-      className="pointer-events-none fixed inset-0 z-0"
-      style={{
+      sx={{
+        pointerEvents: 'none',
+        position: 'fixed',
+        inset: 0,
+        zIndex: 0,
         backgroundImage: `
           linear-gradient(var(--grid-line) 1px, transparent 1px),
           linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),

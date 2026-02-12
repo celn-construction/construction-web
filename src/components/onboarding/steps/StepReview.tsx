@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { FileText } from "lucide-react";
 import { OnboardingField } from "../OnboardingField";
-import { cn } from "~/lib/utils";
+import { TextField, Box, Typography, Paper } from "@mui/material";
 
 interface StepReviewProps {
   formData: {
@@ -50,48 +50,73 @@ export function StepReview({ formData, updateField }: StepReviewProps) {
   ].filter((field) => field.value);
 
   return (
-    <motion.div
+    <Box
+      component={motion.div}
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
     >
       <OnboardingField label="License Number (Optional)" icon={FileText}>
-        <input
+        <TextField
           type="text"
           value={formData.licenseNumber}
           onChange={(e) => updateField("licenseNumber", e.target.value)}
-          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
           placeholder="Enter license number"
+          fullWidth
+          sx={{
+            '& .MuiInputBase-root': {
+              height: 48,
+              paddingLeft: '40px',
+            },
+          }}
         />
       </OnboardingField>
 
       {summaryFields.length > 0 && (
-        <motion.div variants={fieldVariants}>
-          <h3 className="mb-3 text-sm font-medium text-[var(--text-primary)]">
+        <Box component={motion.div} variants={fieldVariants}>
+          <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 500, color: 'text.primary' }}>
             Review Your Information
-          </h3>
-          <div className="space-y-0 overflow-hidden rounded-lg bg-[var(--bg-input)]">
+          </Typography>
+          <Paper
+            elevation={0}
+            sx={{
+              overflow: 'hidden',
+              borderRadius: 2,
+              bgcolor: 'var(--bg-input)',
+            }}
+          >
             {summaryFields.map((field, index) => (
-              <div
+              <Box
                 key={field.label}
-                className={cn(
-                  "p-4",
-                  index !== summaryFields.length - 1 &&
-                    "border-b border-[var(--border-light)]"
-                )}
+                sx={{
+                  p: 2,
+                  ...(index !== summaryFields.length - 1 && {
+                    borderBottom: '1px solid var(--border-light)',
+                  }),
+                }}
               >
-                <dt className="mb-1 text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    mb: 0.5,
+                    fontWeight: 500,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: 'text.disabled',
+                  }}
+                >
                   {field.label}
-                </dt>
-                <dd className="text-sm text-[var(--text-primary)]">
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.primary' }}>
                   {field.value}
-                </dd>
-              </div>
+                </Typography>
+              </Box>
             ))}
-          </div>
-        </motion.div>
+          </Paper>
+        </Box>
       )}
-    </motion.div>
+    </Box>
   );
 }

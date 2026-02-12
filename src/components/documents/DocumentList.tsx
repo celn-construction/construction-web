@@ -3,6 +3,7 @@
 import { FileText, FileSpreadsheet, FileImage, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { api } from '@/trpc/react';
+import { Box, Typography, Stack, Skeleton } from '@mui/material';
 
 interface DocumentListProps {
   organizationId: string;
@@ -12,17 +13,18 @@ interface DocumentListProps {
 }
 
 function getFileIcon(mimeType: string) {
+  const iconStyle = { color: 'var(--text-secondary)' };
   if (mimeType.startsWith('image/')) {
-    return <FileImage className="w-5 h-5 text-blue-500" />;
+    return <FileImage size={20} style={iconStyle} />;
   }
   if (
     mimeType.includes('spreadsheet') ||
     mimeType.includes('excel') ||
     mimeType === 'text/csv'
   ) {
-    return <FileSpreadsheet className="w-5 h-5 text-green-500" />;
+    return <FileSpreadsheet size={20} style={iconStyle} />;
   }
-  return <FileText className="w-5 h-5 text-gray-500" />;
+  return <FileText size={20} style={iconStyle} />;
 }
 
 function formatFileSize(bytes: number): string {
@@ -46,41 +48,74 @@ export function DocumentList({
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
+      <Stack spacing={1}>
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"
-          />
+          <Skeleton key={i} height={64} sx={{ borderRadius: 2 }} />
         ))}
-      </div>
+      </Stack>
     );
   }
 
   if (!documents || documents.length === 0) {
     return (
-      <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
-        No documents uploaded yet
-      </div>
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          No documents uploaded yet
+        </Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <Stack spacing={1}>
       {documents.map((doc) => (
-        <a
+        <Box
           key={doc.id}
+          component="a"
           href={doc.blobUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            p: 1.5,
+            borderRadius: 2,
+            border: 1,
+            borderColor: 'divider',
+            transition: 'background-color 0.2s',
+            textDecoration: 'none',
+            '&:hover': {
+              bgcolor: 'action.hover',
+              '& .download-icon': {
+                color: 'text.primary',
+              },
+            },
+          }}
         >
-          <div className="flex-shrink-0">{getFileIcon(doc.mimeType)}</div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+          <Box sx={{ flexShrink: 0 }}>{getFileIcon(doc.mimeType)}</Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 500,
+                color: 'text.primary',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {doc.name}
-            </p>
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            </Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                fontSize: '0.75rem',
+                color: 'text.secondary',
+              }}
+            >
               <span>{formatFileSize(doc.size)}</span>
               <span>•</span>
               <span>{format(new Date(doc.createdAt), 'MMM d, yyyy')}</span>
@@ -90,11 +125,15 @@ export function DocumentList({
                   <span>{doc.uploadedBy.name}</span>
                 </>
               )}
-            </div>
-          </div>
-          <Download className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 flex-shrink-0" />
-        </a>
+            </Box>
+          </Box>
+          <Download
+            size={16}
+            className="download-icon"
+            style={{ color: 'var(--text-disabled)', flexShrink: 0 }}
+          />
+        </Box>
       ))}
-    </div>
+    </Stack>
   );
 }

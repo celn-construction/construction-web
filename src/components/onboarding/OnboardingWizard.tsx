@@ -4,15 +4,15 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { LogoIcon } from "~/components/ui/Logo";
-import { Button } from "~/components/ui/button";
 import { OnboardingProgress } from "./OnboardingProgress";
 import { StepIdentity } from "./steps/StepIdentity";
 import { StepContact } from "./steps/StepContact";
 import { StepReview } from "./steps/StepReview";
 import { api } from "~/trpc/react";
+import { Box, Button, CircularProgress, Typography, Paper } from "@mui/material";
+import { useSnackbar } from "@/hooks/useSnackbar";
 
 const steps = [
   { label: "Company", subtitle: "Tell us about your company" },
@@ -37,6 +37,7 @@ const stepVariants = {
 
 export function OnboardingWizard() {
   const router = useRouter();
+  const { showSnackbar } = useSnackbar();
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -58,13 +59,13 @@ export function OnboardingWizard() {
     onSuccess: () => {
       Cookies.set("onboarding-complete", "true", { expires: 365 });
       setShowSuccess(true);
-      toast.success("Welcome to BuildTrack Pro!");
+      showSnackbar("Welcome to BuildTrack Pro!", "success");
       setTimeout(() => {
         router.push("/dashboard");
       }, 1500);
     },
     onError: (error: { message?: string }) => {
-      toast.error(error.message || "Failed to complete onboarding");
+      showSnackbar(error.message || "Failed to complete onboarding", "error");
     },
   });
 
@@ -127,18 +128,37 @@ export function OnboardingWizard() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center p-4">
-      <motion.div
+    <Box
+      sx={{
+        position: 'relative',
+        display: 'flex',
+        minHeight: '100vh',
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 2,
+      }}
+    >
+      <Box
+        component={motion.div}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="w-full max-w-xl"
+        sx={{ width: '100%', maxWidth: 640 }}
       >
-        <div className="rounded-2xl border border-[var(--border-light)] bg-white p-8 shadow-lg shadow-black/[0.03] dark:bg-[var(--bg-card)] dark:shadow-black/20 sm:p-10 lg:p-12">
+        <Paper
+          elevation={3}
+          sx={{
+            borderRadius: 4,
+            border: '1px solid var(--border-light)',
+            p: { xs: 4, sm: 5, lg: 6 },
+          }}
+        >
           {!showSuccess ? (
             <>
               {/* Logo */}
-              <motion.div
+              <Box
+                component={motion.div}
                 initial={{ scale: 0.85, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{
@@ -147,15 +167,27 @@ export function OnboardingWizard() {
                   damping: 20,
                   delay: 0.1,
                 }}
-                className="mb-8 flex justify-center"
+                sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-white dark:bg-gray-700 sm:h-18 sm:w-18">
-                  <LogoIcon className="h-10 w-10 sm:h-12 sm:w-12" />
-                </div>
-              </motion.div>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    width: { xs: 64, sm: 72 },
+                    height: { xs: 64, sm: 72 },
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 3,
+                    bgcolor: 'var(--accent-primary)',
+                    color: 'white',
+                  }}
+                >
+                  <LogoIcon sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 } }} />
+                </Box>
+              </Box>
 
               {/* Header */}
-              <motion.div
+              <Box
+                component={motion.div}
                 initial="hidden"
                 animate="visible"
                 variants={{
@@ -167,39 +199,43 @@ export function OnboardingWizard() {
                     },
                   },
                 }}
-                className="mb-8 text-center"
+                sx={{ mb: 4, textAlign: 'center' }}
               >
-                <motion.h1
+                <Typography
+                  component={motion.h1}
                   variants={{
                     hidden: { y: 12, opacity: 0 },
                     visible: { y: 0, opacity: 1 },
                   }}
-                  className="mb-2 text-2xl font-bold text-[var(--text-primary)] sm:text-3xl"
+                  variant="h4"
+                  sx={{ mb: 1, fontWeight: 700, color: 'text.primary' }}
                 >
                   Welcome to BuildTrack Pro
-                </motion.h1>
-                <motion.p
+                </Typography>
+                <Typography
+                  component={motion.p}
                   variants={{
                     hidden: { y: 12, opacity: 0 },
                     visible: { y: 0, opacity: 1 },
                   }}
-                  className="text-sm text-[var(--text-secondary)] sm:text-base"
+                  variant="body1"
+                  sx={{ color: 'text.secondary' }}
                 >
                   {steps[currentStep]?.subtitle}
-                </motion.p>
-              </motion.div>
+                </Typography>
+              </Box>
 
               {/* Progress */}
-              <div className="mb-8">
+              <Box sx={{ mb: 4 }}>
                 <OnboardingProgress
                   currentStep={currentStep}
                   totalSteps={steps.length}
                   labels={steps.map((s) => s.label)}
                 />
-              </div>
+              </Box>
 
               {/* Steps */}
-              <div className="mb-8">
+              <Box sx={{ mb: 4 }}>
                 <AnimatePresence mode="wait" custom={direction}>
                   <motion.div
                     key={currentStep}
@@ -234,67 +270,90 @@ export function OnboardingWizard() {
                     )}
                   </motion.div>
                 </AnimatePresence>
-              </div>
+              </Box>
 
               {/* Navigation */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
                   {currentStep > 0 && (
                     <Button
-                      type="button"
-                      variant="ghost"
+                      variant="text"
                       onClick={goBack}
-                      className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
                     >
                       Back
                     </Button>
                   )}
 
-                  <div className="flex-1" />
+                  <Box sx={{ flex: 1 }} />
 
                   {currentStep < steps.length - 1 ? (
                     <Button
-                      type="button"
+                      variant="contained"
                       onClick={goForward}
-                      className="h-12 rounded-lg bg-[var(--accent-primary)] px-6 text-white hover:opacity-90"
+                      sx={{ height: 48, borderRadius: 2, px: 3 }}
                     >
                       Continue
                     </Button>
                   ) : (
                     <Button
-                      type="button"
+                      variant="contained"
                       onClick={handleSubmit}
-                      loading={completeMutation.isPending}
-                      className="group h-12 rounded-lg bg-[var(--accent-primary)] px-6 text-white hover:opacity-90"
+                      disabled={completeMutation.isPending}
+                      endIcon={
+                        completeMutation.isPending ? (
+                          <CircularProgress size={16} color="inherit" />
+                        ) : (
+                          <ArrowRight size={16} />
+                        )
+                      }
+                      sx={{
+                        height: 48,
+                        borderRadius: 2,
+                        px: 3,
+                        '& .MuiButton-endIcon': {
+                          transition: 'transform 0.2s',
+                        },
+                        '&:hover .MuiButton-endIcon': {
+                          transform: 'translateX(4px)',
+                        },
+                      }}
                     >
                       Launch BuildTrack Pro
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Button>
                   )}
-                </div>
+                </Box>
 
                 {currentStep === 1 && (
-                  <div className="flex justify-center">
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                     <Button
-                      type="button"
-                      variant="ghost"
+                      variant="text"
                       onClick={handleSkip}
-                      className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                      sx={{ fontSize: '0.875rem', color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
                     >
                       Skip for now
                     </Button>
-                  </div>
+                  </Box>
                 )}
-              </div>
+              </Box>
             </>
           ) : (
             // Success state
-            <motion.div
+            <Box
+              component={motion.div}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center py-12 text-center"
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 6,
+                textAlign: 'center',
+              }}
             >
-              <motion.div
+              <Box
+                component={motion.div}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{
@@ -303,30 +362,43 @@ export function OnboardingWizard() {
                   damping: 20,
                   delay: 0.2,
                 }}
-                className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--status-green)]"
+                sx={{
+                  mb: 3,
+                  display: 'flex',
+                  width: 80,
+                  height: 80,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  bgcolor: 'var(--status-green)',
+                }}
               >
-                <Check className="h-10 w-10 text-white" />
-              </motion.div>
-              <motion.h2
+                <Check size={40} style={{ color: 'white' }} />
+              </Box>
+              <Typography
+                component={motion.h2}
                 initial={{ y: 12, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="mb-2 text-2xl font-bold text-[var(--text-primary)]"
+                variant="h5"
+                sx={{ mb: 1, fontWeight: 700, color: 'text.primary' }}
               >
                 You&apos;re all set!
-              </motion.h2>
-              <motion.p
+              </Typography>
+              <Typography
+                component={motion.p}
                 initial={{ y: 12, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-[var(--text-secondary)]"
+                variant="body1"
+                sx={{ color: 'text.secondary' }}
               >
                 Taking you to your dashboard...
-              </motion.p>
-            </motion.div>
+              </Typography>
+            </Box>
           )}
-        </div>
-      </motion.div>
-    </div>
+        </Paper>
+      </Box>
+    </Box>
   );
 }

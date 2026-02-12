@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Box, Typography, Tabs, Tab, Paper } from '@mui/material';
+import { Box, Typography, Tabs, Tab, Paper, Button } from '@mui/material';
 import { api } from '~/trpc/react';
 import { canInviteMembers } from '~/lib/permissions';
-import { Button } from '@/components/ui/button';
 import InviteDialog from '@/components/team/InviteDialog';
 import MembersList from '@/components/team/MembersList';
 import PendingInvitesList from '@/components/team/PendingInvitesList';
@@ -65,8 +64,11 @@ export default function TeamPage() {
           </Typography>
         </Box>
         {canManage && (
-          <Button onClick={() => setInviteDialogOpen(true)}>
-            <UserPlus className="w-4 h-4 mr-2" />
+          <Button
+            variant="contained"
+            onClick={() => setInviteDialogOpen(true)}
+            startIcon={<UserPlus size={16} />}
+          >
             Invite
           </Button>
         )}

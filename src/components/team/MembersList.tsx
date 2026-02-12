@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Box, Typography, Avatar, Skeleton, Stack } from '@mui/material';
 
 interface Member {
   id: string;
@@ -21,22 +22,27 @@ interface MembersListProps {
 export default function MembersList({ members, isLoading }: MembersListProps) {
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <Stack spacing={1.5}>
         {[1, 2, 3].map((i) => (
-          <div
+          <Box
             key={i}
-            className="flex items-center gap-3 p-3.5 rounded-lg animate-pulse"
-            style={{ animationDelay: `${i * 0.1}s` }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              p: 1.75,
+              borderRadius: 2,
+            }}
           >
-            <div className="w-11 h-11 rounded-full bg-[var(--bg-hover)]" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-[var(--bg-hover)] rounded w-1/3" />
-              <div className="h-3 bg-[var(--bg-hover)] rounded w-1/2" />
-            </div>
-            <div className="h-6 bg-[var(--bg-hover)] rounded w-20" />
-          </div>
+            <Skeleton variant="circular" width={44} height={44} />
+            <Box sx={{ flex: 1 }}>
+              <Skeleton width="33%" height={16} sx={{ mb: 0.5 }} />
+              <Skeleton width="50%" height={12} />
+            </Box>
+            <Skeleton width={80} height={24} />
+          </Box>
         ))}
-      </div>
+      </Stack>
     );
   }
 
@@ -59,15 +65,9 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
     return email.charAt(0).toUpperCase();
   };
 
-  const getRoleBorderColor = (role: string) => {
-    if (role === 'owner' || role === 'admin') return 'var(--accent-warm)';
-    if (role === 'project_manager') return 'var(--status-blue)';
-    if (role === 'viewer') return 'var(--text-muted)';
-    return 'var(--border-color)';
-  };
-
   return (
-    <motion.div
+    <Box
+      component={motion.div}
       initial="hidden"
       animate="visible"
       variants={{
@@ -77,49 +77,86 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
           },
         },
       }}
-      className="space-y-2"
+      sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
     >
       {members.map((member) => (
-        <motion.div
+        <Box
           key={member.id}
+          component={motion.div}
           variants={{
             hidden: { opacity: 0, y: 8 },
             visible: { opacity: 1, y: 0 },
           }}
-          className="flex items-center gap-3 p-3.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            p: 1.75,
+            borderRadius: 2,
+            transition: 'background-color 0.2s',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
         >
-          {/* Avatar */}
-          {member.user.image ? (
-            <img
-              src={member.user.image}
-              alt={member.user.name || member.user.email}
-              className="w-11 h-11 rounded-full ring-2 ring-[var(--border-light)]"
-            />
-          ) : (
-            <div className="w-11 h-11 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] flex items-center justify-center font-medium text-sm">
-              {getInitials(member.user.name, member.user.email)}
-            </div>
-          )}
+          <Avatar
+            src={member.user.image || undefined}
+            alt={member.user.name || member.user.email}
+            sx={{
+              width: 44,
+              height: 44,
+              bgcolor: 'text.primary',
+              color: 'background.paper',
+              fontWeight: 500,
+              fontSize: '0.875rem',
+            }}
+          >
+            {!member.user.image && getInitials(member.user.name, member.user.email)}
+          </Avatar>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-[var(--text-primary)] truncate">
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontWeight: 500,
+                color: 'text.primary',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {member.user.name || member.user.email}
-            </div>
-            <div className="text-sm text-[var(--text-muted)] truncate">
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'text.disabled',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {member.user.email}
-            </div>
-          </div>
+            </Typography>
+          </Box>
 
-          {/* Role Badge */}
-          <span
-            className="px-3 py-1 rounded-full text-xs font-medium bg-[var(--bg-hover)] text-[var(--text-secondary)] whitespace-nowrap border-l-2"
-            style={{ borderLeftColor: getRoleBorderColor(member.role) }}
+          <Box
+            sx={{
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 10,
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              bgcolor: 'action.hover',
+              color: 'text.secondary',
+              whiteSpace: 'nowrap',
+              borderLeft: 2,
+              borderColor: 'divider',
+            }}
           >
             {formatRole(member.role)}
-          </span>
-        </motion.div>
+          </Box>
+        </Box>
       ))}
-    </motion.div>
+    </Box>
   );
 }

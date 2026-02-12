@@ -3,14 +3,7 @@
 import { motion } from "framer-motion";
 import { Building2, Briefcase } from "lucide-react";
 import { OnboardingField } from "../OnboardingField";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import { cn } from "~/lib/utils";
+import { TextField, Select, MenuItem, FormControl, Box } from "@mui/material";
 
 interface StepIdentityProps {
   formData: {
@@ -46,26 +39,31 @@ export function StepIdentity({
   errors,
 }: StepIdentityProps) {
   return (
-    <motion.div
+    <Box
+      component={motion.div}
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
     >
       <OnboardingField
         label="Company Name"
         icon={Building2}
         error={errors.name}
       >
-        <input
+        <TextField
           type="text"
           value={formData.name}
           onChange={(e) => updateField("name", e.target.value)}
-          className={cn(
-            "h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800",
-            errors.name && "border-red-500"
-          )}
           placeholder="Enter your company name"
+          error={!!errors.name}
+          fullWidth
+          sx={{
+            '& .MuiInputBase-root': {
+              height: 48,
+              paddingLeft: '40px',
+            },
+          }}
         />
       </OnboardingField>
 
@@ -74,27 +72,27 @@ export function StepIdentity({
         icon={Briefcase}
         error={errors.companyType}
       >
-        <Select
-          value={formData.companyType}
-          onValueChange={(value) => updateField("companyType", value)}
-        >
-          <SelectTrigger
-            className={cn(
-              "h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm focus:ring-2 focus:ring-gray-800",
-              errors.companyType && "border-red-500"
-            )}
+        <FormControl fullWidth error={!!errors.companyType}>
+          <Select
+            value={formData.companyType}
+            onChange={(e) => updateField("companyType", e.target.value)}
+            displayEmpty
+            sx={{
+              height: 48,
+              paddingLeft: '40px',
+            }}
           >
-            <SelectValue placeholder="Select company type" />
-          </SelectTrigger>
-          <SelectContent>
+            <MenuItem value="" disabled>
+              Select company type
+            </MenuItem>
             {companyTypes.map((type) => (
-              <SelectItem key={type} value={type}>
+              <MenuItem key={type} value={type}>
                 {type}
-              </SelectItem>
+              </MenuItem>
             ))}
-          </SelectContent>
-        </Select>
+          </Select>
+        </FormControl>
       </OnboardingField>
-    </motion.div>
+    </Box>
   );
 }

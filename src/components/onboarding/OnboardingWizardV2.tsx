@@ -4,34 +4,30 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Cookies from "js-cookie";
 import { LogoIcon } from "~/components/ui/Logo";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "~/components/ui/form";
 import { OnboardingProgress } from "./OnboardingProgress";
 import { api } from "~/trpc/react";
 import {
   createOrganizationSchema,
   type CreateOrganizationInput,
 } from "~/lib/validations/onboarding";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  FormLabel,
+  FormHelperText,
+  Paper,
+  CircularProgress,
+} from "@mui/material";
+import { useSnackbar } from "@/hooks/useSnackbar";
 
 const steps = [
   { label: "Company", subtitle: "Tell us about your company" },
@@ -65,12 +61,19 @@ const companyTypes = [
 
 export function OnboardingWizardV2() {
   const router = useRouter();
+  const { showSnackbar } = useSnackbar();
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Initialize form with react-hook-form + zod
-  const form = useForm<CreateOrganizationInput>({
+  const {
+    control,
+    handleSubmit,
+    trigger,
+    getValues,
+    formState: { errors },
+  } = useForm<CreateOrganizationInput>({
     resolver: zodResolver(createOrganizationSchema),
     defaultValues: {
       name: "",
@@ -89,20 +92,20 @@ export function OnboardingWizardV2() {
     onSuccess: () => {
       Cookies.set("onboarding-complete", "true", { expires: 365 });
       setShowSuccess(true);
-      toast.success("Welcome to BuildTrack Pro!");
+      showSnackbar("Welcome to BuildTrack Pro!", "success");
       setTimeout(() => {
         router.push("/dashboard");
       }, 1500);
     },
     onError: (error: { message?: string }) => {
-      toast.error(error.message || "Failed to complete onboarding");
+      showSnackbar(error.message || "Failed to complete onboarding", "error");
     },
   });
 
   const validateStep = async () => {
     if (currentStep === 0) {
       // Validate name and companyType fields for step 1
-      const result = await form.trigger(["name", "companyType"]);
+      const result = await trigger(["name", "companyType"]);
       return result;
     }
     return true;
@@ -131,377 +134,427 @@ export function OnboardingWizardV2() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center p-4">
-      <motion.div
+    <Box
+      sx={{
+        position: 'relative',
+        display: 'flex',
+        minHeight: '100vh',
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 2,
+      }}
+    >
+      <Box
+        component={motion.div}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="w-full max-w-xl"
+        sx={{ width: '100%', maxWidth: 640 }}
       >
-        <div className="rounded-2xl border border-[var(--border-light)] bg-white p-8 shadow-lg shadow-black/[0.03] dark:bg-[var(--bg-card)] dark:shadow-black/20 sm:p-10 lg:p-12">
+        <Paper
+          elevation={3}
+          sx={{
+            borderRadius: 4,
+            border: '1px solid var(--border-light)',
+            p: { xs: 4, sm: 5, lg: 6 },
+          }}
+        >
           {!showSuccess ? (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                {/* Logo */}
-                <motion.div
-                  initial={{ scale: 0.85, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 200,
-                    damping: 20,
-                    delay: 0.1,
+            <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+              {/* Logo */}
+              <Box
+                component={motion.div}
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 20,
+                  delay: 0.1,
+                }}
+                sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}
+              >
+                <Box
+                  sx={{
+                    display: 'flex',
+                    width: { xs: 64, sm: 72 },
+                    height: { xs: 64, sm: 72 },
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 3,
+                    bgcolor: 'var(--accent-primary)',
+                    color: 'white',
                   }}
-                  className="mb-8 flex justify-center"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-white dark:bg-gray-700 sm:h-18 sm:w-18">
-                    <LogoIcon className="h-10 w-10 sm:h-12 sm:w-12" />
-                  </div>
-                </motion.div>
+                  <LogoIcon sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 } }} />
+                </Box>
+              </Box>
 
-                {/* Header */}
-                <motion.div
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    hidden: { opacity: 0 },
-                    visible: {
-                      opacity: 1,
-                      transition: {
-                        staggerChildren: 0.08,
-                      },
+              {/* Header */}
+              <Box
+                component={motion.div}
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: {
+                      staggerChildren: 0.08,
                     },
+                  },
+                }}
+                sx={{ mb: 4, textAlign: 'center' }}
+              >
+                <Typography
+                  component={motion.h1}
+                  variants={{
+                    hidden: { y: 12, opacity: 0 },
+                    visible: { y: 0, opacity: 1 },
                   }}
-                  className="mb-8 text-center"
+                  variant="h4"
+                  sx={{ mb: 1, fontWeight: 700, color: 'text.primary' }}
                 >
-                  <motion.h1
-                    variants={{
-                      hidden: { y: 12, opacity: 0 },
-                      visible: { y: 0, opacity: 1 },
-                    }}
-                    className="mb-2 text-2xl font-bold text-[var(--text-primary)] sm:text-3xl"
-                  >
-                    Welcome to BuildTrack Pro
-                  </motion.h1>
-                  <motion.p
-                    variants={{
-                      hidden: { y: 12, opacity: 0 },
-                      visible: { y: 0, opacity: 1 },
-                    }}
-                    className="text-sm text-[var(--text-secondary)] sm:text-base"
-                  >
-                    {steps[currentStep]?.subtitle}
-                  </motion.p>
-                </motion.div>
+                  Welcome to BuildTrack Pro
+                </Typography>
+                <Typography
+                  component={motion.p}
+                  variants={{
+                    hidden: { y: 12, opacity: 0 },
+                    visible: { y: 0, opacity: 1 },
+                  }}
+                  variant="body1"
+                  sx={{ color: 'text.secondary' }}
+                >
+                  {steps[currentStep]?.subtitle}
+                </Typography>
+              </Box>
 
-                {/* Progress */}
-                <div className="mb-8">
-                  <OnboardingProgress
-                    currentStep={currentStep}
-                    totalSteps={steps.length}
-                    labels={steps.map((s) => s.label)}
-                  />
-                </div>
+              {/* Progress */}
+              <Box sx={{ mb: 4 }}>
+                <OnboardingProgress
+                  currentStep={currentStep}
+                  totalSteps={steps.length}
+                  labels={steps.map((s) => s.label)}
+                />
+              </Box>
 
-                {/* Steps */}
-                <div className="mb-8">
-                  <AnimatePresence mode="wait" custom={direction}>
-                    <motion.div
-                      key={currentStep}
-                      custom={direction}
-                      variants={stepVariants}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      transition={{
-                        x: { type: "tween", duration: 0.3 },
-                        opacity: { duration: 0.2 },
+              {/* Steps */}
+              <Box sx={{ mb: 4 }}>
+                <AnimatePresence mode="wait" custom={direction}>
+                  <motion.div
+                    key={currentStep}
+                    custom={direction}
+                    variants={stepVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{
+                      x: { type: "tween", duration: 0.3 },
+                      opacity: { duration: 0.2 },
+                    }}
+                  >
+                    {/* Step 1: Company Information */}
+                    {currentStep === 0 && (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                        <Controller
+                          name="name"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth error={!!errors.name}>
+                              <FormLabel>Company Name *</FormLabel>
+                              <TextField
+                                {...field}
+                                placeholder="Acme Construction Inc."
+                                error={!!errors.name}
+                                helperText={errors.name?.message}
+                                fullWidth
+                              />
+                            </FormControl>
+                          )}
+                        />
+
+                        <Controller
+                          name="companyType"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth error={!!errors.companyType}>
+                              <FormLabel>Company Type *</FormLabel>
+                              <Select
+                                {...field}
+                                displayEmpty
+                                error={!!errors.companyType}
+                              >
+                                <MenuItem value="" disabled>
+                                  Select company type
+                                </MenuItem>
+                                {companyTypes.map((type) => (
+                                  <MenuItem key={type.value} value={type.value}>
+                                    {type.label}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                              {errors.companyType && (
+                                <FormHelperText error>
+                                  {errors.companyType.message}
+                                </FormHelperText>
+                              )}
+                            </FormControl>
+                          )}
+                        />
+
+                        <Controller
+                          name="licenseNumber"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth>
+                              <FormLabel>License Number (Optional)</FormLabel>
+                              <TextField
+                                {...field}
+                                placeholder="ABC-12345"
+                                fullWidth
+                              />
+                            </FormControl>
+                          )}
+                        />
+                      </Box>
+                    )}
+
+                    {/* Step 2: Contact Information */}
+                    {currentStep === 1 && (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                        <Controller
+                          name="phone"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth>
+                              <FormLabel>Phone Number (Optional)</FormLabel>
+                              <TextField
+                                {...field}
+                                type="tel"
+                                placeholder="(555) 123-4567"
+                                fullWidth
+                              />
+                            </FormControl>
+                          )}
+                        />
+
+                        <Controller
+                          name="website"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth>
+                              <FormLabel>Website (Optional)</FormLabel>
+                              <TextField
+                                {...field}
+                                type="url"
+                                placeholder="https://example.com"
+                                fullWidth
+                              />
+                            </FormControl>
+                          )}
+                        />
+
+                        <Controller
+                          name="address"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth>
+                              <FormLabel>Address (Optional)</FormLabel>
+                              <TextField
+                                {...field}
+                                placeholder="123 Main St"
+                                fullWidth
+                              />
+                            </FormControl>
+                          )}
+                        />
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                          <Controller
+                            name="city"
+                            control={control}
+                            render={({ field }) => (
+                              <FormControl fullWidth>
+                                <FormLabel>City (Optional)</FormLabel>
+                                <TextField
+                                  {...field}
+                                  placeholder="New York"
+                                  fullWidth
+                                />
+                              </FormControl>
+                            )}
+                          />
+
+                          <Controller
+                            name="state"
+                            control={control}
+                            render={({ field }) => (
+                              <FormControl fullWidth>
+                                <FormLabel>State (Optional)</FormLabel>
+                                <TextField
+                                  {...field}
+                                  placeholder="NY"
+                                  fullWidth
+                                />
+                              </FormControl>
+                            )}
+                          />
+                        </Box>
+
+                        <Controller
+                          name="zip"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth>
+                              <FormLabel>ZIP Code (Optional)</FormLabel>
+                              <TextField
+                                {...field}
+                                placeholder="10001"
+                                fullWidth
+                              />
+                            </FormControl>
+                          )}
+                        />
+                      </Box>
+                    )}
+
+                    {/* Step 3: Review */}
+                    {currentStep === 2 && (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 3, borderRadius: 2, bgcolor: 'var(--bg-secondary)' }}>
+                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>
+                          Review Your Information
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, fontSize: '0.875rem' }}>
+                          <Box>
+                            <Typography component="span" sx={{ color: 'text.disabled' }}>
+                              Company Name:
+                            </Typography>{" "}
+                            <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                              {getValues("name") || "Not provided"}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography component="span" sx={{ color: 'text.disabled' }}>
+                              Company Type:
+                            </Typography>{" "}
+                            <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                              {companyTypes.find(
+                                (t) => t.value === getValues("companyType")
+                              )?.label || "Not provided"}
+                            </Typography>
+                          </Box>
+                          {getValues("phone") && (
+                            <Box>
+                              <Typography component="span" sx={{ color: 'text.disabled' }}>
+                                Phone:
+                              </Typography>{" "}
+                              <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                                {getValues("phone")}
+                              </Typography>
+                            </Box>
+                          )}
+                          {getValues("website") && (
+                            <Box>
+                              <Typography component="span" sx={{ color: 'text.disabled' }}>
+                                Website:
+                              </Typography>{" "}
+                              <Typography component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                                {getValues("website")}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </Box>
+
+              {/* Navigation */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
+                  {currentStep > 0 && (
+                    <Button
+                      variant="text"
+                      onClick={goBack}
+                      sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+                    >
+                      Back
+                    </Button>
+                  )}
+
+                  <Box sx={{ flex: 1 }} />
+
+                  {currentStep < steps.length - 1 ? (
+                    <Button
+                      variant="contained"
+                      onClick={goForward}
+                      sx={{ height: 48, borderRadius: 2, px: 3 }}
+                    >
+                      Continue
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={completeMutation.isPending}
+                      endIcon={
+                        completeMutation.isPending ? (
+                          <CircularProgress size={16} color="inherit" />
+                        ) : (
+                          <ArrowRight size={16} />
+                        )
+                      }
+                      sx={{
+                        height: 48,
+                        borderRadius: 2,
+                        px: 3,
+                        '& .MuiButton-endIcon': {
+                          transition: 'transform 0.2s',
+                        },
+                        '&:hover .MuiButton-endIcon': {
+                          transform: 'translateX(4px)',
+                        },
                       }}
                     >
-                      {/* Step 1: Company Information */}
-                      {currentStep === 0 && (
-                        <div className="space-y-5">
-                          <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Company Name *</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="Acme Construction Inc."
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="companyType"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Company Type *</FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select company type" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {companyTypes.map((type) => (
-                                      <SelectItem
-                                        key={type.value}
-                                        value={type.value}
-                                      >
-                                        {type.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="licenseNumber"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>License Number (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="ABC-12345"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )}
-
-                      {/* Step 2: Contact Information */}
-                      {currentStep === 1 && (
-                        <div className="space-y-5">
-                          <FormField
-                            control={form.control}
-                            name="phone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Phone Number (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="tel"
-                                    placeholder="(555) 123-4567"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="website"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Website (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="url"
-                                    placeholder="https://example.com"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="address"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Address (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="123 Main St"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <FormField
-                              control={form.control}
-                              name="city"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>City (Optional)</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="New York" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="state"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>State (Optional)</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="NY" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
-                          <FormField
-                            control={form.control}
-                            name="zip"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>ZIP Code (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="10001" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )}
-
-                      {/* Step 3: Review */}
-                      {currentStep === 2 && (
-                        <div className="space-y-4 rounded-lg bg-[var(--bg-secondary)] p-6">
-                          <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
-                            Review Your Information
-                          </h3>
-
-                          <div className="space-y-3 text-sm">
-                            <div>
-                              <span className="text-[var(--text-muted)]">
-                                Company Name:
-                              </span>{" "}
-                              <span className="font-medium text-[var(--text-primary)]">
-                                {form.getValues("name") || "Not provided"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-[var(--text-muted)]">
-                                Company Type:
-                              </span>{" "}
-                              <span className="font-medium text-[var(--text-primary)]">
-                                {companyTypes.find(
-                                  (t) => t.value === form.getValues("companyType")
-                                )?.label || "Not provided"}
-                              </span>
-                            </div>
-                            {form.getValues("phone") && (
-                              <div>
-                                <span className="text-[var(--text-muted)]">
-                                  Phone:
-                                </span>{" "}
-                                <span className="font-medium text-[var(--text-primary)]">
-                                  {form.getValues("phone")}
-                                </span>
-                              </div>
-                            )}
-                            {form.getValues("website") && (
-                              <div>
-                                <span className="text-[var(--text-muted)]">
-                                  Website:
-                                </span>{" "}
-                                <span className="font-medium text-[var(--text-primary)]">
-                                  {form.getValues("website")}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-
-                {/* Navigation */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    {currentStep > 0 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={goBack}
-                        className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                      >
-                        Back
-                      </Button>
-                    )}
-
-                    <div className="flex-1" />
-
-                    {currentStep < steps.length - 1 ? (
-                      <Button
-                        type="button"
-                        onClick={goForward}
-                        className="h-12 rounded-lg bg-[var(--accent-primary)] px-6 text-white hover:opacity-90"
-                      >
-                        Continue
-                      </Button>
-                    ) : (
-                      <Button
-                        type="submit"
-                        loading={completeMutation.isPending}
-                        className="group h-12 rounded-lg bg-[var(--accent-primary)] px-6 text-white hover:opacity-90"
-                      >
-                        Launch BuildTrack Pro
-                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </Button>
-                    )}
-                  </div>
-
-                  {currentStep === 1 && (
-                    <div className="flex justify-center">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={handleSkip}
-                        className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                      >
-                        Skip for now
-                      </Button>
-                    </div>
+                      Launch BuildTrack Pro
+                    </Button>
                   )}
-                </div>
-              </form>
-            </Form>
+                </Box>
+
+                {currentStep === 1 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Button
+                      variant="text"
+                      onClick={handleSkip}
+                      sx={{ fontSize: '0.875rem', color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
+                    >
+                      Skip for now
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+            </Box>
           ) : (
             // Success state
-            <motion.div
+            <Box
+              component={motion.div}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center py-12 text-center"
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 6,
+                textAlign: 'center',
+              }}
             >
-              <motion.div
+              <Box
+                component={motion.div}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{
@@ -510,30 +563,43 @@ export function OnboardingWizardV2() {
                   damping: 20,
                   delay: 0.2,
                 }}
-                className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--status-green)]"
+                sx={{
+                  mb: 3,
+                  display: 'flex',
+                  width: 80,
+                  height: 80,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  bgcolor: 'var(--status-green)',
+                }}
               >
-                <Check className="h-10 w-10 text-white" />
-              </motion.div>
-              <motion.h2
+                <Check size={40} style={{ color: 'white' }} />
+              </Box>
+              <Typography
+                component={motion.h2}
                 initial={{ y: 12, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="mb-2 text-2xl font-bold text-[var(--text-primary)]"
+                variant="h5"
+                sx={{ mb: 1, fontWeight: 700, color: 'text.primary' }}
               >
                 You&apos;re all set!
-              </motion.h2>
-              <motion.p
+              </Typography>
+              <Typography
+                component={motion.p}
                 initial={{ y: 12, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-[var(--text-secondary)]"
+                variant="body1"
+                sx={{ color: 'text.secondary' }}
               >
                 Taking you to your dashboard...
-              </motion.p>
-            </motion.div>
+              </Typography>
+            </Box>
           )}
-        </div>
-      </motion.div>
-    </div>
+        </Paper>
+      </Box>
+    </Box>
   );
 }

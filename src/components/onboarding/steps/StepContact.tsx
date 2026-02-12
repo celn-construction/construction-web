@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Phone, Globe, MapPin } from "lucide-react";
 import { OnboardingField } from "../OnboardingField";
-import { cn } from "~/lib/utils";
+import { TextField, Box } from "@mui/material";
 
 interface StepContactProps {
   formData: {
@@ -29,73 +29,113 @@ const containerVariants = {
 
 export function StepContact({ formData, updateField }: StepContactProps) {
   return (
-    <motion.div
+    <Box
+      component={motion.div}
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
     >
       <OnboardingField label="Phone Number" icon={Phone}>
-        <input
+        <TextField
           type="tel"
           value={formData.phone}
           onChange={(e) => updateField("phone", e.target.value)}
-          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
           placeholder="(555) 123-4567"
+          fullWidth
+          sx={{
+            '& .MuiInputBase-root': {
+              height: 48,
+              paddingLeft: '40px',
+            },
+          }}
         />
       </OnboardingField>
 
       <OnboardingField label="Website" icon={Globe}>
-        <input
+        <TextField
           type="url"
           value={formData.website}
           onChange={(e) => updateField("website", e.target.value)}
-          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
           placeholder="https://example.com"
+          fullWidth
+          sx={{
+            '& .MuiInputBase-root': {
+              height: 48,
+              paddingLeft: '40px',
+            },
+          }}
         />
       </OnboardingField>
 
       <OnboardingField label="Street Address" icon={MapPin}>
-        <input
+        <TextField
           type="text"
           value={formData.address}
           onChange={(e) => updateField("address", e.target.value)}
-          className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
           placeholder="123 Main Street"
+          fullWidth
+          sx={{
+            '& .MuiInputBase-root': {
+              height: 48,
+              paddingLeft: '40px',
+            },
+          }}
         />
       </OnboardingField>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
+          gap: 3,
+        }}
+      >
         <OnboardingField label="City">
-          <input
+          <TextField
             type="text"
             value={formData.city}
             onChange={(e) => updateField("city", e.target.value)}
-            className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
             placeholder="City"
+            fullWidth
+            sx={{
+              '& .MuiInputBase-root': {
+                height: 48,
+              },
+            }}
           />
         </OnboardingField>
 
         <OnboardingField label="State">
-          <input
+          <TextField
             type="text"
             value={formData.state}
             onChange={(e) => updateField("state", e.target.value)}
-            className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
             placeholder="State"
+            fullWidth
+            sx={{
+              '& .MuiInputBase-root': {
+                height: 48,
+              },
+            }}
           />
         </OnboardingField>
 
         <OnboardingField label="ZIP Code">
-          <input
+          <TextField
             type="text"
             value={formData.zip}
             onChange={(e) => updateField("zip", e.target.value)}
-            className="h-12 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-800"
             placeholder="ZIP"
+            fullWidth
+            sx={{
+              '& .MuiInputBase-root': {
+                height: 48,
+              },
+            }}
           />
         </OnboardingField>
-      </div>
-    </motion.div>
+      </Box>
+    </Box>
   );
 }

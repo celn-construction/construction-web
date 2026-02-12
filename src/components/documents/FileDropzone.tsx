@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { FileUp, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Box, Typography } from '@mui/material';
 
 export interface FileDropzoneProps {
   projectId: string;
@@ -79,35 +80,48 @@ export function FileDropzone({
   });
 
   return (
-    <div
+    <Box
       {...getRootProps()}
-      className={cn(
-        'relative flex flex-col items-center justify-center gap-3 p-6 border-2 border-dashed rounded-lg cursor-pointer transition-colors',
-        'border-gray-200 dark:border-[var(--border-color)]',
-        'hover:border-gray-300 dark:hover:border-gray-600',
-        isDragActive && 'border-blue-500 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/10',
-        (disabled || isLoading) && 'opacity-50 cursor-not-allowed',
-        className
-      )}
+      sx={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 1.5,
+        p: 3,
+        border: 2,
+        borderStyle: 'dashed',
+        borderRadius: 2,
+        borderColor: isDragActive ? 'text.secondary' : 'divider',
+        cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
+        transition: 'all 0.2s',
+        bgcolor: isDragActive ? 'action.hover' : 'transparent',
+        opacity: disabled || isLoading ? 0.5 : 1,
+        '&:hover': {
+          borderColor: disabled || isLoading ? 'divider' : 'text.disabled',
+        },
+      }}
+      className={className}
     >
       <input {...getInputProps()} />
       {isLoading ? (
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+        <Loader2 size={32} style={{ color: 'var(--text-secondary)' }} className="animate-spin" />
       ) : (
-        <FileUp className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+        <FileUp size={32} style={{ color: 'var(--text-disabled)' }} />
       )}
-      <div className="text-center">
-        <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+      <Box sx={{ textAlign: 'center' }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {isLoading
             ? 'Uploading...'
             : isDragActive
             ? 'Drop file here'
             : 'Drag & drop or click to upload'}
-        </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.disabled', mt: 0.5 }}>
           PDF, images, spreadsheets, Word docs, CAD files up to 50MB
-        </p>
-      </div>
-    </div>
+        </Typography>
+      </Box>
+    </Box>
   );
 }

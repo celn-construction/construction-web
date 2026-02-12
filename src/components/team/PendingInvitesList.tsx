@@ -2,9 +2,9 @@
 
 import { Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
 import { api } from '~/trpc/react';
-import { Button } from '@/components/ui/button';
+import { Box, Typography, Stack, Skeleton, Button, CircularProgress } from '@mui/material';
+import { useSnackbar } from '@/hooks/useSnackbar';
 
 interface Invitation {
   id: string;
@@ -28,24 +28,25 @@ export default function PendingInvitesList({
   canManage,
 }: PendingInvitesListProps) {
   const utils = api.useUtils();
+  const { showSnackbar } = useSnackbar();
 
   const revokeInvitation = api.invitation.revoke.useMutation({
     onSuccess: () => {
-      toast.success('Invitation revoked');
+      showSnackbar('Invitation revoked', 'success');
       void utils.invitation.list.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to revoke invitation');
+      showSnackbar(error.message || 'Failed to revoke invitation', 'error');
     },
   });
 
   const resendInvitation = api.invitation.resend.useMutation({
     onSuccess: () => {
-      toast.success('Invitation resent');
+      showSnackbar('Invitation resent', 'success');
       void utils.invitation.list.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to resend invitation');
+      showSnackbar(error.message || 'Failed to resend invitation', 'error');
     },
   });
 
@@ -72,27 +73,33 @@ export default function PendingInvitesList({
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <Stack spacing={1.5}>
         {[1, 2].map((i) => (
-          <div
+          <Box
             key={i}
-            className="flex items-center gap-3 p-3.5 rounded-lg animate-pulse"
-            style={{ animationDelay: `${i * 0.1}s` }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              p: 1.75,
+              borderRadius: 2,
+            }}
           >
-            <div className="w-11 h-11 rounded-full bg-[var(--bg-hover)]" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-[var(--bg-hover)] rounded w-1/3" />
-              <div className="h-3 bg-[var(--bg-hover)] rounded w-1/4" />
-            </div>
-            <div className="h-6 bg-[var(--bg-hover)] rounded w-20" />
-          </div>
+            <Skeleton variant="circular" width={44} height={44} />
+            <Box sx={{ flex: 1 }}>
+              <Skeleton width="33%" height={16} sx={{ mb: 0.5 }} />
+              <Skeleton width="25%" height={12} />
+            </Box>
+            <Skeleton width={80} height={24} />
+          </Box>
         ))}
-      </div>
+      </Stack>
     );
   }
 
   return (
-    <motion.div
+    <Box
+      component={motion.div}
       initial="hidden"
       animate="visible"
       variants={{
@@ -102,66 +109,95 @@ export default function PendingInvitesList({
           },
         },
       }}
-      className="space-y-2"
+      sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
     >
       {pendingInvitations.map((invitation) => (
-        <motion.div
+        <Box
           key={invitation.id}
+          component={motion.div}
           variants={{
             hidden: { opacity: 0, y: 8 },
             visible: { opacity: 1, y: 0 },
           }}
-          className="flex items-center gap-3 p-3.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            p: 1.75,
+            borderRadius: 2,
+            transition: 'background-color 0.2s',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
         >
-          {/* Avatar placeholder */}
-          <div className="w-11 h-11 rounded-full bg-[var(--bg-hover)] flex items-center justify-center flex-shrink-0">
-            <Mail className="w-5 h-5 text-[var(--text-muted)]" />
-          </div>
+          <Box
+            sx={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              bgcolor: 'action.hover',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Mail size={20} style={{ color: 'var(--text-disabled)' }} />
+          </Box>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-[var(--text-primary)] truncate">
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontWeight: 500,
+                color: 'text.primary',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {invitation.email}
-            </div>
-            <div className="text-sm text-[var(--text-muted)]">
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
               {formatRole(invitation.role)} • Sent {formatDate(invitation.createdAt)}
-            </div>
-          </div>
+            </Typography>
+          </Box>
 
-          {/* Actions */}
           {canManage && (
-            <div className="flex items-center gap-2">
+            <Stack direction="row" spacing={1}>
               <Button
-                variant="ghost"
-                size="sm"
+                variant="text"
+                size="small"
                 onClick={() =>
                   resendInvitation.mutate({
                     organizationId,
                     invitationId: invitation.id,
                   })
                 }
-                loading={resendInvitation.isPending}
+                disabled={resendInvitation.isPending}
+                startIcon={resendInvitation.isPending ? <CircularProgress size={14} /> : null}
               >
                 Resend
               </Button>
               <Button
-                variant="ghost"
-                size="sm"
+                variant="text"
+                size="small"
                 onClick={() =>
                   revokeInvitation.mutate({
                     organizationId,
                     invitationId: invitation.id,
                   })
                 }
-                loading={revokeInvitation.isPending}
-                className="text-[var(--status-red)] hover:text-[var(--status-red)]"
+                disabled={revokeInvitation.isPending}
+                startIcon={revokeInvitation.isPending ? <CircularProgress size={14} /> : null}
+                sx={{ color: 'text.secondary' }}
               >
                 Revoke
               </Button>
-            </div>
+            </Stack>
           )}
-        </motion.div>
+        </Box>
       ))}
-    </motion.div>
+    </Box>
   );
 }
