@@ -40,7 +40,7 @@ const ContextMenuTrigger: React.FC<{ children: React.ReactElement }> = ({ childr
 
   return React.cloneElement(children, {
     onContextMenu: handleContextMenu,
-  });
+  } as any);
 };
 
 // ContextMenuContent - the actual MUI Menu
@@ -89,7 +89,7 @@ const ContextMenuItem = React.forwardRef<
     return React.cloneElement(children as React.ReactElement<any>, {
       onClick: handleClick,
       className,
-    });
+    } as any);
   }
 
   return (
