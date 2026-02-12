@@ -1,24 +1,33 @@
+import { Box, Skeleton, Stack } from '@mui/material';
+
 export default function TimelineLoading() {
   return (
-    <div className="flex h-full gap-4">
+    <Box sx={{ display: 'flex', height: '100%', gap: 2 }}>
       {/* Resource list skeleton */}
-      <div className="w-48 bg-gray-100 dark:bg-gray-900 rounded-lg animate-pulse">
-        <div className="p-4 space-y-2">
+      <Box sx={{ width: 192 }}>
+        <Stack spacing={1} sx={{ p: 2 }}>
           {[...Array(10)].map((_, i) => (
-            <div key={i} className="h-12 bg-gray-200 dark:bg-gray-800 rounded" />
+            <Skeleton key={i} variant="rounded" height={48} />
           ))}
-        </div>
-      </div>
+        </Stack>
+      </Box>
 
       {/* Calendar grid skeleton */}
-      <div className="flex-1 bg-gray-100 dark:bg-gray-900 rounded-lg animate-pulse">
-        <div className="h-16 bg-gray-200 dark:bg-gray-800 rounded-t-lg" />
-        <div className="grid grid-cols-7 gap-px p-4">
+      <Box sx={{ flex: 1 }}>
+        <Skeleton variant="rounded" height={64} sx={{ mb: 2 }} />
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: 0.25,
+            p: 2,
+          }}
+        >
           {[...Array(35)].map((_, i) => (
-            <div key={i} className="h-20 bg-gray-200 dark:bg-gray-800 rounded" />
+            <Skeleton key={i} variant="rounded" height={80} />
           ))}
-        </div>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 }

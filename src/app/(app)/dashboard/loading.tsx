@@ -1,11 +1,20 @@
 'use client';
 
+import { Box } from '@mui/material';
 import GanttLoadingAnimation from '@/components/dashboard/GanttLoadingAnimation';
 
 export default function DashboardLoading() {
   return (
-    <div className="h-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)]">
+    <Box
+      sx={{
+        height: '100%',
+        borderRadius: 2,
+        border: 1,
+        borderColor: 'divider',
+        bgcolor: 'card.background',
+      }}
+    >
       <GanttLoadingAnimation />
-    </div>
+    </Box>
   );
 }
