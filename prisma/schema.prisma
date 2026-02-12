@@ -13,21 +13,23 @@ datasource db {
 
 // Better Auth Tables
 model User {
-    id                  String    @id @default(cuid())
-    name                String?
-    email               String    @unique
-    emailVerified       Boolean   @default(false)
-    image               String?
-    phone               String?
-    onboardingComplete  Boolean   @default(false)
-    createdAt           DateTime  @default(now())
-    updatedAt           DateTime  @updatedAt
+    id                    String    @id @default(cuid())
+    name                  String?
+    email                 String    @unique
+    emailVerified         Boolean   @default(false)
+    image                 String?
+    phone                 String?
+    onboardingComplete    Boolean   @default(false)
+    activeOrganizationId  String?
+    createdAt             DateTime  @default(now())
+    updatedAt             DateTime  @updatedAt
 
-    sessions     Session[]
-    accounts     Account[]
-    memberships  Membership[]
-    invitations  Invitation[]    @relation("InvitedByUser")
-    documents    Document[]
+    sessions           Session[]
+    accounts           Account[]
+    memberships        Membership[]
+    invitations        Invitation[]     @relation("InvitedByUser")
+    documents          Document[]
+    activeOrganization Organization?    @relation("ActiveOrganization", fields: [activeOrganizationId], references: [id], onDelete: SetNull)
 }
 
 model Session {
@@ -88,6 +90,7 @@ model Organization {
     memberships Membership[]
     invitations Invitation[]
     projects    Project[]
+    activeUsers User[]       @relation("ActiveOrganization")
 
     @@index([slug])
 }

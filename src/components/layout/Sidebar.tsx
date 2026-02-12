@@ -6,11 +6,10 @@ import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar, Users
 import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Divider } from '@mui/material';
 import { navItems } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
-import { api } from '~/trpc/react';
+import OrgSwitcher from './OrgSwitcher';
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { data: organization } = api.organization.getCurrent.useQuery();
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -48,16 +47,13 @@ export default function Sidebar() {
       {/* Branding Area */}
       <Box
         sx={{
-          px: 2,
-          py: 2,
           borderBottom: '1px solid',
           borderColor: 'sidebar.border',
           display: 'flex',
           flexDirection: 'column',
-          gap: 1,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ px: 2, py: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box
             sx={{
               width: 32,
@@ -78,20 +74,7 @@ export default function Sidebar() {
             BuildTrack
           </Typography>
         </Box>
-        {organization && (
-          <Typography
-            sx={{
-              fontSize: '0.75rem',
-              color: 'text.disabled',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              pl: 5.5,
-            }}
-          >
-            {organization.name}
-          </Typography>
-        )}
+        <OrgSwitcher />
       </Box>
 
       {/* Navigation */}

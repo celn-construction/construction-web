@@ -40,7 +40,8 @@ interface ConstructionState {
 
   // ========== ACTIONS ==========
   // Project switching
-  switchProject: (projectId: string) => void;
+  switchProject: (projectId: string | null) => void;
+  clearProject: () => void;
 
   // Feature CRUD
   addFeature: (feature: GanttFeature) => void;
@@ -396,6 +397,17 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
               };
             }
 
+            // Handle null projectId (clear project)
+            if (projectId === null) {
+              state.currentProjectId = null;
+              state.features = DEFAULT_FEATURES;
+              state.groups = DEFAULT_GROUPS;
+              state.collapsedFeatureIds = new Set<string>();
+              state._history = [];
+              state._historyIndex = -1;
+              return;
+            }
+
             // Load new project data or use defaults
             const projectData = state.projectData[projectId];
             if (projectData) {
@@ -417,6 +429,26 @@ export const useConstructionStore = create<ConstructionState & ConstructionSelec
             }
 
             state.currentProjectId = projectId;
+            state._history = [];
+            state._historyIndex = -1;
+          }),
+
+        clearProject: () =>
+          set((state) => {
+            // Save current project data
+            if (state.currentProjectId) {
+              state.projectData[state.currentProjectId] = {
+                features: state.features,
+                groups: state.groups,
+                collapsedFeatureIds: state.collapsedFeatureIds,
+              };
+            }
+
+            // Reset to no project selected
+            state.currentProjectId = null;
+            state.features = DEFAULT_FEATURES;
+            state.groups = DEFAULT_GROUPS;
+            state.collapsedFeatureIds = new Set<string>();
             state._history = [];
             state._historyIndex = -1;
           }),

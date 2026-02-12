@@ -8,6 +8,7 @@ import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
 import { api } from '@/trpc/react';
 import { useCurrentProjectId, useSwitchProject } from '@/store/hooks';
+import { useActiveOrganizationId } from '@/store/useOrganizationStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,9 +24,10 @@ export default function Header() {
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
 
   // Project management
+  const activeOrganizationId = useActiveOrganizationId();
   const { data: projects = [], isLoading: projectsLoading } = api.project.list.useQuery(
-    undefined,
-    { retry: false }
+    { organizationId: activeOrganizationId ?? undefined },
+    { retry: false, enabled: !!activeOrganizationId }
   );
   const currentProjectId = useCurrentProjectId();
   const switchProject = useSwitchProject();

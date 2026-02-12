@@ -11,6 +11,7 @@ export {
   useCollapsedFeatureIds,
   useCurrentProjectId,
   useSwitchProject,
+  useClearProject,
 } from './useGanttFeatures';
 
 export {

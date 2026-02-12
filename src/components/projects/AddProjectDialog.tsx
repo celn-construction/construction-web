@@ -21,6 +21,7 @@ import {
   createProjectSchema,
   type CreateProjectInput,
 } from '~/lib/validations/project';
+import { useActiveOrganizationId } from '@/store/useOrganizationStore';
 
 interface AddProjectDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ export default function AddProjectDialog({
   const utils = api.useUtils();
   const switchProject = useSwitchProject();
   const { showSnackbar } = useSnackbar();
+  const activeOrganizationId = useActiveOrganizationId();
 
   // Initialize form with react-hook-form + zod
   const {
@@ -62,7 +64,10 @@ export default function AddProjectDialog({
   });
 
   const onSubmit = (data: CreateProjectInput) => {
-    createProject.mutate(data);
+    createProject.mutate({
+      ...data,
+      organizationId: activeOrganizationId ?? undefined,
+    });
   };
 
   return (

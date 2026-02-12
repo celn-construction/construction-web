@@ -9,13 +9,17 @@ import { canInviteMembers } from '~/lib/permissions';
 import InviteDialog from '@/components/team/InviteDialog';
 import MembersList from '@/components/team/MembersList';
 import PendingInvitesList from '@/components/team/PendingInvitesList';
+import { useActiveOrganizationId } from '@/store/useOrganizationStore';
 
 export default function TeamPage() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'members' | 'pending'>('members');
 
-  const { data: organization } = api.organization.getCurrent.useQuery();
-  const organizationId = organization?.id || '';
+  const activeOrganizationId = useActiveOrganizationId();
+  const organizationId = activeOrganizationId ?? '';
+
+  const { data: organizations = [] } = api.organization.list.useQuery();
+  const organization = organizations.find((org) => org.id === organizationId);
 
   const { data: members = [], isLoading: membersLoading } = api.member.list.useQuery(
     { organizationId },

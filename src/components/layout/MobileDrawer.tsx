@@ -7,6 +7,7 @@ import { X, Home, LayoutGrid, Zap, Clipboard, FileText, Calendar, Users, GanttCh
 import { Drawer, Box, IconButton, Typography, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import { navItems } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
+import OrgSwitcher from './OrgSwitcher';
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -51,48 +52,54 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       {/* Header */}
       <Box
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          px: 2,
-          py: 2,
           borderBottom: '1px solid',
           borderColor: 'sidebar.border',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: 1.5,
-              bgcolor: 'primary.main',
-              color: 'background.default',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              fontSize: '0.875rem',
-            }}
-          >
-            <LogoIcon size={18} />
-          </Box>
-          <Typography sx={{ fontWeight: 500, fontSize: '0.875rem', color: 'text.primary' }}>
-            BuildTrack
-          </Typography>
-        </Box>
-        <IconButton
-          onClick={onClose}
-          aria-label="Close menu"
+        <Box
           sx={{
-            color: 'text.secondary',
-            '&:hover': {
-              color: 'text.primary',
-            },
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            px: 2,
+            py: 2,
           }}
         >
-          <X style={{ width: 20, height: 20 }} />
-        </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: 1.5,
+                bgcolor: 'primary.main',
+                color: 'background.default',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+              }}
+            >
+              <LogoIcon size={18} />
+            </Box>
+            <Typography sx={{ fontWeight: 500, fontSize: '0.875rem', color: 'text.primary' }}>
+              BuildTrack
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={onClose}
+            aria-label="Close menu"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'text.primary',
+              },
+            }}
+          >
+            <X style={{ width: 20, height: 20 }} />
+          </IconButton>
+        </Box>
+        <OrgSwitcher />
       </Box>
 
       {/* Navigation */}

@@ -149,3 +149,10 @@ export function useCurrentProjectId(): string | null {
 export function useSwitchProject() {
   return useConstructionStore((state) => state.switchProject);
 }
+
+/**
+ * Hook to get the clearProject action
+ */
+export function useClearProject() {
+  return useConstructionStore((state) => state.clearProject);
+}

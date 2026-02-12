@@ -349,3 +349,37 @@ body {
   background: var(--text-muted);
   border-radius: 4px;
 }
+
+/* Tree expander icon visibility and styling */
+.bryntum-gantt-container .b-tree-expander {
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.bryntum-gantt-container .b-tree-expander-icon {
+  color: var(--text-secondary);
+}
+
+/* Use CSS triangles instead of icon fonts for expand/collapse */
+.bryntum-gantt-container .b-tree-expander-icon::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  vertical-align: middle;
+}
+
+/* Collapsed state - right-pointing triangle */
+.bryntum-gantt-container .b-tree-expander:not(.b-tree-expander-expanded) .b-tree-expander-icon::before {
+  border-width: 4px 0 4px 6px;
+  border-color: transparent transparent transparent var(--text-secondary);
+  margin-right: 2px;
+}
+
+/* Expanded state - down-pointing triangle */
+.bryntum-gantt-container .b-tree-expander.b-tree-expander-expanded .b-tree-expander-icon::before {
+  border-width: 6px 4px 0 4px;
+  border-color: var(--text-secondary) transparent transparent transparent;
+  margin-right: 2px;
+}
