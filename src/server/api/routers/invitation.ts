@@ -247,23 +247,51 @@ export const invitationRouter = createTRPCRouter({
       }
 
       // Create membership and mark invitation as accepted
-      await ctx.db.$transaction([
-        ctx.db.membership.create({
+      await ctx.db.$transaction(async (tx) => {
+        // Create membership
+        await tx.membership.create({
           data: {
             userId: ctx.session.user.id,
             organizationId: invitation.organizationId,
             role: invitation.role,
           },
-        }),
-        ctx.db.invitation.update({
+        });
+
+        // Update invitation status
+        await tx.invitation.update({
           where: { id: invitation.id },
           data: { status: "accepted" },
-        }),
-        ctx.db.user.update({
+        });
+
+        // Complete onboarding
+        await tx.user.update({
           where: { id: ctx.session.user.id },
           data: { onboardingComplete: true },
-        }),
-      ]);
+        });
+
+        // Get all existing org members (excluding the joining user)
+        const existingMembers = await tx.membership.findMany({
+          where: {
+            organizationId: invitation.organizationId,
+            userId: { not: ctx.session.user.id },
+          },
+          select: { userId: true },
+        });
+
+        // Create notifications for all existing members
+        if (existingMembers.length > 0) {
+          const joinerName = ctx.session.user.name ?? ctx.session.user.email;
+          await tx.notification.createMany({
+            data: existingMembers.map((member) => ({
+              type: "MEMBER_JOINED",
+              message: `${joinerName} joined the team`,
+              userId: member.userId,
+              organizationId: invitation.organizationId,
+              actorId: ctx.session.user.id,
+            })),
+          });
+        }
+      });
 
       return { organization: invitation.organization };
     }),
