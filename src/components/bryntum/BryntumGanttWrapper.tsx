@@ -13,7 +13,7 @@ export default function BryntumGanttWrapper() {
   // Popover state
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTaskName, setSelectedTaskName] = useState<string>('');
-  const anchorRef = useRef<HTMLElement | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null);
   const [coverImages, setCoverImages] = useState<Record<string, string | undefined>>({});
   const [selectedDoc, setSelectedDoc] = useState<{ id: string; name: string } | null>(null);
 
@@ -57,17 +57,18 @@ export default function BryntumGanttWrapper() {
 
   // Handle task bar click
   const handleTaskClick = useCallback(({ taskRecord, event }: any) => {
-    const barEl = (event.target as HTMLElement).closest('.b-gantt-task-wrap') as HTMLElement;
-    if (!barEl) return;
-
     const id = String(taskRecord.id);
     if (selectedTaskId === id) {
       setSelectedTaskId(null);
-      anchorRef.current = null;
+      setPopoverPosition(null);
     } else {
       setSelectedTaskId(id);
       setSelectedTaskName(taskRecord.name);
-      anchorRef.current = barEl;
+      // Capture click coordinates for popover positioning
+      setPopoverPosition({
+        top: event.clientY,
+        left: event.clientX
+      });
     }
     setSelectedDoc(null);
   }, [selectedTaskId]);
@@ -85,6 +86,8 @@ export default function BryntumGanttWrapper() {
   }, []);
   const ganttConfig = {
     height: '100%',
+    // Disable CSS compatibility warnings since we use custom styling
+    detectCSSCompatibilityIssues: false,
     project: {
       autoLoad: true,
       transport: {
@@ -94,10 +97,35 @@ export default function BryntumGanttWrapper() {
       }
     },
     columns: [
-      { type: 'tree', field: 'name', text: 'Task', width: 250 },
-      { type: 'startdate', field: 'startDate', text: 'Start' },
-      { type: 'duration', text: 'Duration' }
+      {
+        type: 'name',
+        field: 'name',
+        flex: 1,           // Flexible width - takes available space
+        minWidth: 300,     // Minimum width to prevent too narrow
+        resizable: true    // User can resize if needed
+      },
+      {
+        type: 'startdate',
+        field: 'startDate',
+        text: 'Start',
+        width: 120,
+        resizable: true
+      },
+      {
+        type: 'duration',
+        text: 'Duration',
+        width: 100,
+        resizable: true
+      }
     ],
+    features: {
+      cellTooltip: {
+        // Show full text on hover for truncated cells
+        tooltipRenderer: ({ record, column }: any) => {
+          return record[column.field];
+        }
+      }
+    },
     viewPreset: 'weekAndDayLetter',
     barMargin: 10,
     listeners: {
@@ -124,18 +152,23 @@ export default function BryntumGanttWrapper() {
 
       {/* Popover for task details */}
       <Popover
-        open={!!selectedTaskId}
-        anchorEl={anchorRef.current}
-        onClose={() => { setSelectedTaskId(null); setSelectedDoc(null); }}
+        open={!!selectedTaskId && !!popoverPosition}
+        anchorReference="anchorPosition"
+        anchorPosition={popoverPosition ?? undefined}
+        onClose={() => { setSelectedTaskId(null); setPopoverPosition(null); setSelectedDoc(null); }}
         anchorOrigin={{
-          vertical: 'top',
+          vertical: 'center',
           horizontal: 'right',
         }}
         transformOrigin={{
-          vertical: 'top',
+          vertical: 'center',
           horizontal: 'left',
         }}
-        sx={{ ml: 1 }}
+        slotProps={{
+          paper: {
+            sx: { ml: 1 }
+          }
+        }}
       >
         <Box sx={{ width: 320, p: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
