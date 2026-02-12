@@ -1,144 +1,358 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { ArrowRight, HardHat, Calendar, Users } from "lucide-react";
-import { useSession } from "@/lib/auth-client";
-import { LogoIcon } from "@/components/ui/Logo";
-import { HeroImage } from "@/components/ui/optimized-image";
+import Link from 'next/link';
+import { ArrowRight, HardHat, Calendar, Users } from 'lucide-react';
+import { useSession } from '@/lib/auth-client';
+import { LogoIcon } from '@/components/ui/Logo';
+import { HeroImage } from '@/components/ui/optimized-image';
+import {
+  Box,
+  Container,
+  Grid,
+  Stack,
+  Typography,
+  Button,
+  Paper,
+} from '@mui/material';
 
 export default function Home() {
   const { data: session } = useSession();
 
   return (
-    <main className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] transition-colors">
+    <Box
+      component="main"
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        transition: 'background-color 0.15s',
+      }}
+    >
       {/* Navigation */}
-      <nav className="container mx-auto px-6 py-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[var(--accent-primary)] dark:bg-gray-700 rounded-md flex items-center justify-center">
-              <LogoIcon size={22} />
-            </div>
-            <span className="text-gray-800 dark:text-[var(--text-primary)] text-lg font-medium">BuildTrack Pro</span>
-          </div>
-          <div className="flex items-center gap-4">
-            {session ? (
-              <Link
-                href="/dashboard"
-                className="bg-[var(--accent-primary)] dark:bg-[var(--accent-primary)] text-white px-6 py-2.5 rounded-md hover:opacity-90 dark:hover:bg-[var(--accent-purple)]/90 transition-colors"
+      <Box component="nav" sx={{ py: 3 }}>
+        <Container maxWidth="lg">
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Stack direction="row" alignItems="center" gap={1.5}>
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  bgcolor: 'warm.main',
+                  borderRadius: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
-                Dashboard
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/sign-in"
-                  className="text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-800 dark:hover:text-[var(--text-primary)] transition-colors"
+                <LogoIcon size={22} />
+              </Box>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: 'text.primary',
+                  fontWeight: 500,
+                }}
+              >
+                BuildTrack Pro
+              </Typography>
+            </Stack>
+            <Stack direction="row" gap={2}>
+              {session ? (
+                <Button
+                  component={Link}
+                  href="/dashboard"
+                  variant="contained"
+                  sx={{
+                    bgcolor: 'warm.main',
+                    color: 'white',
+                    px: 3,
+                    py: 1.25,
+                    '&:hover': {
+                      bgcolor: 'warm.dark',
+                    },
+                  }}
                 >
-                  Sign in
-                </Link>
-                <Link
-                  href="/sign-up"
-                  className="bg-[var(--accent-primary)] dark:bg-[var(--accent-primary)] text-white px-6 py-2.5 rounded-md hover:opacity-90 dark:hover:bg-[var(--accent-purple)]/90 transition-colors"
-                >
-                  Get started
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
+                  Dashboard
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    component={Link}
+                    href="/sign-in"
+                    sx={{
+                      color: 'text.secondary',
+                      '&:hover': {
+                        color: 'text.primary',
+                        bgcolor: 'transparent',
+                      },
+                    }}
+                  >
+                    Sign in
+                  </Button>
+                  <Button
+                    component={Link}
+                    href="/sign-up"
+                    variant="contained"
+                    sx={{
+                      bgcolor: 'warm.main',
+                      color: 'white',
+                      px: 3,
+                      py: 1.25,
+                      '&:hover': {
+                        bgcolor: 'warm.dark',
+                      },
+                    }}
+                  >
+                    Get started
+                  </Button>
+                </>
+              )}
+            </Stack>
+          </Stack>
+        </Container>
+      </Box>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-6 py-16">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left Content */}
-          <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 bg-white dark:bg-[var(--bg-card)] px-4 py-2 rounded-md shadow-sm dark:shadow-black/20">
-              <HardHat className="w-4 h-4 text-gray-600 dark:text-[var(--text-secondary)]" />
-              <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">Built for construction teams</span>
-            </div>
+      <Box component="section" sx={{ py: 8 }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={6} alignItems="center">
+            {/* Left Content */}
+            <Grid item xs={12} lg={6}>
+              <Stack spacing={4}>
+                <Paper
+                  elevation={1}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    bgcolor: 'background.paper',
+                    px: 2,
+                    py: 1,
+                    width: 'fit-content',
+                  }}
+                >
+                  <HardHat size={16} style={{ color: 'var(--text-secondary)' }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Built for construction teams
+                  </Typography>
+                </Paper>
 
-            <h1 className="text-5xl lg:text-6xl font-medium text-gray-800 dark:text-[var(--text-primary)] leading-tight">
-              Manage projects with{" "}
-              <span className="text-gray-500 dark:text-[var(--text-secondary)]">confidence</span>
-            </h1>
+                <Typography
+                  variant="h1"
+                  sx={{
+                    fontSize: { xs: '3rem', lg: '3.75rem' },
+                    fontWeight: 500,
+                    color: 'text.primary',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Manage projects with{' '}
+                  <Box component="span" sx={{ color: 'text.secondary' }}>
+                    confidence
+                  </Box>
+                </Typography>
 
-            <p className="text-xl text-gray-500 dark:text-[var(--text-secondary)] max-w-lg">
-              Track schedules, coordinate teams, and deliver projects on time.
-              The modern way to manage construction.
-            </p>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    color: 'text.secondary',
+                    fontWeight: 400,
+                    maxWidth: 550,
+                  }}
+                >
+                  Track schedules, coordinate teams, and deliver projects on time.
+                  The modern way to manage construction.
+                </Typography>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/sign-up"
-                className="bg-[var(--accent-primary)] dark:bg-[var(--accent-primary)] text-white px-8 py-4 rounded-md hover:opacity-90 dark:hover:bg-[var(--accent-purple)]/90 transition-colors flex items-center justify-center gap-2 group"
-              >
-                Start free trial
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href="/sign-in"
-                className="bg-white dark:bg-[var(--bg-card)] text-gray-800 dark:text-[var(--text-primary)] px-8 py-4 rounded-md hover:bg-gray-50 dark:hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center border border-gray-200 dark:border-[var(--border-color)]"
-              >
-                View demo
-              </Link>
-            </div>
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={2}
+                >
+                  <Button
+                    component={Link}
+                    href="/sign-up"
+                    variant="contained"
+                    size="large"
+                    endIcon={<ArrowRight />}
+                    sx={{
+                      bgcolor: 'warm.main',
+                      color: 'white',
+                      px: 4,
+                      py: 2,
+                      '&:hover': {
+                        bgcolor: 'warm.dark',
+                        '& .MuiSvgIcon-root': {
+                          transform: 'translateX(4px)',
+                        },
+                      },
+                      '& .MuiSvgIcon-root': {
+                        transition: 'transform 0.2s',
+                      },
+                    }}
+                  >
+                    Start free trial
+                  </Button>
+                  <Button
+                    component={Link}
+                    href="/sign-in"
+                    variant="outlined"
+                    size="large"
+                    sx={{
+                      bgcolor: 'background.paper',
+                      color: 'text.primary',
+                      px: 4,
+                      py: 2,
+                      borderColor: 'divider',
+                      '&:hover': {
+                        bgcolor: 'action.hover',
+                        borderColor: 'divider',
+                      },
+                    }}
+                  >
+                    View demo
+                  </Button>
+                </Stack>
 
-            {/* Stats */}
-            <div className="flex gap-12 pt-8">
-              <div>
-                <div className="text-3xl font-medium text-gray-800 dark:text-[var(--text-primary)]">500+</div>
-                <div className="text-gray-500 dark:text-[var(--text-secondary)]">Projects managed</div>
-              </div>
-              <div>
-                <div className="text-3xl font-medium text-gray-800 dark:text-[var(--text-primary)]">98%</div>
-                <div className="text-gray-500 dark:text-[var(--text-secondary)]">On-time delivery</div>
-              </div>
-              <div>
-                <div className="text-3xl font-medium text-gray-800 dark:text-[var(--text-primary)]">24/7</div>
-                <div className="text-gray-500 dark:text-[var(--text-secondary)]">Team support</div>
-              </div>
-            </div>
-          </div>
+                {/* Stats */}
+                <Stack direction="row" spacing={6} sx={{ pt: 4 }}>
+                  <Box>
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontWeight: 500,
+                        color: 'text.primary',
+                      }}
+                    >
+                      500+
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Projects managed
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontWeight: 500,
+                        color: 'text.primary',
+                      }}
+                    >
+                      98%
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      On-time delivery
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontWeight: 500,
+                        color: 'text.primary',
+                      }}
+                    >
+                      24/7
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Team support
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Stack>
+            </Grid>
 
-          {/* Right Content - Hero Image */}
-          <div className="relative">
-            <HeroImage
-              src="/images/hero-construction.jpg"
-              alt="Construction site aerial view showing workers and rebar foundation"
-              className="h-[500px] lg:h-[600px] shadow-sm"
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              overlayOpacity={40}
-            >
-              {/* Floating Cards */}
-              <div className="absolute -left-8 top-1/4 bg-white dark:bg-[var(--bg-card)] p-4 rounded-2xl shadow-xl dark:shadow-black/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-md flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-gray-800 dark:text-[var(--text-primary)]">Timeline</div>
-                    <div className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">On schedule</div>
-                  </div>
-                </div>
-              </div>
+            {/* Right Content - Hero Image */}
+            <Grid item xs={12} lg={6}>
+              <Box sx={{ position: 'relative' }}>
+                <HeroImage
+                  src="/images/hero-construction.jpg"
+                  alt="Construction site aerial view showing workers and rebar foundation"
+                  className="h-[500px] lg:h-[600px] shadow-sm"
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  overlayOpacity={40}
+                >
+                  {/* Floating Cards */}
+                  <Paper
+                    elevation={6}
+                    sx={{
+                      position: 'absolute',
+                      left: -32,
+                      top: '25%',
+                      p: 2,
+                      borderRadius: 4,
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" gap={1.5}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          bgcolor: 'success.light',
+                          borderRadius: 1.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Calendar size={20} style={{ color: '#16a34a' }} />
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 500, color: 'text.primary' }}
+                        >
+                          Timeline
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          On schedule
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Paper>
 
-              <div className="absolute -right-4 bottom-1/4 bg-white dark:bg-[var(--bg-card)] p-4 rounded-2xl shadow-xl dark:shadow-black/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center">
-                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-gray-800 dark:text-[var(--text-primary)]">12 Active</div>
-                    <div className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">Team members</div>
-                  </div>
-                </div>
-              </div>
-            </HeroImage>
-          </div>
-        </div>
-      </section>
-    </main>
+                  <Paper
+                    elevation={6}
+                    sx={{
+                      position: 'absolute',
+                      right: -16,
+                      bottom: '25%',
+                      p: 2,
+                      borderRadius: 4,
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" gap={1.5}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          bgcolor: 'info.light',
+                          borderRadius: 1.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Users size={20} style={{ color: '#2563eb' }} />
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 500, color: 'text.primary' }}
+                        >
+                          12 Active
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Team members
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Paper>
+                </HeroImage>
+              </Box>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+    </Box>
   );
 }

@@ -1,4 +1,5 @@
-import { BlueprintBackground } from "~/components/onboarding/BlueprintBackground";
+import { Box } from '@mui/material';
+import { BlueprintBackground } from '~/components/onboarding/BlueprintBackground';
 
 export default function OnboardingLayout({
   children,
@@ -6,9 +7,15 @@ export default function OnboardingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)]">
+    <Box
+      sx={{
+        position: 'relative',
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+      }}
+    >
       <BlueprintBackground />
       {children}
-    </div>
+    </Box>
   );
 }

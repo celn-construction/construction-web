@@ -1,7 +1,15 @@
+import { Box } from '@mui/material';
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-[var(--bg-primary)] transition-colors">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        transition: 'background-color 0.15s',
+      }}
+    >
       {children}
-    </div>
+    </Box>
   );
 }

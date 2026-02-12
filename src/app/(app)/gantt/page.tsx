@@ -12,7 +12,6 @@ import {
   PopoverContent,
 } from "~/components/ui/popover";
 import { X } from "lucide-react";
-import FeatureFolderTree from "~/components/dashboard/FeatureFolderTree";
 
 const tasks = [
   {
@@ -180,48 +179,29 @@ export default function GanttPage() {
           side="right"
           align="start"
           sideOffset={8}
-          className={`transition-all duration-300 ${selectedDoc ? 'w-[580px]' : 'w-80'}`}
+          className="w-80"
         >
-          <div className="flex gap-3">
-            {/* Folder Tree - Fixed width */}
-            <div className={`transition-all duration-300 ${selectedDoc ? 'w-[280px]' : 'w-full'}`}>
-              <FeatureFolderTree
-                featureName={selectedTaskName}
-                featureId={selectedTaskId ?? ''}
-                coverImage={selectedTaskId ? coverImages[selectedTaskId] : undefined}
-                onCoverImageChange={handleCoverImageChange}
-                onDocumentSelect={handleDocumentSelect}
-              />
-            </div>
-
-            {/* Detail Panel - Appears when doc is selected */}
-            {selectedDoc && (
-              <div className="flex-1 border-l border-[var(--border-color)] pl-3 animate-in fade-in slide-in-from-right-2 duration-300">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-                      {selectedDoc.name}
-                    </h3>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                      {selectedTaskName}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedDoc(null)}
-                    className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
-                    aria-label="Close detail panel"
-                  >
-                    <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                  </button>
-                </div>
-                <div
-                  className="text-xs rounded-md p-3 border border-dashed border-[var(--border-color)]"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  No documents yet
-                </div>
+          <div>
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                  {selectedTaskName}
+                </h3>
               </div>
-            )}
+              <button
+                onClick={() => setSelectedTaskId(null)}
+                className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+              </button>
+            </div>
+            <div
+              className="text-xs rounded-md p-3 border border-dashed border-[var(--border-color)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Task details panel (folder tree removed during migration)
+            </div>
           </div>
         </PopoverContent>
       </Popover>

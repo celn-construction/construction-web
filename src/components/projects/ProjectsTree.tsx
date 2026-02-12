@@ -1,18 +1,10 @@
 'use client';
 
 import { Folder, FileText } from 'lucide-react';
-import {
-  TreeProvider,
-  TreeView,
-  TreeNode,
-  TreeNodeTrigger,
-  TreeNodeContent,
-  TreeExpander,
-  TreeIcon,
-  TreeLabel,
-} from '@/components/kibo-ui/tree';
+import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
+import { TreeItem } from '@mui/x-tree-view/TreeItem';
+import { Box, Chip } from '@mui/material';
 import { useGroupedFeaturesWithRows, useGroups, useCurrentProjectId } from '@/store/hooks/useGanttFeatures';
-import type { GanttFeature } from '@/types/gantt-types';
 import { api } from '@/trpc/react';
 
 // Static construction document folder structure (same for every task)
@@ -74,24 +66,9 @@ interface FolderNodeProps {
   taskId: string;
   projectId: string | null;
   organizationId: string | undefined;
-  groupIndex: number;
-  isLastTask: boolean;
-  folderIndex: number;
-  isLastFolder: boolean;
-  groupsLength: number;
 }
 
-function FolderNode({
-  folder,
-  taskId,
-  projectId,
-  organizationId,
-  groupIndex,
-  isLastTask,
-  folderIndex,
-  isLastFolder,
-  groupsLength,
-}: FolderNodeProps) {
+function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodeProps) {
   const folderId = `${taskId}-${folder.id}`;
 
   // Get document counts for this task
@@ -109,62 +86,62 @@ function FolderNode({
   const documentCount = counts?.[folder.id] || 0;
 
   return (
-    <TreeNode
+    <TreeItem
       key={folderId}
-      nodeId={folderId}
-      isLast={isLastFolder}
-      level={2}
-      parentPath={[groupIndex === groupsLength - 1, isLastTask]}
+      itemId={folderId}
+      label={
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+          <Folder size={14} style={{ color: '#f59e0b' }} />
+          <Box sx={{ fontWeight: 500, flexGrow: 1 }}>{folder.name}</Box>
+          {documentCount > 0 && (
+            <Chip
+              label={documentCount}
+              size="small"
+              sx={{
+                height: 18,
+                fontSize: '0.65rem',
+                bgcolor: 'warning.light',
+                color: 'warning.dark',
+                '& .MuiChip-label': { px: 1 },
+              }}
+            />
+          )}
+        </Box>
+      }
     >
-      <TreeNodeTrigger>
-        <TreeExpander hasChildren={!folder.isLeaf} />
-        <TreeIcon hasChildren={!folder.isLeaf} icon={<Folder className="w-4 h-4 text-amber-500" />} />
-        <TreeLabel className="font-medium">
-          <div className="flex items-center gap-2">
-            <span>{folder.name}</span>
-            {documentCount > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-medium">
-                {documentCount}
-              </span>
-            )}
-          </div>
-        </TreeLabel>
-      </TreeNodeTrigger>
-      {!folder.isLeaf && folder.children && (
-        <TreeNodeContent hasChildren={true}>
-          {folder.children.map((child, childIndex) => {
-            const childId = `${folderId}-${child.id}`;
-            const isLastChild = childIndex === folder.children!.length - 1;
-            const childDocCount = counts?.[child.id] || 0;
+      {!folder.isLeaf &&
+        folder.children &&
+        folder.children.map((child) => {
+          const childId = `${folderId}-${child.id}`;
+          const childDocCount = counts?.[child.id] || 0;
 
-            return (
-              <TreeNode
-                key={childId}
-                nodeId={childId}
-                isLast={isLastChild}
-                level={3}
-                parentPath={[groupIndex === groupsLength - 1, isLastTask, isLastFolder]}
-              >
-                <TreeNodeTrigger>
-                  <TreeExpander hasChildren={false} />
-                  <TreeIcon hasChildren={false} icon={<FileText className="w-4 h-4 text-gray-500" />} />
-                  <TreeLabel>
-                    <div className="flex items-center gap-2">
-                      <span>{child.name}</span>
-                      {childDocCount > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 rounded-full font-medium">
-                          {childDocCount}
-                        </span>
-                      )}
-                    </div>
-                  </TreeLabel>
-                </TreeNodeTrigger>
-              </TreeNode>
-            );
-          })}
-        </TreeNodeContent>
-      )}
-    </TreeNode>
+          return (
+            <TreeItem
+              key={childId}
+              itemId={childId}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+                  <FileText size={14} style={{ color: '#6b7280' }} />
+                  <Box sx={{ flexGrow: 1 }}>{child.name}</Box>
+                  {childDocCount > 0 && (
+                    <Chip
+                      label={childDocCount}
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: '0.65rem',
+                        bgcolor: 'action.hover',
+                        color: 'text.secondary',
+                        '& .MuiChip-label': { px: 1 },
+                      }}
+                    />
+                  )}
+                </Box>
+              }
+            />
+          );
+        })}
+    </TreeItem>
   );
 }
 
@@ -178,11 +155,10 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
   const currentProject = projects.find((p) => p.id === currentProjectId);
 
   // Get all group IDs for default expansion
-  const defaultExpandedIds = groups.map((group) => `group-${group}`);
+  const defaultExpandedItems = groups.map((group) => `group-${group}`);
 
   // Handle selection change
-  const handleSelectionChange = (selectedIds: string[]) => {
-    const nodeId = selectedIds[0];
+  const handleSelectedItemsChange = (_event: React.SyntheticEvent, nodeId: string | null) => {
     if (!nodeId) {
       onSelect(null);
       return;
@@ -214,7 +190,6 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
       // Find folder name
       let folderName: string;
       let parentFolderName: string | undefined;
-
       let actualFolderId: string;
 
       if (parts.length === 3) {
@@ -251,104 +226,94 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
   };
 
   return (
-    <TreeProvider
-      defaultExpandedIds={defaultExpandedIds}
-      showLines={true}
-      showIcons={true}
-      selectable={true}
-      selectedIds={selectedNodeId ? [selectedNodeId] : []}
-      onSelectionChange={handleSelectionChange}
-    >
-      <TreeView className="w-full">
-        {groups.map((groupName, groupIndex) => {
+    <Box sx={{ width: '100%' }}>
+      <SimpleTreeView
+        defaultExpandedItems={defaultExpandedItems}
+        selectedItems={selectedNodeId}
+        onSelectedItemsChange={handleSelectedItemsChange}
+      >
+        {groups.map((groupName) => {
           const tasks = grouped[groupName] || [];
           const groupId = `group-${groupName}`;
 
           return (
-            <TreeNode key={groupId} nodeId={groupId} isLast={groupIndex === groups.length - 1}>
-              <TreeNodeTrigger>
-                <TreeExpander hasChildren={true} />
-                <TreeIcon hasChildren={true} icon={<Folder className="w-4 h-4" />} />
-                <TreeLabel>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{groupName}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
-                    </span>
-                  </div>
-                </TreeLabel>
-              </TreeNodeTrigger>
-              <TreeNodeContent hasChildren={true}>
-                {tasks.map((task, taskIndex) => {
-                  const taskId = `task-${task.id}`;
-                  const isLastTask = taskIndex === tasks.length - 1;
+            <TreeItem
+              key={groupId}
+              itemId={groupId}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+                  <Folder size={16} />
+                  <Box sx={{ fontWeight: 500, flexGrow: 1 }}>{groupName}</Box>
+                  <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                    {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+                  </Box>
+                </Box>
+              }
+            >
+              {tasks.map((task) => {
+                const taskId = `task-${task.id}`;
 
-                  return (
-                    <TreeNode
-                      key={taskId}
-                      nodeId={taskId}
-                      isLast={isLastTask}
-                      level={1}
-                      parentPath={[groupIndex === groups.length - 1]}
-                    >
-                      <TreeNodeTrigger>
-                        <TreeExpander hasChildren={true} />
-                        <TreeIcon
-                          hasChildren={true}
-                          icon={
-                            <div
-                              className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: task.status.color }}
-                            />
-                          }
+                return (
+                  <TreeItem
+                    key={taskId}
+                    itemId={taskId}
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5, minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: task.status.color,
+                            flexShrink: 0,
+                          }}
                         />
-                        <TreeLabel className="overflow-hidden">
-                          <div className="flex items-center justify-between flex-1 gap-4 min-w-0">
-                            <span className="truncate">{task.name}</span>
-                            <div className="flex items-center gap-3 text-xs shrink-0">
-                              {task.progress !== undefined && (
-                                <span className="text-gray-600 dark:text-gray-400">
-                                  {task.progress}%
-                                </span>
-                              )}
-                              <span
-                                className="font-medium"
-                                style={{ color: task.status.color }}
-                              >
-                                {task.status.name}
-                              </span>
-                            </div>
-                          </div>
-                        </TreeLabel>
-                      </TreeNodeTrigger>
-                      <TreeNodeContent hasChildren={true}>
-                        {folderData.map((folder, folderIndex) => {
-                          const isLastFolder = folderIndex === folderData.length - 1;
-
-                          return (
-                            <FolderNode
-                              key={`${taskId}-${folder.id}`}
-                              folder={folder}
-                              taskId={taskId}
-                              projectId={currentProjectId}
-                              organizationId={currentProject?.organizationId}
-                              groupIndex={groupIndex}
-                              isLastTask={isLastTask}
-                              folderIndex={folderIndex}
-                              isLastFolder={isLastFolder}
-                              groupsLength={groups.length}
-                            />
-                          );
-                        })}
-                      </TreeNodeContent>
-                    </TreeNode>
-                  );
-                })}
-              </TreeNodeContent>
-            </TreeNode>
+                        <Box
+                          sx={{
+                            flexGrow: 1,
+                            minWidth: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {task.name}
+                        </Box>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            fontSize: '0.75rem',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {task.progress !== undefined && (
+                            <Box sx={{ color: 'text.secondary' }}>{task.progress}%</Box>
+                          )}
+                          <Box sx={{ fontWeight: 500, color: task.status.color }}>
+                            {task.status.name}
+                          </Box>
+                        </Box>
+                      </Box>
+                    }
+                  >
+                    {folderData.map((folder) => (
+                      <FolderNode
+                        key={`${taskId}-${folder.id}`}
+                        folder={folder}
+                        taskId={taskId}
+                        projectId={currentProjectId}
+                        organizationId={currentProject?.organizationId}
+                      />
+                    ))}
+                  </TreeItem>
+                );
+              })}
+            </TreeItem>
           );
         })}
-      </TreeView>
-    </TreeProvider>
+      </SimpleTreeView>
+    </Box>
   );
 }

@@ -1,16 +1,9 @@
 'use client';
 
 import { FileText, Folder } from 'lucide-react';
-import {
-  TreeProvider,
-  TreeView,
-  TreeNode,
-  TreeNodeTrigger,
-  TreeNodeContent,
-  TreeExpander,
-  TreeIcon,
-  TreeLabel,
-} from '@/components/kibo-ui/tree';
+import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
+import { TreeItem } from '@mui/x-tree-view/TreeItem';
+import { Paper, Box } from '@mui/material';
 
 // Static construction document data organized by project
 const documentData = [
@@ -111,79 +104,65 @@ const documentData = [
 ];
 
 export default function DocumentTree() {
-  // Get all project IDs to expand by default
-  const defaultExpandedIds = documentData.map((project) => project.id);
+  // Get all node IDs to expand by default
+  const defaultExpandedItems = [
+    ...documentData.map((project) => project.id),
+    ...documentData.flatMap((project) => project.folders.map((folder) => folder.id)),
+  ];
 
   return (
-    <TreeProvider
-      defaultExpandedIds={defaultExpandedIds}
-      showLines={true}
-      showIcons={true}
-      selectable={true}
-      multiSelect={false}
-      indent={20}
-      animateExpand={true}
-      className="w-full"
+    <Paper
+      sx={{
+        borderRadius: 2,
+        border: 1,
+        borderColor: 'divider',
+        p: 2,
+      }}
     >
-      <TreeView className="bg-white dark:bg-[var(--bg-card)] rounded-lg border border-[var(--border-color)] p-4">
-        {documentData.map((project, projectIndex) => (
-          <TreeNode
+      <SimpleTreeView defaultExpandedItems={defaultExpandedItems}>
+        {documentData.map((project) => (
+          <TreeItem
             key={project.id}
-            nodeId={project.id}
-            level={0}
-            isLast={projectIndex === documentData.length - 1}
+            itemId={project.id}
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+                <Folder size={18} />
+                <Box sx={{ fontWeight: 600, color: 'text.primary' }}>
+                  {project.name}
+                </Box>
+              </Box>
+            }
           >
-            <TreeNodeTrigger>
-              <TreeExpander hasChildren={true} />
-              <TreeIcon hasChildren={true} />
-              <TreeLabel className="font-semibold text-gray-900 dark:text-white">
-                {project.name}
-              </TreeLabel>
-            </TreeNodeTrigger>
-            <TreeNodeContent hasChildren={true}>
-              {project.folders.map((folder, folderIndex) => (
-                <TreeNode
-                  key={folder.id}
-                  nodeId={folder.id}
-                  level={1}
-                  isLast={folderIndex === project.folders.length - 1}
-                  parentPath={[projectIndex === documentData.length - 1]}
-                >
-                  <TreeNodeTrigger>
-                    <TreeExpander hasChildren={true} />
-                    <TreeIcon hasChildren={true} icon={<Folder className="h-4 w-4 text-blue-500" />} />
-                    <TreeLabel className="font-medium text-gray-800 dark:text-[var(--text-primary)]">
+            {project.folders.map((folder) => (
+              <TreeItem
+                key={folder.id}
+                itemId={folder.id}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+                    <Folder size={16} style={{ color: '#3b82f6' }} />
+                    <Box sx={{ fontWeight: 500, color: 'text.primary' }}>
                       {folder.name}
-                    </TreeLabel>
-                  </TreeNodeTrigger>
-                  <TreeNodeContent hasChildren={true}>
-                    {folder.documents.map((doc, docIndex) => (
-                      <TreeNode
-                        key={doc.id}
-                        nodeId={doc.id}
-                        level={2}
-                        isLast={docIndex === folder.documents.length - 1}
-                        parentPath={[
-                          projectIndex === documentData.length - 1,
-                          folderIndex === project.folders.length - 1,
-                        ]}
-                      >
-                        <TreeNodeTrigger>
-                          <TreeExpander hasChildren={false} />
-                          <TreeIcon hasChildren={false} icon={<FileText className="h-4 w-4 text-gray-500" />} />
-                          <TreeLabel className="text-gray-700 dark:text-[var(--text-secondary)]">
-                            {doc.name}
-                          </TreeLabel>
-                        </TreeNodeTrigger>
-                      </TreeNode>
-                    ))}
-                  </TreeNodeContent>
-                </TreeNode>
-              ))}
-            </TreeNodeContent>
-          </TreeNode>
+                    </Box>
+                  </Box>
+                }
+              >
+                {folder.documents.map((doc) => (
+                  <TreeItem
+                    key={doc.id}
+                    itemId={doc.id}
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+                        <FileText size={14} style={{ color: '#6b7280' }} />
+                        <Box sx={{ color: 'text.secondary' }}>{doc.name}</Box>
+                      </Box>
+                    }
+                  />
+                ))}
+              </TreeItem>
+            ))}
+          </TreeItem>
         ))}
-      </TreeView>
-    </TreeProvider>
+      </SimpleTreeView>
+    </Paper>
   );
 }

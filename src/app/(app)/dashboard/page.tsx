@@ -1,23 +1,10 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useSession } from '@/lib/auth-client';
 import { api } from '@/trpc/react';
-import GanttLoadingAnimation from '@/components/dashboard/GanttLoadingAnimation';
 import AddProjectDialog from '@/components/projects/AddProjectDialog';
-
-const DashboardGantt = dynamic(
-  () => import('@/components/dashboard/DashboardGantt'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)]">
-        <GanttLoadingAnimation />
-      </div>
-    )
-  }
-);
+import { Box, Typography } from '@mui/material';
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -33,7 +20,18 @@ export default function DashboardPage() {
 
   return (
     <>
-      <DashboardGantt />
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+        }}
+      >
+        <Typography variant="h5" color="text.secondary">
+          Dashboard (Gantt component removed)
+        </Typography>
+      </Box>
       <AddProjectDialog open={addProjectOpen} onOpenChange={setAddProjectOpen} />
     </>
   );
