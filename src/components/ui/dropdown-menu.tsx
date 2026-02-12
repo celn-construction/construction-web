@@ -47,11 +47,11 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ children, open: controlledO
 
 // DropdownMenuTrigger - wraps the trigger element
 interface DropdownMenuTriggerProps {
-  children: React.ReactElement;
+  children?: React.ReactElement;
   asChild?: boolean;
 }
 
-const DropdownMenuTrigger: React.FC<DropdownMenuTriggerProps> = ({ children }) => {
+const DropdownMenuTrigger: React.FC<DropdownMenuTriggerProps> = ({ children, asChild }) => {
   const { setAnchorEl, setOpen, open } = React.useContext(DropdownMenuContext);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -59,42 +59,56 @@ const DropdownMenuTrigger: React.FC<DropdownMenuTriggerProps> = ({ children }) =
     setOpen(!open);
   };
 
+  if (!children) return null;
+
   return React.cloneElement(children, {
     onClick: handleClick,
   });
 };
 
 // DropdownMenuContent - the actual MUI Menu
-const DropdownMenuContent = React.forwardRef<
-  HTMLDivElement,
-  Omit<MenuProps, 'open' | 'anchorEl'> & { sideOffset?: number }
->(({ children, sideOffset = 4, ...props }, ref) => {
-  const { anchorEl, open, setOpen, setAnchorEl } = React.useContext(DropdownMenuContext);
+interface DropdownMenuContentProps extends Omit<MenuProps, 'open' | 'anchorEl'> {
+  sideOffset?: number;
+  align?: 'start' | 'center' | 'end';
+  className?: string;
+}
 
-  const handleClose = () => {
-    setOpen(false);
-    setAnchorEl(null);
-  };
+const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContentProps>(
+  ({ children, sideOffset = 4, align = 'end', className, ...props }, ref) => {
+    const { anchorEl, open, setOpen, setAnchorEl } = React.useContext(DropdownMenuContext);
 
-  return (
-    <Menu
-      anchorEl={anchorEl}
-      open={open}
-      onClose={handleClose}
-      anchorOrigin={{
-        vertical: 'bottom',
-        horizontal: 'right',
-      }}
-      transformOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-      {...props}
-    >
-      {children}
-    </Menu>
-  );
-});
+    const handleClose = () => {
+      setOpen(false);
+      setAnchorEl(null);
+    };
+
+    const horizontalAlign = align === 'start' ? 'left' : align === 'center' ? 'center' : 'right';
+
+    return (
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: horizontalAlign,
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: horizontalAlign,
+        }}
+        slotProps={{
+          paper: {
+            className,
+          },
+        }}
+        {...props}
+      >
+        {children}
+      </Menu>
+    );
+  }
+);
 DropdownMenuContent.displayName = 'DropdownMenuContent';
 
 // DropdownMenuItem - maps to MUI MenuItem

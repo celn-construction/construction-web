@@ -47,12 +47,22 @@ const Popover: React.FC<PopoverProps> = ({ children, open: controlledOpen, onOpe
 
 // PopoverTrigger - wraps the trigger element
 interface PopoverTriggerProps {
-  children: React.ReactElement;
+  children?: React.ReactElement;
   asChild?: boolean;
+  virtualRef?: React.RefObject<any>;
 }
 
-const PopoverTrigger: React.FC<PopoverTriggerProps> = ({ children }) => {
+const PopoverTrigger: React.FC<PopoverTriggerProps> = ({ children, virtualRef }) => {
   const { setAnchorEl, setOpen, open } = React.useContext(PopoverContext);
+
+  // Handle virtual ref (for positioning based on ref instead of element)
+  React.useEffect(() => {
+    if (virtualRef?.current) {
+      setAnchorEl(virtualRef.current);
+    }
+  }, [virtualRef, setAnchorEl]);
+
+  if (!children) return null;
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -81,11 +91,15 @@ const PopoverAnchor: React.FC<{ children: React.ReactElement }> = ({ children })
 // PopoverContent - the actual MUI Popover
 interface PopoverContentProps extends Omit<MuiPopoverProps, 'open' | 'anchorEl'> {
   align?: 'start' | 'center' | 'end';
+  side?: 'top' | 'bottom' | 'left' | 'right';
   sideOffset?: number;
+  collisionBoundary?: HTMLElement | null;
+  collisionPadding?: { left?: number; right?: number; top?: number; bottom?: number };
+  className?: string;
 }
 
 const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
-  ({ children, align = 'center', sideOffset = 4, ...props }, ref) => {
+  ({ children, align = 'center', side = 'bottom', sideOffset = 4, className, ...props }, ref) => {
     const { anchorEl, open, setOpen, setAnchorEl } = React.useContext(PopoverContext);
 
     const handleClose = () => {
@@ -94,13 +108,13 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     };
 
     const anchorOrigin = {
-      vertical: 'bottom' as const,
-      horizontal: align === 'start' ? 'left' as const : align === 'end' ? 'right' as const : 'center' as const,
+      vertical: side === 'top' ? ('top' as const) : side === 'bottom' ? ('bottom' as const) : ('bottom' as const),
+      horizontal: align === 'start' ? ('left' as const) : align === 'end' ? ('right' as const) : ('center' as const),
     };
 
     const transformOrigin = {
-      vertical: 'top' as const,
-      horizontal: align === 'start' ? 'left' as const : align === 'end' ? 'right' as const : 'center' as const,
+      vertical: side === 'top' ? ('bottom' as const) : side === 'bottom' ? ('top' as const) : ('top' as const),
+      horizontal: align === 'start' ? ('left' as const) : align === 'end' ? ('right' as const) : ('center' as const),
     };
 
     return (
@@ -119,7 +133,9 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         }}
         {...props}
       >
-        {children}
+        <div ref={ref} className={className}>
+          {children}
+        </div>
       </MuiPopover>
     );
   }

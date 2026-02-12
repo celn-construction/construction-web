@@ -1,9 +1,10 @@
 import React from 'react';
-import { Box, Typography, SxProps, Theme } from '@mui/material';
+import { Box, Typography, type SxProps, type Theme } from '@mui/material';
 
 interface LogoIconProps {
   size?: number;
   sx?: SxProps<Theme>;
+  className?: string;
 }
 
 export const LogoIcon: React.FC<LogoIconProps> = ({ size = 24, sx }) => {

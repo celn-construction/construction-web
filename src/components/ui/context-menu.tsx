@@ -27,7 +27,7 @@ const ContextMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // ContextMenuTrigger - wraps the element that triggers the menu on right-click
 const ContextMenuTrigger: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-  const { setContextMenu } = React.useContext(ContextMenuContext);
+  const { contextMenu, setContextMenu } = React.useContext(ContextMenuContext);
 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -75,8 +75,8 @@ ContextMenuContent.displayName = 'ContextMenuContent';
 // ContextMenuItem - maps to MUI MenuItem
 const ContextMenuItem = React.forwardRef<
   HTMLLIElement,
-  { children: React.ReactNode; inset?: boolean; disabled?: boolean; onClick?: () => void }
->(({ children, disabled, onClick, ...props }, ref) => {
+  { children: React.ReactNode; inset?: boolean; disabled?: boolean; onClick?: () => void; className?: string; asChild?: boolean }
+>(({ children, disabled, onClick, className, asChild, ...props }, ref) => {
   const { setContextMenu } = React.useContext(ContextMenuContext);
 
   const handleClick = () => {
@@ -84,8 +84,16 @@ const ContextMenuItem = React.forwardRef<
     setContextMenu(null);
   };
 
+  // If asChild, render children directly
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children as React.ReactElement<any>, {
+      onClick: handleClick,
+      className,
+    });
+  }
+
   return (
-    <MenuItem ref={ref} onClick={handleClick} disabled={disabled} {...props}>
+    <MenuItem ref={ref} onClick={handleClick} disabled={disabled} className={className} {...props}>
       {children}
     </MenuItem>
   );

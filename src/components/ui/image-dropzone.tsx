@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { ImagePlus, X } from 'lucide-react';
-import { Box, Typography, IconButton, CircularProgress, SxProps, Theme } from '@mui/material';
+import { Box, Typography, IconButton, CircularProgress, type SxProps, type Theme } from '@mui/material';
 
 export interface ImageDropzoneProps {
   value?: string;

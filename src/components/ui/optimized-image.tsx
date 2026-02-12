@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Box, Skeleton, Typography, SxProps, Theme } from '@mui/material';
+import { Box, Skeleton, Typography, type SxProps, type Theme } from '@mui/material';
 
 interface OptimizedImageProps {
   src: string;
@@ -115,6 +115,7 @@ interface HeroImageProps extends Omit<OptimizedImageProps, 'fill'> {
   overlay?: boolean;
   overlayOpacity?: number;
   children?: React.ReactNode;
+  className?: string;
 }
 
 export function HeroImage({
@@ -122,10 +123,11 @@ export function HeroImage({
   overlayOpacity = 40,
   children,
   sx,
+  className,
   ...props
 }: HeroImageProps) {
   return (
-    <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: 2, ...sx }}>
+    <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: 2, ...sx }} className={className}>
       <OptimizedImage {...props} fill sx={{ width: '100%', height: '100%' }} />
       {overlay && (
         <Box
