@@ -2,6 +2,7 @@
 
 import { Maximize2, CheckCircle2 } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
+import { Box, Typography, Paper, IconButton, Stack, Avatar, Divider } from '@mui/material';
 
 const projects = [
   {
@@ -30,50 +31,116 @@ const projects = [
 
 export default function ProjectsList() {
   return (
-    <div className="bg-white dark:bg-[var(--bg-card)] rounded-3xl p-6 transition-colors duration-300">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-medium text-gray-800 dark:text-[var(--text-primary)]">Active Projects</h2>
-          <p className="text-sm text-gray-500 dark:text-[var(--text-secondary)]">Wednesday, 11 May</p>
-        </div>
-        <button className="w-10 h-10 bg-gray-100 dark:bg-[var(--bg-input)] rounded-2xl flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[var(--bg-hover)] transition-colors cursor-pointer">
-          <Maximize2 className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
-        </button>
-      </div>
+    <Paper
+      elevation={0}
+      sx={{
+        bgcolor: 'card.background',
+        borderRadius: 6,
+        p: 3,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 3,
+        }}
+      >
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>
+            Active Projects
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Wednesday, 11 May
+          </Typography>
+        </Box>
+        <IconButton
+          sx={{
+            width: 40,
+            height: 40,
+            bgcolor: 'action.hover',
+            borderRadius: 4,
+            '&:hover': {
+              bgcolor: 'action.selected',
+            },
+          }}
+        >
+          <Maximize2 size={20} />
+        </IconButton>
+      </Box>
 
-      <div className="space-y-4">
+      <Stack spacing={2} divider={<Divider />}>
         {projects.map((project) => (
-          <div key={project.id} className="border-b border-gray-100 dark:border-[var(--border-color)] pb-4 last:border-0">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex-1">
-                <p className={`text-gray-800 dark:text-[var(--text-primary)] mb-1 ${project.completed ? 'line-through' : ''}`}>
+          <Box key={project.id}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                mb: 1,
+              }}
+            >
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  sx={{
+                    color: 'text.primary',
+                    mb: 0.5,
+                    textDecoration: project.completed ? 'line-through' : 'none',
+                  }}
+                >
                   {project.name}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-[var(--text-secondary)]">{project.description}</p>
-              </div>
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {project.description}
+                </Typography>
+              </Box>
               {project.completed && (
-                <div className="w-8 h-8 bg-[#c8d97e] dark:bg-[#a8b95e] rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="w-5 h-5 text-gray-700 dark:text-gray-900" />
-                </div>
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    bgcolor: 'action.hover',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <CheckCircle2 size={20} />
+                </Box>
               )}
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500 dark:text-[var(--text-secondary)]">{project.timeframe}</p>
-              <div className="flex -space-x-2">
+            </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {project.timeframe}
+              </Typography>
+              <Box sx={{ display: 'flex', ml: -1 }}>
                 {project.assignees.map((avatar, idx) => (
-                  <div key={idx} className="w-7 h-7 rounded-full overflow-hidden border-2 border-white dark:border-[var(--bg-card)]">
-                    <ImageWithFallback
-                      src={avatar}
-                      alt="Team member"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  <Avatar
+                    key={idx}
+                    src={avatar}
+                    alt="Team member"
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      border: 2,
+                      borderColor: 'card.background',
+                      ml: -1,
+                    }}
+                  />
                 ))}
-              </div>
-            </div>
-          </div>
+              </Box>
+            </Box>
+          </Box>
         ))}
-      </div>
-    </div>
+      </Stack>
+    </Paper>
   );
 }

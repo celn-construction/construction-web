@@ -7,6 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { Box, Typography } from '@mui/material';
 
 interface RoleSelectProps {
   value: string;
@@ -19,25 +20,21 @@ const roles = [
     value: 'admin',
     label: 'Admin',
     description: 'Full access to all settings and team management',
-    color: 'var(--accent-warm)',
   },
   {
     value: 'project_manager',
     label: 'Project Manager',
     description: 'Manage projects, tasks, and team assignments',
-    color: 'var(--status-blue)',
   },
   {
     value: 'member',
     label: 'Member',
     description: 'View and contribute to assigned projects',
-    color: 'var(--border-color)',
   },
   {
     value: 'viewer',
     label: 'Viewer',
     description: 'Read-only access to projects',
-    color: 'var(--text-muted)',
   },
 ];
 
@@ -55,16 +52,29 @@ export default function RoleSelect({
         <button
           type="button"
           disabled={disabled}
-          className={cn(
-            'flex h-10 w-full items-center justify-between rounded-md border border-gray-200 dark:border-[var(--border-color)] bg-white dark:bg-[var(--bg-input)] px-3 py-2 text-sm text-gray-900 dark:text-[var(--text-primary)] ring-offset-white dark:ring-offset-[var(--bg-card)] placeholder:text-gray-500 dark:placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-gray-950 dark:focus:ring-[var(--accent-purple)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors'
-          )}
+          style={{
+            display: 'flex',
+            height: '40px',
+            width: '100%',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderRadius: '6px',
+            border: '1px solid var(--border-color)',
+            backgroundColor: 'var(--bg-input)',
+            padding: '8px 12px',
+            fontSize: '0.875rem',
+            color: 'var(--text-primary)',
+            transition: 'all 0.2s',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? 0.5 : 1,
+          }}
         >
           <span>{selectedRole?.label || 'Select a role'}</span>
           <ChevronDown className="h-4 w-4 opacity-50" />
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-1">
-        <div className="space-y-1">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {roles.map((role) => (
             <button
               key={role.value}
@@ -73,27 +83,54 @@ export default function RoleSelect({
                 onValueChange(role.value);
                 setOpen(false);
               }}
-              className={cn(
-                'relative flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
-                'hover:bg-gray-100 dark:hover:bg-[var(--bg-hover)]',
-                value === role.value &&
-                  'bg-gray-50 dark:bg-[var(--bg-hover)]/50'
-              )}
+              style={{
+                position: 'relative',
+                display: 'flex',
+                width: '100%',
+                alignItems: 'flex-start',
+                gap: '12px',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                textAlign: 'left',
+                transition: 'background-color 0.2s',
+                backgroundColor: value === role.value ? 'var(--bg-hover)' : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                if (value !== role.value) {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (value !== role.value) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
             >
-              <div
-                className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
-                style={{ backgroundColor: role.color }}
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: 'text.disabled',
+                  mt: 0.75,
+                  flexShrink: 0,
+                }}
               />
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm text-gray-900 dark:text-[var(--text-primary)]">
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 500, color: 'text.primary' }}
+                >
                   {role.label}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-[var(--text-muted)] mt-0.5">
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled', mt: 0.25 }}>
                   {role.description}
-                </div>
-              </div>
+                </Typography>
+              </Box>
               {value === role.value && (
-                <Check className="w-4 h-4 text-gray-900 dark:text-[var(--text-primary)] mt-1 flex-shrink-0" />
+                <Check className="w-4 h-4 mt-1 flex-shrink-0" />
               )}
             </button>
           ))}

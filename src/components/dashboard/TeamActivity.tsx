@@ -1,6 +1,7 @@
 'use client';
 
 import { Maximize2, Shuffle } from 'lucide-react';
+import { Box, Typography, Paper, IconButton, Stack } from '@mui/material';
 
 export default function TeamActivity() {
   const data = [
@@ -32,24 +33,62 @@ export default function TeamActivity() {
     .join(' ');
 
   return (
-    <div className="bg-white dark:bg-[var(--bg-card)] rounded-3xl p-6 transition-colors duration-300">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-medium text-gray-800 dark:text-[var(--text-primary)]">Productivity Summary</h2>
-          <p className="text-sm text-gray-500 dark:text-[var(--text-secondary)]">Track team performance</p>
-        </div>
-        <div className="flex gap-2">
-          <button className="w-10 h-10 bg-gray-100 dark:bg-[var(--bg-input)] rounded-2xl flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[var(--bg-hover)] transition-colors cursor-pointer">
-            <Shuffle className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
-          </button>
-          <button className="w-10 h-10 bg-gray-100 dark:bg-[var(--bg-input)] rounded-2xl flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[var(--bg-hover)] transition-colors cursor-pointer">
-            <Maximize2 className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
-          </button>
-        </div>
-      </div>
+    <Paper
+      elevation={0}
+      sx={{
+        bgcolor: 'card.background',
+        borderRadius: 6,
+        p: 3,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 3,
+        }}
+      >
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>
+            Productivity Summary
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Track team performance
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <IconButton
+            sx={{
+              width: 40,
+              height: 40,
+              bgcolor: 'action.hover',
+              borderRadius: 4,
+              '&:hover': {
+                bgcolor: 'action.selected',
+              },
+            }}
+          >
+            <Shuffle size={20} />
+          </IconButton>
+          <IconButton
+            sx={{
+              width: 40,
+              height: 40,
+              bgcolor: 'action.hover',
+              borderRadius: 4,
+              '&:hover': {
+                bgcolor: 'action.selected',
+              },
+            }}
+          >
+            <Maximize2 size={20} />
+          </IconButton>
+        </Stack>
+      </Box>
 
-      <div className="relative h-40">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+      <Box sx={{ position: 'relative', height: 160 }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: '100%' }}>
           {/* Grid lines */}
           {[0, 1, 2, 3].map((i) => (
             <line
@@ -58,8 +97,9 @@ export default function TeamActivity() {
               y1={i * (height / 3)}
               x2={width}
               y2={i * (height / 3)}
-              className="stroke-gray-100 dark:stroke-[var(--border-color)]"
+              stroke="currentColor"
               strokeWidth="0.5"
+              opacity="0.1"
             />
           ))}
 
@@ -67,7 +107,7 @@ export default function TeamActivity() {
           <polyline
             points={points}
             fill="none"
-            className="stroke-gray-700 dark:stroke-purple-400"
+            stroke="currentColor"
             strokeWidth="2"
             strokeLinejoin="round"
             strokeLinecap="round"
@@ -82,8 +122,8 @@ export default function TeamActivity() {
             if (idx === 11) {
               return (
                 <g key={idx}>
-                  <circle cx={x} cy={y} r="3" className="fill-gray-700 dark:fill-purple-400" />
-                  <rect x={x - 12} y={y - 25} width="24" height="16" rx="4" className="fill-gray-700 dark:fill-purple-600" />
+                  <circle cx={x} cy={y} r="3" fill="currentColor" />
+                  <rect x={x - 12} y={y - 25} width="24" height="16" rx="4" fill="currentColor" />
                   <text x={x} y={y - 14} textAnchor="middle" fill="white" fontSize="8">
                     420
                   </text>
@@ -94,12 +134,24 @@ export default function TeamActivity() {
           })}
         </svg>
 
-        <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-gray-400 dark:text-[var(--text-muted)] mt-2">
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '0.75rem',
+            color: 'text.disabled',
+            mt: 1,
+          }}
+        >
           <span>Week 1</span>
           <span>Week 2</span>
           <span>Week 3</span>
-        </div>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Paper>
   );
 }
