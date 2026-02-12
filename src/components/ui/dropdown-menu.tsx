@@ -63,7 +63,7 @@ const DropdownMenuTrigger: React.FC<DropdownMenuTriggerProps> = ({ children, asC
 
   return React.cloneElement(children, {
     onClick: handleClick,
-  });
+  } as any);
 };
 
 // DropdownMenuContent - the actual MUI Menu
