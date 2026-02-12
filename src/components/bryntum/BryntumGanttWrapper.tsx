@@ -18,6 +18,19 @@ export default function BryntumGanttWrapper() {
   const [selectedDoc, setSelectedDoc] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
+    // Load Font Awesome for Bryntum icons
+    const fontAwesomeId = 'font-awesome';
+    let fontAwesome = document.getElementById(fontAwesomeId) as HTMLLinkElement;
+
+    if (!fontAwesome) {
+      fontAwesome = document.createElement('link');
+      fontAwesome.id = fontAwesomeId;
+      fontAwesome.rel = 'stylesheet';
+      fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+      document.head.appendChild(fontAwesome);
+    }
+
+    // Load Bryntum theme
     const linkId = 'bryntum-theme';
     let link = document.getElementById(linkId) as HTMLLinkElement;
 
@@ -34,6 +47,10 @@ export default function BryntumGanttWrapper() {
       const existingLink = document.getElementById(linkId);
       if (existingLink) {
         existingLink.remove();
+      }
+      const existingFA = document.getElementById(fontAwesomeId);
+      if (existingFA) {
+        existingFA.remove();
       }
     };
   }, [theme]);
@@ -67,6 +84,7 @@ export default function BryntumGanttWrapper() {
     setSelectedDoc({ id: docId, name: docName });
   }, []);
   const ganttConfig = {
+    height: '100%',
     project: {
       autoLoad: true,
       transport: {
@@ -78,7 +96,7 @@ export default function BryntumGanttWrapper() {
     columns: [
       { type: 'tree', field: 'name', text: 'Task', width: 250 },
       { type: 'startdate', field: 'startDate', text: 'Start' },
-      { type: 'duration', field: 'duration', text: 'Duration' }
+      { type: 'duration', text: 'Duration' }
     ],
     viewPreset: 'weekAndDayLetter',
     barMargin: 10,

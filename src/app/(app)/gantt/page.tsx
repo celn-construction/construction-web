@@ -48,6 +48,10 @@ const scales = [
   { unit: "day" as const, step: 1, format: "d" },
 ];
 
+// Use default columns for tree functionality - SVAR handles expand/collapse automatically
+// const columns = undefined; // Let SVAR use defaults
+
+// Or keep custom columns but ensure tree works
 const columns = [
   { id: "text", header: "Task name", flexgrow: 2 },
   { id: "start", header: "Start", flexgrow: 1, align: "center" as const },
@@ -161,7 +165,6 @@ export default function GanttPage() {
                   <Gantt
                     tasks={tasks}
                     scales={scales}
-                    columns={columns}
                   />
                 </ThemeWrapper>
               </motion.div>

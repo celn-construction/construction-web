@@ -44,11 +44,13 @@ export default function OrgSwitcher() {
     switchOrganizationMutation.mutate({ organizationId: orgId });
   };
 
+  const isLoading = orgsLoading || currentOrgLoading;
+
   // Single org: static text (no dropdown)
   if (organizations.length <= 1) {
     return (
       <Box sx={{ px: 2, py: 1.5 }}>
-        {orgsLoading ? (
+        {isLoading ? (
           <Skeleton width={120} height={20} />
         ) : (
           <Typography
@@ -72,7 +74,7 @@ export default function OrgSwitcher() {
         <DropdownMenuTrigger asChild>
           <Box
             component="button"
-            disabled={orgsLoading}
+            disabled={isLoading || switchOrganizationMutation.isPending}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -121,7 +123,7 @@ export default function OrgSwitcher() {
               <Typography sx={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.disabled', lineHeight: 1 }}>
                 Organization
               </Typography>
-              {orgsLoading ? (
+              {isLoading ? (
                 <Skeleton width={96} height={16} />
               ) : (
                 <Typography sx={{ color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160, lineHeight: 1.2 }}>
