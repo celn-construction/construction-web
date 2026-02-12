@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const sessionCookie = request.cookies.get("better-auth.session_token");
+  const isLocalhost = request.nextUrl.hostname === "localhost";
+  const cookieName = isLocalhost
+    ? "better-auth.session_token"
+    : "__Secure-better-auth.session_token";
+  const sessionCookie = request.cookies.get(cookieName);
   const onboardingComplete = request.cookies.get("onboarding-complete");
   const pathname = request.nextUrl.pathname;
 
