@@ -1,50 +1,27 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, User, Settings } from 'lucide-react';
+import { Box, Menu, MenuItem, Typography, Divider, Avatar } from '@mui/material';
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { signOut, useSession } from '@/lib/auth-client';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 
 export default function UserMenu() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const open = Boolean(anchorEl);
   const router = useRouter();
   const { data: session } = useSession();
 
-  // Close on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
-
-  // Close on escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false);
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen]);
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -52,7 +29,7 @@ export default function UserMenu() {
       await signOut({
         fetchOptions: {
           onSuccess: () => {
-            setIsOpen(false);
+            handleClose();
             router.push('/sign-in');
             router.refresh();
           }
@@ -65,73 +42,104 @@ export default function UserMenu() {
   };
 
   return (
-    <div className="relative" ref={menuRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-10 h-10 bg-gray-300 rounded-full overflow-hidden cursor-pointer ring-2 ring-transparent hover:ring-gray-400 transition-all"
+    <>
+      <Box
+        component="button"
+        onClick={handleClick}
         aria-label="User menu"
-        aria-expanded={isOpen}
+        aria-expanded={open}
+        sx={{
+          width: 40,
+          height: 40,
+          bgcolor: 'action.hover',
+          borderRadius: '50%',
+          overflow: 'hidden',
+          cursor: 'pointer',
+          border: '2px solid transparent',
+          transition: 'all 0.2s',
+          p: 0,
+          '&:hover': {
+            borderColor: 'action.selected',
+          },
+        }}
       >
         <ImageWithFallback
           src="/images/avatar-1.jpg"
           alt="User"
-          className="w-full h-full object-cover"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
-      </button>
+      </Box>
 
-      {isOpen && (
-        <div className="absolute right-0 top-12 w-48 bg-white dark:bg-[var(--bg-card)] rounded-md shadow-lg border border-gray-200 dark:border-[var(--border-color)] py-2 z-50">
-          <div className="px-4 py-2 border-b border-gray-100 dark:border-[var(--border-color)]">
-            <p className="text-sm font-medium text-gray-800 dark:text-[var(--text-primary)]">
-              {session?.user?.name || 'User'}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">
-              {session?.user?.email || ''}
-            </p>
-          </div>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        sx={{
+          mt: 1.5,
+          '& .MuiPaper-root': {
+            width: 192,
+          },
+        }}
+      >
+        <Box sx={{ px: 2, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+            {session?.user?.name || 'User'}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {session?.user?.email || ''}
+          </Typography>
+        </Box>
 
-          <button
-            onClick={() => setIsOpen(false)}
-            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-50 dark:hover:bg-[var(--bg-hover)] flex items-center gap-3 transition-colors"
-          >
-            <User className="w-4 h-4 text-gray-500 dark:text-[var(--text-secondary)]" />
-            Profile
-          </button>
+        <MenuItem onClick={handleClose}>
+          <User style={{ width: 16, height: 16, color: 'var(--text-secondary)', marginRight: 12 }} />
+          <Typography variant="body2">Profile</Typography>
+        </MenuItem>
 
-          <button
-            onClick={() => setIsOpen(false)}
-            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-50 dark:hover:bg-[var(--bg-hover)] flex items-center gap-3 transition-colors"
-          >
-            <Settings className="w-4 h-4 text-gray-500 dark:text-[var(--text-secondary)]" />
-            Settings
-          </button>
+        <MenuItem onClick={handleClose}>
+          <Settings style={{ width: 16, height: 16, color: 'var(--text-secondary)', marginRight: 12 }} />
+          <Typography variant="body2">Settings</Typography>
+        </MenuItem>
 
-          <div className="border-t border-gray-100 dark:border-[var(--border-color)] mt-1 pt-1">
-            <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoggingOut ? (
-                <>
-                  <LoadingSpinner size="sm" />
-                  <span>Logging out...</span>
-                </>
-              ) : (
-                <>
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
+        <Divider sx={{ my: 0.5 }} />
+
+        <MenuItem
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          sx={{
+            color: 'error.main',
+            '&:hover': {
+              bgcolor: 'error.main',
+              color: 'white',
+              opacity: 0.1,
+            },
+          }}
+        >
+          {isLoggingOut ? (
+            <>
+              <LoadingSpinner size="sm" />
+              <Typography variant="body2" sx={{ ml: 1.5 }}>Logging out...</Typography>
+            </>
+          ) : (
+            <>
+              <LogOut style={{ width: 16, height: 16, marginRight: 12 }} />
+              <Typography variant="body2">Logout</Typography>
+            </>
+          )}
+        </MenuItem>
+      </Menu>
 
       {/* Full-screen loading overlay during logout */}
       {isLoggingOut && (
         <LoadingSpinner size="lg" fullScreen text="Logging out..." />
       )}
-    </div>
+    </>
   );
 }

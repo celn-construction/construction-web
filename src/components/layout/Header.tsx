@@ -1,8 +1,9 @@
 'use client';
 
-import { Search, Moon, Sun, ChevronDown, Bell, Users, Plus, Building2, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Moon, Sun, ChevronDown, Bell, Plus, Building2, Check } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { Box, Typography, IconButton, Divider, Skeleton } from '@mui/material';
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
 import { api } from '@/trpc/react';
@@ -54,68 +55,162 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-[var(--bg-primary)] px-6 py-3 flex items-center justify-between border-b border-[var(--border-light)] transition-colors duration-150">
+    <Box
+      component="header"
+      sx={{
+        bgcolor: 'background.default',
+        px: 3,
+        py: 1.5,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        transition: 'colors 0.15s',
+      }}
+    >
       {/* Left: Project Switcher */}
       <motion.div
         variants={container}
         initial="hidden"
         animate="show"
-        className="flex items-center gap-2"
+        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
       >
         {/* Project Switcher */}
         <motion.div variants={item}>
           <DropdownMenu open={projectMenuOpen} onOpenChange={setProjectMenuOpen}>
-            <DropdownMenuTrigger
-              className="flex items-center gap-3 px-3 py-2 rounded-lg border border-[var(--border-light)] bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-color)] transition-all duration-150 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-              disabled={projectsLoading}
-            >
-              <div className="w-7 h-7 rounded-md bg-[var(--accent-warm)] flex items-center justify-center flex-shrink-0">
-                <Building2 className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex flex-col items-start min-w-0">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] leading-none">Project</span>
-                {projectsLoading ? (
-                  <div className="h-4 w-24 bg-[var(--bg-hover)] rounded animate-pulse" />
-                ) : (
-                  <span className="text-[var(--text-primary)] truncate max-w-[160px] leading-tight">
-                    {projects.length === 0 ? 'No Projects' : (currentProject?.name ?? 'Select Project')}
-                  </span>
-                )}
-              </div>
-              <motion.div animate={{ rotate: projectMenuOpen ? 180 : 0 }} transition={{ duration: 0.15 }}>
-                <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />
-              </motion.div>
+            <DropdownMenuTrigger asChild>
+              <Box
+                component="button"
+                disabled={projectsLoading}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'background.paper',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                    borderColor: 'divider',
+                  },
+                  '&:focus-visible': {
+                    outline: 'none',
+                    ring: 2,
+                    ringColor: 'var(--focus-ring)',
+                  },
+                  '&:disabled': {
+                    cursor: 'not-allowed',
+                    opacity: 0.5,
+                  },
+                  transition: 'all 0.15s',
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 1.5,
+                    bgcolor: 'warm.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Building2 style={{ width: 16, height: 16, color: 'white' }} />
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                  <Typography sx={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.disabled', lineHeight: 1 }}>
+                    Project
+                  </Typography>
+                  {projectsLoading ? (
+                    <Skeleton width={96} height={16} />
+                  ) : (
+                    <Typography sx={{ color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160, lineHeight: 1.2 }}>
+                      {projects.length === 0 ? 'No Projects' : (currentProject?.name ?? 'Select Project')}
+                    </Typography>
+                  )}
+                </Box>
+                <motion.div animate={{ rotate: projectMenuOpen ? 180 : 0 }} transition={{ duration: 0.15 }}>
+                  <ChevronDown style={{ width: 16, height: 16, color: 'var(--text-muted)' }} />
+                </motion.div>
+              </Box>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[280px] p-2" sideOffset={8}>
-              <div className="px-2 py-1.5 mb-1">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium">Switch Project</span>
-              </div>
+            <DropdownMenuContent align="start" sideOffset={8}>
+              <Box sx={{ px: 1, py: 0.75, mb: 0.5 }}>
+                <Typography sx={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.disabled', fontWeight: 500 }}>
+                  Switch Project
+                </Typography>
+              </Box>
               {projects.map((project) => {
                 const isActive = project.id === currentProjectId;
                 return (
-                  <DropdownMenuItem key={project.id} onClick={() => switchProject(project.id)}
-                    className={`flex items-center gap-3 px-2.5 py-2.5 rounded-lg mb-0.5 ${isActive ? 'bg-[var(--accent-subtle)]' : ''}`}>
-                    <div className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
-                      isActive ? 'bg-[var(--accent-warm)] text-white' : 'bg-[var(--bg-hover)] text-[var(--text-secondary)]'
-                    }`}>
-                      {project.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className={`text-sm truncate ${isActive ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-primary)]'}`}>
-                        {project.name}
-                      </span>
-                      <span className="text-[11px] text-[var(--text-muted)] capitalize">{project.status}</span>
-                    </div>
-                    {isActive && <Check className="w-4 h-4 text-[var(--accent-warm)] flex-shrink-0" />}
+                  <DropdownMenuItem key={project.id} onClick={() => switchProject(project.id)}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        width: '100%',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 1.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          flexShrink: 0,
+                          bgcolor: isActive ? 'warm.main' : 'action.hover',
+                          color: isActive ? 'white' : 'text.secondary',
+                        }}
+                      >
+                        {project.name.charAt(0).toUpperCase()}
+                      </Box>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                        <Typography sx={{ fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: isActive ? 500 : 400 }}>
+                          {project.name}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', textTransform: 'capitalize' }}>
+                          {project.status}
+                        </Typography>
+                      </Box>
+                      {isActive && <Check style={{ width: 16, height: 16, color: 'var(--accent-warm)', flexShrink: 0 }} />}
+                    </Box>
                   </DropdownMenuItem>
                 );
               })}
-              {projects.length > 0 && <DropdownMenuSeparator className="my-2" />}
-              <DropdownMenuItem onClick={() => setAddProjectOpen(true)} className="flex items-center gap-3 px-2.5 py-2.5 rounded-lg">
-                <div className="w-8 h-8 rounded-md border border-dashed border-[var(--border-color)] flex items-center justify-center flex-shrink-0">
-                  <Plus className="w-4 h-4 text-[var(--text-muted)]" />
-                </div>
-                <span className="text-sm text-[var(--text-secondary)]">New Project</span>
+              {projects.length > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuItem onClick={() => setAddProjectOpen(true)}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 1.5,
+                      border: '1px dashed',
+                      borderColor: 'divider',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Plus style={{ width: 16, height: 16, color: 'var(--text-muted)' }} />
+                  </Box>
+                  <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>New Project</Typography>
+                </Box>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -127,18 +222,65 @@ export default function Header() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
-        className="hidden md:flex items-center gap-3 bg-[var(--bg-input)] px-4 py-2 rounded-lg transition-all duration-150 hover:bg-[var(--bg-hover)] cursor-pointer group max-w-md w-full"
       >
-        <Search className="w-[18px] h-[18px] text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors duration-150" />
-        <span className="text-sm text-[var(--text-muted)] flex-1">Search...</span>
-        <div className="flex items-center gap-1">
-          <kbd className="px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)] bg-[var(--bg-primary)] border border-[var(--border-light)] rounded">
-            ⌘
-          </kbd>
-          <kbd className="px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)] bg-[var(--bg-primary)] border border-[var(--border-light)] rounded">
-            K
-          </kbd>
-        </div>
+        <Box
+          sx={{
+            display: { xs: 'none', md: 'flex' },
+            alignItems: 'center',
+            gap: 1.5,
+            bgcolor: 'input.background',
+            px: 2,
+            py: 1,
+            borderRadius: 2,
+            transition: 'all 0.15s',
+            cursor: 'pointer',
+            maxWidth: 448,
+            width: '100%',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+            '&:hover .search-icon': {
+              color: 'text.secondary',
+            },
+          }}
+        >
+          <Search className="search-icon" style={{ width: 18, height: 18, color: 'var(--text-muted)', transition: 'color 0.15s' }} />
+          <Typography sx={{ fontSize: '0.875rem', color: 'text.disabled', flex: 1 }}>Search...</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box
+              component="kbd"
+              sx={{
+                px: 0.75,
+                py: 0.25,
+                fontSize: '0.625rem',
+                fontWeight: 500,
+                color: 'text.disabled',
+                bgcolor: 'background.default',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 0.5,
+              }}
+            >
+              ⌘
+            </Box>
+            <Box
+              component="kbd"
+              sx={{
+                px: 0.75,
+                py: 0.25,
+                fontSize: '0.625rem',
+                fontWeight: 500,
+                color: 'text.disabled',
+                bgcolor: 'background.default',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 0.5,
+              }}
+            >
+              K
+            </Box>
+          </Box>
+        </Box>
       </motion.div>
 
       {/* Right: Actions */}
@@ -146,39 +288,63 @@ export default function Header() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="flex items-center gap-2"
+        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
       >
         {/* Theme Toggle */}
-        <motion.button
-          variants={item}
-          onClick={toggleTheme}
-          className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[var(--bg-hover)] transition-all duration-150 cursor-pointer"
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          whileTap={{ scale: 0.95 }}
-        >
-          <motion.div
-            initial={false}
-            animate={{ rotate: theme === 'dark' ? 0 : 180 }}
-            transition={{ duration: 0.15 }}
+        <motion.div variants={item}>
+          <IconButton
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 2,
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
+            }}
           >
-            {theme === 'dark' ? (
-              <Sun className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
-            ) : (
-              <Moon className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
-            )}
-          </motion.div>
-        </motion.button>
+            <motion.div
+              initial={false}
+              animate={{ rotate: theme === 'dark' ? 0 : 180 }}
+              transition={{ duration: 0.15 }}
+            >
+              {theme === 'dark' ? (
+                <Sun style={{ width: 18, height: 18, color: 'var(--text-secondary)' }} />
+              ) : (
+                <Moon style={{ width: 18, height: 18, color: 'var(--text-secondary)' }} />
+              )}
+            </motion.div>
+          </IconButton>
+        </motion.div>
 
         {/* Notification Bell */}
-        <motion.button
-          variants={item}
-          className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[var(--bg-hover)] transition-all duration-150 cursor-pointer relative"
-          whileTap={{ scale: 0.95 }}
-        >
-          <Bell className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
-          {/* Optional notification indicator */}
-          <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-[var(--status-amber)] rounded-full" />
-        </motion.button>
+        <motion.div variants={item}>
+          <IconButton
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 2,
+              position: 'relative',
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
+            }}
+          >
+            <Bell style={{ width: 18, height: 18, color: 'var(--text-secondary)' }} />
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                width: 6,
+                height: 6,
+                bgcolor: 'warning.main',
+                borderRadius: '50%',
+              }}
+            />
+          </IconButton>
+        </motion.div>
 
         {/* User Menu */}
         <motion.div variants={item}>
@@ -188,6 +354,6 @@ export default function Header() {
 
       {/* Add Project Dialog */}
       <AddProjectDialog open={addProjectOpen} onOpenChange={setAddProjectOpen} />
-    </header>
+    </Box>
   );
 }

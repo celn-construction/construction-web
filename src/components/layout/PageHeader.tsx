@@ -1,3 +1,5 @@
+import { Box, Typography } from '@mui/material';
+
 interface PageHeaderProps {
   title: string;
   description?: string;
@@ -5,15 +7,29 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, description }: PageHeaderProps) {
   return (
-    <div className="mb-6">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-[var(--text-primary)] mb-2 transition-colors">
+    <Box sx={{ mb: 3 }}>
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 'bold',
+          color: 'text.primary',
+          mb: 1,
+          transition: 'colors 0.15s',
+        }}
+      >
         {title}
-      </h1>
+      </Typography>
       {description && (
-        <p className="text-gray-600 dark:text-[var(--text-secondary)] transition-colors">
+        <Typography
+          variant="body1"
+          sx={{
+            color: 'text.secondary',
+            transition: 'colors 0.15s',
+          }}
+        >
           {description}
-        </p>
+        </Typography>
       )}
-    </div>
+    </Box>
   );
 }

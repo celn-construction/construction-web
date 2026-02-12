@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar, Users, BarChart3 } from 'lucide-react';
+import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Divider } from '@mui/material';
 import { navItems } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
 import { api } from '~/trpc/react';
@@ -30,88 +31,213 @@ export default function Sidebar() {
   const workspaceItems = navItems.slice(5);
 
   return (
-    <aside className="h-screen w-52 bg-[var(--bg-sidebar)] flex flex-col sticky top-0 transition-colors duration-150 sidebar-depth">
+    <Box
+      component="aside"
+      sx={{
+        height: '100vh',
+        width: 208, // w-52
+        bgcolor: 'sidebar.background',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'sticky',
+        top: 0,
+        transition: 'colors 0.15s',
+        boxShadow: 'inset -1px 0 0 0 var(--sidebar-border)',
+      }}
+    >
       {/* Branding Area */}
-      <div className="px-4 py-4 border-b flex flex-col gap-2" style={{ borderColor: 'var(--sidebar-border)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-md bg-[var(--accent-primary)] text-[var(--bg-primary)] flex items-center justify-center font-bold text-sm">
+      <Box
+        sx={{
+          px: 2,
+          py: 2,
+          borderBottom: '1px solid',
+          borderColor: 'sidebar.border',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: 1.5,
+              bgcolor: 'primary.main',
+              color: 'background.default',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold',
+              fontSize: '0.875rem',
+            }}
+          >
             <LogoIcon size={18} />
-          </div>
-          <span className="font-medium text-sm text-[var(--text-primary)]">BuildTrack</span>
-        </div>
+          </Box>
+          <Typography sx={{ fontWeight: 500, fontSize: '0.875rem', color: 'text.primary' }}>
+            BuildTrack
+          </Typography>
+        </Box>
         {organization && (
-          <div className="text-xs text-[var(--text-muted)] truncate pl-11">
+          <Typography
+            sx={{
+              fontSize: '0.75rem',
+              color: 'text.disabled',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              pl: 5.5,
+            }}
+          >
             {organization.name}
-          </div>
+          </Typography>
         )}
-      </div>
+      </Box>
 
       {/* Navigation */}
-      <nav className="flex flex-col gap-6 p-4 flex-1">
+      <Box component="nav" sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 2, flex: 1 }}>
         {/* Navigate Section */}
-        <div className="flex flex-col gap-1">
-          <div className="px-3 mb-1 text-[10px] tracking-widest text-[var(--text-muted)] font-medium uppercase">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Typography
+            sx={{
+              px: 1.5,
+              mb: 0.5,
+              fontSize: '0.625rem',
+              letterSpacing: '0.1em',
+              color: 'text.disabled',
+              fontWeight: 500,
+              textTransform: 'uppercase',
+            }}
+          >
             Navigate
-          </div>
-          {navigateItems.map((item) => {
-            const Icon = getIcon(item.icon);
-            const isActive = pathname === item.href;
+          </Typography>
+          <List sx={{ p: 0 }}>
+            {navigateItems.map((item) => {
+              const Icon = getIcon(item.icon);
+              const isActive = pathname === item.href;
 
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 ${
-                  isActive
-                    ? 'bg-[var(--sidebar-active-bg)] text-[var(--text-primary)] font-medium'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {isActive && (
-                  <div
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--sidebar-indicator)]"
-                    aria-hidden="true"
+              return (
+                <ListItemButton
+                  key={item.id}
+                  component={Link}
+                  href={item.href}
+                  sx={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: 2,
+                    transition: 'all 0.15s',
+                    bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
+                    color: isActive ? 'text.primary' : 'text.secondary',
+                    fontWeight: isActive ? 500 : 400,
+                    '&:hover': {
+                      bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
+                      color: 'text.primary',
+                    },
+                  }}
+                >
+                  {isActive && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        left: 0,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '3px',
+                        height: 20,
+                        borderRadius: '0 999px 999px 0',
+                        bgcolor: 'sidebar.indicator',
+                      }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <ListItemIcon sx={{ minWidth: 18, color: 'inherit' }}>
+                    <Icon style={{ width: 18, height: 18 }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{ fontSize: '0.875rem' }}
                   />
-                )}
-                <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-                <span className="text-sm">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
+                </ListItemButton>
+              );
+            })}
+          </List>
+        </Box>
 
         {/* Workspace Section */}
-        <div className="flex flex-col gap-1">
-          <div className="px-3 mb-1 text-[10px] tracking-widest text-[var(--text-muted)] font-medium uppercase">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Typography
+            sx={{
+              px: 1.5,
+              mb: 0.5,
+              fontSize: '0.625rem',
+              letterSpacing: '0.1em',
+              color: 'text.disabled',
+              fontWeight: 500,
+              textTransform: 'uppercase',
+            }}
+          >
             Workspace
-          </div>
-          {workspaceItems.map((item) => {
-            const Icon = getIcon(item.icon);
-            const isActive = pathname === item.href;
+          </Typography>
+          <List sx={{ p: 0 }}>
+            {workspaceItems.map((item) => {
+              const Icon = getIcon(item.icon);
+              const isActive = pathname === item.href;
 
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 ${
-                  isActive
-                    ? 'bg-[var(--sidebar-active-bg)] text-[var(--text-primary)] font-medium'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {isActive && (
-                  <div
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--sidebar-indicator)]"
-                    aria-hidden="true"
+              return (
+                <ListItemButton
+                  key={item.id}
+                  component={Link}
+                  href={item.href}
+                  sx={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: 2,
+                    transition: 'all 0.15s',
+                    bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
+                    color: isActive ? 'text.primary' : 'text.secondary',
+                    fontWeight: isActive ? 500 : 400,
+                    '&:hover': {
+                      bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
+                      color: 'text.primary',
+                    },
+                  }}
+                >
+                  {isActive && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        left: 0,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '3px',
+                        height: 20,
+                        borderRadius: '0 999px 999px 0',
+                        bgcolor: 'sidebar.indicator',
+                      }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <ListItemIcon sx={{ minWidth: 18, color: 'inherit' }}>
+                    <Icon style={{ width: 18, height: 18 }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{ fontSize: '0.875rem' }}
                   />
-                )}
-                <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-                <span className="text-sm">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    </aside>
+                </ListItemButton>
+              );
+            })}
+          </List>
+        </Box>
+      </Box>
+    </Box>
   );
 }
