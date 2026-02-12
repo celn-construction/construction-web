@@ -142,7 +142,8 @@ export function OnboardingWizardV2() {
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        p: 2,
+        p: { xs: 1.5, sm: 2 },
+        overflow: 'auto',
       }}
     >
       <Box
@@ -150,14 +151,14 @@ export function OnboardingWizardV2() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        sx={{ width: '100%', maxWidth: 640 }}
+        sx={{ width: '100%', maxWidth: 640, my: 'auto' }}
       >
         <Paper
           elevation={3}
           sx={{
             borderRadius: 4,
             border: '1px solid var(--border-light)',
-            p: { xs: 4, sm: 5, lg: 6 },
+            p: { xs: 2.5, sm: 3, lg: 4 },
           }}
         >
           {!showSuccess ? (
@@ -173,7 +174,7 @@ export function OnboardingWizardV2() {
                   damping: 20,
                   delay: 0.1,
                 }}
-                sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}
+                sx={{ mb: 2.5, display: 'flex', justifyContent: 'center' }}
               >
                 <Box
                   sx={{
@@ -232,7 +233,7 @@ export function OnboardingWizardV2() {
               </Box>
 
               {/* Progress */}
-              <Box sx={{ mb: 4 }}>
+              <Box sx={{ mb: 2.5 }}>
                 <OnboardingProgress
                   currentStep={currentStep}
                   totalSteps={steps.length}
@@ -241,7 +242,7 @@ export function OnboardingWizardV2() {
               </Box>
 
               {/* Steps */}
-              <Box sx={{ mb: 4 }}>
+              <Box sx={{ mb: 2.5 }}>
                 <AnimatePresence mode="wait" custom={direction}>
                   <motion.div
                     key={currentStep}

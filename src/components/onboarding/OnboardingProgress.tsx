@@ -81,7 +81,7 @@ export function OnboardingProgress({
                       damping: 20,
                     }}
                   >
-                    <Check size={16} />
+                    <Check size={18} strokeWidth={3} />
                   </Box>
                 ) : (
                   index + 1
