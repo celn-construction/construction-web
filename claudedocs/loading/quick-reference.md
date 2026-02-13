@@ -109,7 +109,7 @@ const {
 src/
 ├── components/
 │   ├── ui/
-│   │   └── LoadingSpinner.tsx          ← Reusable spinner
+│   │   └── loading-spinner.tsx         ← Reusable spinner
 │   └── providers/
 │       └── LoadingProvider.tsx         ← Global context
 ├── app/

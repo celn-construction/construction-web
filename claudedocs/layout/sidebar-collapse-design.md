@@ -15,7 +15,7 @@ Simplify the sidebar by removing the hamburger menu on desktop. Add responsive m
 
 ### Current Files
 - `src/components/layout/Sidebar.tsx` - Sidebar component
-- `src/components/layout/LayoutWrapper.tsx` - Layout container
+- `src/app/(app)/layout.tsx` - App layout container
 - `src/components/layout/Header.tsx` - Top header bar
 
 ---
@@ -327,7 +327,7 @@ useEffect(() => {
 | File | Changes |
 |------|---------|
 | `Sidebar.tsx` | Remove hamburger button |
-| `LayoutWrapper.tsx` | Add responsive layout, drawer state |
+| `src/app/(app)/layout.tsx` | Add responsive layout, drawer state |
 | `Header.tsx` | Hide on mobile (replaced by MobileHeader) |
 
 ## Files to Create

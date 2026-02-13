@@ -160,7 +160,7 @@ Invitation {
 - `src/server/api/routers/invitation.ts`
 - `src/app/(onboarding)/layout.tsx`
 - `src/app/(onboarding)/onboarding/page.tsx`
-- `src/components/onboarding/OnboardingForm.tsx`
+- `src/components/onboarding/OnboardingWizardV2.tsx`
 - `src/app/invite/[token]/page.tsx`
 - `prisma/migrations/20260211015255_add_organizations/migration.sql`
 
