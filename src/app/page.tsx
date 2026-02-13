@@ -36,14 +36,19 @@ export default function Home() {
                 sx={{
                   width: 40,
                   height: 40,
-                  bgcolor: 'warm.main',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? '#ffffff' : '#171717',
                   borderRadius: 1.5,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <LogoIcon size={22} />
+                <LogoIcon
+                  size={22}
+                  sx={{
+                    color: (theme) => theme.palette.mode === 'dark' ? '#000000' : '#ffffff'
+                  }}
+                />
               </Box>
               <Typography
                 variant="h6"
@@ -62,12 +67,13 @@ export default function Home() {
                   href="/dashboard"
                   variant="contained"
                   sx={{
-                    bgcolor: 'warm.main',
-                    color: 'white',
+                    bgcolor: '#ffffff',
+                    color: '#000000 !important',
+                    fontWeight: 600,
                     px: 3,
                     py: 1.25,
                     '&:hover': {
-                      bgcolor: 'warm.dark',
+                      bgcolor: '#e5e5e5',
                     },
                   }}
                 >
@@ -80,25 +86,30 @@ export default function Home() {
                     href="/sign-in"
                     sx={{
                       color: 'text.secondary',
+                      fontWeight: 500,
+                      px: 2,
+                      py: 1.5,
                       '&:hover': {
                         color: 'text.primary',
                         bgcolor: 'transparent',
                       },
                     }}
                   >
-                    Sign in
+                    SIGN IN
                   </Button>
                   <Button
                     component={Link}
                     href="/sign-up"
                     variant="contained"
                     sx={{
-                      bgcolor: 'warm.main',
-                      color: 'white',
+                      bgcolor: '#ffffff',
+                      color: '#000000 !important',
+                      fontWeight: 600,
                       px: 3,
                       py: 1.25,
+                      textTransform: 'uppercase',
                       '&:hover': {
-                        bgcolor: 'warm.dark',
+                        bgcolor: '#e5e5e5',
                       },
                     }}
                   >
@@ -174,18 +185,22 @@ export default function Home() {
                     size="large"
                     endIcon={<ArrowRight />}
                     sx={{
-                      bgcolor: 'warm.main',
-                      color: 'white',
+                      bgcolor: '#ffffff',
+                      color: '#000000 !important',
                       px: 4,
                       py: 2,
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      fontSize: '1rem',
                       '&:hover': {
-                        bgcolor: 'warm.dark',
+                        bgcolor: '#e5e5e5',
                         '& .MuiSvgIcon-root': {
                           transform: 'translateX(4px)',
                         },
                       },
                       '& .MuiSvgIcon-root': {
                         transition: 'transform 0.2s',
+                        color: '#000000 !important',
                       },
                     }}
                   >
@@ -194,17 +209,19 @@ export default function Home() {
                   <Button
                     component={Link}
                     href="/sign-in"
-                    variant="outlined"
                     size="large"
                     sx={{
-                      bgcolor: 'background.paper',
-                      color: 'text.primary',
+                      bgcolor: 'transparent',
+                      color: '#ffffff !important',
                       px: 4,
                       py: 2,
-                      borderColor: 'divider',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      border: '2px solid #ffffff',
                       '&:hover': {
-                        bgcolor: 'action.hover',
-                        borderColor: 'divider',
+                        bgcolor: 'rgba(255, 255, 255, 0.1)',
+                        borderColor: '#ffffff',
                       },
                     }}
                   >

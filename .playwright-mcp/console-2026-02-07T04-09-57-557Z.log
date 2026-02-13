@@ -1,1 +1,0 @@
-[    1142ms] [WARNING] Image with src "/images/auth-construction.jpg" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:5050/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:968
