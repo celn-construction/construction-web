@@ -12,13 +12,12 @@ import OrgSwitcher from './OrgSwitcher';
 interface MobileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  projectSlug?: string;
 }
 
-export default function MobileDrawer({ isOpen, onClose, projectSlug }: MobileDrawerProps) {
+export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const pathname = usePathname();
   const params = useParams<{ slug?: string }>();
-  const slug = params?.slug ?? projectSlug;
+  const slug = params?.slug;
 
   const getIcon = (iconName: string) => {
     switch (iconName) {

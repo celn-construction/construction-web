@@ -8,14 +8,10 @@ import { navItems, getNavHref } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
 import OrgSwitcher from './OrgSwitcher';
 
-interface SidebarProps {
-  projectSlug?: string;
-}
-
-export default function Sidebar({ projectSlug }: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname();
   const params = useParams<{ slug?: string }>();
-  const slug = params?.slug ?? projectSlug;
+  const slug = params?.slug;
 
   const getIcon = (iconName: string) => {
     switch (iconName) {

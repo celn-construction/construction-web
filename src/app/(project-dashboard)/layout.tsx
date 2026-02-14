@@ -7,17 +7,9 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileHeader from '@/components/layout/MobileHeader';
 import MobileDrawer from '@/components/layout/MobileDrawer';
-import { NoProjectPrompt } from '@/components/layout/NoProjectPrompt';
-import { api } from '~/trpc/react';
-
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
-
-  const { data: activeProject, isLoading } = api.project.getActive.useQuery();
-  const hasProject = !!activeProject;
-  const isInvitePage = pathname.startsWith('/invite');
-  const isProjectsPage = pathname === '/projects';
 
   const openDrawer = useCallback(() => setDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
@@ -39,7 +31,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }}
       >
         {/* Sidebar */}
-        <Sidebar projectSlug={activeProject?.slug} />
+        <Sidebar />
 
         {/* Main Content Area */}
         <Box
@@ -60,7 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               overflowY: 'auto',
             }}
           >
-            {!isLoading && !hasProject && !isInvitePage && !isProjectsPage ? <NoProjectPrompt /> : children}
+            {children}
           </Box>
         </Box>
       </Box>
@@ -83,12 +75,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             overflowY: 'auto',
           }}
         >
-          {!isLoading && !hasProject && !isInvitePage && !isProjectsPage ? <NoProjectPrompt /> : children}
+          {children}
         </Box>
       </Box>
 
       {/* Mobile Drawer Overlay */}
-      <MobileDrawer isOpen={drawerOpen} onClose={closeDrawer} projectSlug={activeProject?.slug} />
+      <MobileDrawer isOpen={drawerOpen} onClose={closeDrawer} />
     </Box>
   );
 }
