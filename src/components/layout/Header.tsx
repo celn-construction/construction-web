@@ -41,11 +41,17 @@ export default function Header() {
   const utils = api.useUtils();
   const setActiveProjectMutation = api.project.setActive.useMutation();
 
-  const switchProject = (projectId: string) => {
+  const switchProject = (projectId: string, projectSlug: string) => {
+    // Extract current segment from pathname
+    const pathParts = pathname.split('/');
+    const currentSegment = pathParts.includes('projects') && pathParts.length > 3
+      ? pathParts[pathParts.length - 1]
+      : 'gantt';
+
     setActiveProjectMutation.mutate({ projectId }, {
       onSuccess: () => {
         void utils.project.getActive.invalidate();
-        router.push(`/projects/${projectId}/gantt`);
+        router.push(`/projects/${projectSlug}/${currentSegment}`);
       },
       onError: (error) => {
         console.error('Failed to switch project:', error.message);
@@ -194,7 +200,7 @@ export default function Header() {
               {projects.map((project) => {
                 const isActive = project.id === activeProject?.id;
                 return (
-                  <DropdownMenuItem key={project.id} onClick={() => switchProject(project.id)}>
+                  <DropdownMenuItem key={project.id} onClick={() => switchProject(project.id, project.slug)}>
                     <Box
                       sx={{
                         display: 'flex',

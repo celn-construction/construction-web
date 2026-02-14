@@ -21,6 +21,7 @@ model User {
     phone                 String?
     onboardingComplete    Boolean   @default(false)
     activeOrganizationId  String?
+    activeProjectId       String?
     createdAt             DateTime  @default(now())
     updatedAt             DateTime  @updatedAt
 
@@ -31,6 +32,7 @@ model User {
     documents          Document[]
     notifications      Notification[]
     activeOrganization Organization?    @relation("ActiveOrganization", fields: [activeOrganizationId], references: [id], onDelete: SetNull)
+    activeProject      Project?         @relation("ActiveProject", fields: [activeProjectId], references: [id], onDelete: SetNull)
 }
 
 model Session {
@@ -97,17 +99,37 @@ model Organization {
     @@index([slug])
 }
 
+enum ProjectTemplate {
+    BLANK
+}
+
 model Project {
-    id             String   @id @default(cuid())
+    id             String          @id @default(cuid())
     name           String
-    status         String   @default("active")
+    slug           String
+    status         String          @default("active")
     organizationId String
-    createdAt      DateTime @default(now())
-    updatedAt      DateTime @updatedAt
+    template       ProjectTemplate @default(BLANK)
+    calendarId     String          @default("general")
+    startDate      DateTime?
+    endDate        DateTime?
+    hoursPerDay    Int             @default(24)
+    daysPerWeek    Int             @default(5)
+    daysPerMonth   Int             @default(20)
+    calendars      Json?
+    createdAt      DateTime        @default(now())
+    updatedAt      DateTime        @updatedAt
 
-    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    documents    Document[]
+    organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    documents       Document[]
+    ganttTasks      GanttTask[]
+    ganttDependencies GanttDependency[]
+    ganttResources  GanttResource[]
+    ganttAssignments GanttAssignment[]
+    ganttTimeRanges GanttTimeRange[]
+    activeUsers     User[]           @relation("ActiveProject")
 
+    @@unique([organizationId, slug])
     @@index([organizationId])
 }
 
@@ -182,4 +204,104 @@ model Notification {
 
     @@index([userId, organizationId, read])
     @@index([userId, organizationId, createdAt])
+}
+
+// Gantt Chart Models
+model GanttTask {
+    id                 String    @id @default(cuid())
+    projectId          String
+    parentId           String?
+    name               String
+    percentDone        Float     @default(0)
+    startDate          DateTime?
+    endDate            DateTime?
+    duration           Float?
+    durationUnit       String    @default("day")
+    effort             Float?
+    effortUnit         String?
+    expanded           Boolean   @default(false)
+    orderIndex         Int       @default(0)
+    manuallyScheduled  Boolean   @default(false)
+    constraintType     String?
+    constraintDate     DateTime?
+    rollup             Boolean   @default(false)
+    cls                String?
+    iconCls            String?
+    note               String?
+    baselines          Json?
+
+    project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    parent       GanttTask?     @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+    children     GanttTask[]    @relation("TaskHierarchy")
+    assignments  GanttAssignment[]
+    dependenciesFrom GanttDependency[] @relation("FromTask")
+    dependenciesTo   GanttDependency[] @relation("ToTask")
+
+    @@index([projectId])
+    @@index([projectId, parentId])
+    @@index([parentId])
+}
+
+model GanttDependency {
+    id         String   @id @default(cuid())
+    projectId  String
+    fromTaskId String
+    toTaskId   String
+    type       Int      @default(2)
+    lag        Float    @default(0)
+    lagUnit    String?
+    cls        String?
+
+    project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    fromTask GanttTask @relation("FromTask", fields: [fromTaskId], references: [id], onDelete: Cascade)
+    toTask   GanttTask @relation("ToTask", fields: [toTaskId], references: [id], onDelete: Cascade)
+
+    @@index([projectId])
+    @@index([fromTaskId])
+    @@index([toTaskId])
+}
+
+model GanttResource {
+    id          String  @id @default(cuid())
+    projectId   String
+    name        String
+    city        String?
+    calendar    String?
+    image       String?
+
+    project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    assignments GanttAssignment[]
+
+    @@index([projectId])
+}
+
+model GanttAssignment {
+    id         String @id @default(cuid())
+    projectId  String
+    taskId     String
+    resourceId String
+    units      Float  @default(100)
+
+    project  Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    task     GanttTask     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+    resource GanttResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+    @@unique([taskId, resourceId])
+    @@index([projectId])
+    @@index([taskId])
+    @@index([resourceId])
+}
+
+model GanttTimeRange {
+    id           String    @id @default(cuid())
+    projectId    String
+    name         String
+    startDate    DateTime
+    duration     Float?
+    durationUnit String?
+    cls          String?
+
+    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    @@index([projectId])
 }

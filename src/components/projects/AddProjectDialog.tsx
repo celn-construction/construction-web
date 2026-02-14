@@ -4,7 +4,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus } from 'lucide-react';
 import { api } from '~/trpc/react';
-import { useSwitchProject } from '@/store/hooks';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Dialog,
@@ -33,7 +33,7 @@ export default function AddProjectDialog({
   onOpenChange,
 }: AddProjectDialogProps) {
   const utils = api.useUtils();
-  const switchProject = useSwitchProject();
+  const router = useRouter();
   const { showSnackbar } = useSnackbar();
   const activeOrganizationId = useActiveOrganizationId();
 
@@ -47,6 +47,7 @@ export default function AddProjectDialog({
     resolver: zodResolver(createProjectSchema),
     defaultValues: {
       name: '',
+      template: 'BLANK',
     },
   });
 
@@ -54,9 +55,11 @@ export default function AddProjectDialog({
     onSuccess: (newProject) => {
       showSnackbar('Project created successfully', 'success');
       void utils.project.list.invalidate();
-      switchProject(newProject.id);
+      void utils.project.getActive.invalidate();
       reset();
       onOpenChange(false);
+      // Navigate to the new project's Gantt page
+      router.push(`/projects/${newProject.slug}/gantt`);
     },
     onError: (error) => {
       showSnackbar(error.message || 'Failed to create project', 'error');

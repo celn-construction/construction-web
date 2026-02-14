@@ -1,6 +1,6 @@
 import { Box, Skeleton, Stack } from '@mui/material';
 
-export default function ProjectsLoading() {
+export default function DocumentsLoading() {
   return (
     <Box
       sx={{
@@ -12,19 +12,19 @@ export default function ProjectsLoading() {
         p: 3,
       }}
     >
-      {/* Tree skeleton with two-level indentation (groups and tasks) */}
+      {/* Tree skeleton with indentation */}
       <Stack spacing={1}>
         {[
-          { indent: 0, width: 192 }, // Group
-          { indent: 1, width: 160 }, // Task
-          { indent: 1, width: 176 }, // Task
-          { indent: 1, width: 144 }, // Task
-          { indent: 0, width: 208 }, // Group
-          { indent: 1, width: 176 }, // Task
-          { indent: 1, width: 160 }, // Task
-          { indent: 1, width: 128 }, // Task
-          { indent: 0, width: 192 }, // Group
-          { indent: 1, width: 144 }, // Task
+          { indent: 0, width: 192 },
+          { indent: 1, width: 160 },
+          { indent: 1, width: 176 },
+          { indent: 2, width: 144 },
+          { indent: 0, width: 208 },
+          { indent: 1, width: 176 },
+          { indent: 1, width: 160 },
+          { indent: 2, width: 128 },
+          { indent: 2, width: 144 },
+          { indent: 0, width: 192 },
         ].map((item, i) => (
           <Box
             key={i}

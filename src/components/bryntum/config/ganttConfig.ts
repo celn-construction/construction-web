@@ -13,17 +13,30 @@ function formatTooltipText(record: Record<string, unknown>, field?: string): str
   return String(value);
 }
 
-export function createGanttConfig(onTaskClick: TaskClickHandler): GanttConfig {
+export function createGanttConfig(
+  onTaskClick: TaskClickHandler,
+  projectId?: string
+): GanttConfig {
   return {
     height: '100%',
     detectCSSCompatibilityIssues: false,
     project: {
       autoLoad: true,
-      transport: {
-        load: {
-          url: '/data/bryntum-sample.json',
-        },
-      },
+      autoSync: !!projectId,
+      transport: projectId
+        ? {
+            load: {
+              url: `/api/gantt/load?projectId=${projectId}`,
+            },
+            sync: {
+              url: `/api/gantt/sync?projectId=${projectId}`,
+            },
+          }
+        : {
+            load: {
+              url: '/data/bryntum-sample.json',
+            },
+          },
     },
     columns: [
       {

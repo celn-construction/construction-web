@@ -3,6 +3,7 @@
 import { ChevronDown, Building2, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Box, Typography, Skeleton } from '@mui/material';
 import { api } from '@/trpc/react';
 import { useClearProject } from '@/store/hooks';
@@ -17,6 +18,7 @@ export default function OrgSwitcher() {
   const [orgMenuOpen, setOrgMenuOpen] = useState(false);
   const utils = api.useUtils();
   const clearProject = useClearProject();
+  const router = useRouter();
 
   const { data: organizations = [], isLoading: orgsLoading } = api.organization.list.useQuery(
     undefined,
@@ -37,6 +39,8 @@ export default function OrgSwitcher() {
       void utils.project.list.invalidate();
       void utils.member.list.invalidate();
       void utils.invitation.list.invalidate();
+      // Navigate to dashboard which will resolve the new org's active project
+      router.push('/dashboard');
     },
   });
 

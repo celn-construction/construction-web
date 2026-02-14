@@ -1,14 +1,22 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { Box } from '@mui/material';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileHeader from '@/components/layout/MobileHeader';
 import MobileDrawer from '@/components/layout/MobileDrawer';
+import { NoProjectPrompt } from '@/components/layout/NoProjectPrompt';
+import { api } from '~/trpc/react';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const pathname = usePathname();
+
+  const { data: activeProject, isLoading } = api.project.getActive.useQuery();
+  const hasProject = !!activeProject;
+  const isInvitePage = pathname.startsWith('/invite');
 
   const openDrawer = useCallback(() => setDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
@@ -30,7 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }}
       >
         {/* Sidebar */}
-        <Sidebar />
+        <Sidebar disabled={!hasProject} />
 
         {/* Main Content Area */}
         <Box
@@ -51,7 +59,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               overflowY: 'auto',
             }}
           >
-            {children}
+            {!hasProject && !isInvitePage ? <NoProjectPrompt /> : children}
           </Box>
         </Box>
       </Box>
@@ -74,12 +82,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             overflowY: 'auto',
           }}
         >
-          {children}
+          {!hasProject && !isInvitePage ? <NoProjectPrompt /> : children}
         </Box>
       </Box>
 
       {/* Mobile Drawer Overlay */}
-      <MobileDrawer isOpen={drawerOpen} onClose={closeDrawer} />
+      <MobileDrawer isOpen={drawerOpen} onClose={closeDrawer} disabled={!hasProject} />
     </Box>
   );
 }

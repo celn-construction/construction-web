@@ -1,15 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar, Users, BarChart3 } from 'lucide-react';
 import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Divider } from '@mui/material';
-import { navItems } from './navItems';
+import { navItems, getNavHref } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
 import OrgSwitcher from './OrgSwitcher';
 
-export default function Sidebar() {
+interface SidebarProps {
+  disabled?: boolean;
+}
+
+export default function Sidebar({ disabled = false }: SidebarProps) {
   const pathname = usePathname();
+  const params = useParams<{ slug?: string }>();
+  const slug = params?.slug;
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -97,13 +103,14 @@ export default function Sidebar() {
           <List sx={{ p: 0 }}>
             {navigateItems.map((item) => {
               const Icon = getIcon(item.icon);
-              const isActive = pathname === item.href;
+              const href = getNavHref(item.segment, slug);
+              const isActive = pathname.startsWith(href);
 
               return (
                 <ListItemButton
                   key={item.id}
-                  component={Link}
-                  href={item.href}
+                  component={disabled ? 'div' : Link}
+                  href={disabled ? undefined : href}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -116,13 +123,15 @@ export default function Sidebar() {
                     bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
                     color: isActive ? 'text.primary' : 'text.secondary',
                     fontWeight: isActive ? 500 : 400,
+                    opacity: disabled ? 0.4 : 1,
+                    pointerEvents: disabled ? 'none' : 'auto',
                     '&:hover': {
                       bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
                       color: 'text.primary',
                     },
                   }}
                 >
-                  {isActive && (
+                  {isActive && !disabled && (
                     <Box
                       sx={{
                         position: 'absolute',
@@ -168,13 +177,14 @@ export default function Sidebar() {
           <List sx={{ p: 0 }}>
             {workspaceItems.map((item) => {
               const Icon = getIcon(item.icon);
-              const isActive = pathname === item.href;
+              const href = getNavHref(item.segment, slug);
+              const isActive = pathname.startsWith(href);
 
               return (
                 <ListItemButton
                   key={item.id}
-                  component={Link}
-                  href={item.href}
+                  component={disabled ? 'div' : Link}
+                  href={disabled ? undefined : href}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -187,13 +197,15 @@ export default function Sidebar() {
                     bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
                     color: isActive ? 'text.primary' : 'text.secondary',
                     fontWeight: isActive ? 500 : 400,
+                    opacity: disabled ? 0.4 : 1,
+                    pointerEvents: disabled ? 'none' : 'auto',
                     '&:hover': {
                       bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
                       color: 'text.primary',
                     },
                   }}
                 >
-                  {isActive && (
+                  {isActive && !disabled && (
                     <Box
                       sx={{
                         position: 'absolute',

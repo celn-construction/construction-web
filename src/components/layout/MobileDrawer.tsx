@@ -2,20 +2,23 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { X, Home, LayoutGrid, Zap, Clipboard, FileText, Calendar, Users, GanttChart, BarChart3 } from 'lucide-react';
 import { Drawer, Box, IconButton, Typography, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
-import { navItems } from './navItems';
+import { navItems, getNavHref } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
 import OrgSwitcher from './OrgSwitcher';
 
 interface MobileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  disabled?: boolean;
 }
 
-export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
+export default function MobileDrawer({ isOpen, onClose, disabled = false }: MobileDrawerProps) {
   const pathname = usePathname();
+  const params = useParams<{ slug?: string }>();
+  const slug = params?.slug;
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -122,13 +125,14 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
           <List sx={{ p: 0 }}>
             {navItems.slice(0, 5).map((item) => {
               const Icon = getIcon(item.icon);
-              const isActive = pathname === item.href;
+              const href = getNavHref(item.segment, slug);
+              const isActive = pathname.startsWith(href);
 
               return (
                 <ListItemButton
                   key={item.id}
-                  component={Link}
-                  href={item.href}
+                  component={disabled ? 'div' : Link}
+                  href={disabled ? undefined : href}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -141,13 +145,15 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                     bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
                     color: isActive ? 'text.primary' : 'text.secondary',
                     fontWeight: isActive ? 500 : 400,
+                    opacity: disabled ? 0.4 : 1,
+                    pointerEvents: disabled ? 'none' : 'auto',
                     '&:hover': {
                       bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
                       color: 'text.primary',
                     },
                   }}
                 >
-                  {isActive && (
+                  {isActive && !disabled && (
                     <Box
                       sx={{
                         position: 'absolute',
@@ -193,13 +199,14 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
           <List sx={{ p: 0 }}>
             {navItems.slice(5).map((item) => {
               const Icon = getIcon(item.icon);
-              const isActive = pathname === item.href;
+              const href = getNavHref(item.segment, slug);
+              const isActive = pathname.startsWith(href);
 
               return (
                 <ListItemButton
                   key={item.id}
-                  component={Link}
-                  href={item.href}
+                  component={disabled ? 'div' : Link}
+                  href={disabled ? undefined : href}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -212,13 +219,15 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                     bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
                     color: isActive ? 'text.primary' : 'text.secondary',
                     fontWeight: isActive ? 500 : 400,
+                    opacity: disabled ? 0.4 : 1,
+                    pointerEvents: disabled ? 'none' : 'auto',
                     '&:hover': {
                       bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
                       color: 'text.primary',
                     },
                   }}
                 >
-                  {isActive && (
+                  {isActive && !disabled && (
                     <Box
                       sx={{
                         position: 'absolute',

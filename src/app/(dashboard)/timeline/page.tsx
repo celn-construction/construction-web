@@ -1,25 +1,18 @@
-'use client';
+"use client";
 
-import { Box, Typography, Stack } from '@mui/material';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "~/trpc/react";
 
-export default function TimelinePage() {
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Stack spacing={2} sx={{ textAlign: 'center' }}>
-        <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
-          Timeline View
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-          Timeline functionality is being reimplemented.
-        </Typography>
-      </Stack>
-    </Box>
-  );
+export default function TimelineRedirect() {
+  const { data: activeProject } = api.project.getActive.useQuery();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (activeProject?.slug) {
+      router.replace(`/projects/${activeProject.slug}/timeline`);
+    }
+  }, [activeProject, router]);
+
+  return null;
 }

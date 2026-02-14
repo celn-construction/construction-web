@@ -1,14 +1,6 @@
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { createOrganizationSchema } from "~/lib/validations/onboarding";
-
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
-}
+import { generateSlug } from "~/lib/utils/slug";
 
 async function generateUniqueSlug(
   name: string,

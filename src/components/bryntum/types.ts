@@ -48,8 +48,12 @@ export type GanttConfig = {
   detectCSSCompatibilityIssues: boolean;
   project: {
     autoLoad: boolean;
+    autoSync?: boolean;
     transport: {
       load: {
+        url: string;
+      };
+      sync?: {
         url: string;
       };
     };

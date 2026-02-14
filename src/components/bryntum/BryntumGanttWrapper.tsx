@@ -24,14 +24,21 @@ const GANTT_CONTENT_STYLE: CSSProperties = {
   overflow: 'hidden',
 };
 
-export default function BryntumGanttWrapper() {
+interface BryntumGanttWrapperProps {
+  projectId?: string;
+}
+
+export default function BryntumGanttWrapper({ projectId }: BryntumGanttWrapperProps) {
   const theme = useThemeStore((state) => state.theme);
   const { selectedTask, popoverPlacement, handleTaskClick, closeTaskPopover, isTaskPopoverOpen } =
     useTaskPopover();
 
   useBryntumThemeAssets(theme);
 
-  const ganttConfig = useMemo(() => createGanttConfig(handleTaskClick), [handleTaskClick]);
+  const ganttConfig = useMemo(
+    () => createGanttConfig(handleTaskClick, projectId),
+    [handleTaskClick, projectId]
+  );
 
   return (
     <div style={WRAPPER_STYLE}>
