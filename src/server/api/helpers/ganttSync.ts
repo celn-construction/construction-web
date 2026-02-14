@@ -1,14 +1,15 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma } from "../../../../generated/prisma";
 import type { TaskRecord, DependencyRecord, ResourceRecord, AssignmentRecord, TimeRangeRecord } from "~/lib/validations/gantt";
 import { createId } from '@paralleldrive/cuid2';
 
 type PhantomIdMap = Map<string, string>;
+type TransactionClient = Omit<Prisma.TransactionClient, never>;
 
 /**
  * Process task changes (added, updated, removed)
  */
 export async function syncTasks(
-  db: PrismaClient,
+  db: TransactionClient,
   projectId: string,
   changes: { added?: TaskRecord[]; updated?: TaskRecord[]; removed?: { id: string }[] } | undefined,
   phantomIdMap: PhantomIdMap,
@@ -120,7 +121,7 @@ export async function syncTasks(
  * Process dependency changes
  */
 export async function syncDependencies(
-  db: PrismaClient,
+  db: TransactionClient,
   projectId: string,
   changes: { added?: DependencyRecord[]; updated?: DependencyRecord[]; removed?: { id: string }[] } | undefined,
   phantomIdMap: PhantomIdMap,
@@ -200,7 +201,7 @@ export async function syncDependencies(
  * Process resource changes
  */
 export async function syncResources(
-  db: PrismaClient,
+  db: TransactionClient,
   projectId: string,
   changes: { added?: ResourceRecord[]; updated?: ResourceRecord[]; removed?: { id: string }[] } | undefined,
   phantomIdMap: PhantomIdMap,
@@ -267,7 +268,7 @@ export async function syncResources(
  * Process assignment changes
  */
 export async function syncAssignments(
-  db: PrismaClient,
+  db: TransactionClient,
   projectId: string,
   changes: { added?: AssignmentRecord[]; updated?: AssignmentRecord[]; removed?: { id: string }[] } | undefined,
   phantomIdMap: PhantomIdMap,
@@ -340,7 +341,7 @@ export async function syncAssignments(
  * Process time range changes
  */
 export async function syncTimeRanges(
-  db: PrismaClient,
+  db: TransactionClient,
   projectId: string,
   changes: { added?: TimeRangeRecord[]; updated?: TimeRangeRecord[]; removed?: { id: string }[] } | undefined,
   phantomIdMap: PhantomIdMap,

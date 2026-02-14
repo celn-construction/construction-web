@@ -59,7 +59,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               overflowY: 'auto',
             }}
           >
-            {!hasProject && !isInvitePage ? <NoProjectPrompt /> : children}
+            {!isLoading && !hasProject && !isInvitePage ? <NoProjectPrompt /> : children}
           </Box>
         </Box>
       </Box>
@@ -82,7 +82,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             overflowY: 'auto',
           }}
         >
-          {!hasProject && !isInvitePage ? <NoProjectPrompt /> : children}
+          {!isLoading && !hasProject && !isInvitePage ? <NoProjectPrompt /> : children}
         </Box>
       </Box>
 

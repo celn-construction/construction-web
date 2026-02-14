@@ -17,7 +17,7 @@ export const ganttRouter = createTRPCRouter({
       const project = await ctx.db.project.findFirst({
         where: {
           id: projectId,
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organization.id,
         },
       });
 
@@ -85,7 +85,7 @@ export const ganttRouter = createTRPCRouter({
       const project = await ctx.db.project.findFirst({
         where: {
           id: projectId,
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organization.id,
         },
       });
 

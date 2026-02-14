@@ -115,7 +115,7 @@ export const projectRouter = createTRPCRouter({
           hoursPerDay: templateData.project.hoursPerDay,
           daysPerWeek: templateData.project.daysPerWeek,
           daysPerMonth: templateData.project.daysPerMonth,
-          calendars: templateData.project.calendars,
+          calendars: templateData.project.calendars ?? undefined,
         },
       });
 

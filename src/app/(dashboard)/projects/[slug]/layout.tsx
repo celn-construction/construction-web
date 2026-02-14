@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { auth } from "~/server/auth";
+import { headers } from "next/headers";
+import { auth } from "~/lib/auth";
 import { db } from "~/server/db";
 import { ProjectProvider } from "~/components/providers/ProjectProvider";
 
@@ -11,7 +12,9 @@ export default async function ProjectLayout({
   params: Promise<{ slug: string }>;
 }) {
   // Auth check
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   if (!session?.user) {
     redirect("/sign-in");
   }

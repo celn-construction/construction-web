@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../../../../generated/prisma";
 
 /**
  * Resolves the active organization ID for a user.

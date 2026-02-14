@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Box, Typography, Button, Paper } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import { AddProjectDialog } from "~/components/projects/AddProjectDialog";
+import AddProjectDialog from "~/components/projects/AddProjectDialog";
 
 export function NoProjectPrompt() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,7 +47,7 @@ export function NoProjectPrompt() {
 
       <AddProjectDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onOpenChange={setDialogOpen}
       />
     </Box>
   );

@@ -1,18 +1,14 @@
-"use client";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { auth } from "~/lib/auth";
+import { resolveActiveProject } from "~/server/api/helpers/resolveActiveProject";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { api } from "~/trpc/react";
+export default async function TimelineRedirect() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect("/sign-in");
 
-export default function TimelineRedirect() {
-  const { data: activeProject } = api.project.getActive.useQuery();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (activeProject?.slug) {
-      router.replace(`/projects/${activeProject.slug}/timeline`);
-    }
-  }, [activeProject, router]);
+  const project = await resolveActiveProject(session.user.id);
+  if (project) redirect(`/projects/${project.slug}/timeline`);
 
   return null;
 }

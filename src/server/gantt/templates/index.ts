@@ -1,11 +1,11 @@
-import type { ProjectTemplate } from "@prisma/client";
+import type { ProjectTemplate, Prisma } from "../../../../generated/prisma";
 
 export interface TemplateProjectConfig {
   calendarId: string;
   hoursPerDay: number;
   daysPerWeek: number;
   daysPerMonth: number;
-  calendars?: unknown;
+  calendars?: Prisma.JsonValue | null;
 }
 
 export interface TemplateTask {

@@ -1,4 +1,4 @@
-import type { GanttTask, GanttDependency, GanttResource, GanttAssignment, GanttTimeRange } from "@prisma/client";
+import type { GanttTask, GanttDependency, GanttResource, GanttAssignment, GanttTimeRange } from "../../../../generated/prisma";
 
 // Bryntum expects specific field names - map DB fields to Bryntum fields
 export function mapTaskToGantt(task: GanttTask): Record<string, unknown> {
