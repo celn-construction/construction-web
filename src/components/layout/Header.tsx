@@ -8,7 +8,7 @@ import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
 import { api } from '@/trpc/react';
 import { useActiveOrganizationId } from '@/store/useOrganizationStore';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useParams } from 'next/navigation';
 import { useLoading } from '@/components/providers/LoadingProvider';
 import {
   DropdownMenu,
@@ -30,20 +30,17 @@ export default function Header() {
   const { showLoading, hideLoading } = useLoading();
 
   // Project management
+  const params = useParams<{ slug?: string }>();
   const activeOrganizationId = useActiveOrganizationId();
   const { data: projects = [], isLoading: projectsLoading } = api.project.list.useQuery(
     { organizationId: activeOrganizationId ?? undefined },
     { retry: false, enabled: !!activeOrganizationId }
   );
-  const { data: activeProject } = api.project.getActive.useQuery(
-    { organizationId: activeOrganizationId ?? undefined },
-    { retry: false, enabled: !!activeOrganizationId }
-  );
 
-  const utils = api.useUtils();
-  const setActiveProjectMutation = api.project.setActive.useMutation();
+  // Get current project from URL slug
+  const currentProject = projects.find(p => p.slug === params?.slug);
 
-  const switchProject = (projectId: string, projectSlug: string) => {
+  const switchProject = (projectSlug: string) => {
     // Extract current segment from pathname
     const pathParts = pathname.split('/');
     const currentSegment = pathParts.includes('projects') && pathParts.length > 3
@@ -51,17 +48,8 @@ export default function Header() {
       : 'gantt';
 
     showLoading('Switching projects');
-    setActiveProjectMutation.mutate({ projectId }, {
-      onSuccess: () => {
-        void utils.project.getActive.invalidate();
-        router.push(`/projects/${projectSlug}/${currentSegment}`);
-        hideLoading();
-      },
-      onError: (error) => {
-        hideLoading();
-        console.error('Failed to switch project:', error.message);
-      },
-    });
+    router.push(`/projects/${projectSlug}/${currentSegment}`);
+    hideLoading();
   };
 
   // Notification management
@@ -90,7 +78,6 @@ export default function Header() {
     },
   });
 
-  const currentProject = activeProject;
 
   const container = {
     hidden: { opacity: 0 },
@@ -203,9 +190,9 @@ export default function Header() {
                 </Typography>
               </Box>
               {projects.map((project) => {
-                const isActive = project.id === activeProject?.id;
+                const isActive = project.slug === params?.slug;
                 return (
-                  <DropdownMenuItem key={project.id} onClick={() => switchProject(project.id, project.slug)}>
+                  <DropdownMenuItem key={project.id} onClick={() => switchProject(project.slug)}>
                     <Box
                       sx={{
                         display: 'flex',
