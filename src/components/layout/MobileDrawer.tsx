@@ -32,7 +32,6 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
     }
   };
 
-  // Close on route change
   useEffect(() => {
     onClose();
   }, [pathname, onClose]);
@@ -43,13 +42,12 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       open={isOpen}
       onClose={onClose}
       PaperProps={{
-        sx={{
+        sx: {
           width: 288,
           bgcolor: 'sidebar.background',
         },
       }}
     >
-      {/* Header */}
       <Box
         sx={{
           borderBottom: '1px solid',
@@ -102,9 +100,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         <OrgSwitcher />
       </Box>
 
-      {/* Navigation */}
       <Box component="nav" sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 2 }}>
-        {/* Organization Section */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           <Typography
             sx={{
@@ -180,7 +176,6 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
           </List>
         </Box>
 
-        {/* Project Section */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           <Typography
             sx={{
