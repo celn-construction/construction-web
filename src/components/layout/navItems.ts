@@ -7,8 +7,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'Home', href: '/dashboard' },
-  { id: 'timeline', label: 'Timeline', icon: 'Calendar', href: '/timeline' },
-  { id: 'bryntum', label: 'Bryntum', icon: 'BarChart3', href: '/bryntum' },
+  { id: 'bryntum', label: 'Gantt', icon: 'BarChart3', href: '/bryntum' },
   { id: 'projects', label: 'Projects', icon: 'LayoutGrid', href: '/projects' },
   { id: 'documents', label: 'Documents', icon: 'FileText', href: '/documents' },
   { id: 'tasks', label: 'Tasks', icon: 'Zap', href: '/tasks' },

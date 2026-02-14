@@ -1,0 +1,68 @@
+export type PopoverPlacement = {
+  anchorPosition: { top: number; left: number };
+  transformOrigin: {
+    vertical: 'center' | 'top' | 'bottom';
+    horizontal: 'left' | 'right';
+  };
+  paperMargin: string;
+};
+
+export type SelectedTask = {
+  id: string;
+  name: string;
+};
+
+export type TaskClickEventPayload = {
+  taskRecord: {
+    id: string | number;
+    name?: string;
+  };
+  event: {
+    target: EventTarget | null;
+    clientX: number;
+    clientY: number;
+  };
+};
+
+export type TaskClickHandler = (payload: TaskClickEventPayload) => void;
+
+type GanttColumnConfig = {
+  type: string;
+  field?: string;
+  text?: string;
+  flex?: number;
+  minWidth?: number;
+  width?: number;
+  resizable?: boolean;
+};
+
+type TooltipRendererArgs = {
+  record: Record<string, unknown>;
+  column: {
+    field?: string;
+  };
+};
+
+export type GanttConfig = {
+  height: string;
+  detectCSSCompatibilityIssues: boolean;
+  project: {
+    autoLoad: boolean;
+    transport: {
+      load: {
+        url: string;
+      };
+    };
+  };
+  columns: GanttColumnConfig[];
+  features: {
+    cellTooltip: {
+      tooltipRenderer: (args: TooltipRendererArgs) => string;
+    };
+  };
+  viewPreset: string;
+  barMargin: number;
+  listeners: {
+    taskClick: TaskClickHandler;
+  };
+};
