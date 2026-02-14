@@ -15,5 +15,5 @@ export const navItems: NavItem[] = [
 ];
 
 export function getNavHref(segment: string, slug: string | undefined): string {
-  return slug ? `/projects/${slug}/${segment}` : `/${segment}`;
+  return slug ? `/projects/${slug}/${segment}` : '/projects';
 }
