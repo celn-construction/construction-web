@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter } from "next/navigation";
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import ResetPasswordPage from "@/app/reset-password/page";
+import ResetPasswordPage from "@/app/(auth)/reset-password/page";
 
 describe("ResetPasswordPage", () => {
   const mockPush = vi.fn();

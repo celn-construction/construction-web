@@ -15,12 +15,16 @@ This directory is organized by feature area so docs are easy to scan and maintai
   - `quick-reference.md` (copy/paste patterns)
 - `claudedocs/gantt/`
   - `zustand-migration-plan.md`
-- `claudedocs/layout/`
-  - `sidebar-collapse-design.md`
 - `claudedocs/organization/`
   - `system-implementation.md`
 - `claudedocs/media/`
   - `image-optimization-guide.md`
+- `claudedocs/review/`
+  - `systematic-code-review.md`
+- `claudedocs/src/`
+  - `README.md`
+  - `app-routes-reference.md`
+  - `components-reference.md`
 
 ## Conventions
 
