@@ -1,4 +1,4 @@
-/* CSS Variables for SVAR/Bryntum Gantt and Theme Integration */
+/* CSS Variables for Bryntum Gantt and Theme Integration */
 
 :root {
   --bg-primary: #fafafa;
@@ -148,79 +148,6 @@ body {
 
 .sidebar-depth {
   box-shadow: inset -1px 0 0 0 var(--sidebar-border);
-}
-
-/* ============================================
-   SVAR Gantt Theme Integration
-   Map SVAR's --wx-* variables to app tokens
-   ============================================ */
-
-.wx-willow-theme,
-.wx-willow-dark-theme {
-  /* Base backgrounds */
-  --wx-background: var(--bg-card);
-  --wx-background-alt: var(--bg-accent);
-
-  /* Text colors */
-  --wx-color-font: var(--text-primary);
-  --wx-color-font-alt: var(--text-secondary);
-
-  /* Borders */
-  --wx-border: 1px solid var(--border-color);
-  --wx-gantt-border-color: var(--border-color);
-
-  /* Selection and highlights */
-  --wx-gantt-select-color: var(--accent-subtle);
-  --wx-gantt-holiday-background: var(--bg-accent);
-  --wx-gantt-holiday-color: var(--text-muted);
-
-  /* Task bars — soft translucent fill, darker progress */
-  --wx-gantt-task-color: var(--gantt-task-bg);
-  --wx-gantt-task-fill-color: var(--gantt-task-fill);
-  --wx-gantt-task-border: 1px solid var(--gantt-task-border);
-  --wx-gantt-task-border-color: var(--gantt-task-border);
-  --wx-gantt-task-font-color: var(--gantt-task-font);
-
-  /* Summary bars */
-  --wx-gantt-summary-color: var(--gantt-summary-bg);
-  --wx-gantt-summary-fill-color: var(--gantt-summary-fill);
-  --wx-gantt-summary-border: 1px solid var(--gantt-summary-border);
-  --wx-gantt-summary-border-color: var(--gantt-summary-border);
-  --wx-gantt-summary-font-color: var(--gantt-summary-font);
-
-  /* Milestones */
-  --wx-gantt-milestone-color: var(--gantt-milestone-bg);
-
-  /* Bar shape */
-  --wx-gantt-bar-border-radius: 6px;
-  --wx-gantt-milestone-border-radius: 3px;
-  --wx-gantt-bar-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-
-  /* Links and markers */
-  --wx-gantt-link-color: var(--text-muted);
-  --wx-gantt-marker-color: var(--status-blue);
-
-  /* Grid and timescale */
-  --wx-timescale-font-color: var(--text-secondary);
-  --wx-grid-header-font-color: var(--text-secondary);
-  --wx-grid-body-font-color: var(--text-primary);
-
-  /* Icons and accents */
-  --wx-icon-color: var(--text-secondary);
-  --wx-color-primary: var(--accent-primary);
-  --wx-color-danger: var(--status-red);
-
-  /* Flex layout to fill container height */
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0%;
-  min-height: 0;
-}
-
-.wx-willow-theme .wx-gantt,
-.wx-willow-dark-theme .wx-gantt {
-  flex: 1 1 0%;
-  min-height: 0;
 }
 
 /* ============================================

@@ -4,7 +4,7 @@ This directory is organized by feature area so docs are easy to scan and maintai
 
 ## Reading Order
 
-1. Open the topic folder (`loading`, `gantt`, etc.).
+1. Open the topic folder (`loading`, etc.).
 2. Start with `*-plan` files or the topic quick-reference.
 3. Use `quick-reference` for usage details.
 4. Use plans (`*-plan`) for migration sequencing.
@@ -13,8 +13,6 @@ This directory is organized by feature area so docs are easy to scan and maintai
 
 - `claudedocs/loading/`
   - `quick-reference.md` (copy/paste patterns)
-- `claudedocs/gantt/`
-  - `zustand-migration-plan.md`
 - `claudedocs/organization/`
   - `system-implementation.md`
 - `claudedocs/media/`

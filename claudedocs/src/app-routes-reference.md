@@ -28,7 +28,6 @@ For route groups like `(app)` and `(auth)`: `Folder Scope` shows the group folde
 | `(app)/documents` | `/documents` | loading | server/default | `DocumentsLoading` | `src/app/(app)/documents/loading.tsx` |
 | `(app)/documents` | `/documents` | page | client | `DocumentsPage` | `src/app/(app)/documents/page.tsx` |
 | `(auth)/forgot-password` | `/forgot-password` | page | client | `ForgotPasswordPage` | `src/app/(auth)/forgot-password/page.tsx` |
-| `(app)/gantt` | `/gantt` | page | client | `GanttPage` | `src/app/(app)/gantt/page.tsx` |
 | `invite/[token]` | `/invite/[token]` | page | client | `InvitePage` | `src/app/invite/[token]/page.tsx` |
 | `(onboarding)/onboarding` | `/onboarding` | page | server/default | `async OnboardingPage` | `src/app/(onboarding)/onboarding/page.tsx` |
 | `(app)/projects` | `/projects` | loading | server/default | `ProjectsLoading` | `src/app/(app)/projects/loading.tsx` |
@@ -89,16 +88,6 @@ For route groups like `(app)` and `(auth)`: `Folder Scope` shows the group folde
 - Mode: `client`
 - Default Export: `DocumentsPage`
 - Local Components: `@/components/documents/DocumentTree`
-- Key Dependencies: -
-- Behaviors: -
-
-### `src/app/(app)/gantt/page.tsx`
-- Folder Scope: `(app)/gantt`
-- Public Route: `/gantt`
-- Kind: `page`
-- Mode: `client`
-- Default Export: `GanttPage`
-- Local Components: -
 - Key Dependencies: -
 - Behaviors: -
 

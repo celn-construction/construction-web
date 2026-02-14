@@ -69,8 +69,8 @@ Use this exact sequence:
     - `src/app/(app)/projects/`, `src/components/projects/`
     - `src/app/(app)/documents/`, `src/components/documents/`
     - `src/app/(app)/team/`, `src/components/team/`
-13. Timeline/Gantt/Bryntum slice:
-    - `src/app/(app)/timeline/`, `src/app/(app)/gantt/`, `src/app/(app)/bryntum/`
+13. Timeline/Bryntum slice:
+    - `src/app/(app)/timeline/`, `src/app/(app)/bryntum/`
     - `src/components/bryntum/`
 14. Remaining test infra: `src/__tests__/`, `vitest.config.ts`, `playwright.config.ts`, `tests/`
 15. Static/runtime assets and configs: `public/`, `next.config.js`, `vercel.json`, root scripts/config
@@ -91,7 +91,7 @@ Use this exact sequence:
 | 10 | onboarding slice | TODO | - | |
 | 11 | dashboard slice | TODO | - | |
 | 12 | projects/documents/team slice | TODO | - | |
-| 13 | timeline/gantt/bryntum slice | TODO | - | |
+| 13 | timeline/bryntum slice | TODO | - | |
 | 14 | test infra | TODO | - | |
 | 15 | assets + root configs | TODO | - | |
 
