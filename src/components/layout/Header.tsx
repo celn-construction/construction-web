@@ -9,6 +9,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { api } from '@/trpc/react';
 import { useActiveOrganizationId } from '@/store/useOrganizationStore';
 import { useRouter, usePathname } from 'next/navigation';
+import { useLoading } from '@/components/providers/LoadingProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,7 @@ export default function Header() {
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const { showLoading, hideLoading } = useLoading();
 
   // Project management
   const activeOrganizationId = useActiveOrganizationId();
@@ -48,12 +50,15 @@ export default function Header() {
       ? pathParts[pathParts.length - 1]
       : 'gantt';
 
+    showLoading('Switching projects');
     setActiveProjectMutation.mutate({ projectId }, {
       onSuccess: () => {
         void utils.project.getActive.invalidate();
         router.push(`/projects/${projectSlug}/${currentSegment}`);
+        hideLoading();
       },
       onError: (error) => {
+        hideLoading();
         console.error('Failed to switch project:', error.message);
       },
     });

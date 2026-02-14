@@ -29,7 +29,7 @@ export default async function ProjectLayout({
   });
 
   if (!user?.activeOrganizationId) {
-    redirect("/dashboard");
+    redirect("/projects");
   }
 
   // Resolve project by slug
@@ -44,7 +44,7 @@ export default async function ProjectLayout({
 
   // Project not found - redirect to dashboard
   if (!project) {
-    redirect("/dashboard");
+    redirect("/projects");
   }
 
   // Set as active project

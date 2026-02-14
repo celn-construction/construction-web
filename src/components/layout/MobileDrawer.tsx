@@ -12,13 +12,13 @@ import OrgSwitcher from './OrgSwitcher';
 interface MobileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  disabled?: boolean;
+  projectSlug?: string;
 }
 
-export default function MobileDrawer({ isOpen, onClose, disabled = false }: MobileDrawerProps) {
+export default function MobileDrawer({ isOpen, onClose, projectSlug }: MobileDrawerProps) {
   const pathname = usePathname();
   const params = useParams<{ slug?: string }>();
-  const slug = params?.slug;
+  const slug = params?.slug ?? projectSlug;
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -131,8 +131,8 @@ export default function MobileDrawer({ isOpen, onClose, disabled = false }: Mobi
               return (
                 <ListItemButton
                   key={item.id}
-                  component={disabled ? 'div' : Link}
-                  href={disabled ? undefined : href}
+                  component={Link}
+                  href={href}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -145,15 +145,13 @@ export default function MobileDrawer({ isOpen, onClose, disabled = false }: Mobi
                     bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
                     color: isActive ? 'text.primary' : 'text.secondary',
                     fontWeight: isActive ? 500 : 400,
-                    opacity: disabled ? 0.4 : 1,
-                    pointerEvents: disabled ? 'none' : 'auto',
                     '&:hover': {
                       bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
                       color: 'text.primary',
                     },
                   }}
                 >
-                  {isActive && !disabled && (
+                  {isActive && (
                     <Box
                       sx={{
                         position: 'absolute',
@@ -205,8 +203,8 @@ export default function MobileDrawer({ isOpen, onClose, disabled = false }: Mobi
               return (
                 <ListItemButton
                   key={item.id}
-                  component={disabled ? 'div' : Link}
-                  href={disabled ? undefined : href}
+                  component={Link}
+                  href={href}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -219,15 +217,13 @@ export default function MobileDrawer({ isOpen, onClose, disabled = false }: Mobi
                     bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
                     color: isActive ? 'text.primary' : 'text.secondary',
                     fontWeight: isActive ? 500 : 400,
-                    opacity: disabled ? 0.4 : 1,
-                    pointerEvents: disabled ? 'none' : 'auto',
                     '&:hover': {
                       bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
                       color: 'text.primary',
                     },
                   }}
                 >
-                  {isActive && !disabled && (
+                  {isActive && (
                     <Box
                       sx={{
                         position: 'absolute',

@@ -28,7 +28,7 @@ function SignInForm() {
   const inviteToken = searchParams.get('invite');
   const callbackUrl = inviteToken
     ? `/invite/${inviteToken}`
-    : (searchParams.get('callbackUrl') || '/dashboard');
+    : (searchParams.get('callbackUrl') || '/projects');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

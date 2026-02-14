@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Box, Typography, Skeleton } from '@mui/material';
 import { api } from '@/trpc/react';
 import { useClearProject } from '@/store/hooks';
+import { useLoading } from '@/components/providers/LoadingProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ export default function OrgSwitcher() {
   const utils = api.useUtils();
   const clearProject = useClearProject();
   const router = useRouter();
+  const { showLoading, hideLoading } = useLoading();
 
   const { data: organizations = [], isLoading: orgsLoading } = api.organization.list.useQuery(
     undefined,
@@ -39,12 +41,17 @@ export default function OrgSwitcher() {
       void utils.project.list.invalidate();
       void utils.member.list.invalidate();
       void utils.invitation.list.invalidate();
-      // Navigate to dashboard which will resolve the new org's active project
-      router.push('/dashboard');
+      // Navigate to projects which will show all projects in the new org
+      router.push('/projects');
+      hideLoading();
+    },
+    onError: () => {
+      hideLoading();
     },
   });
 
   const handleSwitch = (orgId: string) => {
+    showLoading('Switching projects');
     switchOrganizationMutation.mutate({ organizationId: orgId });
   };
 

@@ -45,14 +45,14 @@ describe("Middleware", () => {
     expect((response as NextResponse).status).not.toBe(307);
   });
 
-  it("redirects authenticated users from auth pages to /dashboard", () => {
+  it("redirects authenticated users from auth pages to /projects", () => {
     const request = createRequest("/sign-in", {
       "better-auth.session_token": "valid-token",
     });
     const response = middleware(request) as NextResponse;
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:5050/dashboard");
+    expect(response.headers.get("location")).toBe("http://localhost:5050/projects");
   });
 
   it("allows unauthenticated users to access auth pages", () => {
@@ -64,12 +64,12 @@ describe("Middleware", () => {
   });
 
   it("redirects unauthenticated users to /sign-in with callbackUrl", () => {
-    const request = createRequest("/dashboard");
+    const request = createRequest("/projects");
     const response = middleware(request) as NextResponse;
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "http://localhost:5050/sign-in?callbackUrl=/dashboard"
+      "http://localhost:5050/sign-in?callbackUrl=/projects"
     );
   });
 
@@ -84,7 +84,7 @@ describe("Middleware", () => {
     expect((response as NextResponse).status).not.toBe(307);
   });
 
-  it("redirects to /dashboard if onboarding complete and visiting /onboarding", () => {
+  it("redirects to /projects if onboarding complete and visiting /onboarding", () => {
     const request = createRequest("/onboarding", {
       "better-auth.session_token": "valid-token",
       "onboarding-complete": "true",
@@ -92,7 +92,7 @@ describe("Middleware", () => {
     const response = middleware(request) as NextResponse;
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:5050/dashboard");
+    expect(response.headers.get("location")).toBe("http://localhost:5050/projects");
   });
 
   it("allows /onboarding if not complete", () => {
@@ -106,7 +106,7 @@ describe("Middleware", () => {
   });
 
   it("redirects to /onboarding for protected routes if not complete", () => {
-    const request = createRequest("/dashboard", {
+    const request = createRequest("/projects", {
       "better-auth.session_token": "valid-token",
     });
     const response = middleware(request) as NextResponse;
@@ -120,7 +120,7 @@ describe("Middleware", () => {
     process.env.NODE_ENV = "test";
 
     const request = createRequest(
-      "/dashboard",
+      "/projects",
       {},
       { "x-playwright-test": "true" }
     );

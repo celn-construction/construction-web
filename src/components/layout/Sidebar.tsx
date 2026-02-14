@@ -9,13 +9,13 @@ import { LogoIcon } from '@/components/ui/Logo';
 import OrgSwitcher from './OrgSwitcher';
 
 interface SidebarProps {
-  disabled?: boolean;
+  projectSlug?: string;
 }
 
-export default function Sidebar({ disabled = false }: SidebarProps) {
+export default function Sidebar({ projectSlug }: SidebarProps) {
   const pathname = usePathname();
   const params = useParams<{ slug?: string }>();
-  const slug = params?.slug;
+  const slug = params?.slug ?? projectSlug;
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -109,8 +109,8 @@ export default function Sidebar({ disabled = false }: SidebarProps) {
               return (
                 <ListItemButton
                   key={item.id}
-                  component={disabled ? 'div' : Link}
-                  href={disabled ? undefined : href}
+                  component={Link}
+                  href={href}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -123,15 +123,13 @@ export default function Sidebar({ disabled = false }: SidebarProps) {
                     bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
                     color: isActive ? 'text.primary' : 'text.secondary',
                     fontWeight: isActive ? 500 : 400,
-                    opacity: disabled ? 0.4 : 1,
-                    pointerEvents: disabled ? 'none' : 'auto',
                     '&:hover': {
                       bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
                       color: 'text.primary',
                     },
                   }}
                 >
-                  {isActive && !disabled && (
+                  {isActive && (
                     <Box
                       sx={{
                         position: 'absolute',
@@ -183,8 +181,8 @@ export default function Sidebar({ disabled = false }: SidebarProps) {
               return (
                 <ListItemButton
                   key={item.id}
-                  component={disabled ? 'div' : Link}
-                  href={disabled ? undefined : href}
+                  component={Link}
+                  href={href}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -197,15 +195,13 @@ export default function Sidebar({ disabled = false }: SidebarProps) {
                     bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
                     color: isActive ? 'text.primary' : 'text.secondary',
                     fontWeight: isActive ? 500 : 400,
-                    opacity: disabled ? 0.4 : 1,
-                    pointerEvents: disabled ? 'none' : 'auto',
                     '&:hover': {
                       bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
                       color: 'text.primary',
                     },
                   }}
                 >
-                  {isActive && !disabled && (
+                  {isActive && (
                     <Box
                       sx={{
                         position: 'absolute',

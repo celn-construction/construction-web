@@ -34,7 +34,7 @@ export function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages to dashboard
   if (isAuthPage && sessionCookie) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/projects", request.url));
   }
 
   // Allow unauthenticated users to access auth pages
@@ -56,7 +56,7 @@ export function middleware(request: NextRequest) {
   if (isOnboardingPage) {
     // If onboarding is complete, redirect to dashboard
     if (onboardingComplete) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return NextResponse.redirect(new URL("/projects", request.url));
     }
     return NextResponse.next();
   }

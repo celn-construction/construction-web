@@ -28,7 +28,7 @@ export default function InvitePage() {
       document.cookie = "onboarding-complete=true; path=/; max-age=31536000";
       setShowSuccess(true);
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/projects");
       }, 1500);
     },
     onError: (error) => {

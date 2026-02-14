@@ -61,7 +61,7 @@ export function OnboardingWizard() {
       setShowSuccess(true);
       showSnackbar("Welcome to BuildTrack Pro!", "success");
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/projects");
       }, 1500);
     },
     onError: (error: { message?: string }) => {

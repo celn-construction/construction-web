@@ -17,6 +17,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: activeProject, isLoading } = api.project.getActive.useQuery();
   const hasProject = !!activeProject;
   const isInvitePage = pathname.startsWith('/invite');
+  const isProjectsPage = pathname === '/projects';
 
   const openDrawer = useCallback(() => setDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
@@ -38,7 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }}
       >
         {/* Sidebar */}
-        <Sidebar disabled={!hasProject} />
+        <Sidebar projectSlug={activeProject?.slug} />
 
         {/* Main Content Area */}
         <Box
@@ -59,7 +60,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               overflowY: 'auto',
             }}
           >
-            {!isLoading && !hasProject && !isInvitePage ? <NoProjectPrompt /> : children}
+            {!isLoading && !hasProject && !isInvitePage && !isProjectsPage ? <NoProjectPrompt /> : children}
           </Box>
         </Box>
       </Box>
@@ -82,12 +83,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             overflowY: 'auto',
           }}
         >
-          {!isLoading && !hasProject && !isInvitePage ? <NoProjectPrompt /> : children}
+          {!isLoading && !hasProject && !isInvitePage && !isProjectsPage ? <NoProjectPrompt /> : children}
         </Box>
       </Box>
 
       {/* Mobile Drawer Overlay */}
-      <MobileDrawer isOpen={drawerOpen} onClose={closeDrawer} disabled={!hasProject} />
+      <MobileDrawer isOpen={drawerOpen} onClose={closeDrawer} projectSlug={activeProject?.slug} />
     </Box>
   );
 }
