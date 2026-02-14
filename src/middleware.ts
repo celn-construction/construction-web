@@ -8,6 +8,7 @@ export function middleware(request: NextRequest) {
     : "__Secure-better-auth.session_token";
   const sessionCookie = request.cookies.get(cookieName);
   const onboardingComplete = request.cookies.get("onboarding-complete");
+  const activeOrgSlug = request.cookies.get("active-org-slug");
   const pathname = request.nextUrl.pathname;
 
   const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up") || pathname.startsWith("/forgot-password") || pathname.startsWith("/reset-password");
@@ -15,6 +16,7 @@ export function middleware(request: NextRequest) {
   const isLandingPage = pathname === "/";
   const isOnboardingPage = pathname.startsWith("/onboarding");
   const isInvitePage = pathname.startsWith("/invite");
+  const isLegacyProjectsRoute = pathname.startsWith("/projects");
 
   // Bypass auth for E2E tests (only in development/test environments)
   const isTestBypass = request.headers.get("x-playwright-test") === "true";
@@ -32,9 +34,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Redirect authenticated users away from auth pages to dashboard
+  // Redirect authenticated users away from auth pages to their org or onboarding
   if (isAuthPage && sessionCookie) {
-    return NextResponse.redirect(new URL("/projects", request.url));
+    if (onboardingComplete && activeOrgSlug?.value) {
+      return NextResponse.redirect(new URL(`/${activeOrgSlug.value}`, request.url));
+    }
+    return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
   // Allow unauthenticated users to access auth pages
@@ -54,9 +59,9 @@ export function middleware(request: NextRequest) {
 
   // Allow onboarding page if not complete
   if (isOnboardingPage) {
-    // If onboarding is complete, redirect to dashboard
-    if (onboardingComplete) {
-      return NextResponse.redirect(new URL("/projects", request.url));
+    // If onboarding is complete, redirect to org home
+    if (onboardingComplete && activeOrgSlug?.value) {
+      return NextResponse.redirect(new URL(`/${activeOrgSlug.value}`, request.url));
     }
     return NextResponse.next();
   }
@@ -64,6 +69,20 @@ export function middleware(request: NextRequest) {
   // Enforce onboarding for all other protected routes
   if (!onboardingComplete) {
     return NextResponse.redirect(new URL("/onboarding", request.url));
+  }
+
+  // Handle legacy /projects routes - redirect to org-scoped URLs
+  if (isLegacyProjectsRoute && activeOrgSlug?.value) {
+    // Extract the path after /projects
+    const afterProjects = pathname.substring('/projects'.length);
+
+    if (!afterProjects || afterProjects === '/') {
+      // /projects → /{orgSlug}
+      return NextResponse.redirect(new URL(`/${activeOrgSlug.value}`, request.url));
+    } else {
+      // /projects/{slug}/... → /{orgSlug}/projects/{slug}/...
+      return NextResponse.redirect(new URL(`/${activeOrgSlug.value}/projects${afterProjects}`, request.url));
+    }
   }
 
   return NextResponse.next();

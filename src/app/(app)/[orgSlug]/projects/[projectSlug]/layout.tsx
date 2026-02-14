@@ -9,7 +9,7 @@ export default async function ProjectLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ slug: string }>;
+  params: Promise<{ orgSlug: string; projectSlug: string }>;
 }) {
   // Auth check
   const session = await auth.api.getSession({
@@ -19,32 +19,32 @@ export default async function ProjectLayout({
     redirect("/sign-in");
   }
 
-  const { slug } = await params;
+  const { orgSlug, projectSlug } = await params;
   const userId = session.user.id;
 
-  // Get user's active organization
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { activeOrganizationId: true },
+  // Get organization ID from orgSlug
+  const organization = await db.organization.findUnique({
+    where: { slug: orgSlug },
+    select: { id: true },
   });
 
-  if (!user?.activeOrganizationId) {
-    redirect("/projects");
+  if (!organization) {
+    redirect(`/${orgSlug}`);
   }
 
-  // Resolve project by slug
+  // Resolve project by slug within this organization
   const project = await db.project.findUnique({
     where: {
       organizationId_slug: {
-        organizationId: user.activeOrganizationId,
-        slug,
+        organizationId: organization.id,
+        slug: projectSlug,
       },
     },
   });
 
-  // Project not found - redirect to dashboard
+  // Project not found - redirect to org home
   if (!project) {
-    redirect("/projects");
+    redirect(`/${orgSlug}`);
   }
 
   // Set as active project

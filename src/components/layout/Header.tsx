@@ -7,7 +7,7 @@ import { Box, Typography, IconButton, Divider, Skeleton, Button } from '@mui/mat
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
 import { api } from '@/trpc/react';
-import { useActiveOrganizationId } from '@/store/useOrganizationStore';
+import { useOrgContext } from '@/components/providers/OrgProvider';
 import { useRouter, usePathname, useParams } from 'next/navigation';
 import { useLoading } from '@/components/providers/LoadingProvider';
 import {
@@ -30,31 +30,32 @@ export default function Header() {
   const { showLoading, hideLoading } = useLoading();
 
   // Project management
-  const params = useParams<{ slug?: string }>();
-  const activeOrganizationId = useActiveOrganizationId();
+  const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
+  const { orgId: activeOrganizationId, orgSlug } = useOrgContext();
   const { data: projects = [], isLoading: projectsLoading } = api.project.list.useQuery(
-    { organizationId: activeOrganizationId ?? undefined },
+    { organizationId: activeOrganizationId },
     { retry: false, enabled: !!activeOrganizationId }
   );
 
   // Get current project from URL slug
-  const currentProject = projects.find(p => p.slug === params?.slug);
+  const currentProject = projects.find(p => p.slug === params?.projectSlug);
 
   const switchProject = (projectSlug: string) => {
     // Extract current segment from pathname
     const pathParts = pathname.split('/');
-    const currentSegment = pathParts.includes('projects') && pathParts.length > 3
+    const currentSegment = pathParts.length > 0 && pathParts.includes('projects')
       ? pathParts[pathParts.length - 1]
-      : 'gantt';
+      : 'dashboard';
 
     showLoading('Switching projects');
-    router.push(`/projects/${projectSlug}/${currentSegment}`);
+    router.push(`/${orgSlug}/projects/${projectSlug}/${currentSegment}`);
     hideLoading();
   };
 
   // Notification management
+  const utils = api.useUtils();
   const { data: unreadCount = 0 } = api.notification.unreadCount.useQuery(
-    { organizationId: activeOrganizationId ?? '' },
+    { organizationId: activeOrganizationId },
     {
       retry: false,
       enabled: !!activeOrganizationId,
@@ -62,7 +63,7 @@ export default function Header() {
     }
   );
   const { data: notificationsData } = api.notification.list.useQuery(
-    { organizationId: activeOrganizationId ?? '', limit: 20 },
+    { organizationId: activeOrganizationId, limit: 20 },
     { retry: false, enabled: notifMenuOpen && !!activeOrganizationId }
   );
   const markAsRead = api.notification.markAsRead.useMutation({
@@ -190,7 +191,7 @@ export default function Header() {
                 </Typography>
               </Box>
               {projects.map((project) => {
-                const isActive = project.slug === params?.slug;
+                const isActive = project.slug === params?.projectSlug;
                 return (
                   <DropdownMenuItem key={project.id} onClick={() => switchProject(project.slug)}>
                     <Box
@@ -406,7 +407,7 @@ export default function Header() {
                 {unreadCount > 0 && (
                   <Button
                     size="small"
-                    onClick={() => markAllAsRead.mutate({ organizationId: activeOrganizationId ?? '' })}
+                    onClick={() => markAllAsRead.mutate({ organizationId: activeOrganizationId })}
                     disabled={markAllAsRead.isPending}
                     sx={{ fontSize: '12px', textTransform: 'none' }}
                   >
@@ -422,7 +423,7 @@ export default function Header() {
                       key={notification.id}
                       onClick={() => {
                         if (!notification.read) {
-                          markAsRead.mutate({ organizationId: activeOrganizationId ?? '', ids: [notification.id] });
+                          markAsRead.mutate({ organizationId: activeOrganizationId, ids: [notification.id] });
                         }
                       }}
                     >

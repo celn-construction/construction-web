@@ -211,7 +211,13 @@ export const invitationRouter = createTRPCRouter({
       const invitation = await ctx.db.invitation.findUnique({
         where: { token: input.token },
         include: {
-          organization: true,
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
         },
       });
 
@@ -293,6 +299,9 @@ export const invitationRouter = createTRPCRouter({
         }
       });
 
-      return { organization: invitation.organization };
+      return {
+        organization: invitation.organization,
+        orgSlug: invitation.organization.slug,
+      };
     }),
 });

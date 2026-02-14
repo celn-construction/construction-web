@@ -3,11 +3,9 @@
 import { ChevronDown, Building2, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Box, Typography, Skeleton } from '@mui/material';
 import { api } from '@/trpc/react';
-import { useClearProject } from '@/store/hooks';
-import { useLoading } from '@/components/providers/LoadingProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,45 +15,23 @@ import {
 
 export default function OrgSwitcher() {
   const [orgMenuOpen, setOrgMenuOpen] = useState(false);
-  const utils = api.useUtils();
-  const clearProject = useClearProject();
   const router = useRouter();
-  const { showLoading, hideLoading } = useLoading();
+  const params = useParams<{ orgSlug?: string }>();
+  const currentOrgSlug = params.orgSlug;
 
   const { data: organizations = [], isLoading: orgsLoading } = api.organization.list.useQuery(
     undefined,
     { retry: false }
   );
 
-  const { data: currentOrg, isLoading: currentOrgLoading } = api.organization.getCurrent.useQuery(
-    undefined,
-    { retry: false }
-  );
+  const currentOrg = organizations.find((org) => org.slug === currentOrgSlug);
 
-  const switchOrganizationMutation = api.organization.switchOrganization.useMutation({
-    onSuccess: () => {
-      // Clear current project in Zustand
-      clearProject();
-      // Invalidate all org-scoped queries
-      void utils.organization.getCurrent.invalidate();
-      void utils.project.list.invalidate();
-      void utils.member.list.invalidate();
-      void utils.invitation.list.invalidate();
-      // Navigate to projects which will show all projects in the new org
-      router.push('/projects');
-      hideLoading();
-    },
-    onError: () => {
-      hideLoading();
-    },
-  });
-
-  const handleSwitch = (orgId: string) => {
-    showLoading('Switching projects');
-    switchOrganizationMutation.mutate({ organizationId: orgId });
+  const handleSwitch = (orgSlug: string) => {
+    router.push(`/${orgSlug}`);
+    setOrgMenuOpen(false);
   };
 
-  const isLoading = orgsLoading || currentOrgLoading;
+  const isLoading = orgsLoading;
 
   // Single org: static text (no dropdown)
   if (organizations.length <= 1) {
@@ -85,7 +61,7 @@ export default function OrgSwitcher() {
         <DropdownMenuTrigger asChild>
           <Box
             component="button"
-            disabled={isLoading || switchOrganizationMutation.isPending}
+            disabled={isLoading}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -154,9 +130,9 @@ export default function OrgSwitcher() {
             </Typography>
           </Box>
           {organizations.map((org) => {
-            const isActive = org.id === currentOrg?.id;
+            const isActive = org.slug === currentOrgSlug;
             return (
-              <DropdownMenuItem key={org.id} onClick={() => handleSwitch(org.id)}>
+              <DropdownMenuItem key={org.id} onClick={() => handleSwitch(org.slug)}>
                 <Box
                   sx={{
                     display: 'flex',

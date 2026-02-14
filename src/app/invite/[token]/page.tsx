@@ -24,11 +24,11 @@ export default function InvitePage() {
   );
 
   const acceptInvitation = api.invitation.accept.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       document.cookie = "onboarding-complete=true; path=/; max-age=31536000";
       setShowSuccess(true);
       setTimeout(() => {
-        router.push("/projects");
+        router.push(`/${data.orgSlug}`);
       }, 1500);
     },
     onError: (error) => {

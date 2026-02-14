@@ -2,41 +2,36 @@
 
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Calendar, Users, BarChart3 } from 'lucide-react';
-import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Divider } from '@mui/material';
-import { navItems, getNavHref } from './navItems';
+import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Users } from 'lucide-react';
+import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material';
+import { orgNavItems, projectNavItems, getOrgNavHref, getProjectNavHref } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
 import OrgSwitcher from './OrgSwitcher';
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const params = useParams<{ slug?: string }>();
-  const slug = params?.slug;
+  const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
+  const { orgSlug, projectSlug } = params;
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'Home': return Home;
-      case 'Calendar': return Calendar;
       case 'FileText': return FileText;
       case 'LayoutGrid': return LayoutGrid;
       case 'Zap': return Zap;
       case 'Clipboard': return Clipboard;
       case 'GanttChart': return GanttChart;
-      case 'BarChart3': return BarChart3;
       case 'Users': return Users;
       default: return Home;
     }
   };
-
-  const navigateItems = navItems.slice(0, 5);
-  const workspaceItems = navItems.slice(5);
 
   return (
     <Box
       component="aside"
       sx={{
         height: '100vh',
-        width: 208, // w-52
+        width: 208,
         bgcolor: 'sidebar.background',
         display: 'flex',
         flexDirection: 'column',
@@ -81,7 +76,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <Box component="nav" sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 2, flex: 1 }}>
-        {/* Navigate Section */}
+        {/* Organization Section */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           <Typography
             sx={{
@@ -94,19 +89,21 @@ export default function Sidebar() {
               textTransform: 'uppercase',
             }}
           >
-            Navigate
+            Organization
           </Typography>
           <List sx={{ p: 0 }}>
-            {navigateItems.map((item) => {
+            {orgNavItems.map((item) => {
               const Icon = getIcon(item.icon);
-              const href = getNavHref(item.segment, slug);
-              const isActive = pathname.startsWith(href);
+              const href = orgSlug ? getOrgNavHref(item.segment, orgSlug) : '#';
+              const isActive = pathname === href || (item.segment === '' && pathname === `/${orgSlug}`);
+              const isDisabled = !orgSlug;
 
               return (
                 <ListItemButton
                   key={item.id}
-                  component={Link}
+                  component={isDisabled ? 'div' : Link}
                   href={href}
+                  disabled={isDisabled}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -119,9 +116,11 @@ export default function Sidebar() {
                     bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
                     color: isActive ? 'text.primary' : 'text.secondary',
                     fontWeight: isActive ? 500 : 400,
+                    opacity: isDisabled ? 0.5 : 1,
+                    cursor: isDisabled ? 'default' : 'pointer',
                     '&:hover': {
-                      bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
-                      color: 'text.primary',
+                      bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg'),
+                      color: isDisabled ? 'text.secondary' : 'text.primary',
                     },
                   }}
                 >
@@ -153,7 +152,7 @@ export default function Sidebar() {
           </List>
         </Box>
 
-        {/* Workspace Section */}
+        {/* Project Section */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           <Typography
             sx={{
@@ -166,19 +165,21 @@ export default function Sidebar() {
               textTransform: 'uppercase',
             }}
           >
-            Workspace
+            Project
           </Typography>
           <List sx={{ p: 0 }}>
-            {workspaceItems.map((item) => {
+            {projectNavItems.map((item) => {
               const Icon = getIcon(item.icon);
-              const href = getNavHref(item.segment, slug);
-              const isActive = pathname.startsWith(href);
+              const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
+              const isActive = projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`);
+              const isDisabled = !projectSlug;
 
               return (
                 <ListItemButton
                   key={item.id}
-                  component={Link}
+                  component={isDisabled ? 'div' : Link}
                   href={href}
+                  disabled={isDisabled}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -191,9 +192,11 @@ export default function Sidebar() {
                     bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
                     color: isActive ? 'text.primary' : 'text.secondary',
                     fontWeight: isActive ? 500 : 400,
+                    opacity: isDisabled ? 0.4 : 1,
+                    cursor: isDisabled ? 'default' : 'pointer',
                     '&:hover': {
-                      bgcolor: isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg',
-                      color: 'text.primary',
+                      bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg'),
+                      color: isDisabled ? 'text.secondary' : 'text.primary',
                     },
                   }}
                 >

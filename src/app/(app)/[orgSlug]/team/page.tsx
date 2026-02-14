@@ -9,17 +9,13 @@ import { canInviteMembers } from '~/lib/permissions';
 import InviteDialog from '@/components/team/InviteDialog';
 import MembersList from '@/components/team/MembersList';
 import PendingInvitesList from '@/components/team/PendingInvitesList';
-import { useActiveOrganizationId } from '@/store/useOrganizationStore';
+import { useOrgContext } from '@/components/providers/OrgProvider';
 
 export default function TeamPage() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'members' | 'pending'>('members');
 
-  const activeOrganizationId = useActiveOrganizationId();
-  const organizationId = activeOrganizationId ?? '';
-
-  const { data: organizations = [] } = api.organization.list.useQuery();
-  const organization = organizations.find((org) => org.id === organizationId);
+  const { orgId: organizationId, orgName } = useOrgContext();
 
   const { data: members = [], isLoading: membersLoading } = api.member.list.useQuery(
     { organizationId },
@@ -64,7 +60,7 @@ export default function TeamPage() {
             Team
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.disabled', mt: 0.5 }}>
-            {organization?.name || 'Manage your team members and invitations'}
+            {orgName}
           </Typography>
         </Box>
         {canManage && (

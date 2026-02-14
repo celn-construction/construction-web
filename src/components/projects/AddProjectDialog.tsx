@@ -21,7 +21,7 @@ import {
   createProjectSchema,
   type CreateProjectInput,
 } from '~/lib/validations/project';
-import { useActiveOrganizationId } from '@/store/useOrganizationStore';
+import { useOrgContext } from '@/components/providers/OrgProvider';
 
 interface AddProjectDialogProps {
   open: boolean;
@@ -35,7 +35,7 @@ export default function AddProjectDialog({
   const utils = api.useUtils();
   const router = useRouter();
   const { showSnackbar } = useSnackbar();
-  const activeOrganizationId = useActiveOrganizationId();
+  const { orgId: activeOrganizationId, orgSlug } = useOrgContext();
 
   // Initialize form with react-hook-form + zod
   const {
@@ -59,7 +59,7 @@ export default function AddProjectDialog({
       reset();
       onOpenChange(false);
       // Navigate to the new project's Gantt page
-      router.push(`/projects/${newProject.slug}/gantt`);
+      router.push(`/${orgSlug}/projects/${newProject.slug}/gantt`);
     },
     onError: (error) => {
       showSnackbar(error.message || 'Failed to create project', 'error');
@@ -69,7 +69,7 @@ export default function AddProjectDialog({
   const onSubmit = (data: CreateProjectInput) => {
     createProject.mutate({
       ...data,
-      organizationId: activeOrganizationId ?? undefined,
+      organizationId: activeOrganizationId,
     });
   };
 

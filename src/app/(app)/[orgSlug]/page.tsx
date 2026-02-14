@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Plus, Calendar, CheckCircle, Clock } from 'lucide-react';
 import { Box, Typography, Button, Paper, Skeleton } from '@mui/material';
 import Grid from '@mui/material/GridLegacy';
@@ -9,13 +9,15 @@ import { api } from '~/trpc/react';
 import AddProjectDialog from '~/components/projects/AddProjectDialog';
 import { formatDistanceToNow } from 'date-fns';
 
-export default function ProjectsPage() {
+export default function OrgHomePage() {
   const router = useRouter();
+  const params = useParams<{ orgSlug: string }>();
+  const orgSlug = params.orgSlug;
   const [dialogOpen, setDialogOpen] = useState(false);
   const { data: projects, isLoading } = api.project.list.useQuery();
 
   const handleCardClick = (slug: string) => {
-    router.push(`/projects/${slug}/dashboard`);
+    router.push(`/${orgSlug}/projects/${slug}/dashboard`);
   };
 
   if (isLoading) {
