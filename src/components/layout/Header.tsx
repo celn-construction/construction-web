@@ -2,13 +2,13 @@
 
 import { Search, Moon, Sun, ChevronDown, Bell, Plus, Building2, Check, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Box, Typography, IconButton, Divider, Skeleton, Button } from '@mui/material';
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
 import { api } from '@/trpc/react';
-import { useCurrentProjectId, useSwitchProject } from '@/store/hooks';
 import { useActiveOrganizationId } from '@/store/useOrganizationStore';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,8 @@ export default function Header() {
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
   // Project management
   const activeOrganizationId = useActiveOrganizationId();
@@ -31,11 +33,27 @@ export default function Header() {
     { organizationId: activeOrganizationId ?? undefined },
     { retry: false, enabled: !!activeOrganizationId }
   );
-  const currentProjectId = useCurrentProjectId();
-  const switchProject = useSwitchProject();
+  const { data: activeProject } = api.project.getActive.useQuery(
+    { organizationId: activeOrganizationId ?? undefined },
+    { retry: false, enabled: !!activeOrganizationId }
+  );
+
+  const utils = api.useUtils();
+  const setActiveProjectMutation = api.project.setActive.useMutation();
+
+  const switchProject = (projectId: string) => {
+    setActiveProjectMutation.mutate({ projectId }, {
+      onSuccess: () => {
+        void utils.project.getActive.invalidate();
+        router.push(`/projects/${projectId}/gantt`);
+      },
+      onError: (error) => {
+        console.error('Failed to switch project:', error.message);
+      },
+    });
+  };
 
   // Notification management
-  const utils = api.useUtils();
   const { data: unreadCount = 0 } = api.notification.unreadCount.useQuery(
     { organizationId: activeOrganizationId ?? '' },
     {
@@ -61,14 +79,7 @@ export default function Header() {
     },
   });
 
-  // Auto-set first project on initial load
-  useEffect(() => {
-    if (!currentProjectId && projects.length > 0 && !projectsLoading) {
-      switchProject(projects[0]!.id);
-    }
-  }, [currentProjectId, projects, projectsLoading, switchProject]);
-
-  const currentProject = projects.find(p => p.id === currentProjectId);
+  const currentProject = activeProject;
 
   const container = {
     hidden: { opacity: 0 },
@@ -181,7 +192,7 @@ export default function Header() {
                 </Typography>
               </Box>
               {projects.map((project) => {
-                const isActive = project.id === currentProjectId;
+                const isActive = project.id === activeProject?.id;
                 return (
                   <DropdownMenuItem key={project.id} onClick={() => switchProject(project.id)}>
                     <Box
