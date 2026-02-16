@@ -7,7 +7,6 @@ import { Box, Typography, IconButton, Divider, Skeleton, Button } from '@mui/mat
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
 import { api } from '@/trpc/react';
-import { useOrgContext } from '@/components/providers/OrgProvider';
 import { useRouter, usePathname, useParams } from 'next/navigation';
 import { useLoading } from '@/components/providers/LoadingProvider';
 import {
@@ -29,9 +28,13 @@ export default function Header() {
   const pathname = usePathname();
   const { showLoading, hideLoading } = useLoading();
 
-  // Project management
+  // Project management - derive org from URL params + org list
   const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
-  const { orgId: activeOrganizationId, orgSlug } = useOrgContext();
+  const orgSlug = params.orgSlug;
+  const { data: organizations = [] } = api.organization.list.useQuery(undefined, { retry: false });
+  const currentOrg = organizations.find((o) => o.slug === orgSlug);
+  const activeOrganizationId = currentOrg?.id ?? '';
+
   const { data: projects = [], isLoading: projectsLoading } = api.project.list.useQuery(
     { organizationId: activeOrganizationId },
     { retry: false, enabled: !!activeOrganizationId }
