@@ -1,7 +1,31 @@
 import type { GanttTask, GanttDependency, GanttResource, GanttAssignment, GanttTimeRange } from "../../../../generated/prisma";
 
+// Type for the subset of GanttTask fields selected by the load query
+type GanttTaskSelect = {
+  id: string;
+  parentId: string | null;
+  name: string;
+  percentDone: number;
+  startDate: Date | null;
+  endDate: Date | null;
+  duration: number | null;
+  durationUnit: string | null;
+  effort: number | null;
+  effortUnit: string | null;
+  expanded: boolean;
+  manuallyScheduled: boolean;
+  constraintType: string | null;
+  constraintDate: Date | null;
+  rollup: boolean;
+  cls: string | null;
+  iconCls: string | null;
+  note: string | null;
+  baselines: unknown;
+  orderIndex: number;
+};
+
 // Bryntum expects specific field names - map DB fields to Bryntum fields
-export function mapTaskToGantt(task: GanttTask): Record<string, unknown> {
+export function mapTaskToGantt(task: GanttTaskSelect): Record<string, unknown> {
   return {
     id: task.id,
     parentId: task.parentId,
@@ -71,7 +95,7 @@ export function mapTimeRangeToGantt(timeRange: GanttTimeRange): Record<string, u
  * Build hierarchical task tree from flat task array
  * Tasks with parentId will be nested under their parent's children array
  */
-export function buildTaskTree(tasks: GanttTask[]): Record<string, unknown>[] {
+export function buildTaskTree(tasks: GanttTaskSelect[]): Record<string, unknown>[] {
   const taskMap = new Map<string, Record<string, unknown>>();
   const rootTasks: Record<string, unknown>[] = [];
 

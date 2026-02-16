@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, type CSSProperties } from 'react';
+import { useMemo, useState, useRef, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
 import '@bryntum/gantt/gantt.css';
+import { CircularProgress, Box } from '@mui/material';
 import { useThemeStore } from '~/store/useThemeStore';
 import { createGanttConfig } from './config/ganttConfig';
 import { BryntumPanelHeader } from './components/BryntumPanelHeader';
@@ -30,13 +31,29 @@ interface BryntumGanttWrapperProps {
 
 export default function BryntumGanttWrapper({ projectId }: BryntumGanttWrapperProps) {
   const theme = useThemeStore((state) => state.theme);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const ganttRef = useRef<BryntumGantt>(null);
+
   const { selectedTask, popoverPlacement, handleTaskClick, closeTaskPopover, isTaskPopoverOpen } =
     useTaskPopover();
 
   useBryntumThemeAssets(theme);
 
   const ganttConfig = useMemo(
-    () => createGanttConfig(handleTaskClick, projectId),
+    () => createGanttConfig(handleTaskClick, projectId, {
+      onLoadStart: () => {
+        setIsLoading(true);
+        setLoadError(null);
+      },
+      onLoadComplete: () => {
+        setIsLoading(false);
+      },
+      onLoadError: (error: string) => {
+        setIsLoading(false);
+        setLoadError(error);
+      },
+    }),
     [handleTaskClick, projectId]
   );
 
@@ -45,7 +62,42 @@ export default function BryntumGanttWrapper({ projectId }: BryntumGanttWrapperPr
       <BryntumPanelHeader title="Bryntum Schedule" />
 
       <div style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
-        <BryntumGantt {...ganttConfig} />
+        {isLoading && (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              flexDirection: 'column',
+              gap: 2,
+            }}
+          >
+            <CircularProgress />
+            <div>Loading Gantt chart data...</div>
+          </Box>
+        )}
+
+        {loadError && (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              flexDirection: 'column',
+              gap: 2,
+              color: 'error.main',
+            }}
+          >
+            <div>Failed to load Gantt chart</div>
+            <div style={{ fontSize: '0.875rem' }}>{loadError}</div>
+          </Box>
+        )}
+
+        <div style={{ display: isLoading || loadError ? 'none' : 'block', height: '100%' }}>
+          <BryntumGantt ref={ganttRef} {...ganttConfig} />
+        </div>
       </div>
 
       <TaskDetailsPopover

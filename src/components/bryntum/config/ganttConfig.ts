@@ -13,30 +13,63 @@ function formatTooltipText(record: Record<string, unknown>, field?: string): str
   return String(value);
 }
 
+interface LoadingCallbacks {
+  onLoadStart?: () => void;
+  onLoadComplete?: () => void;
+  onLoadError?: (error: string) => void;
+}
+
 export function createGanttConfig(
   onTaskClick: TaskClickHandler,
-  projectId?: string
+  projectId?: string,
+  loadingCallbacks?: LoadingCallbacks
 ): GanttConfig {
   return {
     height: '100%',
     detectCSSCompatibilityIssues: false,
+
+    // Performance optimizations
+    rowHeight: 45, // Consistent row height for better performance
+    animateTreeNodeToggle: false, // Disable animations for faster rendering
+
     project: {
       autoLoad: true,
       autoSync: !!projectId,
+
+      // Enable delay calculation for better initial load performance
+      delayCalculation: true,
+
       transport: projectId
         ? {
             load: {
               url: `/api/gantt/load?projectId=${projectId}`,
+              fetchOptions: { credentials: 'include' },
             },
             sync: {
               url: `/api/gantt/sync?projectId=${projectId}`,
+              fetchOptions: { credentials: 'include' },
             },
           }
         : {
             load: {
               url: '/data/bryntum-sample.json',
+              fetchOptions: { credentials: 'include' },
             },
           },
+
+      listeners: {
+        beforeLoad: () => {
+          loadingCallbacks?.onLoadStart?.();
+        },
+        load: () => {
+          loadingCallbacks?.onLoadComplete?.();
+        },
+        loadFail: ({ response }: { response: { message?: string } }) => {
+          loadingCallbacks?.onLoadError?.(
+            response?.message ?? 'Failed to load Gantt data'
+          );
+        },
+      },
     },
     columns: [
       {

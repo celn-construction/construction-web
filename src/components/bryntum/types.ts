@@ -46,16 +46,30 @@ type TooltipRendererArgs = {
 export type GanttConfig = {
   height: string;
   detectCSSCompatibilityIssues: boolean;
+  rowHeight?: number;
+  animateTreeNodeToggle?: boolean;
   project: {
     autoLoad: boolean;
     autoSync?: boolean;
+    delayCalculation?: boolean;
     transport: {
       load: {
         url: string;
+        fetchOptions?: {
+          credentials: 'include' | 'omit' | 'same-origin';
+        };
       };
       sync?: {
         url: string;
+        fetchOptions?: {
+          credentials: 'include' | 'omit' | 'same-origin';
+        };
       };
+    };
+    listeners?: {
+      beforeLoad?: () => void;
+      load?: () => void;
+      loadFail?: (payload: { response: { message?: string } }) => void;
     };
   };
   columns: GanttColumnConfig[];

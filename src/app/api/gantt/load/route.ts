@@ -51,7 +51,12 @@ export async function GET(request: Request) {
       projectId,
     });
 
-    return NextResponse.json(result);
+    // Add cache headers for better performance
+    return NextResponse.json(result, {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+      },
+    });
   } catch (error) {
     console.error("Gantt load error:", error);
     return NextResponse.json(

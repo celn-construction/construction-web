@@ -25,11 +25,34 @@ export const ganttRouter = createTRPCRouter({
         throw new Error("Project not found or access denied");
       }
 
-      // Fetch all Gantt data in parallel
+      // Fetch all Gantt data in parallel with optimized queries
       const [tasks, dependencies, resources, assignments, timeRanges] = await Promise.all([
         ctx.db.ganttTask.findMany({
           where: { projectId },
           orderBy: { orderIndex: "asc" },
+          // Only select fields needed by Bryntum
+          select: {
+            id: true,
+            parentId: true,
+            name: true,
+            percentDone: true,
+            startDate: true,
+            endDate: true,
+            duration: true,
+            durationUnit: true,
+            effort: true,
+            effortUnit: true,
+            expanded: true,
+            manuallyScheduled: true,
+            constraintType: true,
+            constraintDate: true,
+            rollup: true,
+            cls: true,
+            iconCls: true,
+            note: true,
+            baselines: true,
+            orderIndex: true,
+          },
         }),
         ctx.db.ganttDependency.findMany({
           where: { projectId },

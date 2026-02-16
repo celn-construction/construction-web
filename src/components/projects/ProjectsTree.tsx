@@ -124,23 +124,21 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
               }}
             />
           )}
-          {folder.isLeaf && (
-            <IconButton
-              size="small"
-              aria-label={`Upload file to ${folder.name}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setUploadOpen(true);
-              }}
-              sx={{
-                p: 0.5,
-                color: 'text.disabled',
-                '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
-              }}
-            >
-              <Plus size={14} />
-            </IconButton>
-          )}
+          <IconButton
+            size="small"
+            aria-label={`Upload file to ${folder.name}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setUploadOpen(true);
+            }}
+            sx={{
+              p: 0.5,
+              color: 'text.disabled',
+              '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
+            }}
+          >
+            <Plus size={14} />
+          </IconButton>
         </Box>
       }
     >
