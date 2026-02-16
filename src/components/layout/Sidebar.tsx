@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { Home, LayoutGrid, Zap, Clipboard, GanttChart, FileText, Users, FolderOpen } from 'lucide-react';
+import { Home, GanttChart, Users, FolderOpen } from 'lucide-react';
 import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material';
 import { orgNavItems, projectNavItems, getOrgNavHref, getProjectNavHref } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
@@ -16,11 +16,7 @@ export default function Sidebar() {
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'Home': return Home;
-      case 'FileText': return FileText;
       case 'FolderOpen': return FolderOpen;
-      case 'LayoutGrid': return LayoutGrid;
-      case 'Zap': return Zap;
-      case 'Clipboard': return Clipboard;
       case 'GanttChart': return GanttChart;
       case 'Users': return Users;
       default: return Home;

@@ -53,7 +53,7 @@ export default function Header() {
     const pathParts = pathname.split('/');
     const currentSegment = pathParts.length > 0 && pathParts.includes('projects')
       ? pathParts[pathParts.length - 1]
-      : 'dashboard';
+      : 'gantt';
 
     showLoading('Switching projects');
     router.push(`/${orgSlug}/projects/${projectSlug}/${currentSegment}`);
