@@ -1,4 +1,5 @@
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, orgProcedure } from "~/server/api/trpc";
+import { z } from "zod";
 
 export const organizationRouter = createTRPCRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
@@ -13,4 +14,17 @@ export const organizationRouter = createTRPCRouter({
       role: m.role,
     }));
   }),
+
+  stats: orgProcedure
+    .input(z.object({ organizationId: z.string() }))
+    .query(async ({ ctx }) => {
+      const orgId = ctx.organization.id;
+      const [projectCount, memberCount, taskCount, documentCount] = await Promise.all([
+        ctx.db.project.count({ where: { organizationId: orgId } }),
+        ctx.db.membership.count({ where: { organizationId: orgId } }),
+        ctx.db.ganttTask.count({ where: { project: { organizationId: orgId } } }),
+        ctx.db.document.count({ where: { project: { organizationId: orgId } } }),
+      ]);
+      return { projectCount, memberCount, taskCount, documentCount };
+    }),
 });

@@ -7,7 +7,7 @@ export interface NavItem {
 
 // Organization-level navigation (always available)
 export const orgNavItems: NavItem[] = [
-  { id: 'projects', label: 'Projects', icon: 'Home', segment: '' }, // Home = project listing
+  { id: 'home', label: 'Home', icon: 'Home', segment: '' },
   { id: 'team', label: 'Team', icon: 'Users', segment: 'team' },
 ];
 
