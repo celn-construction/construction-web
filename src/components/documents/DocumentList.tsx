@@ -1,9 +1,9 @@
 'use client';
 
-import { FileText, FileSpreadsheet, FileImage, Download } from 'lucide-react';
+import { FileText, FileSpreadsheet, FileImage, Download, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { api } from '@/trpc/react';
-import { Box, Typography, Stack, Skeleton } from '@mui/material';
+import { Box, Typography, Stack, Skeleton, IconButton } from '@mui/material';
 
 interface DocumentListProps {
   organizationId: string;
@@ -39,12 +39,28 @@ export function DocumentList({
   taskId,
   folderId,
 }: DocumentListProps) {
+  const utils = api.useUtils();
   const { data: documents, isLoading } = api.document.listByFolder.useQuery({
     organizationId,
     projectId,
     taskId,
     folderId,
   });
+
+  const deleteMutation = api.document.delete.useMutation({
+    onSuccess: () => {
+      void utils.document.listByFolder.invalidate();
+      void utils.document.countByTask.invalidate();
+    },
+  });
+
+  const handleDelete = (e: React.MouseEvent, documentId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirm('Are you sure you want to delete this document?')) {
+      deleteMutation.mutate({ documentId, organizationId });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -90,6 +106,9 @@ export function DocumentList({
               '& .download-icon': {
                 color: 'text.primary',
               },
+              '& .delete-button': {
+                opacity: 1,
+              },
             },
           }}
         >
@@ -127,6 +146,23 @@ export function DocumentList({
               )}
             </Box>
           </Box>
+          <IconButton
+            className="delete-button"
+            size="small"
+            onClick={(e) => handleDelete(e, doc.id)}
+            disabled={deleteMutation.isPending}
+            sx={{
+              flexShrink: 0,
+              opacity: 0,
+              transition: 'opacity 0.2s',
+              '&:hover': {
+                bgcolor: 'error.light',
+                color: 'error.contrastText',
+              },
+            }}
+          >
+            <Trash2 size={16} />
+          </IconButton>
           <Download
             size={16}
             className="download-icon"

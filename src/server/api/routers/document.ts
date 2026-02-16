@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { del } from "@vercel/blob";
 import { createTRPCRouter, orgProcedure } from "~/server/api/trpc";
 
 export const documentRouter = createTRPCRouter({
@@ -87,5 +88,44 @@ export const documentRouter = createTRPCRouter({
       }
 
       return counts;
+    }),
+
+  delete: orgProcedure
+    .input(
+      z.object({
+        documentId: z.string(),
+        organizationId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Get the document and verify it belongs to a project in the user's organization
+      const document = await ctx.db.document.findFirst({
+        where: {
+          id: input.documentId,
+        },
+        include: {
+          project: {
+            select: {
+              organizationId: true,
+            },
+          },
+        },
+      });
+
+      if (!document || document.project.organizationId !== input.organizationId) {
+        throw new Error("Document not found or access denied");
+      }
+
+      // Delete from Vercel Blob
+      await del(document.blobUrl);
+
+      // Delete from database
+      await ctx.db.document.delete({
+        where: {
+          id: input.documentId,
+        },
+      });
+
+      return { success: true };
     }),
 });
