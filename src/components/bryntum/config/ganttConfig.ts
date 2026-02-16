@@ -25,7 +25,6 @@ export function createGanttConfig(
   loadingCallbacks?: LoadingCallbacks
 ): GanttConfig {
   return {
-    height: '100%',
     detectCSSCompatibilityIssues: false,
 
     // Performance optimizations

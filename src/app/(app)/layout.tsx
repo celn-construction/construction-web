@@ -48,6 +48,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             component="main"
             sx={{
               flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
               p: 2,
               overflowX: 'hidden',
               overflowY: 'auto',

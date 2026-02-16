@@ -44,7 +44,7 @@ type TooltipRendererArgs = {
 };
 
 export type GanttConfig = {
-  height: string;
+  height?: string;
   detectCSSCompatibilityIssues: boolean;
   rowHeight?: number;
   animateTreeNodeToggle?: boolean;

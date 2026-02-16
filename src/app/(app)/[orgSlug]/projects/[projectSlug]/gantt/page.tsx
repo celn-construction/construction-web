@@ -8,12 +8,12 @@ export default function GanttPage() {
   const { projectId, projectName } = useProjectContext();
 
   return (
-    <div className="min-h-full w-full p-6">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden w-full p-6">
       <div className="mb-4">
         <h1 className="text-2xl font-semibold">{projectName} - Gantt Chart</h1>
       </div>
 
-      <div className="h-[calc(100vh-10rem)]">
+      <div className="flex-1 min-h-0">
         <Suspense fallback={<div>Loading Gantt chart...</div>}>
           <BryntumGanttWrapper projectId={projectId} />
         </Suspense>

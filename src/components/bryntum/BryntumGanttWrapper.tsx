@@ -95,7 +95,12 @@ export default function BryntumGanttWrapper({ projectId }: BryntumGanttWrapperPr
           </Box>
         )}
 
-        <div style={{ display: isLoading || loadError ? 'none' : 'block', height: '100%' }}>
+        <div style={{
+          display: isLoading || loadError ? 'none' : 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          minHeight: 0,
+        }}>
           <BryntumGantt ref={ganttRef} {...ganttConfig} />
         </div>
       </div>
