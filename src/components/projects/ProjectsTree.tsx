@@ -1,11 +1,13 @@
 'use client';
 
-import { Folder, FileText } from 'lucide-react';
+import { useState, Fragment } from 'react';
+import { Folder, FileText, Plus } from 'lucide-react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
-import { Box, Chip } from '@mui/material';
+import { Box, Chip, IconButton } from '@mui/material';
 import { useGroupedFeaturesWithRows, useGroups, useCurrentProjectId } from '@/store/hooks/useGanttFeatures';
 import { api } from '@/trpc/react';
+import UploadDialog from '@/components/documents/UploadDialog';
 
 // Static construction document folder structure (same for every task)
 export const folderData = [
@@ -58,6 +60,8 @@ export interface Selection {
 interface ProjectsTreeProps {
   selectedNodeId: string | null;
   onSelect: (selection: Selection | null) => void;
+  projectId?: string;
+  organizationId?: string;
 }
 
 // Component to display folder with document count badge
@@ -70,6 +74,8 @@ interface FolderNodeProps {
 
 function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodeProps) {
   const folderId = `${taskId}-${folder.id}`;
+  const utils = api.useUtils();
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   // Get document counts for this task
   const { data: counts } = api.document.countByTask.useQuery(
@@ -85,8 +91,20 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
 
   const documentCount = counts?.[folder.id] || 0;
 
+  const handleUploadComplete = () => {
+    if (organizationId && projectId) {
+      void utils.document.countByTask.invalidate({
+        organizationId,
+        projectId,
+        taskId: taskId.replace('task-', ''),
+      });
+      void utils.document.listByFolder.invalidate();
+    }
+  };
+
   return (
-    <TreeItem
+    <Fragment>
+      <TreeItem
       key={folderId}
       itemId={folderId}
       label={
@@ -105,6 +123,23 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
                 '& .MuiChip-label': { px: 1 },
               }}
             />
+          )}
+          {folder.isLeaf && (
+            <IconButton
+              size="small"
+              aria-label={`Upload file to ${folder.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setUploadOpen(true);
+              }}
+              sx={{
+                p: 0.5,
+                color: 'text.disabled',
+                '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
+              }}
+            >
+              <Plus size={14} />
+            </IconButton>
           )}
         </Box>
       }
@@ -136,16 +171,44 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
                       }}
                     />
                   )}
+                  <IconButton
+                    size="small"
+                    aria-label={`Upload file to ${child.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUploadOpen(true);
+                    }}
+                    sx={{
+                      p: 0.5,
+                      color: 'text.disabled',
+                      '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
+                    }}
+                  >
+                    <Plus size={14} />
+                  </IconButton>
                 </Box>
               }
             />
           );
         })}
-    </TreeItem>
+      </TreeItem>
+
+      {projectId && organizationId && (
+        <UploadDialog
+          open={uploadOpen}
+          onOpenChange={setUploadOpen}
+          projectId={projectId}
+          taskId={taskId.replace('task-', '')}
+          folderId={folder.id}
+          folderName={folder.name}
+          onUploadComplete={handleUploadComplete}
+        />
+      )}
+    </Fragment>
   );
 }
 
-export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeProps) {
+export default function ProjectsTree({ selectedNodeId, onSelect, projectId, organizationId }: ProjectsTreeProps) {
   const groups = useGroups();
   const { grouped } = useGroupedFeaturesWithRows();
   const currentProjectId = useCurrentProjectId();
@@ -153,6 +216,10 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
   // Get project to access organizationId
   const { data: projects = [] } = api.project.list.useQuery();
   const currentProject = projects.find((p) => p.id === currentProjectId);
+
+  // Use provided props or fall back to existing hooks
+  const activeProjectId = projectId ?? currentProjectId;
+  const activeOrganizationId = organizationId ?? currentProject?.organizationId;
 
   // Get all group IDs for default expansion
   const defaultExpandedItems = groups.map((group) => `group-${group}`);
@@ -304,8 +371,8 @@ export default function ProjectsTree({ selectedNodeId, onSelect }: ProjectsTreeP
                         key={`${taskId}-${folder.id}`}
                         folder={folder}
                         taskId={taskId}
-                        projectId={currentProjectId}
-                        organizationId={currentProject?.organizationId}
+                        projectId={activeProjectId}
+                        organizationId={activeOrganizationId}
                       />
                     ))}
                   </TreeItem>

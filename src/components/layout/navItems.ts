@@ -16,6 +16,7 @@ export const projectNavItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'LayoutGrid', segment: 'dashboard' },
   { id: 'gantt', label: 'Gantt', icon: 'GanttChart', segment: 'gantt' },
   { id: 'documents', label: 'Documents', icon: 'FileText', segment: 'documents' },
+  { id: 'files', label: 'Files', icon: 'FolderOpen', segment: 'files' },
   { id: 'tasks', label: 'Tasks', icon: 'Zap', segment: 'tasks' },
   { id: 'reports', label: 'Reports', icon: 'Clipboard', segment: 'reports' },
 ];
