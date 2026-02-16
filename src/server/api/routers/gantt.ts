@@ -6,6 +6,81 @@ import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRa
 
 export const ganttRouter = createTRPCRouter({
   /**
+   * Lightweight task list for the file tree sidebar
+   */
+  tasks: orgProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { projectId } = input;
+
+      const project = await ctx.db.project.findFirst({
+        where: { id: projectId, organizationId: ctx.organization.id },
+      });
+
+      if (!project) {
+        throw new Error("Project not found or access denied");
+      }
+
+      return ctx.db.ganttTask.findMany({
+        where: { projectId },
+        orderBy: { orderIndex: "asc" },
+        select: {
+          id: true,
+          parentId: true,
+          name: true,
+          percentDone: true,
+        },
+      });
+    }),
+
+  /**
+   * Get single task details for the detail panel
+   */
+  taskDetail: orgProcedure
+    .input(z.object({ projectId: z.string(), taskId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { projectId, taskId } = input;
+
+      const project = await ctx.db.project.findFirst({
+        where: { id: projectId, organizationId: ctx.organization.id },
+      });
+
+      if (!project) {
+        throw new Error("Project not found or access denied");
+      }
+
+      const task = await ctx.db.ganttTask.findFirst({
+        where: { id: taskId, projectId },
+        select: {
+          id: true,
+          name: true,
+          percentDone: true,
+          startDate: true,
+          endDate: true,
+          coverImage: true,
+          parentId: true,
+          parent: {
+            select: { name: true },
+          },
+        },
+      });
+
+      if (!task) {
+        return null;
+      }
+
+      return {
+        id: task.id,
+        name: task.name,
+        percentDone: task.percentDone,
+        startDate: task.startDate,
+        endDate: task.endDate,
+        coverImage: task.coverImage,
+        group: task.parent?.name ?? null,
+      };
+    }),
+
+  /**
    * Load all Gantt data for a project
    */
   load: orgProcedure
@@ -94,6 +169,44 @@ export const ganttRouter = createTRPCRouter({
         assignments: { rows: ganttAssignments },
         timeRanges: { rows: ganttTimeRanges },
       };
+    }),
+
+  /**
+   * Update individual task fields
+   */
+  updateTask: orgProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        taskId: z.string(),
+        data: z.object({
+          coverImage: z.string().optional(),
+        }),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { projectId, taskId, data } = input;
+
+      const project = await ctx.db.project.findFirst({
+        where: { id: projectId, organizationId: ctx.organization.id },
+      });
+
+      if (!project) {
+        throw new Error("Project not found or access denied");
+      }
+
+      const task = await ctx.db.ganttTask.findFirst({
+        where: { id: taskId, projectId },
+      });
+
+      if (!task) {
+        throw new Error("Task not found");
+      }
+
+      return ctx.db.ganttTask.update({
+        where: { id: taskId },
+        data,
+      });
     }),
 
   /**

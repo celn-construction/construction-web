@@ -2,9 +2,6 @@
 
 import { Folder, FileText, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
-import { useFeature } from '@/store/hooks/useGanttFeatures';
-import { useUpdateFeature } from '@/store/hooks/useFeatureActions';
-import { useCurrentProjectId } from '@/store/hooks/useGanttFeatures';
 import { ImageDropzone } from '@/components/ui/image-dropzone';
 import { FileDropzone } from '@/components/documents/FileDropzone';
 import { DocumentList } from '@/components/documents/DocumentList';
@@ -23,23 +20,60 @@ export interface Selection {
 interface ProjectDetailPanelProps {
   selection: Selection | null;
   onBack?: () => void;
+  projectId?: string;
+  organizationId?: string;
 }
 
-export function ProjectDetailPanel({ selection, onBack }: ProjectDetailPanelProps) {
-  const updateFeature = useUpdateFeature();
-  const task = useFeature(selection?.taskId || '');
-  const currentProjectId = useCurrentProjectId();
+function deriveStatus(percentDone: number) {
+  if (percentDone >= 100) return { name: 'Completed', color: '#10b981' };
+  if (percentDone > 0) return { name: 'In Progress', color: '#3b82f6' };
+  return { name: 'Planned', color: '#6b7280' };
+}
+
+export function ProjectDetailPanel({ selection, onBack, projectId, organizationId }: ProjectDetailPanelProps) {
   const utils = api.useUtils();
 
-  // Get project to access organizationId
-  const { data: projects = [] } = api.project.list.useQuery();
-  const currentProject = projects.find((p) => p.id === currentProjectId);
+  const { data: taskData } = api.gantt.taskDetail.useQuery(
+    {
+      organizationId: organizationId!,
+      projectId: projectId!,
+      taskId: selection?.taskId || '',
+    },
+    {
+      enabled: !!projectId && !!organizationId && !!selection?.taskId,
+    }
+  );
+
+  const updateTaskMutation = api.gantt.updateTask.useMutation({
+    onSuccess: () => {
+      if (organizationId && projectId && selection?.taskId) {
+        void utils.gantt.taskDetail.invalidate({
+          organizationId,
+          projectId,
+          taskId: selection.taskId,
+        });
+      }
+    },
+  });
+
+  const task = taskData
+    ? {
+        id: taskData.id,
+        name: taskData.name,
+        group: taskData.group,
+        status: deriveStatus(taskData.percentDone),
+        progress: Math.round(taskData.percentDone),
+        startAt: taskData.startDate,
+        endAt: taskData.endDate,
+        coverImage: taskData.coverImage,
+      }
+    : null;
 
   const handleUploadComplete = () => {
-    if (currentProject?.organizationId && currentProjectId && selection?.taskId && selection?.folderId) {
+    if (organizationId && projectId && selection?.taskId && selection?.folderId) {
       void utils.document.listByFolder.invalidate({
-        organizationId: currentProject.organizationId,
-        projectId: currentProjectId,
+        organizationId,
+        projectId,
         taskId: selection.taskId,
         folderId: selection.folderId,
       });
@@ -203,9 +237,16 @@ export function ProjectDetailPanel({ selection, onBack }: ProjectDetailPanelProp
             Cover Photo
           </Typography>
           <ImageDropzone
-            value={task.coverImage}
+            value={task.coverImage ?? undefined}
             onChange={(imageUrl) => {
-              updateFeature(task.id, { coverImage: imageUrl });
+              if (projectId && organizationId) {
+                updateTaskMutation.mutate({
+                  organizationId,
+                  projectId,
+                  taskId: task.id,
+                  data: { coverImage: imageUrl },
+                });
+              }
             }}
           />
         </Box>
@@ -301,7 +342,7 @@ export function ProjectDetailPanel({ selection, onBack }: ProjectDetailPanelProp
         )}
 
         {/* Document upload and list */}
-        {currentProject?.organizationId && currentProjectId && selection.folderId && (
+        {organizationId && projectId && selection.folderId && (
           <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box>
               <Typography
@@ -318,7 +359,7 @@ export function ProjectDetailPanel({ selection, onBack }: ProjectDetailPanelProp
                 Upload Documents
               </Typography>
               <FileDropzone
-                projectId={currentProjectId}
+                projectId={projectId}
                 taskId={selection.taskId}
                 folderId={selection.folderId}
                 onUploadComplete={handleUploadComplete}
@@ -340,8 +381,8 @@ export function ProjectDetailPanel({ selection, onBack }: ProjectDetailPanelProp
                 Documents
               </Typography>
               <DocumentList
-                organizationId={currentProject.organizationId}
-                projectId={currentProjectId}
+                organizationId={organizationId}
+                projectId={projectId}
                 taskId={selection.taskId}
                 folderId={selection.folderId}
               />
