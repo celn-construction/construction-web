@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, Fragment, useMemo } from 'react';
-import { Folder, FileText, Plus } from 'lucide-react';
+import { Folder, FileText, Plus, Calendar } from 'lucide-react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
-import { Box, Chip, IconButton } from '@mui/material';
+import { Box, Chip, IconButton, Typography } from '@mui/material';
 import { api } from '@/trpc/react';
 import UploadDialog from '@/components/documents/UploadDialog';
 
@@ -311,6 +311,47 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
 
     onSelect(null);
   };
+
+  // Empty state when no tasks exist
+  if (groups.length === 0) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          p: 4,
+          textAlign: 'center',
+        }}
+      >
+        <Box
+          sx={{
+            width: 64,
+            height: 64,
+            borderRadius: 2,
+            bgcolor: 'action.hover',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mb: 2,
+          }}
+        >
+          <Calendar size={32} style={{ color: 'var(--text-disabled)' }} />
+        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>
+          No Tasks Yet
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 280, mb: 2 }}>
+          Add tasks to your Gantt chart to organize project documents
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.disabled', maxWidth: 300 }}>
+          💡 Tasks you create in the Gantt chart will automatically appear here with folders for documents, photos, and submittals
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ width: '100%' }}>
