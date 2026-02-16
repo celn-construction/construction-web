@@ -3,7 +3,7 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { UserPlus } from 'lucide-react';
-import { api } from '~/trpc/react';
+import { api } from '@/trpc/react';
 import {
   Box,
   Dialog,
@@ -20,7 +20,7 @@ import RoleSelect from './RoleSelect';
 import {
   createInvitationSchema,
   type CreateInvitationInput,
-} from '~/lib/validations/invitation';
+} from '@/lib/validations/invitation';
 
 interface InviteDialogProps {
   open: boolean;

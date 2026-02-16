@@ -7,13 +7,13 @@ import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Cookies from "js-cookie";
-import { LogoIcon } from "~/components/ui/Logo";
+import { LogoIcon } from "@/components/ui/Logo";
 import { OnboardingProgress } from "./OnboardingProgress";
-import { api } from "~/trpc/react";
+import { api } from "@/trpc/react";
 import {
   createOrganizationSchema,
   type CreateOrganizationInput,
-} from "~/lib/validations/onboarding";
+} from "@/lib/validations/onboarding";
 import {
   Box,
   Button,

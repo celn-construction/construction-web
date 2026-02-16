@@ -33,7 +33,7 @@ export type MyFormInput = z.infer<typeof myFormSchema>;
 
 ```typescript
 // src/server/api/routers/myrouter.ts
-import { myFormSchema } from "~/lib/validations/myform";
+import { myFormSchema } from "@/lib/validations/myform";
 
 export const myRouter = createTRPCRouter({
   create: protectedProcedure
@@ -52,11 +52,11 @@ export const myRouter = createTRPCRouter({
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { myFormSchema, type MyFormInput } from "~/lib/validations/myform";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "~/components/ui/form";
-import { Input } from "~/components/ui/input";
-import { Button } from "~/components/ui/button";
-import { api } from "~/trpc/react";
+import { myFormSchema, type MyFormInput } from "@/lib/validations/myform";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { api } from "@/trpc/react";
 
 export function MyForm() {
   // Initialize form with react-hook-form + zod

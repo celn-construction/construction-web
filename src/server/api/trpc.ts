@@ -11,8 +11,8 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 import { z } from "zod";
 
-import { db } from "~/server/db";
-import { auth } from "~/lib/auth";
+import { db } from "@/server/db";
+import { auth } from "@/lib/auth";
 
 /**
  * 1. CONTEXT

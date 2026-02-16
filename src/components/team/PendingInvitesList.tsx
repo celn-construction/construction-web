@@ -2,7 +2,7 @@
 
 import { Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { api } from '~/trpc/react';
+import { api } from '@/trpc/react';
 import { Box, Typography, Stack, Skeleton, Button, CircularProgress } from '@mui/material';
 import { useSnackbar } from '@/hooks/useSnackbar';
 

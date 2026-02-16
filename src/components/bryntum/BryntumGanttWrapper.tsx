@@ -4,7 +4,7 @@ import { useMemo, useState, useRef, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
 import '@bryntum/gantt/gantt.css';
 import { CircularProgress, Box } from '@mui/material';
-import { useThemeStore } from '~/store/useThemeStore';
+import { useThemeStore } from '@/store/useThemeStore';
 import { createGanttConfig } from './config/ganttConfig';
 import { BryntumPanelHeader } from './components/BryntumPanelHeader';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';

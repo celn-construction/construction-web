@@ -1,5 +1,5 @@
 import type { PrismaClient } from "../../../../generated/prisma";
-import { generateSlug } from "~/lib/utils/slug";
+import { generateSlug } from "@/lib/utils/slug";
 
 /**
  * Generate a unique project slug within an organization

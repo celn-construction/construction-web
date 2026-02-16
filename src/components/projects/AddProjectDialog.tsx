@@ -3,7 +3,7 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus } from 'lucide-react';
-import { api } from '~/trpc/react';
+import { api } from '@/trpc/react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   Box,
@@ -20,7 +20,7 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import {
   createProjectSchema,
   type CreateProjectInput,
-} from '~/lib/validations/project';
+} from '@/lib/validations/project';
 
 interface AddProjectDialogProps {
   open: boolean;

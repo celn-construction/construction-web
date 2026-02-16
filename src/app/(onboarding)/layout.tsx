@@ -1,5 +1,5 @@
 import { Box } from '@mui/material';
-import { BlueprintBackground } from '~/components/onboarding/BlueprintBackground';
+import { BlueprintBackground } from '@/components/onboarding/BlueprintBackground';
 
 export default function OnboardingLayout({
   children,

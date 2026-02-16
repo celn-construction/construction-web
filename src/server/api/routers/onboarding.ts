@@ -1,6 +1,6 @@
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { createOrganizationSchema } from "~/lib/validations/onboarding";
-import { generateSlug } from "~/lib/utils/slug";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { createOrganizationSchema } from "@/lib/validations/onboarding";
+import { generateSlug } from "@/lib/utils/slug";
 
 async function generateUniqueSlug(
   name: string,

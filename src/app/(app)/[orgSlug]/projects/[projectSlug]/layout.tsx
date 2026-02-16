@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { auth } from "~/lib/auth";
-import { db } from "~/server/db";
-import { ProjectProvider } from "~/components/providers/ProjectProvider";
+import { auth } from "@/lib/auth";
+import { db } from "@/server/db";
+import { ProjectProvider } from "@/components/providers/ProjectProvider";
 
 export default async function ProjectLayout({
   children,

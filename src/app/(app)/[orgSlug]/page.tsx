@@ -5,8 +5,8 @@ import { useParams } from 'next/navigation';
 import { Plus, FolderKanban, Users, CheckSquare, FileText } from 'lucide-react';
 import { Box, Typography, Button, Paper, Skeleton } from '@mui/material';
 import Grid from '@mui/material/GridLegacy';
-import { api } from '~/trpc/react';
-import AddProjectDialog from '~/components/projects/AddProjectDialog';
+import { api } from '@/trpc/react';
+import AddProjectDialog from '@/components/projects/AddProjectDialog';
 
 export default function OrgHomePage() {
   const params = useParams<{ orgSlug: string }>();

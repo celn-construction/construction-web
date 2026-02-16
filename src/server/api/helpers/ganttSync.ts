@@ -1,5 +1,5 @@
 import type { Prisma } from "../../../../generated/prisma";
-import type { TaskRecord, DependencyRecord, ResourceRecord, AssignmentRecord, TimeRangeRecord } from "~/lib/validations/gantt";
+import type { TaskRecord, DependencyRecord, ResourceRecord, AssignmentRecord, TimeRangeRecord } from "@/lib/validations/gantt";
 import { createId } from '@paralleldrive/cuid2';
 
 type PhantomIdMap = Map<string, string>;

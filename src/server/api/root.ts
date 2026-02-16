@@ -1,13 +1,13 @@
-import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
-import { onboardingRouter } from "~/server/api/routers/onboarding";
-import { userRouter } from "~/server/api/routers/user";
-import { organizationRouter } from "~/server/api/routers/organization";
-import { invitationRouter } from "~/server/api/routers/invitation";
-import { memberRouter } from "~/server/api/routers/member";
-import { projectRouter } from "~/server/api/routers/project";
-import { documentRouter } from "~/server/api/routers/document";
-import { notificationRouter } from "~/server/api/routers/notification";
-import { ganttRouter } from "~/server/api/routers/gantt";
+import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
+import { onboardingRouter } from "@/server/api/routers/onboarding";
+import { userRouter } from "@/server/api/routers/user";
+import { organizationRouter } from "@/server/api/routers/organization";
+import { invitationRouter } from "@/server/api/routers/invitation";
+import { memberRouter } from "@/server/api/routers/member";
+import { projectRouter } from "@/server/api/routers/project";
+import { documentRouter } from "@/server/api/routers/document";
+import { notificationRouter } from "@/server/api/routers/notification";
+import { ganttRouter } from "@/server/api/routers/gantt";
 
 /**
  * This is the primary router for your server.

@@ -5,12 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { LogoIcon } from "~/components/ui/Logo";
+import { LogoIcon } from "@/components/ui/Logo";
 import { OnboardingProgress } from "./OnboardingProgress";
 import { StepIdentity } from "./steps/StepIdentity";
 import { StepContact } from "./steps/StepContact";
 import { StepReview } from "./steps/StepReview";
-import { api } from "~/trpc/react";
+import { api } from "@/trpc/react";
 import { Box, Button, CircularProgress, Typography, Paper } from "@mui/material";
 import { useSnackbar } from "@/hooks/useSnackbar";
 

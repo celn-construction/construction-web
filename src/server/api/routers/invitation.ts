@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure, publicProcedure, orgProcedure } from "~/server/api/trpc";
-import { canInviteMembers } from "~/lib/permissions";
-import { sendInvitationEmail } from "~/lib/email";
+import { createTRPCRouter, protectedProcedure, publicProcedure, orgProcedure } from "@/server/api/trpc";
+import { canInviteMembers } from "@/lib/permissions";
+import { sendInvitationEmail } from "@/lib/email";
 import { randomBytes } from "crypto";
-import { createInvitationSchema } from "~/lib/validations/invitation";
+import { createInvitationSchema } from "@/lib/validations/invitation";
 
 export const invitationRouter = createTRPCRouter({
   create: orgProcedure

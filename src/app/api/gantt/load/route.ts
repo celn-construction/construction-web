@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { auth } from "~/lib/auth";
-import { createCaller } from "~/server/api/root";
-import { createTRPCContext } from "~/server/api/trpc";
-import { getActiveOrganizationId } from "~/server/api/helpers/getActiveOrganization";
-import { db } from "~/server/db";
+import { auth } from "@/lib/auth";
+import { createCaller } from "@/server/api/root";
+import { createTRPCContext } from "@/server/api/trpc";
+import { getActiveOrganizationId } from "@/server/api/helpers/getActiveOrganization";
+import { db } from "@/server/db";
 
 export async function GET(request: Request) {
   try {

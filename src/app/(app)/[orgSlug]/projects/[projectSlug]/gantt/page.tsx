@@ -1,8 +1,8 @@
 "use client";
 
 import { Suspense } from "react";
-import BryntumGanttWrapper from "~/components/bryntum/BryntumGanttWrapper";
-import { useProjectContext } from "~/components/providers/ProjectProvider";
+import BryntumGanttWrapper from "@/components/bryntum/BryntumGanttWrapper";
+import { useProjectContext } from "@/components/providers/ProjectProvider";
 
 export default function GanttPage() {
   const { projectId, projectName } = useProjectContext();

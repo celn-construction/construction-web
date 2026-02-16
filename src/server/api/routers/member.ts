@@ -1,4 +1,4 @@
-import { createTRPCRouter, orgProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 
 export const memberRouter = createTRPCRouter({
   list: orgProcedure.query(async ({ ctx, input }) => {

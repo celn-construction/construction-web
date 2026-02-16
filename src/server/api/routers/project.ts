@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { createProjectSchema } from "~/lib/validations/project";
-import { getActiveOrganizationId } from "~/server/api/helpers/getActiveOrganization";
-import { getActiveProjectId } from "~/server/api/helpers/getActiveProject";
-import { getTemplateData } from "~/server/gantt/templates";
-import { generateUniqueProjectSlug } from "~/server/api/helpers/generateProjectSlug";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { createProjectSchema } from "@/lib/validations/project";
+import { getActiveOrganizationId } from "@/server/api/helpers/getActiveOrganization";
+import { getActiveProjectId } from "@/server/api/helpers/getActiveProject";
+import { getTemplateData } from "@/server/gantt/templates";
+import { generateUniqueProjectSlug } from "@/server/api/helpers/generateProjectSlug";
 
 export const projectRouter = createTRPCRouter({
   list: protectedProcedure

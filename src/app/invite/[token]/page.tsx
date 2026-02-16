@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Building2, ArrowRight, Loader2, Check } from "lucide-react";
 import { motion } from "framer-motion";
-import { api } from "~/trpc/react";
+import { api } from "@/trpc/react";
 import { useSession } from "@/lib/auth-client";
 import { LogoIcon } from "@/components/ui/Logo";
 import { BlueprintBackground } from "@/components/onboarding/BlueprintBackground";

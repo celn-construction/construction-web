@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { auth } from "~/lib/auth";
-import { db } from "~/server/db";
-import { OrgProvider } from "~/components/providers/OrgProvider";
+import { auth } from "@/lib/auth";
+import { db } from "@/server/db";
+import { OrgProvider } from "@/components/providers/OrgProvider";
 
 export default async function OrgLayout({
   children,

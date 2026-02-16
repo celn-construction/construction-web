@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { createTRPCRouter, orgProcedure } from "~/server/api/trpc";
-import { ganttLoadInputSchema, ganttSyncInputSchema } from "~/lib/validations/gantt";
-import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "~/server/api/helpers/ganttTree";
-import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges } from "~/server/api/helpers/ganttSync";
+import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
+import { ganttLoadInputSchema, ganttSyncInputSchema } from "@/lib/validations/gantt";
+import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
+import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges } from "@/server/api/helpers/ganttSync";
 
 export const ganttRouter = createTRPCRouter({
   /**

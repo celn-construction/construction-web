@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { del } from "@vercel/blob";
-import { createTRPCRouter, orgProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 
 export const documentRouter = createTRPCRouter({
   listByFolder: orgProcedure

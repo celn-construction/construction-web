@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, orgProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 
 export const notificationRouter = createTRPCRouter({
   list: orgProcedure
