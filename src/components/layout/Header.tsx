@@ -2,7 +2,7 @@
 
 import { Search, Moon, Sun, ChevronDown, Bell, Plus, Building2, Check, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Typography, IconButton, Divider, Skeleton, Button } from '@mui/material';
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -28,6 +28,11 @@ export default function Header() {
   const pathname = usePathname();
   const { showLoading, hideLoading } = useLoading();
 
+  // Hide loading spinner when pathname changes (after navigation completes)
+  useEffect(() => {
+    hideLoading();
+  }, [pathname, hideLoading]);
+
   // Project management - derive org from URL params + org list
   const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
   const orgSlug = params.orgSlug;
@@ -52,7 +57,7 @@ export default function Header() {
 
     showLoading('Switching projects');
     router.push(`/${orgSlug}/projects/${projectSlug}/${currentSegment}`);
-    hideLoading();
+    // hideLoading() removed - useEffect handles dismissal on pathname change
   };
 
   // Notification management

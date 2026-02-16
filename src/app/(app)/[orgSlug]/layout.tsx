@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { headers, cookies } from "next/headers";
+import { headers } from "next/headers";
 import { auth } from "~/lib/auth";
 import { db } from "~/server/db";
 import { OrgProvider } from "~/components/providers/OrgProvider";
@@ -62,15 +62,6 @@ export default async function OrgLayout({
   await db.user.update({
     where: { id: userId },
     data: { activeOrganizationId: organization.id },
-  });
-
-  // Set cookie for middleware
-  const cookieStore = await cookies();
-  cookieStore.set("active-org-slug", orgSlug, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 365, // 1 year
   });
 
   return (

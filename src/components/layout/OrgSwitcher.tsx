@@ -2,8 +2,8 @@
 
 import { ChevronDown, Building2, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams, usePathname } from 'next/navigation';
 import { Box, Typography, Skeleton } from '@mui/material';
 import { api } from '@/trpc/react';
 import {
@@ -12,11 +12,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useLoading } from '@/components/providers/LoadingProvider';
 
 export default function OrgSwitcher() {
   const [orgMenuOpen, setOrgMenuOpen] = useState(false);
   const router = useRouter();
   const params = useParams<{ orgSlug?: string }>();
+  const pathname = usePathname();
+  const { showLoading, hideLoading } = useLoading();
   const currentOrgSlug = params.orgSlug;
 
   const { data: organizations = [], isLoading: orgsLoading } = api.organization.list.useQuery(
@@ -26,7 +29,12 @@ export default function OrgSwitcher() {
 
   const currentOrg = organizations.find((org) => org.slug === currentOrgSlug);
 
+  useEffect(() => {
+    hideLoading();
+  }, [pathname, hideLoading]);
+
   const handleSwitch = (orgSlug: string) => {
+    showLoading('Switching organizations');
     router.push(`/${orgSlug}`);
     setOrgMenuOpen(false);
   };

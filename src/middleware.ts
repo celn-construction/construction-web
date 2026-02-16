@@ -85,6 +85,20 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Update active-org-slug cookie from URL for any org-scoped route
+  const staticPrefixes = ['api', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'onboarding', 'invite', '_next'];
+  const firstSegment = pathname.split('/')[1];
+  if (firstSegment && !staticPrefixes.includes(firstSegment)) {
+    const response = NextResponse.next();
+    response.cookies.set("active-org-slug", firstSegment, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+    return response;
+  }
+
   return NextResponse.next();
 }
 
