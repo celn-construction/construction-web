@@ -45,14 +45,16 @@ describe("Middleware", () => {
     expect((response as NextResponse).status).not.toBe(307);
   });
 
-  it("redirects authenticated users from auth pages to /projects", () => {
+  it("redirects authenticated users from auth pages to org home", () => {
     const request = createRequest("/sign-in", {
       "better-auth.session_token": "valid-token",
+      "onboarding-complete": "true",
+      "active-org-slug": "my-org",
     });
     const response = middleware(request) as NextResponse;
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:5050/projects");
+    expect(response.headers.get("location")).toBe("http://localhost:5050/my-org");
   });
 
   it("allows unauthenticated users to access auth pages", () => {
@@ -84,15 +86,16 @@ describe("Middleware", () => {
     expect((response as NextResponse).status).not.toBe(307);
   });
 
-  it("redirects to /projects if onboarding complete and visiting /onboarding", () => {
+  it("redirects to org home if onboarding complete and visiting /onboarding", () => {
     const request = createRequest("/onboarding", {
       "better-auth.session_token": "valid-token",
       "onboarding-complete": "true",
+      "active-org-slug": "my-org",
     });
     const response = middleware(request) as NextResponse;
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:5050/projects");
+    expect(response.headers.get("location")).toBe("http://localhost:5050/my-org");
   });
 
   it("allows /onboarding if not complete", () => {
@@ -116,8 +119,7 @@ describe("Middleware", () => {
   });
 
   it("bypasses auth with x-playwright-test header in non-production", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "test";
+    vi.stubEnv("NODE_ENV", "test");
 
     const request = createRequest(
       "/projects",
@@ -129,6 +131,6 @@ describe("Middleware", () => {
     expect(response).toBeInstanceOf(NextResponse);
     expect((response as NextResponse).status).not.toBe(307);
 
-    process.env.NODE_ENV = originalEnv;
+    vi.unstubAllEnvs();
   });
 });

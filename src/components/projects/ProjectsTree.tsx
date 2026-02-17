@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, Fragment } from 'react';
-import { Folder, FileText, Plus } from 'lucide-react';
+import { useState, Fragment, useMemo } from 'react';
+import { Folder, FileText, Plus, Calendar } from 'lucide-react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
-import { Box, Chip, IconButton } from '@mui/material';
-import { useGroupedFeaturesWithRows, useGroups, useCurrentProjectId } from '@/store/hooks/useGanttFeatures';
+import { Box, Chip, IconButton, Typography } from '@mui/material';
 import { api } from '@/trpc/react';
 import UploadDialog from '@/components/documents/UploadDialog';
 
@@ -206,18 +205,40 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
   );
 }
 
+function deriveStatus(percentDone: number) {
+  if (percentDone >= 100) return { name: 'Completed', color: '#10b981' };
+  if (percentDone > 0) return { name: 'In Progress', color: '#3b82f6' };
+  return { name: 'Planned', color: '#6b7280' };
+}
+
 export default function ProjectsTree({ selectedNodeId, onSelect, projectId, organizationId }: ProjectsTreeProps) {
-  const groups = useGroups();
-  const { grouped } = useGroupedFeaturesWithRows();
-  const currentProjectId = useCurrentProjectId();
+  const { data: tasks = [] } = api.gantt.tasks.useQuery(
+    { organizationId: organizationId!, projectId: projectId! },
+    { enabled: !!projectId && !!organizationId }
+  );
 
-  // Get project to access organizationId
-  const { data: projects = [] } = api.project.list.useQuery();
-  const currentProject = projects.find((p) => p.id === currentProjectId);
+  // Build grouped structure from database tasks:
+  // Top-level tasks (no parentId) = groups, their children = tasks
+  const { groups, grouped } = useMemo(() => {
+    const topLevel = tasks.filter((t) => !t.parentId);
+    const groupNames = topLevel.map((t) => t.name);
+    const groupedMap: Record<string, Array<{ id: string; name: string; status: { name: string; color: string }; progress: number }>> = {};
 
-  // Use provided props or fall back to existing hooks
-  const activeProjectId = projectId ?? currentProjectId;
-  const activeOrganizationId = organizationId ?? currentProject?.organizationId;
+    for (const parent of topLevel) {
+      const children = tasks.filter((t) => t.parentId === parent.id);
+      groupedMap[parent.name] = children.map((c) => ({
+        id: c.id,
+        name: c.name,
+        status: deriveStatus(c.percentDone),
+        progress: Math.round(c.percentDone),
+      }));
+    }
+
+    return { groups: groupNames, grouped: groupedMap };
+  }, [tasks]);
+
+  const activeProjectId = projectId ?? null;
+  const activeOrganizationId = organizationId;
 
   // Get all group IDs for default expansion
   const defaultExpandedItems = groups.map((group) => `group-${group}`);
@@ -290,6 +311,47 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
 
     onSelect(null);
   };
+
+  // Empty state when no tasks exist
+  if (groups.length === 0) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          p: 4,
+          textAlign: 'center',
+        }}
+      >
+        <Box
+          sx={{
+            width: 64,
+            height: 64,
+            borderRadius: 2,
+            bgcolor: 'action.hover',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mb: 2,
+          }}
+        >
+          <Calendar size={32} style={{ color: 'var(--text-disabled)' }} />
+        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>
+          No Tasks Yet
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 280, mb: 2 }}>
+          Add tasks to your Gantt chart to organize project documents
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.disabled', maxWidth: 300 }}>
+          💡 Tasks you create in the Gantt chart will automatically appear here with folders for documents, photos, and submittals
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ width: '100%' }}>

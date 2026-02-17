@@ -192,17 +192,17 @@ describe("ResetPasswordPage", () => {
     expect(toggleButtons).toHaveLength(2);
 
     // Toggle first password field
-    await user.click(toggleButtons[0]);
+    await user.click(toggleButtons[0]!);
     expect(passwordInput).toHaveAttribute("type", "text");
     expect(confirmPasswordInput).toHaveAttribute("type", "password");
 
     // Toggle second password field
-    await user.click(toggleButtons[1]);
+    await user.click(toggleButtons[1]!);
     expect(passwordInput).toHaveAttribute("type", "text");
     expect(confirmPasswordInput).toHaveAttribute("type", "text");
 
     // Toggle first back
-    await user.click(toggleButtons[0]);
+    await user.click(toggleButtons[0]!);
     expect(passwordInput).toHaveAttribute("type", "password");
     expect(confirmPasswordInput).toHaveAttribute("type", "text");
   });

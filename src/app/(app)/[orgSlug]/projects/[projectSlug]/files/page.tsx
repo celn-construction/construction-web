@@ -90,6 +90,8 @@ export default function FilesPage() {
         <ProjectDetailPanel
           selection={selection}
           onBack={() => setSelection(null)}
+          projectId={projectId}
+          organizationId={organizationId}
         />
       </Box>
     </Box>

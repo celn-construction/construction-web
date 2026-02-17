@@ -208,6 +208,7 @@ export default function ForgotPasswordPage() {
                     placeholder="your.email@company.com"
                     fullWidth
                     required
+                    inputProps={{ 'aria-label': 'Email address' }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">

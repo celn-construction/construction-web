@@ -159,6 +159,7 @@ function SignInForm() {
                   placeholder="your.email@company.com"
                   fullWidth
                   required
+                  inputProps={{ 'aria-label': 'Email address' }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -189,6 +190,7 @@ function SignInForm() {
                   placeholder="Enter your password"
                   fullWidth
                   required
+                  inputProps={{ 'aria-label': 'Password' }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
