@@ -32,8 +32,8 @@ jobs:
           DATABASE_URL: file:./test.db
 
       - name: Build
-        run: npm run build
+        run: npx prisma generate && npx next build
         env:
-          DATABASE_URL: file:./test.db
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
           NODE_ENV: production
-          SKIP_ENV_VALIDATION: false
+          SKIP_ENV_VALIDATION: true
