@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure, orgProcedure } from "@/server/api/trpc";
-import { canInviteMembers } from "@/lib/permissions";
+import { canInviteMembers, canAssignRole } from "@/lib/permissions";
 import { sendInvitationEmail } from "@/lib/email";
 import { randomBytes } from "crypto";
 import { createInvitationSchema } from "@/lib/validations/invitation";
+import { INVITATION_STATUS } from "@/lib/constants/invitation";
 
 export const invitationRouter = createTRPCRouter({
   create: orgProcedure
@@ -15,6 +16,14 @@ export const invitationRouter = createTRPCRouter({
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You don't have permission to invite members",
+        });
+      }
+
+      // Enforce role hierarchy — inviters cannot assign roles at or above their own level
+      if (!canAssignRole(ctx.membership.role, input.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You cannot assign a role equal to or higher than your own",
         });
       }
 
@@ -40,7 +49,7 @@ export const invitationRouter = createTRPCRouter({
         where: {
           email: input.email,
           organizationId: input.organizationId,
-          status: "pending",
+          status: INVITATION_STATUS.PENDING,
         },
       });
 
@@ -69,12 +78,21 @@ export const invitationRouter = createTRPCRouter({
       });
 
       // Send email
-      await sendInvitationEmail(
+      const emailResult = await sendInvitationEmail(
         input.email,
         ctx.organization.name,
         ctx.session.user.name || "A team member",
         token
       );
+
+      if (!emailResult.success) {
+        // Roll back the invitation record since the email couldn't be delivered
+        await ctx.db.invitation.delete({ where: { id: invitation.id } });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: emailResult.error ?? "Failed to send invitation email",
+        });
+      }
 
       return { invitation };
     }),
@@ -115,7 +133,7 @@ export const invitationRouter = createTRPCRouter({
           organizationId: input.organizationId,
         },
         data: {
-          status: "revoked",
+          status: INVITATION_STATUS.REVOKED,
         },
       });
 
@@ -144,17 +162,24 @@ export const invitationRouter = createTRPCRouter({
         },
         data: {
           expiresAt,
-          status: "pending",
+          status: INVITATION_STATUS.PENDING,
         },
       });
 
       // Resend email
-      await sendInvitationEmail(
+      const emailResult = await sendInvitationEmail(
         invitation.email,
         ctx.organization.name,
         ctx.session.user.name || "A team member",
         invitation.token
       );
+
+      if (!emailResult.success) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: emailResult.error ?? "Failed to resend invitation email",
+        });
+      }
 
       return { invitation };
     }),
@@ -195,7 +220,7 @@ export const invitationRouter = createTRPCRouter({
       }
 
       // Check if already accepted or revoked
-      if (invitation.status !== "pending") {
+      if (invitation.status !== INVITATION_STATUS.PENDING) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "This invitation is no longer valid",
@@ -237,7 +262,7 @@ export const invitationRouter = createTRPCRouter({
       }
 
       // Check if already accepted or revoked
-      if (invitation.status !== "pending") {
+      if (invitation.status !== INVITATION_STATUS.PENDING) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "This invitation is no longer valid",
@@ -266,7 +291,7 @@ export const invitationRouter = createTRPCRouter({
         // Update invitation status
         await tx.invitation.update({
           where: { id: invitation.id },
-          data: { status: "accepted" },
+          data: { status: INVITATION_STATUS.ACCEPTED },
         });
 
         // Complete onboarding

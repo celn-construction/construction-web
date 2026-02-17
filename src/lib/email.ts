@@ -3,6 +3,15 @@ import { env } from "@/env";
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 export async function sendPasswordResetEmail(
   email: string,
   resetUrl: string
@@ -90,6 +99,8 @@ export async function sendInvitationEmail(
   token: string
 ): Promise<{ success: boolean; error?: string }> {
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/invite/${token}`;
+  const safeInviterName = escapeHtml(inviterName);
+  const safeOrgName = escapeHtml(orgName);
 
   // If no Resend API key, log to console (development mode)
   if (!resend) {
@@ -129,7 +140,7 @@ export async function sendInvitationEmail(
             <h1 style="color: #1f2937; font-size: 24px; font-weight: 600; margin: 0 0 16px 0; text-align: center;">You're invited!</h1>
 
             <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
-              <strong>${inviterName}</strong> has invited you to join <strong>${orgName}</strong> on BuildTrack Pro.
+              <strong>${safeInviterName}</strong> has invited you to join <strong>${safeOrgName}</strong> on BuildTrack Pro.
             </p>
 
             <div style="text-align: center; margin-bottom: 24px;">
