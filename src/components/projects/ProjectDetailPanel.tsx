@@ -1,24 +1,15 @@
 'use client';
 
+import { skipToken } from '@tanstack/react-query';
 import { Folder, FileText, ArrowLeft, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { FileDropzone } from '@/components/documents/FileDropzone';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { api } from '@/trpc/react';
 import { Box, Typography, IconButton, LinearProgress, Paper } from '@mui/material';
+import { type Selection, deriveStatus } from '@/lib/utils/gantt';
 
-export interface Selection {
-  type: 'task' | 'folder' | 'document';
-  nodeId: string;
-  taskId: string;
-  folderName?: string;
-  parentFolderName?: string;
-  folderId?: string;
-  documentId?: string;
-  documentName?: string;
-  blobUrl?: string;
-  mimeType?: string;
-}
+export type { Selection };
 
 interface ProjectDetailPanelProps {
   selection: Selection | null;
@@ -27,24 +18,13 @@ interface ProjectDetailPanelProps {
   organizationId?: string;
 }
 
-function deriveStatus(percentDone: number) {
-  if (percentDone >= 100) return { name: 'Completed', color: '#10b981' };
-  if (percentDone > 0) return { name: 'In Progress', color: '#3b82f6' };
-  return { name: 'Planned', color: '#6b7280' };
-}
-
 export function ProjectDetailPanel({ selection, onBack, projectId, organizationId }: ProjectDetailPanelProps) {
   const utils = api.useUtils();
 
   const { data: taskData } = api.gantt.taskDetail.useQuery(
-    {
-      organizationId: organizationId!,
-      projectId: projectId!,
-      taskId: selection?.taskId || '',
-    },
-    {
-      enabled: !!projectId && !!organizationId && !!selection?.taskId && selection?.type !== 'document',
-    }
+    projectId && organizationId && selection?.taskId && selection?.type !== 'document'
+      ? { organizationId, projectId, taskId: selection.taskId }
+      : skipToken
   );
 
   // Fetch document data when a document is selected
