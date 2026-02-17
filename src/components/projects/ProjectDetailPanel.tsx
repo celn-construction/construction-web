@@ -1,20 +1,23 @@
 'use client';
 
-import { Folder, FileText, ArrowLeft } from 'lucide-react';
+import { Folder, FileText, ArrowLeft, Download } from 'lucide-react';
 import { format } from 'date-fns';
-import { ImageDropzone } from '@/components/ui/image-dropzone';
 import { FileDropzone } from '@/components/documents/FileDropzone';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { api } from '@/trpc/react';
 import { Box, Typography, IconButton, LinearProgress, Paper } from '@mui/material';
 
 export interface Selection {
-  type: 'task' | 'folder';
+  type: 'task' | 'folder' | 'document';
   nodeId: string;
   taskId: string;
   folderName?: string;
   parentFolderName?: string;
   folderId?: string;
+  documentId?: string;
+  documentName?: string;
+  blobUrl?: string;
+  mimeType?: string;
 }
 
 interface ProjectDetailPanelProps {
@@ -40,21 +43,25 @@ export function ProjectDetailPanel({ selection, onBack, projectId, organizationI
       taskId: selection?.taskId || '',
     },
     {
-      enabled: !!projectId && !!organizationId && !!selection?.taskId,
+      enabled: !!projectId && !!organizationId && !!selection?.taskId && selection?.type !== 'document',
     }
   );
 
-  const updateTaskMutation = api.gantt.updateTask.useMutation({
-    onSuccess: () => {
-      if (organizationId && projectId && selection?.taskId) {
-        void utils.gantt.taskDetail.invalidate({
-          organizationId,
-          projectId,
-          taskId: selection.taskId,
-        });
-      }
+  // Fetch document data when a document is selected
+  const { data: documentData } = api.document.listByTask.useQuery(
+    {
+      organizationId: organizationId!,
+      projectId: projectId!,
+      taskId: selection?.taskId || '',
     },
-  });
+    {
+      enabled: !!projectId && !!organizationId && !!selection?.taskId && selection?.type === 'document',
+    }
+  );
+
+  const selectedDocument = selection?.type === 'document' && selection.documentId
+    ? documentData?.find((d) => d.id === selection.documentId)
+    : null;
 
   const task = taskData
     ? {
@@ -65,7 +72,6 @@ export function ProjectDetailPanel({ selection, onBack, projectId, organizationI
         progress: Math.round(taskData.percentDone),
         startAt: taskData.startDate,
         endAt: taskData.endDate,
-        coverImage: taskData.coverImage,
       }
     : null;
 
@@ -221,35 +227,6 @@ export function ProjectDetailPanel({ selection, onBack, projectId, organizationI
           </Box>
         </Box>
 
-        {/* Cover photo */}
-        <Box>
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: 500,
-              color: 'text.disabled',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              display: 'block',
-              mb: 1,
-            }}
-          >
-            Cover Photo
-          </Typography>
-          <ImageDropzone
-            value={task.coverImage ?? undefined}
-            onChange={(imageUrl) => {
-              if (projectId && organizationId) {
-                updateTaskMutation.mutate({
-                  organizationId,
-                  projectId,
-                  taskId: task.id,
-                  data: { coverImage: imageUrl },
-                });
-              }
-            }}
-          />
-        </Box>
       </Box>
     );
   }
@@ -389,6 +366,157 @@ export function ProjectDetailPanel({ selection, onBack, projectId, organizationI
             </Box>
           </Box>
         )}
+      </Box>
+    );
+  }
+
+  // Document selected
+  if (selection.type === 'document' && selectedDocument) {
+    const isPdf = selectedDocument.mimeType === 'application/pdf';
+    const isImage = selectedDocument.mimeType.startsWith('image/');
+
+    return (
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Header */}
+        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
+          {onBack && (
+            <IconButton
+              onClick={onBack}
+              sx={{
+                display: { lg: 'none' },
+                mb: 1,
+                color: 'text.secondary',
+                '&:hover': { color: 'text.primary' },
+              }}
+            >
+              <ArrowLeft size={16} />
+              <Typography variant="body2" sx={{ ml: 1 }}>
+                Back to tree
+              </Typography>
+            </IconButton>
+          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 40,
+                height: 40,
+                borderRadius: 1.5,
+                bgcolor: 'primary.main',
+                color: 'white',
+                flexShrink: 0,
+              }}
+            >
+              <FileText size={20} />
+            </Box>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.primary',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {selectedDocument.name}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {(selectedDocument.size / 1024).toFixed(1)} KB
+                {selectedDocument.uploadedBy?.name && ` · ${selectedDocument.uploadedBy.name}`}
+              </Typography>
+            </Box>
+            <IconButton
+              component="a"
+              href={selectedDocument.blobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download={selectedDocument.name}
+              size="small"
+              sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+            >
+              <Download size={18} />
+            </IconButton>
+          </Box>
+        </Box>
+
+        {/* Preview area */}
+        <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {isPdf && (
+            <iframe
+              src={selectedDocument.blobUrl}
+              title={selectedDocument.name}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+            />
+          )}
+          {isImage && (
+            <Box sx={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              p: 2,
+              overflow: 'auto',
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={selectedDocument.blobUrl}
+                alt={selectedDocument.name}
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }}
+              />
+            </Box>
+          )}
+          {!isPdf && !isImage && (
+            <Box sx={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              p: 3,
+            }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 4,
+                  textAlign: 'center',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  maxWidth: 360,
+                }}
+              >
+                <FileText size={48} style={{ color: 'var(--text-disabled)', margin: '0 auto 16px' }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  {selectedDocument.name}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                  {selectedDocument.mimeType}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                  {(selectedDocument.size / 1024).toFixed(1)} KB
+                </Typography>
+                <Typography
+                  component="a"
+                  href={selectedDocument.blobUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={selectedDocument.name}
+                  variant="body2"
+                  sx={{
+                    color: 'primary.main',
+                    textDecoration: 'none',
+                    fontWeight: 500,
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                >
+                  Download File
+                </Typography>
+              </Paper>
+            </Box>
+          )}
+        </Box>
       </Box>
     );
   }

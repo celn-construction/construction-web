@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useState, useRef, useCallback, type CSSProperties } from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
 import '@bryntum/gantt/gantt.css';
 import { CircularProgress, Box } from '@mui/material';
 import { useThemeStore } from '@/store/useThemeStore';
+import { api } from '@/trpc/react';
 import { createGanttConfig } from './config/ganttConfig';
 import { BryntumPanelHeader } from './components/BryntumPanelHeader';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
@@ -67,6 +68,23 @@ export default function BryntumGanttWrapper({ projectId }: BryntumGanttWrapperPr
     const gantt = getGanttInstance();
     if (gantt) gantt.viewPreset = preset;
   }, [getGanttInstance]);
+
+  // Invalidate tRPC cache when Bryntum syncs so sibling components (e.g. file tree) refetch
+  const utils = api.useUtils();
+  useEffect(() => {
+    if (isLoading) return;
+    const gantt = getGanttInstance();
+    if (!gantt?.project) return;
+
+    const onSync = () => {
+      void utils.gantt.tasks.invalidate();
+    };
+
+    gantt.project.on('sync', onSync);
+    return () => {
+      gantt.project?.un('sync', onSync);
+    };
+  }, [isLoading, getGanttInstance, utils]);
 
   const ganttConfig = useMemo(
     () => createGanttConfig(handleTaskClick, projectId, {
