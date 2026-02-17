@@ -116,8 +116,7 @@ describe("Middleware", () => {
   });
 
   it("bypasses auth with x-playwright-test header in non-production", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "test";
+    vi.stubEnv("NODE_ENV", "test");
 
     const request = createRequest(
       "/projects",
@@ -129,6 +128,6 @@ describe("Middleware", () => {
     expect(response).toBeInstanceOf(NextResponse);
     expect((response as NextResponse).status).not.toBe(307);
 
-    process.env.NODE_ENV = originalEnv;
+    vi.unstubAllEnvs();
   });
 });
