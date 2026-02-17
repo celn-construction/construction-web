@@ -263,7 +263,7 @@ function ResetPasswordForm() {
                     placeholder="Enter new password"
                     fullWidth
                     required
-                    inputProps={{ minLength: 8 }}
+                    inputProps={{ minLength: 8, 'aria-label': 'New password' }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -304,7 +304,7 @@ function ResetPasswordForm() {
                     placeholder="Confirm new password"
                     fullWidth
                     required
-                    inputProps={{ minLength: 8 }}
+                    inputProps={{ minLength: 8, 'aria-label': 'Confirm new password' }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">

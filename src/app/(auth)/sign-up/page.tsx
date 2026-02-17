@@ -156,6 +156,7 @@ export default function SignUpPage() {
                   placeholder="John Doe"
                   fullWidth
                   required
+                  inputProps={{ 'aria-label': 'Full name' }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -186,6 +187,7 @@ export default function SignUpPage() {
                   placeholder="your.email@company.com"
                   fullWidth
                   required
+                  inputProps={{ 'aria-label': 'Email address' }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -216,7 +218,7 @@ export default function SignUpPage() {
                   placeholder="Min 8 characters"
                   fullWidth
                   required
-                  inputProps={{ minLength: 8 }}
+                  inputProps={{ minLength: 8, 'aria-label': 'Password' }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
