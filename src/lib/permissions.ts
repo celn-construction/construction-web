@@ -64,3 +64,23 @@ export function canManageRoles(role: string): boolean {
 export function canManageOrganization(role: string): boolean {
   return hasPermission(role, "MANAGE_ORGANIZATION");
 }
+
+// Role rank for hierarchy enforcement (higher = more privileged)
+const ROLE_RANK: Record<Role, number> = {
+  owner: 4,
+  admin: 3,
+  project_manager: 2,
+  member: 1,
+  viewer: 0,
+};
+
+/**
+ * Returns true if inviterRole can assign targetRole.
+ * Inviters can only assign roles strictly below their own level.
+ */
+export function canAssignRole(inviterRole: string, targetRole: string): boolean {
+  const inviterRank = ROLE_RANK[inviterRole as Role];
+  const targetRank = ROLE_RANK[targetRole as Role];
+  if (inviterRank === undefined || targetRank === undefined) return false;
+  return inviterRank > targetRank;
+}
