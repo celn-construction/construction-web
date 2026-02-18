@@ -28,6 +28,7 @@ export function createGanttConfig(
     detectCSSCompatibilityIssues: false,
 
     // Performance optimizations
+    autoHeight: false,
     rowHeight: 45, // Consistent row height for better performance
     animateTreeNodeToggle: false, // Disable animations for faster rendering
 
@@ -97,6 +98,7 @@ export function createGanttConfig(
         tooltipRenderer: ({ record, column }) => formatTooltipText(record, column.field),
       },
     },
+    emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     viewPreset: 'weekAndDayLetter',
     barMargin: 10,
     listeners: {

@@ -45,6 +45,7 @@ type TooltipRendererArgs = {
 
 export type GanttConfig = {
   height?: string;
+  autoHeight?: boolean;
   detectCSSCompatibilityIssues: boolean;
   rowHeight?: number;
   animateTreeNodeToggle?: boolean;
@@ -78,6 +79,7 @@ export type GanttConfig = {
       tooltipRenderer: (args: TooltipRendererArgs) => string;
     };
   };
+  emptyText?: string;
   viewPreset: string;
   barMargin: number;
   listeners: {

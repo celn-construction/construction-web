@@ -14,14 +14,32 @@ export default function OrgHomePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Get organization ID from the org list
-  const { data: orgs } = api.organization.list.useQuery();
+  const { data: orgs, isLoading: orgsLoading, isError: orgsError } = api.organization.list.useQuery();
   const currentOrg = orgs?.find(org => org.slug === orgSlug);
 
   // Fetch stats for the current organization
-  const { data: stats, isLoading } = api.organization.stats.useQuery(
+  const { data: stats, isLoading: statsLoading, isError: statsError } = api.organization.stats.useQuery(
     { organizationId: currentOrg?.id ?? '' },
     { enabled: !!currentOrg?.id }
   );
+
+  const isLoading = orgsLoading || (!!currentOrg && statsLoading);
+
+  if (orgsError || statsError) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Typography color="error">Failed to load dashboard. Please refresh the page or sign in again.</Typography>
+      </Box>
+    );
+  }
+
+  if (!orgsLoading && !currentOrg) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Typography color="text.secondary">Organization not found.</Typography>
+      </Box>
+    );
+  }
 
   if (isLoading || !stats) {
     return (

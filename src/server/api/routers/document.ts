@@ -49,6 +49,40 @@ export const documentRouter = createTRPCRouter({
       return documents;
     }),
 
+  listByTask: orgProcedure
+    .input(
+      z.object({
+        organizationId: z.string(),
+        projectId: z.string(),
+        taskId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const project = await ctx.db.project.findFirst({
+        where: {
+          id: input.projectId,
+          organizationId: input.organizationId,
+        },
+      });
+
+      if (!project) {
+        return [];
+      }
+
+      return ctx.db.document.findMany({
+        where: {
+          projectId: input.projectId,
+          taskId: input.taskId,
+        },
+        include: {
+          uploadedBy: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    }),
+
   countByTask: orgProcedure
     .input(
       z.object({

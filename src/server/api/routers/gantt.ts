@@ -57,7 +57,6 @@ export const ganttRouter = createTRPCRouter({
           percentDone: true,
           startDate: true,
           endDate: true,
-          coverImage: true,
           parentId: true,
           parent: {
             select: { name: true },
@@ -75,7 +74,6 @@ export const ganttRouter = createTRPCRouter({
         percentDone: task.percentDone,
         startDate: task.startDate,
         endDate: task.endDate,
-        coverImage: task.coverImage,
         group: task.parent?.name ?? null,
       };
     }),
@@ -169,44 +167,6 @@ export const ganttRouter = createTRPCRouter({
         assignments: { rows: ganttAssignments },
         timeRanges: { rows: ganttTimeRanges },
       };
-    }),
-
-  /**
-   * Update individual task fields
-   */
-  updateTask: orgProcedure
-    .input(
-      z.object({
-        projectId: z.string(),
-        taskId: z.string(),
-        data: z.object({
-          coverImage: z.string().optional(),
-        }),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { projectId, taskId, data } = input;
-
-      const project = await ctx.db.project.findFirst({
-        where: { id: projectId, organizationId: ctx.organization.id },
-      });
-
-      if (!project) {
-        throw new Error("Project not found or access denied");
-      }
-
-      const task = await ctx.db.ganttTask.findFirst({
-        where: { id: taskId, projectId },
-      });
-
-      if (!task) {
-        throw new Error("Task not found");
-      }
-
-      return ctx.db.ganttTask.update({
-        where: { id: taskId },
-        data,
-      });
     }),
 
   /**

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Fragment, useMemo } from 'react';
+import { useState, Fragment, useMemo, useEffect } from 'react';
 import { Folder, FileText, Plus, Calendar } from 'lucide-react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
@@ -48,12 +48,16 @@ export const folderData = [
 ];
 
 export interface Selection {
-  type: 'task' | 'folder';
+  type: 'task' | 'folder' | 'document';
   nodeId: string;
   taskId: string;
   folderName?: string;
   parentFolderName?: string;
   folderId?: string;
+  documentId?: string;
+  documentName?: string;
+  blobUrl?: string;
+  mimeType?: string;
 }
 
 interface ProjectsTreeProps {
@@ -88,11 +92,34 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
     }
   );
 
+  // Get all documents for this task (shared across FolderNodes via React Query cache)
+  const { data: allDocs } = api.document.listByTask.useQuery(
+    {
+      organizationId: organizationId!,
+      projectId: projectId!,
+      taskId: taskId.replace('task-', ''),
+    },
+    {
+      enabled: !!organizationId && !!projectId,
+    }
+  );
+
+  // Filter docs for this specific folder
+  const folderDocs = useMemo(
+    () => (allDocs ?? []).filter((d) => d.folderId === folder.id),
+    [allDocs, folder.id]
+  );
+
   const documentCount = counts?.[folder.id] || 0;
 
   const handleUploadComplete = () => {
     if (organizationId && projectId) {
       void utils.document.countByTask.invalidate({
+        organizationId,
+        projectId,
+        taskId: taskId.replace('task-', ''),
+      });
+      void utils.document.listByTask.invalidate({
         organizationId,
         projectId,
         taskId: taskId.replace('task-', ''),
@@ -143,9 +170,10 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
     >
       {!folder.isLeaf &&
         folder.children &&
-        folder.children.map((child) => {
+        folder.children.filter((child) => (counts?.[child.id] ?? 0) > 0).map((child) => {
           const childId = `${folderId}-${child.id}`;
           const childDocCount = counts?.[child.id] || 0;
+          const childDocs = (allDocs ?? []).filter((d) => d.folderId === child.id);
 
           return (
             <TreeItem
@@ -185,9 +213,51 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
                   </IconButton>
                 </Box>
               }
-            />
+            >
+              {childDocs.map((doc) => (
+                <TreeItem
+                  key={`${taskId}-doc-${doc.id}`}
+                  itemId={`${taskId}-doc-${doc.id}`}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.25 }}>
+                      <FileText size={12} style={{ color: '#3b82f6' }} />
+                      <Box sx={{
+                        flexGrow: 1,
+                        fontSize: '0.8rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {doc.name}
+                      </Box>
+                    </Box>
+                  }
+                />
+              ))}
+            </TreeItem>
           );
         })}
+      {/* Documents directly in this folder */}
+      {folderDocs.map((doc) => (
+        <TreeItem
+          key={`${taskId}-doc-${doc.id}`}
+          itemId={`${taskId}-doc-${doc.id}`}
+          label={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.25 }}>
+              <FileText size={12} style={{ color: '#3b82f6' }} />
+              <Box sx={{
+                flexGrow: 1,
+                fontSize: '0.8rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {doc.name}
+              </Box>
+            </Box>
+          }
+        />
+      ))}
       </TreeItem>
 
       {projectId && organizationId && (
@@ -221,12 +291,11 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
   // Top-level tasks (no parentId) = groups, their children = tasks
   const { groups, grouped } = useMemo(() => {
     const topLevel = tasks.filter((t) => !t.parentId);
-    const groupNames = topLevel.map((t) => t.name);
     const groupedMap: Record<string, Array<{ id: string; name: string; status: { name: string; color: string }; progress: number }>> = {};
 
     for (const parent of topLevel) {
       const children = tasks.filter((t) => t.parentId === parent.id);
-      groupedMap[parent.name] = children.map((c) => ({
+      groupedMap[parent.id] = children.map((c) => ({
         id: c.id,
         name: c.name,
         status: deriveStatus(c.percentDone),
@@ -234,14 +303,21 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
       }));
     }
 
-    return { groups: groupNames, grouped: groupedMap };
+    return { groups: topLevel.map((t) => ({ id: t.id, name: t.name })), grouped: groupedMap };
   }, [tasks]);
 
   const activeProjectId = projectId ?? null;
   const activeOrganizationId = organizationId;
 
-  // Get all group IDs for default expansion
-  const defaultExpandedItems = groups.map((group) => `group-${group}`);
+  // Controlled expanded state — auto-expand new groups as they load
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  useEffect(() => {
+    const groupIds = groups.map((g) => `group-${g.id}`);
+    setExpandedItems((prev) => {
+      const toAdd = groupIds.filter((id) => !prev.includes(id));
+      return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+    });
+  }, [groups]);
 
   // Handle selection change
   const handleSelectedItemsChange = (_event: React.SyntheticEvent | null, itemIds: string | null) => {
@@ -264,6 +340,18 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
         type: 'task',
         nodeId,
         taskId,
+      });
+      return;
+    }
+
+    // Parse document selection: task-{taskId}-doc-{docId}
+    const docMatch = nodeId.match(/^task-(.+)-doc-(.+)$/);
+    if (docMatch && docMatch[1] && docMatch[2]) {
+      onSelect({
+        type: 'document',
+        nodeId,
+        taskId: docMatch[1],
+        documentId: docMatch[2],
       });
       return;
     }
@@ -356,13 +444,14 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
   return (
     <Box sx={{ width: '100%' }}>
       <SimpleTreeView
-        defaultExpandedItems={defaultExpandedItems}
+        expandedItems={expandedItems}
+        onExpandedItemsChange={(_, items) => setExpandedItems(items)}
         selectedItems={selectedNodeId}
         onSelectedItemsChange={handleSelectedItemsChange}
       >
-        {groups.map((groupName) => {
-          const tasks = grouped[groupName] || [];
-          const groupId = `group-${groupName}`;
+        {groups.map((group) => {
+          const tasks = grouped[group.id] || [];
+          const groupId = `group-${group.id}`;
 
           return (
             <TreeItem
@@ -371,7 +460,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
                   <Folder size={16} />
-                  <Box sx={{ fontWeight: 500, flexGrow: 1 }}>{groupName}</Box>
+                  <Box sx={{ fontWeight: 500, flexGrow: 1 }}>{group.name}</Box>
                   <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                     {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
                   </Box>

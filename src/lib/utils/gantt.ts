@@ -1,10 +1,14 @@
 export interface Selection {
-  type: 'task' | 'folder';
+  type: 'task' | 'folder' | 'document';
   nodeId: string;
   taskId: string;
   folderName?: string;
   parentFolderName?: string;
   folderId?: string;
+  documentId?: string;
+  documentName?: string;
+  blobUrl?: string;
+  mimeType?: string;
 }
 
 export function deriveStatus(percentDone: number) {
