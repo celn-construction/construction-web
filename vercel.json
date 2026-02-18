@@ -3,8 +3,5 @@
   "buildCommand": "npx prisma generate && npx next build",
   "installCommand": "npm install",
   "outputDirectory": ".next",
-  "env": {
-    "SKIP_ENV_VALIDATION": "1",
-    "DATABASE_URL": "postgresql://placeholder:placeholder@localhost:5432/placeholder"
-  }
+  "env": {}
 }
