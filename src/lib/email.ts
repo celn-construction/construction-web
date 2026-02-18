@@ -29,7 +29,6 @@ export async function sendPasswordResetEmail(
 
   try {
     const { error } = await resend.emails.send({
-      // TODO: Change from rentnotify.com to buildtrack domain once verified
       from: "BuildTrack Pro <noreply@rentnotify.com>",
       to: email,
       subject: "Reset your password",
@@ -98,12 +97,15 @@ export async function sendInvitationEmail(
   inviterName: string,
   token: string
 ): Promise<{ success: boolean; error?: string }> {
-  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/invite/${token}`;
+  const inviteUrl = `${env.APP_URL}/invite/${token}`;
   const safeInviterName = escapeHtml(inviterName);
   const safeOrgName = escapeHtml(orgName);
 
-  // If no Resend API key, log to console (development mode)
+  // If no Resend API key, surface error in production, log to console in development
   if (!resend) {
+    if (process.env.NODE_ENV === "production") {
+      return { success: false, error: "Email service not configured (missing RESEND_API_KEY)" };
+    }
     console.log("========================================");
     console.log("INVITATION EMAIL (Development Mode)");
     console.log("========================================");
@@ -117,7 +119,6 @@ export async function sendInvitationEmail(
 
   try {
     const { error } = await resend.emails.send({
-      // TODO: Change from rentnotify.com to buildtrack domain once verified
       from: "BuildTrack Pro <noreply@rentnotify.com>",
       to: email,
       subject: `${inviterName} invited you to join ${orgName}`,

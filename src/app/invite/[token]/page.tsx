@@ -1,14 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, ArrowRight, Loader2, Check } from "lucide-react";
+import { Building2, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { api } from "@/trpc/react";
-import { useSession } from "@/lib/auth-client";
+import { useSession, signOut } from "@/lib/auth-client";
 import { LogoIcon } from "@/components/ui/Logo";
 import { BlueprintBackground } from "@/components/onboarding/BlueprintBackground";
+import {
+  Box,
+  Typography,
+  Paper,
+  Button,
+  CircularProgress,
+  Stack,
+  Alert,
+} from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
+
+const WRONG_EMAIL_MSG = "This invitation was sent to a different email address";
 
 export default function InvitePage() {
   const params = useParams();
@@ -17,6 +29,7 @@ export default function InvitePage() {
   const { data: session, isPending: sessionLoading } = useSession();
   const [accepting, setAccepting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
 
   const { data: invitation, isLoading, error } = api.invitation.getByToken.useQuery(
     { token },
@@ -32,255 +45,283 @@ export default function InvitePage() {
       }, 1500);
     },
     onError: (error) => {
-      alert(error.message || "Failed to accept invitation");
+      setAcceptError(error.message || "Failed to accept invitation");
       setAccepting(false);
     },
   });
 
   const handleAccept = () => {
+    setAcceptError(null);
     setAccepting(true);
     acceptInvitation.mutate({ token });
   };
 
+  const pageWrapper = (children: React.ReactNode) => (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        bgcolor: "background.default",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        p: 3,
+        position: "relative",
+      }}
+    >
+      <BlueprintBackground />
+      <Box
+        component={motion.div}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4 }}
+        sx={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}
+      >
+        {children}
+      </Box>
+    </Box>
+  );
+
   if (isLoading || sessionLoading) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+      <Box
+        sx={{
+          minHeight: "100vh",
+          bgcolor: "background.default",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+        }}
+      >
         <BlueprintBackground />
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--text-muted)]" />
-      </div>
+        <CircularProgress sx={{ position: "relative", zIndex: 1 }} />
+      </Box>
     );
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-6">
-        <BlueprintBackground />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-md relative z-10"
+    return pageWrapper(
+      <Paper elevation={1} sx={{ borderRadius: 3, p: 4, textAlign: "center" }}>
+        <Box
+          sx={{
+            width: 64,
+            height: 64,
+            bgcolor: "error.light",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 32,
+            mx: "auto",
+            mb: 2,
+          }}
         >
-          <div className="bg-[var(--bg-card)] border border-[var(--border-light)] rounded-2xl shadow-lg shadow-black/[0.03] p-8 text-center">
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
-              className="flex justify-center mb-4"
-            >
-              <div className="w-16 h-16 bg-[var(--status-red)]/10 rounded-full flex items-center justify-center">
-                <span className="text-3xl">⚠️</span>
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-            >
-              <h1 className="text-xl font-medium text-[var(--text-primary)] mb-2">
-                Invalid Invitation
-              </h1>
-            </motion.div>
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.28 }}
-              className="text-[var(--text-secondary)] mb-6"
-            >
-              {error.message}
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
-            >
-              <Link
-                href="/sign-in"
-                className="inline-block bg-[var(--accent-primary)] text-white px-6 py-2 rounded-md hover:opacity-90 transition-colors"
-              >
-                Go to Sign In
-              </Link>
-            </motion.div>
-          </div>
-        </motion.div>
-      </div>
+          ⚠️
+        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
+          Invalid Invitation
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          {error.message}
+        </Typography>
+        <Button
+          component={Link}
+          href="/sign-in"
+          variant="contained"
+          sx={{ borderRadius: 2 }}
+        >
+          Go to Sign In
+        </Button>
+      </Paper>
     );
   }
 
-  if (!invitation) {
-    return null;
-  }
+  if (!invitation) return null;
 
   if (showSuccess) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-6">
-        <BlueprintBackground />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-md relative z-10"
+    return pageWrapper(
+      <Paper elevation={1} sx={{ borderRadius: 3, p: 4, textAlign: "center" }}>
+        <Box
+          sx={{
+            width: 56,
+            height: 56,
+            bgcolor: "success.main",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            mx: "auto",
+            mb: 2,
+          }}
         >
-          <div className="bg-[var(--bg-card)] border border-[var(--border-light)] rounded-2xl shadow-lg shadow-black/[0.03] p-8 text-center">
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
-              className="flex justify-center mb-4"
-            >
-              <div className="w-16 h-16 bg-[var(--status-green)]/10 rounded-full flex items-center justify-center">
-                <div className="w-12 h-12 bg-[var(--status-green)] rounded-full flex items-center justify-center">
-                  <Check className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </motion.div>
-            <motion.h1
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-              className="text-xl font-medium text-[var(--text-primary)] mb-2"
-            >
-              Welcome aboard!
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.38 }}
-              className="text-[var(--text-secondary)]"
-            >
-              Redirecting to dashboard...
-            </motion.p>
-          </div>
-        </motion.div>
-      </div>
+          <CheckIcon sx={{ color: "white", fontSize: 28 }} />
+        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 500, mb: 0.5 }}>
+          Welcome aboard!
+        </Typography>
+        <Typography color="text.secondary">
+          Redirecting to dashboard...
+        </Typography>
+      </Paper>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-6">
-      <BlueprintBackground />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md relative z-10"
+  return pageWrapper(
+    <Paper elevation={1} sx={{ borderRadius: 3, p: 4 }}>
+      {/* Header */}
+      <Box sx={{ textAlign: "center", mb: 4 }}>
+        <Box
+          component={motion.div}
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
+          sx={{ display: "flex", justifyContent: "center", mb: 2 }}
+        >
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              bgcolor: "text.primary",
+              borderRadius: 2,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <LogoIcon size={32} />
+          </Box>
+        </Box>
+        <Typography variant="h5" sx={{ fontWeight: 500, mb: 0.5 }}>
+          You&apos;re invited!
+        </Typography>
+        <Typography color="text.secondary">
+          Join your team on BuildTrack Pro
+        </Typography>
+      </Box>
+
+      {/* Org card */}
+      <Box
+        component={motion.div}
+        initial={{ y: 16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.25 }}
+        sx={{
+          bgcolor: "action.hover",
+          borderRadius: 2,
+          p: 2.5,
+          mb: 3,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 2,
+        }}
       >
-        <div className="bg-[var(--bg-card)] border border-[var(--border-light)] rounded-2xl shadow-lg shadow-black/[0.03] p-8">
-          <div className="text-center mb-8">
-            <motion.div
-              initial={{ scale: 0.85, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
-              className="flex justify-center mb-4"
-            >
-              <div className="w-16 h-16 bg-[var(--accent-primary)] rounded-xl flex items-center justify-center">
-                <LogoIcon size={36} />
-              </div>
-            </motion.div>
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={{
-                visible: {
-                  transition: {
-                    staggerChildren: 0.08,
-                  },
-                },
-              }}
-            >
-              <motion.h1
-                variants={{
-                  hidden: { opacity: 0, y: 12 },
-                  visible: { opacity: 1, y: 0 },
-                }}
-                className="text-2xl font-medium text-[var(--text-primary)] mb-2"
-              >
-                You're invited!
-              </motion.h1>
-              <motion.p
-                variants={{
-                  hidden: { opacity: 0, y: 12 },
-                  visible: { opacity: 1, y: 0 },
-                }}
-                className="text-[var(--text-secondary)]"
-              >
-                Join your team on BuildTrack Pro
-              </motion.p>
-            </motion.div>
-          </div>
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            bgcolor: "text.primary",
+            borderRadius: 1.5,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Building2 style={{ color: "white", width: 22, height: 22 }} />
+        </Box>
+        <Box>
+          <Typography sx={{ fontWeight: 500, mb: 0.25 }}>
+            {invitation.organization.name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Invited by {invitation.invitedBy.name ?? "a team member"}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Role:{" "}
+            <Box component="span" sx={{ fontWeight: 600, textTransform: "capitalize" }}>
+              {invitation.role.replace("_", " ")}
+            </Box>
+          </Typography>
+        </Box>
+      </Box>
 
-          <motion.div
-            initial={{ y: 16, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            className="bg-[var(--bg-input)] border border-[var(--border-light)] rounded-xl p-6 mb-6"
-          >
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-[var(--accent-primary)] rounded-xl flex items-center justify-center flex-shrink-0">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="font-medium text-[var(--text-primary)] mb-1">
-                  {invitation.organization.name}
-                </h2>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  Invited by {invitation.invitedBy.name || "a team member"}
-                </p>
-                <p className="text-sm text-[var(--text-secondary)] mt-2">
-                  Role: <span className="font-medium capitalize">{invitation.role.replace('_', ' ')}</span>
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ y: 16, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.4 }}
-          >
-            {session?.user ? (
-              <div className="space-y-4">
-                <p className="text-sm text-center text-[var(--text-secondary)]">
-                  Signed in as <strong>{session.user.email}</strong>
-                </p>
-                <button
-                  onClick={handleAccept}
-                  disabled={accepting}
-                  className="w-full bg-[var(--accent-primary)] text-white py-3 rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-medium"
-                >
-                  {accepting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Accepting...
-                    </>
-                  ) : (
-                    <>
-                      Accept Invitation
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <Link
-                  href={`/sign-up?invite=${token}`}
-                  className="w-full bg-[var(--accent-primary)] text-white py-3 rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 font-medium"
-                >
-                  Sign up to join
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-                <Link
-                  href={`/sign-in?invite=${token}`}
-                  className="w-full bg-[var(--bg-input)] border border-[var(--border-light)] text-[var(--text-primary)] py-3 rounded-md hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center gap-2 font-medium"
-                >
-                  Sign in
-                </Link>
-              </div>
+      {/* Actions */}
+      <Box
+        component={motion.div}
+        initial={{ y: 16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.38 }}
+      >
+        {session?.user ? (
+          <Stack spacing={2}>
+            <Typography variant="body2" color="text.secondary" textAlign="center">
+              Signed in as <strong>{session.user.email}</strong>
+            </Typography>
+            {acceptError && (
+              <Alert
+                severity="error"
+                sx={{ borderRadius: 2, alignItems: "flex-start" }}
+                action={
+                  acceptError === WRONG_EMAIL_MSG ? (
+                    <Button
+                      color="error"
+                      size="small"
+                      onClick={() => signOut({ fetchOptions: { onSuccess: () => router.refresh() } })}
+                    >
+                      Sign out
+                    </Button>
+                  ) : undefined
+                }
+              >
+                {acceptError === WRONG_EMAIL_MSG
+                  ? `This invitation was sent to a different email. Sign out and sign in with the correct account to accept it.`
+                  : acceptError}
+              </Alert>
             )}
-          </motion.div>
-        </div>
-      </motion.div>
-    </div>
+            <Button
+              variant="contained"
+              size="large"
+              fullWidth
+              onClick={handleAccept}
+              disabled={accepting}
+              endIcon={
+                accepting ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <ArrowRight size={18} />
+                )
+              }
+              sx={{ borderRadius: 2, py: 1.5 }}
+            >
+              {accepting ? "Accepting..." : "Accept Invitation"}
+            </Button>
+          </Stack>
+        ) : (
+          <Stack spacing={1.5}>
+            <Button
+              component={Link}
+              href={`/sign-up?invite=${token}`}
+              variant="contained"
+              size="large"
+              fullWidth
+              endIcon={<ArrowRight size={18} />}
+              sx={{ borderRadius: 2, py: 1.5 }}
+            >
+              Sign up to join
+            </Button>
+            <Button
+              component={Link}
+              href={`/sign-in?invite=${token}`}
+              variant="outlined"
+              size="large"
+              fullWidth
+              sx={{ borderRadius: 2, py: 1.5 }}
+            >
+              Sign in
+            </Button>
+          </Stack>
+        )}
+      </Box>
+    </Paper>
   );
 }
