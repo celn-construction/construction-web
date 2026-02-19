@@ -8,7 +8,11 @@ export function middleware(request: NextRequest) {
     : "__Secure-better-auth.session_token";
   const sessionCookie = request.cookies.get(cookieName);
   const onboardingComplete = request.cookies.get("onboarding-complete");
-  const activeOrgSlug = request.cookies.get("active-org-slug");
+  const activeOrgSlugCookie = request.cookies.get("active-org-slug");
+  // Only use the slug if it's a valid org slug (word chars + hyphens, no dots or slashes)
+  const activeOrgSlug = activeOrgSlugCookie?.value && /^[a-z0-9-]+$/.test(activeOrgSlugCookie.value)
+    ? activeOrgSlugCookie.value
+    : null;
   const pathname = request.nextUrl.pathname;
 
   const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up") || pathname.startsWith("/forgot-password") || pathname.startsWith("/reset-password");
@@ -35,8 +39,8 @@ export function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages to their org or onboarding
   if (isAuthPage && sessionCookie) {
-    if (onboardingComplete && activeOrgSlug?.value) {
-      return NextResponse.redirect(new URL(`/${activeOrgSlug.value}`, request.url));
+    if (onboardingComplete && activeOrgSlug) {
+      return NextResponse.redirect(new URL(`/${activeOrgSlug}`, request.url));
     }
     return NextResponse.redirect(new URL("/onboarding", request.url));
   }
@@ -59,8 +63,8 @@ export function middleware(request: NextRequest) {
   // Allow onboarding page if not complete
   if (isOnboardingPage) {
     // If onboarding is complete, redirect to org home
-    if (onboardingComplete && activeOrgSlug?.value) {
-      return NextResponse.redirect(new URL(`/${activeOrgSlug.value}`, request.url));
+    if (onboardingComplete && activeOrgSlug) {
+      return NextResponse.redirect(new URL(`/${activeOrgSlug}`, request.url));
     }
     return NextResponse.next();
   }
@@ -71,9 +75,9 @@ export function middleware(request: NextRequest) {
   }
 
   // Update active-org-slug cookie from URL for any org-scoped route
-  const staticPrefixes = ['api', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'onboarding', 'invite', '_next'];
+  const staticPrefixes = ['api', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'onboarding', 'invite', 'dashboard', '_next'];
   const firstSegment = pathname.split('/')[1];
-  if (firstSegment && !staticPrefixes.includes(firstSegment)) {
+  if (firstSegment && !staticPrefixes.includes(firstSegment) && /^[a-z0-9-]+$/.test(firstSegment)) {
     const response = NextResponse.next();
     response.cookies.set("active-org-slug", firstSegment, {
       httpOnly: true,
