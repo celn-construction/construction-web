@@ -34,9 +34,3 @@ export function getProjectNavHref(
   return `/${orgSlug}/projects/${projectSlug}/${segment}`;
 }
 
-// Legacy export for backwards compatibility (can be removed after migration)
-export const navItems: NavItem[] = [...orgNavItems, ...projectNavItems];
-
-export function getNavHref(segment: string, slug: string | undefined): string {
-  return slug ? `/projects/${slug}/${segment}` : '/projects';
-}

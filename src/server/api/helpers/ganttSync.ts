@@ -30,14 +30,55 @@ export async function syncTasks(
 
   // Process additions
   if (changes.added) {
-    for (const task of changes.added) {
-      const id = createId();
+    // Pre-assign real IDs and build a complete phantom→real map before any DB inserts.
+    // This handles the case where Bryntum sends parent+child in the same batch — the
+    // child's parentId references the parent's phantom ID which may not yet be in
+    // phantomIdMap, causing a FK violation if we insert naively in array order.
+    const tasksWithIds = changes.added.map((task) => ({
+      task,
+      id: createId(),
+    }));
 
-      // Resolve parent phantom ID if needed
-      let parentId = task.parentId;
-      if (parentId && parentId.startsWith("$")) {
-        parentId = phantomIdMap.get(parentId) ?? null;
+    // Register all phantom IDs upfront so parent references resolve correctly
+    for (const { task, id } of tasksWithIds) {
+      if (task.$PhantomId) {
+        phantomIdMap.set(task.$PhantomId, id);
       }
+    }
+
+    // Topological sort: parents must be inserted before their children.
+    // Build a map from phantom ID → index in the batch.
+    const phantomToIndex = new Map<string, number>();
+    for (let i = 0; i < tasksWithIds.length; i++) {
+      const { task } = tasksWithIds[i]!;
+      if (task.$PhantomId) phantomToIndex.set(task.$PhantomId, i);
+    }
+
+    const visited = new Set<number>();
+    const sorted: typeof tasksWithIds = [];
+
+    function visit(index: number) {
+      if (visited.has(index)) return;
+      visited.add(index);
+      const { task } = tasksWithIds[index]!;
+      const parentId = task.parentId;
+      if (parentId) {
+        const parentIndex = phantomToIndex.get(parentId);
+        if (parentIndex !== undefined) visit(parentIndex);
+      }
+      sorted.push(tasksWithIds[index]!);
+    }
+
+    for (let i = 0; i < tasksWithIds.length; i++) visit(i);
+
+    // Resolve a parentId against the full phantom map (any format, not just "$"-prefixed)
+    const resolveParentId = (parentId: string | null | undefined): string | null => {
+      if (!parentId) return null;
+      return phantomIdMap.get(parentId) ?? parentId;
+    };
+
+    for (const { task, id } of sorted) {
+      const parentId = resolveParentId(task.parentId);
 
       await db.ganttTask.create({
         data: {
@@ -66,7 +107,6 @@ export async function syncTasks(
       });
 
       if (task.$PhantomId) {
-        phantomIdMap.set(task.$PhantomId, id);
         result.rows.push({ $PhantomId: task.$PhantomId, id });
       }
     }
@@ -98,13 +138,12 @@ export async function syncTasks(
       if (task.note !== undefined) updateData.note = task.note;
       if (task.baselines !== undefined) updateData.baselines = task.baselines;
 
-      // Resolve parent phantom ID if needed
+      // Resolve parent phantom ID if needed (any phantom format, not just "$"-prefixed)
       if (task.parentId !== undefined) {
-        let parentId = task.parentId;
-        if (parentId && parentId.startsWith("$")) {
-          parentId = phantomIdMap.get(parentId) ?? null;
-        }
-        updateData.parentId = parentId;
+        const rawParentId = task.parentId;
+        updateData.parentId = rawParentId
+          ? (phantomIdMap.get(rawParentId) ?? rawParentId)
+          : null;
       }
 
       await db.ganttTask.update({
@@ -151,8 +190,8 @@ export async function syncDependencies(
 
       if (!fromTaskId || !toTaskId) continue;
 
-      const resolvedFromTaskId = fromTaskId.startsWith("$") ? phantomIdMap.get(fromTaskId) : fromTaskId;
-      const resolvedToTaskId = toTaskId.startsWith("$") ? phantomIdMap.get(toTaskId) : toTaskId;
+      const resolvedFromTaskId = phantomIdMap.get(fromTaskId) ?? fromTaskId;
+      const resolvedToTaskId = phantomIdMap.get(toTaskId) ?? toTaskId;
 
       if (!resolvedFromTaskId || !resolvedToTaskId) continue;
 
@@ -297,8 +336,8 @@ export async function syncAssignments(
 
       if (!taskId || !resourceId) continue;
 
-      const resolvedTaskId = taskId.startsWith("$") ? phantomIdMap.get(taskId) : taskId;
-      const resolvedResourceId = resourceId.startsWith("$") ? phantomIdMap.get(resourceId) : resourceId;
+      const resolvedTaskId = phantomIdMap.get(taskId) ?? taskId;
+      const resolvedResourceId = phantomIdMap.get(resourceId) ?? resourceId;
 
       if (!resolvedTaskId || !resolvedResourceId) continue;
 
