@@ -163,6 +163,7 @@ export default function BryntumGanttWrapper({ projectId }: BryntumGanttWrapperPr
       <TaskDetailsPopover
         open={isTaskPopoverOpen}
         taskName={selectedTask?.name ?? ''}
+        taskId={selectedTask?.id}
         popoverPlacement={popoverPlacement}
         onClose={closeTaskPopover}
       />
