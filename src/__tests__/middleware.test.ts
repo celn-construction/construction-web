@@ -66,12 +66,12 @@ describe("Middleware", () => {
   });
 
   it("redirects unauthenticated users to /sign-in with callbackUrl", () => {
-    const request = createRequest("/projects");
+    const request = createRequest("/acme");
     const response = middleware(request) as NextResponse;
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "http://localhost:5050/sign-in?callbackUrl=/projects"
+      "http://localhost:5050/sign-in?callbackUrl=/acme"
     );
   });
 
@@ -109,7 +109,7 @@ describe("Middleware", () => {
   });
 
   it("redirects to /onboarding for protected routes if not complete", () => {
-    const request = createRequest("/projects", {
+    const request = createRequest("/acme", {
       "better-auth.session_token": "valid-token",
     });
     const response = middleware(request) as NextResponse;
@@ -122,7 +122,7 @@ describe("Middleware", () => {
     vi.stubEnv("NODE_ENV", "test");
 
     const request = createRequest(
-      "/projects",
+      "/acme",
       {},
       { "x-playwright-test": "true" }
     );

@@ -16,7 +16,6 @@ export function middleware(request: NextRequest) {
   const isLandingPage = pathname === "/";
   const isOnboardingPage = pathname.startsWith("/onboarding");
   const isInvitePage = pathname.startsWith("/invite");
-  const isLegacyProjectsRoute = pathname.startsWith("/projects");
 
   // Bypass auth for E2E tests (only in development/test environments)
   const isTestBypass = request.headers.get("x-playwright-test") === "true";
@@ -69,20 +68,6 @@ export function middleware(request: NextRequest) {
   // Enforce onboarding for all other protected routes
   if (!onboardingComplete) {
     return NextResponse.redirect(new URL("/onboarding", request.url));
-  }
-
-  // Handle legacy /projects routes - redirect to org-scoped URLs
-  if (isLegacyProjectsRoute && activeOrgSlug?.value) {
-    // Extract the path after /projects
-    const afterProjects = pathname.substring('/projects'.length);
-
-    if (!afterProjects || afterProjects === '/') {
-      // /projects → /{orgSlug}
-      return NextResponse.redirect(new URL(`/${activeOrgSlug.value}`, request.url));
-    } else {
-      // /projects/{slug}/... → /{orgSlug}/projects/{slug}/...
-      return NextResponse.redirect(new URL(`/${activeOrgSlug.value}/projects${afterProjects}`, request.url));
-    }
   }
 
   // Update active-org-slug cookie from URL for any org-scoped route

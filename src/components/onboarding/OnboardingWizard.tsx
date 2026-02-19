@@ -56,12 +56,12 @@ export function OnboardingWizard() {
   });
 
   const completeMutation = api.onboarding.createOrganization.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       Cookies.set("onboarding-complete", "true", { expires: 365 });
       setShowSuccess(true);
       showSnackbar("Welcome to BuildTrack Pro!", "success");
       setTimeout(() => {
-        router.push("/projects");
+        router.push(`/${data.organization.slug}`);
       }, 1500);
     },
     onError: (error: { message?: string }) => {

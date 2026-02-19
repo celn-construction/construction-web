@@ -190,8 +190,8 @@ export async function syncDependencies(
 
       if (!fromTaskId || !toTaskId) continue;
 
-      const resolvedFromTaskId = fromTaskId.startsWith("$") ? phantomIdMap.get(fromTaskId) : fromTaskId;
-      const resolvedToTaskId = toTaskId.startsWith("$") ? phantomIdMap.get(toTaskId) : toTaskId;
+      const resolvedFromTaskId = phantomIdMap.get(fromTaskId) ?? fromTaskId;
+      const resolvedToTaskId = phantomIdMap.get(toTaskId) ?? toTaskId;
 
       if (!resolvedFromTaskId || !resolvedToTaskId) continue;
 
@@ -336,8 +336,8 @@ export async function syncAssignments(
 
       if (!taskId || !resourceId) continue;
 
-      const resolvedTaskId = taskId.startsWith("$") ? phantomIdMap.get(taskId) : taskId;
-      const resolvedResourceId = resourceId.startsWith("$") ? phantomIdMap.get(resourceId) : resourceId;
+      const resolvedTaskId = phantomIdMap.get(taskId) ?? taskId;
+      const resolvedResourceId = phantomIdMap.get(resourceId) ?? resourceId;
 
       if (!resolvedTaskId || !resolvedResourceId) continue;
 

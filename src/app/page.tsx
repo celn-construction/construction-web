@@ -64,7 +64,7 @@ export default function Home() {
               {session ? (
                 <Button
                   component={Link}
-                  href="/projects"
+                  href="/onboarding"
                   variant="contained"
                   sx={{
                     bgcolor: '#ffffff',
