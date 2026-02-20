@@ -26,11 +26,14 @@ const GANTT_CONTENT_STYLE: CSSProperties = {
   overflow: 'hidden',
 };
 
+const STALE_THRESHOLD_MS = 60_000; // 60 seconds
+
 interface BryntumGanttWrapperProps {
   projectId?: string;
+  isVisible?: boolean;
 }
 
-export default function BryntumGanttWrapper({ projectId }: BryntumGanttWrapperProps) {
+export default function BryntumGanttWrapper({ projectId, isVisible = true }: BryntumGanttWrapperProps) {
   const theme = useThemeStore((state) => state.theme);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -85,6 +88,23 @@ export default function BryntumGanttWrapper({ projectId }: BryntumGanttWrapperPr
       gantt.project?.un('sync', onSync);
     };
   }, [isLoading, getGanttInstance, utils]);
+
+  // Silently refresh data when returning to the Gantt tab after the stale threshold.
+  // Bryntum's CrudManager merges fresh data without resetting scroll, selections, or expanded state.
+  const hiddenSinceRef = useRef(0);
+  useEffect(() => {
+    if (isVisible) {
+      const hiddenDuration = Date.now() - hiddenSinceRef.current;
+      if (hiddenSinceRef.current > 0 && hiddenDuration > STALE_THRESHOLD_MS) {
+        const gantt = getGanttInstance();
+        if (gantt?.project) {
+          gantt.project.load();
+        }
+      }
+    } else {
+      hiddenSinceRef.current = Date.now();
+    }
+  }, [isVisible, getGanttInstance]);
 
   const ganttConfig = useMemo(
     () => createGanttConfig(handleTaskClick, projectId, {
