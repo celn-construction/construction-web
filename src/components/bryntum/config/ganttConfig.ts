@@ -100,6 +100,8 @@ export function createGanttConfig(
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     viewPreset: 'weekAndDayLetter',
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
+    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
     barMargin: 10,
     listeners: {
       taskClick: onTaskClick,

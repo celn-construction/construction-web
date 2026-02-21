@@ -81,6 +81,8 @@ export type GanttConfig = {
   };
   emptyText?: string;
   viewPreset: string;
+  startDate?: Date;
+  endDate?: Date;
   barMargin: number;
   listeners: {
     taskClick: TaskClickHandler;
