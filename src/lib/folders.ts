@@ -2,7 +2,19 @@
 // Source of truth for both frontend UI and backend search filtering.
 // Move to a DB table if orgs ever need custom folder categories.
 
-export const folderData = [
+interface FolderChild {
+  id: string;
+  name: string;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  isLeaf: boolean;
+  children?: FolderChild[];
+}
+
+export const folderData: Folder[] = [
   {
     id: 'rfi',
     name: 'RFI',
@@ -38,10 +50,7 @@ export const folderData = [
       { id: 'inspections-safety', name: 'Safety' },
     ],
   },
-] as const;
-
-export type FolderData = typeof folderData;
-export type TopLevelFolder = FolderData[number];
+];
 
 /**
  * Expands a top-level folder ID into all folder IDs it covers (itself + children).
@@ -50,6 +59,6 @@ export type TopLevelFolder = FolderData[number];
 export function expandFolderIds(topLevelId: string): string[] {
   const folder = folderData.find((f) => f.id === topLevelId);
   if (!folder) return [topLevelId];
-  const childIds = 'children' in folder ? folder.children.map((c) => c.id) : [];
+  const childIds = folder.children ? folder.children.map((c) => c.id) : [];
   return [topLevelId, ...childIds];
 }
