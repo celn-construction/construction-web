@@ -64,7 +64,7 @@ describe("SignInPage", () => {
     });
   });
 
-  it("redirects to /onboarding on successful sign-in", async () => {
+  it("redirects to /dashboard on successful sign-in", async () => {
     const user = userEvent.setup();
     mockSignInEmail.mockImplementation(async ({ fetchOptions }) => {
       fetchOptions?.onSuccess?.();
@@ -77,7 +77,7 @@ describe("SignInPage", () => {
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/onboarding");
+      expect(mockPush).toHaveBeenCalledWith("/dashboard");
       expect(mockRefresh).toHaveBeenCalled();
     });
   });
