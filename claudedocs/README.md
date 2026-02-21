@@ -1,30 +1,33 @@
 # Claude Docs Index
 
-This directory is organized by feature area so docs are easy to scan and maintain.
+Developer documentation for the construction SaaS codebase. Core docs are @imported into `CLAUDE.md` and load automatically each session.
 
-## Reading Order
+---
 
-1. Open the topic folder (`loading`, etc.).
-2. Start with `*-plan` files or the topic quick-reference.
-3. Use `quick-reference` for usage details.
-4. Use plans (`*-plan`) for migration sequencing.
+## Core Docs (auto-loaded via CLAUDE.md)
 
-## Structure
+| File | Covers |
+|------|--------|
+| `codebase-overview.md` | Directory structure, tech stack, key patterns |
+| `environment-setup.md` | Env vars, local dev setup, npm scripts, Vercel deployment |
+| `auth-and-permissions.md` | Better Auth config, RBAC roles/permissions, middleware routing |
+| `data-flows.md` | Signup, invite, project creation, Gantt sync, document upload |
+| `architecture-and-typescript.md` | Architecture standards, anti-patterns, TS/Next.js/tRPC/Prisma/Zod rules |
+| `testing-guide.md` | Vitest + RTL patterns, Playwright setup, mocking conventions, coverage map |
+| `components-guide.md` | Component directory structure, naming, styling, data fetching, UI primitives |
 
-- `claudedocs/loading/`
-  - `quick-reference.md` (copy/paste patterns)
-- `claudedocs/organization/`
-  - `system-implementation.md`
-- `claudedocs/media/`
-  - `image-optimization-guide.md`
-- `claudedocs/review/`
-  - `systematic-code-review.md`
-- `claudedocs/src/`
-  - `README.md`
-  - `app-routes-reference.md`
-  - `components-reference.md`
+---
+
+## Reference Docs (read on demand)
+
+| File | Covers |
+|------|--------|
+| `review/systematic-code-review.md` | Code review playbook, severity levels, review order |
+
+---
 
 ## Conventions
 
-- Prefer short, task-specific file names.
-- Add new docs to this index when created.
+- Add new core docs to the CLAUDE.md `@import` list and to this index.
+- Update docs in the same task as the code change that affects them (see Documentation Update Rules in CLAUDE.md).
+- Update `testing-guide.md` coverage map when new tests are added.
