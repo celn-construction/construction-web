@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/react';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
+import { folderData, expandFolderIds } from '@/lib/folders';
 
 const LIMIT = 20;
 
@@ -38,6 +39,7 @@ export default function DocumentExplorerPage() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
 
   // Debounce search input
   useEffect(() => {
@@ -50,6 +52,24 @@ export default function DocumentExplorerPage() {
 
   const offset = (page - 1) * LIMIT;
 
+  const folderIds =
+    selectedFolders.size > 0
+      ? [...selectedFolders].flatMap((id) => expandFolderIds(id))
+      : undefined;
+
+  const toggleFolder = (id: string) => {
+    setSelectedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    setPage(1);
+  };
+
   const { data, isLoading, isFetching } = api.document.search.useQuery(
     {
       organizationId,
@@ -57,6 +77,7 @@ export default function DocumentExplorerPage() {
       query: debouncedQuery,
       limit: LIMIT,
       offset,
+      folderIds,
     },
     {
       enabled: !!organizationId && !!projectId,
@@ -93,6 +114,24 @@ export default function DocumentExplorerPage() {
       {/* Fetching indicator */}
       <Box sx={{ height: 4, mb: 1 }}>
         {isBackgroundFetching && <LinearProgress sx={{ borderRadius: 1 }} />}
+      </Box>
+
+      {/* Folder category filters */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+        {folderData.map((folder) => {
+          const selected = selectedFolders.has(folder.id);
+          return (
+            <Chip
+              key={folder.id}
+              label={folder.name}
+              size="small"
+              variant={selected ? 'filled' : 'outlined'}
+              color={selected ? 'primary' : 'default'}
+              onClick={() => toggleFolder(folder.id)}
+              sx={{ cursor: 'pointer' }}
+            />
+          );
+        })}
       </Box>
 
       {/* Result count */}

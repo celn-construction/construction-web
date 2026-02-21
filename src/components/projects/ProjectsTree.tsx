@@ -7,45 +7,9 @@ import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { Box, Chip, IconButton, Typography } from '@mui/material';
 import { api } from '@/trpc/react';
 import UploadDialog from '@/components/documents/UploadDialog';
+import { folderData } from '@/lib/folders';
 
-// Static construction document folder structure (same for every task)
-export const folderData = [
-  {
-    id: 'rfi',
-    name: 'RFI',
-    isLeaf: true,
-  },
-  {
-    id: 'submittals',
-    name: 'Submittals',
-    isLeaf: false,
-    children: [
-      { id: 'submittals-product', name: 'Product Data' },
-      { id: 'submittals-shop', name: 'Shop Drawings' },
-      { id: 'submittals-certs', name: 'Certs' },
-    ],
-  },
-  {
-    id: 'change-orders',
-    name: 'Change Orders',
-    isLeaf: true,
-  },
-  {
-    id: 'photos',
-    name: 'Photos',
-    isLeaf: true,
-  },
-  {
-    id: 'inspections',
-    name: 'Inspections',
-    isLeaf: false,
-    children: [
-      { id: 'inspections-structural', name: 'Structural' },
-      { id: 'inspections-mep', name: 'MEP' },
-      { id: 'inspections-safety', name: 'Safety' },
-    ],
-  },
-];
+export { folderData };
 
 export interface Selection {
   type: 'task' | 'folder' | 'document';

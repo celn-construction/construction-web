@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Prisma } from "../../../../generated/prisma";
 import { del } from "@vercel/blob";
 import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 
@@ -132,6 +133,7 @@ export const documentRouter = createTRPCRouter({
         query: z.string().max(200),
         limit: z.number().min(1).max(50).default(20),
         offset: z.number().min(0).default(0),
+        folderIds: z.array(z.string()).optional(),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -147,12 +149,18 @@ export const documentRouter = createTRPCRouter({
       }
 
       const trimmed = input.query.trim();
+      const folderFilter = input.folderIds?.length
+        ? { folderId: { in: input.folderIds } }
+        : {};
+      const folderSqlFilter = input.folderIds?.length
+        ? Prisma.sql`AND d."folderId" = ANY(${input.folderIds})`
+        : Prisma.empty;
 
       // Empty query: return recent documents
       if (!trimmed) {
         const [results, total] = await Promise.all([
           ctx.db.document.findMany({
-            where: { projectId: input.projectId },
+            where: { projectId: input.projectId, ...folderFilter },
             include: {
               uploadedBy: {
                 select: { id: true, name: true, email: true },
@@ -163,7 +171,7 @@ export const documentRouter = createTRPCRouter({
             skip: input.offset,
           }),
           ctx.db.document.count({
-            where: { projectId: input.projectId },
+            where: { projectId: input.projectId, ...folderFilter },
           }),
         ]);
         return { results, total };
@@ -214,6 +222,7 @@ export const documentRouter = createTRPCRouter({
         WHERE
           d."projectId" = ${input.projectId}
           AND d.search_vector @@ query
+          ${folderSqlFilter}
         ORDER BY rank DESC
         LIMIT ${input.limit}
         OFFSET ${input.offset}
@@ -227,6 +236,7 @@ export const documentRouter = createTRPCRouter({
              websearch_to_tsquery('english', ${trimmed}) query
         WHERE d."projectId" = ${input.projectId}
           AND d.search_vector @@ query
+          ${folderSqlFilter}
       `;
 
       const total = Number(countResult[0]?.count ?? 0);
