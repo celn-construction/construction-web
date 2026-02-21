@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { Home, GanttChart, Users, FolderOpen } from 'lucide-react';
+import { Home, GanttChart, Users, FolderOpen, FileSearch } from 'lucide-react';
 import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material';
 import { orgNavItems, projectNavItems, getOrgNavHref, getProjectNavHref } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
@@ -19,6 +19,7 @@ export default function Sidebar() {
       case 'FolderOpen': return FolderOpen;
       case 'GanttChart': return GanttChart;
       case 'Users': return Users;
+      case 'FileSearch': return FileSearch;
       default: return Home;
     }
   };
