@@ -2,9 +2,9 @@
 
 import { Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { api } from '@/trpc/react';
 import { Box, Typography, Stack, Skeleton, Button, CircularProgress } from '@mui/material';
-import { useSnackbar } from '@/hooks/useSnackbar';
+import { useInvitationActions } from '@/hooks/useInvitationActions';
+import { formatRole } from '@/lib/utils/formatting';
 
 interface Invitation {
   id: string;
@@ -27,41 +27,13 @@ export default function PendingInvitesList({
   organizationId,
   canManage,
 }: PendingInvitesListProps) {
-  const utils = api.useUtils();
-  const { showSnackbar } = useSnackbar();
-
-  const revokeInvitation = api.invitation.revoke.useMutation({
-    onSuccess: () => {
-      showSnackbar('Invitation revoked', 'success');
-      void utils.invitation.list.invalidate();
-    },
-    onError: (error) => {
-      showSnackbar(error.message || 'Failed to revoke invitation', 'error');
-    },
-  });
-
-  const resendInvitation = api.invitation.resend.useMutation({
-    onSuccess: () => {
-      showSnackbar('Invitation resent', 'success');
-      void utils.invitation.list.invalidate();
-    },
-    onError: (error) => {
-      showSnackbar(error.message || 'Failed to resend invitation', 'error');
-    },
-  });
+  const { revokeInvitation, resendInvitation, isRevoking, isResending } = useInvitationActions();
 
   const pendingInvitations = invitations.filter((inv) => inv.status === 'pending');
 
   if (pendingInvitations.length === 0) {
     return null;
   }
-
-  const formatRole = (role: string) => {
-    return role
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -174,8 +146,8 @@ export default function PendingInvitesList({
                     invitationId: invitation.id,
                   })
                 }
-                disabled={resendInvitation.isPending}
-                startIcon={resendInvitation.isPending ? <CircularProgress size={14} /> : null}
+                disabled={isResending}
+                startIcon={isResending ? <CircularProgress size={14} /> : null}
               >
                 Resend
               </Button>
@@ -188,8 +160,8 @@ export default function PendingInvitesList({
                     invitationId: invitation.id,
                   })
                 }
-                disabled={revokeInvitation.isPending}
-                startIcon={revokeInvitation.isPending ? <CircularProgress size={14} /> : null}
+                disabled={isRevoking}
+                startIcon={isRevoking ? <CircularProgress size={14} /> : null}
                 sx={{ color: 'text.secondary' }}
               >
                 Revoke

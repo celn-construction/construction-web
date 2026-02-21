@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Box, Typography, Avatar, Skeleton, Stack } from '@mui/material';
+import { formatRole } from '@/lib/utils/formatting';
 
 interface Member {
   id: string;
@@ -45,13 +46,6 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
       </Stack>
     );
   }
-
-  const formatRole = (role: string) => {
-    return role
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
 
   const getInitials = (name: string | null, email: string) => {
     if (name) {

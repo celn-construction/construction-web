@@ -2,13 +2,10 @@
 
 import { Search, Moon, Sun, ChevronDown, Bell, Plus, Building2, Check, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Box, Typography, IconButton, Divider, Skeleton, Button } from '@mui/material';
 import UserMenu from './UserMenu';
 import { useThemeStore } from '@/store/useThemeStore';
-import { api } from '@/trpc/react';
-import { useRouter, usePathname, useParams } from 'next/navigation';
-import { useLoading } from '@/components/providers/LoadingProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,74 +15,27 @@ import {
 } from '@/components/ui/dropdown-menu';
 import AddProjectDialog from '@/components/projects/AddProjectDialog';
 import { formatDistanceToNow } from 'date-fns';
+import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
+import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useNavigationLoading } from '@/hooks/useNavigationLoading';
 
 export default function Header() {
   const { theme, toggleTheme } = useThemeStore();
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
-  const { showLoading, hideLoading } = useLoading();
 
-  // Hide loading spinner when pathname changes (after navigation completes)
-  useEffect(() => {
-    hideLoading();
-  }, [pathname, hideLoading]);
-
-  // Project management - derive org from URL params + org list
-  const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
-  const orgSlug = params.orgSlug;
-  const { data: organizations = [] } = api.organization.list.useQuery(undefined, { retry: false });
-  const currentOrg = organizations.find((o) => o.slug === orgSlug);
-  const activeOrganizationId = currentOrg?.id ?? '';
-
-  const { data: projects = [], isLoading: projectsLoading } = api.project.list.useQuery(
-    { organizationId: activeOrganizationId },
-    { retry: false, enabled: !!activeOrganizationId }
+  useNavigationLoading();
+  const { orgSlug, activeOrganizationId } = useOrgFromUrl();
+  const { projects, currentProject, projectsLoading, switchProject } = useProjectSwitcher(
+    activeOrganizationId,
+    orgSlug
   );
-
-  // Get current project from URL slug
-  const currentProject = projects.find(p => p.slug === params?.projectSlug);
-
-  const switchProject = (projectSlug: string) => {
-    // Extract current segment from pathname
-    const pathParts = pathname.split('/');
-    const currentSegment = pathParts.length > 0 && pathParts.includes('projects')
-      ? pathParts[pathParts.length - 1]
-      : 'gantt';
-
-    showLoading('Switching projects');
-    router.push(`/${orgSlug}/projects/${projectSlug}/${currentSegment}`);
-    // hideLoading() removed - useEffect handles dismissal on pathname change
-  };
-
-  // Notification management
-  const utils = api.useUtils();
-  const { data: unreadCount = 0 } = api.notification.unreadCount.useQuery(
-    { organizationId: activeOrganizationId },
-    {
-      retry: false,
-      enabled: !!activeOrganizationId,
-      refetchInterval: 30000,
-    }
+  const { unreadCount, notificationsData, markAsRead, markAllAsRead } = useNotifications(
+    activeOrganizationId,
+    notifMenuOpen
   );
-  const { data: notificationsData } = api.notification.list.useQuery(
-    { organizationId: activeOrganizationId, limit: 20 },
-    { retry: false, enabled: notifMenuOpen && !!activeOrganizationId }
-  );
-  const markAsRead = api.notification.markAsRead.useMutation({
-    onSuccess: () => {
-      void utils.notification.unreadCount.invalidate();
-      void utils.notification.list.invalidate();
-    },
-  });
-  const markAllAsRead = api.notification.markAllAsRead.useMutation({
-    onSuccess: () => {
-      void utils.notification.unreadCount.invalidate();
-      void utils.notification.list.invalidate();
-    },
-  });
 
 
   const container = {
@@ -199,7 +149,7 @@ export default function Header() {
                 </Typography>
               </Box>
               {projects.map((project) => {
-                const isActive = project.slug === params?.projectSlug;
+                const isActive = project.id === currentProject?.id;
                 return (
                   <DropdownMenuItem key={project.id} onClick={() => switchProject(project.slug)}>
                     <Box

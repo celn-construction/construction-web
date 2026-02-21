@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
+import { useMemo, useState, useRef, useEffect, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
 import '@bryntum/gantt/gantt.css';
 import { CircularProgress, Box } from '@mui/material';
@@ -11,6 +11,7 @@ import { BryntumPanelHeader } from './components/BryntumPanelHeader';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
 import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
 import { useTaskPopover } from './hooks/useTaskPopover';
+import { useGanttControls } from './hooks/useGanttControls';
 
 const WRAPPER_STYLE: CSSProperties = {
   display: 'flex',
@@ -37,40 +38,23 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
   const theme = useThemeStore((state) => state.theme);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const ganttRef = useRef<BryntumGantt>(null);
 
   const { selectedTask, popoverPlacement, handleTaskClick, closeTaskPopover, isTaskPopoverOpen } =
     useTaskPopover();
 
   useBryntumThemeAssets(theme);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getGanttInstance = useCallback((): any => {
-    return (ganttRef.current as unknown as { instance: unknown })?.instance;
-  }, []);
-
-  const handleAddTask = useCallback(async () => {
-    const gantt = getGanttInstance();
-    if (!gantt) return;
-    gantt.taskStore.add({
-      name: 'New Task',
-      startDate: new Date(),
-      duration: 1,
-    });
-    await gantt.project.commitAsync();
-  }, [getGanttInstance]);
-
-  const handleZoomIn = useCallback(() => getGanttInstance()?.zoomIn(), [getGanttInstance]);
-  const handleZoomOut = useCallback(() => getGanttInstance()?.zoomOut(), [getGanttInstance]);
-  const handleZoomToFit = useCallback(() => {
-    getGanttInstance()?.zoomToFit({ leftMargin: 50, rightMargin: 50 });
-  }, [getGanttInstance]);
-  const handleShiftPrevious = useCallback(() => getGanttInstance()?.shiftPrevious(), [getGanttInstance]);
-  const handleShiftNext = useCallback(() => getGanttInstance()?.shiftNext(), [getGanttInstance]);
-  const handlePresetChange = useCallback((preset: string) => {
-    const gantt = getGanttInstance();
-    if (gantt) gantt.viewPreset = preset;
-  }, [getGanttInstance]);
+  const {
+    ganttRef,
+    getGanttInstance,
+    handleAddTask,
+    handleZoomIn,
+    handleZoomOut,
+    handleZoomToFit,
+    handleShiftPrevious,
+    handleShiftNext,
+    handlePresetChange,
+  } = useGanttControls();
 
   // Invalidate tRPC cache when Bryntum syncs so sibling components (e.g. file tree) refetch
   const utils = api.useUtils();
