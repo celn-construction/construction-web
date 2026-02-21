@@ -23,7 +23,7 @@ const WRAPPER_STYLE: CSSProperties = {
 
 const GANTT_CONTENT_STYLE: CSSProperties = {
   flex: 1,
-  overflow: 'hidden',
+  overflow: 'clip',
 };
 
 const STALE_THRESHOLD_MS = 60_000; // 60 seconds
