@@ -9,21 +9,23 @@ import { canInviteMembers } from '@/lib/permissions';
 import InviteDialog from '@/components/team/InviteDialog';
 import MembersList from '@/components/team/MembersList';
 import PendingInvitesList from '@/components/team/PendingInvitesList';
+import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { useOrgContext } from '@/components/providers/OrgProvider';
 
-export default function TeamPage() {
+export default function ProjectTeamPage() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'members' | 'pending'>('members');
 
-  const { orgId: organizationId, orgName } = useOrgContext();
+  const { projectId, projectName, organizationId } = useProjectContext();
+  const { orgId } = useOrgContext();
 
-  const { data: members = [], isLoading: membersLoading } = api.member.list.useQuery(
-    { organizationId },
-    { enabled: !!organizationId }
+  const { data: members = [], isLoading: membersLoading } = api.projectMember.list.useQuery(
+    { projectId },
+    { enabled: !!projectId }
   );
 
   const { data: invitations = [], isLoading: invitationsLoading } =
-    api.invitation.list.useQuery({ organizationId }, { enabled: !!organizationId });
+    api.invitation.list.useQuery({ projectId }, { enabled: !!projectId });
 
   const { data: currentUser } = api.user.me.useQuery();
 
@@ -60,7 +62,7 @@ export default function TeamPage() {
             Team
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.disabled', mt: 0.5 }}>
-            {orgName}
+            {projectName}
           </Typography>
         </Box>
         {canManage && (
@@ -136,7 +138,7 @@ export default function TeamPage() {
               <PendingInvitesList
                 invitations={invitations}
                 isLoading={invitationsLoading}
-                organizationId={organizationId}
+                projectId={projectId}
                 canManage={canManage}
               />
             ) : (
@@ -160,6 +162,7 @@ export default function TeamPage() {
           open={inviteDialogOpen}
           onOpenChange={setInviteDialogOpen}
           organizationId={organizationId}
+          projectId={projectId}
         />
       )}
     </Box>

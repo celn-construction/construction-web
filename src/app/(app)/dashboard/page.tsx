@@ -18,16 +18,14 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
-  const org = await db.organization.findUnique({
-    where: { id: orgId },
-    select: { slug: true },
-  });
+  const [org, projectId] = await Promise.all([
+    db.organization.findUnique({ where: { id: orgId }, select: { slug: true } }),
+    getActiveProjectId(db, session.user.id, orgId),
+  ]);
 
   if (!org) {
     redirect("/onboarding");
   }
-
-  const projectId = await getActiveProjectId(db, session.user.id, orgId);
 
   if (projectId) {
     const project = await db.project.findUnique({

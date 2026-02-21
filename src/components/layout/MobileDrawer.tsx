@@ -3,9 +3,9 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { X, Home, Users, GanttChart, FolderOpen } from 'lucide-react';
+import { X, Users, GanttChart, FolderOpen, FileSearch } from 'lucide-react';
 import { Drawer, Box, IconButton, Typography, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
-import { orgNavItems, projectNavItems, getOrgNavHref, getProjectNavHref } from './navItems';
+import { projectNavItems, getProjectNavHref } from './navItems';
 import { LogoIcon } from '@/components/ui/Logo';
 import OrgSwitcher from './OrgSwitcher';
 
@@ -21,11 +21,11 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
-      case 'Home': return Home;
       case 'GanttChart': return GanttChart;
       case 'FolderOpen': return FolderOpen;
       case 'Users': return Users;
-      default: return Home;
+      case 'FileSearch': return FileSearch;
+      default: return GanttChart;
     }
   };
 
@@ -98,81 +98,6 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       </Box>
 
       <Box component="nav" sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 2 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <Typography
-            sx={{
-              px: 1.5,
-              mb: 0.5,
-              fontSize: '0.625rem',
-              letterSpacing: '0.1em',
-              color: 'text.disabled',
-              fontWeight: 500,
-              textTransform: 'uppercase',
-            }}
-          >
-            Organization
-          </Typography>
-          <List sx={{ p: 0 }}>
-            {orgNavItems.map((item) => {
-              const Icon = getIcon(item.icon);
-              const href = orgSlug ? getOrgNavHref(item.segment, orgSlug) : '#';
-              const isActive = pathname === href || (item.segment === '' && pathname === `/${orgSlug}`);
-              const isDisabled = !orgSlug;
-
-              return (
-                <ListItemButton
-                  key={item.id}
-                  component={isDisabled ? 'div' : Link}
-                  href={href}
-                  disabled={isDisabled}
-                  sx={{
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: 2,
-                    transition: 'all 0.15s',
-                    bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
-                    color: isActive ? 'text.primary' : 'text.secondary',
-                    fontWeight: isActive ? 500 : 400,
-                    opacity: isDisabled ? 0.5 : 1,
-                    cursor: isDisabled ? 'default' : 'pointer',
-                    '&:hover': {
-                      bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg'),
-                      color: isDisabled ? 'text.secondary' : 'text.primary',
-                    },
-                  }}
-                >
-                  {isActive && (
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        left: 0,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: 4,
-                        height: 24,
-                        borderRadius: '0 999px 999px 0',
-                        bgcolor: 'sidebar.indicator',
-                      }}
-                      aria-hidden="true"
-                    />
-                  )}
-                  <ListItemIcon sx={{ minWidth: 18, color: 'inherit' }}>
-                    <Icon style={{ width: 18, height: 18 }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{ fontSize: '0.875rem' }}
-                  />
-                </ListItemButton>
-              );
-            })}
-          </List>
-        </Box>
-
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           <Typography
             sx={{

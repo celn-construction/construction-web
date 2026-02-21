@@ -95,11 +95,13 @@ export async function sendInvitationEmail(
   email: string,
   orgName: string,
   inviterName: string,
-  token: string
+  token: string,
+  projectName?: string,
 ): Promise<{ success: boolean; error?: string }> {
   const inviteUrl = `${env.APP_URL}/invite/${token}`;
   const safeInviterName = escapeHtml(inviterName);
   const safeOrgName = escapeHtml(orgName);
+  const safeProjectName = projectName ? escapeHtml(projectName) : null;
 
   // If no Resend API key, surface error in production, log to console in development
   if (!resend) {
@@ -111,6 +113,7 @@ export async function sendInvitationEmail(
     console.log("========================================");
     console.log(`To: ${email}`);
     console.log(`Organization: ${orgName}`);
+    if (projectName) console.log(`Project: ${projectName}`);
     console.log(`Invited by: ${inviterName}`);
     console.log(`Invite URL: ${inviteUrl}`);
     console.log("========================================");
@@ -121,7 +124,9 @@ export async function sendInvitationEmail(
     const { error } = await resend.emails.send({
       from: "BuildTrack Pro <noreply@rentnotify.com>",
       to: email,
-      subject: `${inviterName} invited you to join ${orgName}`,
+      subject: safeProjectName
+        ? `${inviterName} invited you to ${projectName} on ${orgName}`
+        : `${inviterName} invited you to join ${orgName}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -141,7 +146,7 @@ export async function sendInvitationEmail(
             <h1 style="color: #1f2937; font-size: 24px; font-weight: 600; margin: 0 0 16px 0; text-align: center;">You're invited!</h1>
 
             <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
-              <strong>${safeInviterName}</strong> has invited you to join <strong>${safeOrgName}</strong> on BuildTrack Pro.
+              <strong>${safeInviterName}</strong> has invited you to join ${safeProjectName ? `<strong>${safeProjectName}</strong> at ` : ""}<strong>${safeOrgName}</strong> on BuildTrack Pro.
             </p>
 
             <div style="text-align: center; margin-bottom: 24px;">

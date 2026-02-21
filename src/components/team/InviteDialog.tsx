@@ -26,12 +26,14 @@ interface InviteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
+  projectId: string;
 }
 
 export default function InviteDialog({
   open,
   onOpenChange,
   organizationId,
+  projectId,
 }: InviteDialogProps) {
   const utils = api.useUtils();
   const { showSnackbar } = useSnackbar();
@@ -46,6 +48,7 @@ export default function InviteDialog({
     resolver: zodResolver(createInvitationSchema),
     defaultValues: {
       organizationId,
+      projectId,
       email: '',
       role: 'member',
     },
@@ -87,7 +90,7 @@ export default function InviteDialog({
           <DialogTitle sx={{ p: 0 }}>Invite Team Member</DialogTitle>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Send an invitation to join your organization
+          Send an invitation to join your project
         </Typography>
 
         <DialogContent sx={{ p: 0 }}>

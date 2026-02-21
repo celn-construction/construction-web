@@ -17,14 +17,14 @@ interface Invitation {
 interface PendingInvitesListProps {
   invitations: Invitation[];
   isLoading: boolean;
-  organizationId: string;
+  projectId: string;
   canManage: boolean;
 }
 
 export default function PendingInvitesList({
   invitations,
   isLoading,
-  organizationId,
+  projectId,
   canManage,
 }: PendingInvitesListProps) {
   const utils = api.useUtils();
@@ -170,7 +170,7 @@ export default function PendingInvitesList({
                 size="small"
                 onClick={() =>
                   resendInvitation.mutate({
-                    organizationId,
+                    projectId,
                     invitationId: invitation.id,
                   })
                 }
@@ -184,7 +184,7 @@ export default function PendingInvitesList({
                 size="small"
                 onClick={() =>
                   revokeInvitation.mutate({
-                    organizationId,
+                    projectId,
                     invitationId: invitation.id,
                   })
                 }

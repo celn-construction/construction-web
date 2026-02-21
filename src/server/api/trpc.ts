@@ -133,6 +133,100 @@ export const protectedProcedure = t.procedure
   });
 
 /**
+ * Project procedure
+ *
+ * Requires authentication and validates project membership.
+ * Provides ctx.projectMember, ctx.project, and ctx.organization.
+ */
+export const projectProcedure = protectedProcedure
+  .input(z.object({ projectId: z.string() }))
+  .use(async ({ ctx, input, next }) => {
+    let projectMember = await ctx.db.projectMember.findUnique({
+      where: {
+        userId_projectId: {
+          userId: ctx.session.user.id,
+          projectId: input.projectId,
+        },
+      },
+      include: {
+        project: {
+          include: { organization: true },
+        },
+      },
+    });
+
+    // Auto-create ProjectMember for privileged org members who don't have one yet
+    // (handles projects created before the ProjectMember table existed)
+    if (!projectMember) {
+      const project = await ctx.db.project.findUnique({
+        where: { id: input.projectId },
+        include: { organization: true },
+      });
+
+      if (!project) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
+      }
+
+      const orgMembership = await ctx.db.membership.findUnique({
+        where: {
+          userId_organizationId: {
+            userId: ctx.session.user.id,
+            organizationId: project.organizationId,
+          },
+        },
+      });
+
+      if (!orgMembership) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not a member of this project",
+        });
+      }
+
+      // Only auto-create for org roles that imply project access.
+      // Viewers and basic members must be explicitly invited to projects.
+      const orgRoleToProjectRole: Record<string, string> = {
+        owner: "owner",
+        admin: "admin",
+        project_manager: "member",
+      };
+
+      const role = orgRoleToProjectRole[orgMembership.role];
+      if (!role) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not a member of this project",
+        });
+      }
+
+      projectMember = await ctx.db.projectMember.create({
+        data: {
+          userId: ctx.session.user.id,
+          projectId: input.projectId,
+          role,
+        },
+        include: {
+          project: {
+            include: { organization: true },
+          },
+        },
+      });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        projectMember,
+        project: projectMember.project,
+        organization: projectMember.project.organization,
+      },
+    });
+  });
+
+/**
  * Organization procedure
  *
  * Requires authentication and validates organization membership.
