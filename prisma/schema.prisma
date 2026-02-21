@@ -139,6 +139,8 @@ model Document {
     blobUrl      String
     mimeType     String
     size         Int
+    tags         String[] @default([])
+    description  String
     taskId       String
     folderId     String
     projectId    String

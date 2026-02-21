@@ -15,6 +15,7 @@ export const orgNavItems: NavItem[] = [
 export const projectNavItems: NavItem[] = [
   { id: 'gantt', label: 'Gantt', icon: 'GanttChart', segment: 'gantt' },
   { id: 'files', label: 'Files', icon: 'FolderOpen', segment: 'files' },
+  { id: 'document-explorer', label: 'Document Explorer', icon: 'FileSearch', segment: 'document-explorer' },
 ];
 
 // Helper to build org-level URLs

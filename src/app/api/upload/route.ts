@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { db } from "@/server/db";
 import { auth } from "@/lib/auth";
+import { analyzeDocument } from "@/server/services/tagging";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -112,16 +113,22 @@ export async function POST(req: NextRequest) {
       file,
       {
         access: "public",
+        addRandomSuffix: true,
       }
     );
 
-    // Create document record
+    // Analyze file for tags and description
+    const analysis = await analyzeDocument(blob.url, file.type, file.name);
+
+    // Create document record with tags and description
     const document = await db.document.create({
       data: {
         name: file.name,
         blobUrl: blob.url,
         mimeType: file.type,
         size: file.size,
+        tags: analysis.tags,
+        description: analysis.description,
         taskId,
         folderId,
         projectId,
