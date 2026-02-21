@@ -53,3 +53,6 @@ generated/
 
 # backup files
 *.backup
+
+# serena mcp (local agent cache and memories)
+.serena/

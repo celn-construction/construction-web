@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/server/db";
 import { ProjectProvider } from "@/components/providers/ProjectProvider";
+import ProjectShell from "@/components/layout/ProjectShell";
 
 export default async function ProjectLayout({
   children,
@@ -62,7 +63,9 @@ export default async function ProjectLayout({
         organizationId: project.organizationId,
       }}
     >
-      {children}
+      <ProjectShell projectId={project.id} projectName={project.name}>
+        {children}
+      </ProjectShell>
     </ProjectProvider>
   );
 }
