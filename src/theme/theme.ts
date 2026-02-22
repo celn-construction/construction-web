@@ -36,7 +36,7 @@ export const lightTheme: Theme = createTheme({
       dark: '#003010',
     },
     background: {
-      default: '#F2F3F0', // $--background
+      default: '#F0F0F3', // $--background
       paper: '#FFFFFF',   // $--card
     },
     text: {
