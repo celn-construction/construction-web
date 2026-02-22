@@ -65,7 +65,7 @@ export default function Header() {
           display: { xs: 'none', md: 'flex' },
           alignItems: 'center',
           gap: 1,
-          bgcolor: '#2B2D42',
+          bgcolor: 'accent.dark',
           borderRadius: 999,
           px: 2,
           py: 1,
@@ -82,9 +82,9 @@ export default function Header() {
       {/* Undo */}
       <IconButton
         aria-label="Undo"
-        sx={{ width: 32, height: 32, borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}
+        sx={{ width: 32, height: 32, borderRadius: 1, color: 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}
       >
-        <Undo2 style={{ width: 18, height: 18, color: '#8D99AE' }} />
+        <Undo2 style={{ width: 18, height: 18, color: 'inherit' }} />
       </IconButton>
 
       {/* Notifications Bell */}
@@ -92,9 +92,9 @@ export default function Header() {
         <DropdownMenuTrigger asChild>
           <IconButton
             aria-label="Notifications"
-            sx={{ width: 32, height: 32, borderRadius: 1, position: 'relative', '&:hover': { bgcolor: '#F0F0F3' } }}
+            sx={{ width: 32, height: 32, borderRadius: 1, position: 'relative', color: 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}
           >
-            <Bell style={{ width: 18, height: 18, color: '#8D99AE' }} />
+            <Bell style={{ width: 18, height: 18, color: 'inherit' }} />
             {unreadCount > 0 && (
               <Box
                 sx={{
@@ -182,12 +182,12 @@ export default function Header() {
       <IconButton
         aria-label="Toggle theme"
         onClick={toggleTheme}
-        sx={{ width: 32, height: 32, borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}
+        sx={{ width: 32, height: 32, borderRadius: 1, color: 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}
       >
         {theme === 'dark' ? (
-          <Sun style={{ width: 18, height: 18, color: '#8D99AE' }} />
+          <Sun style={{ width: 18, height: 18, color: 'inherit' }} />
         ) : (
-          <Moon style={{ width: 18, height: 18, color: '#8D99AE' }} />
+          <Moon style={{ width: 18, height: 18, color: 'inherit' }} />
         )}
       </IconButton>
     </Box>

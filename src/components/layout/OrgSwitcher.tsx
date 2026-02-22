@@ -21,12 +21,12 @@ function OrgAvatar({ name, size = 34 }: { name: string; size?: number }) {
         width: size,
         height: size,
         borderRadius: '9px',
-        background: 'linear-gradient(180deg, #2B2D42 0%, #CC6A00 100%)',
+        background: (theme) => `linear-gradient(180deg, ${theme.palette.accent.dark} 0%, ${theme.palette.accent.gradientEnd} 100%)`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        color: '#ffffff',
+        color: 'common.white',
         fontSize: '0.6875rem',
         fontWeight: 600,
       }}
@@ -103,7 +103,7 @@ export default function OrgSwitcher() {
         transition={{ duration: 0.15 }}
         style={{ flexShrink: 0 }}
       >
-        <ChevronsUpDown style={{ width: 14, height: 14, color: '#8D99AE' }} />
+        <ChevronsUpDown style={{ width: 14, height: 14, color: 'inherit' }} />
       </motion.div>
     </>
   );
@@ -181,7 +181,7 @@ export default function OrgSwitcher() {
                     fontWeight: 600,
                     flexShrink: 0,
                     background: isActive
-                      ? 'linear-gradient(180deg, #2B2D42 0%, #CC6A00 100%)'
+                      ? (theme) => `linear-gradient(180deg, ${theme.palette.accent.dark} 0%, ${theme.palette.accent.gradientEnd} 100%)`
                       : undefined,
                     bgcolor: isActive ? undefined : 'action.hover',
                     color: isActive ? 'white' : 'text.secondary',
@@ -197,7 +197,7 @@ export default function OrgSwitcher() {
                     {org.role}
                   </Typography>
                 </Box>
-                {isActive && <Check style={{ width: 16, height: 16, color: '#2B2D42', flexShrink: 0 }} />}
+                {isActive && <Check style={{ width: 16, height: 16, color: 'inherit', flexShrink: 0 }} />}
               </Box>
             </DropdownMenuItem>
           );

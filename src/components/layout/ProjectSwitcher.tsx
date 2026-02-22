@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useParams, usePathname } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { ChevronsUpDown, Search, Check, Plus } from 'lucide-react';
 import { Buildings } from '@phosphor-icons/react';
 import { Box, Typography } from '@mui/material';
@@ -10,18 +10,19 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { api } from '@/trpc/react';
+import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
+import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 
 const STATUS_COLORS: Record<string, string> = {
-  active: '#22C55E',
-  in_progress: '#F59E0B',
-  on_hold: '#8D99AE',
-  completed: '#3B82F6',
-  archived: '#8D99AE',
+  active: 'status.active',
+  in_progress: 'status.inProgress',
+  on_hold: 'status.onHold',
+  completed: 'status.completed',
+  archived: 'status.archived',
 };
 
 function getStatusColor(status: string | null | undefined): string {
-  return status ? (STATUS_COLORS[status] ?? '#8D99AE') : '#8D99AE';
+  return status ? (STATUS_COLORS[status] ?? 'status.onHold') : 'status.onHold';
 }
 
 function formatStatus(status: string | null | undefined): string {
@@ -33,29 +34,18 @@ export default function ProjectSwitcher() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const router = useRouter();
-  const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
-  const pathname = usePathname();
-  const { orgSlug, projectSlug } = params;
+  const params = useParams<{ projectSlug?: string }>();
+  const { projectSlug } = params;
 
-  const { data: organizations = [] } = api.organization.list.useQuery(undefined, { retry: false });
-  const currentOrg = organizations.find((o) => o.slug === orgSlug);
-
-  const { data: projects = [] } = api.project.list.useQuery(
-    { organizationId: currentOrg?.id ?? '' },
-    { enabled: !!currentOrg?.id, retry: false }
-  );
-
-  const currentProject = projects.find((p) => p.slug === projectSlug);
+  const { orgSlug, activeOrganizationId } = useOrgFromUrl();
+  const { projects, currentProject, switchProject } = useProjectSwitcher(activeOrganizationId, orgSlug);
 
   const filtered = projects.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleSwitch = (slug: string) => {
-    const section = projectSlug
-      ? (pathname.split(`/projects/${projectSlug}/`)[1]?.split('/')[0] ?? 'gantt')
-      : 'gantt';
-    router.push(`/${orgSlug}/projects/${slug}/${section}`);
+    switchProject(slug);
     setOpen(false);
     setSearch('');
   };
@@ -98,7 +88,7 @@ export default function ProjectSwitcher() {
                 width: 32,
                 height: 32,
                 borderRadius: '7px',
-                bgcolor: '#2B2D42',
+                bgcolor: 'accent.dark',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -129,7 +119,7 @@ export default function ProjectSwitcher() {
               )}
             </Box>
 
-            <ChevronsUpDown style={{ width: 14, height: 14, flexShrink: 0, color: '#8D99AE' }} />
+            <ChevronsUpDown style={{ width: 14, height: 14, flexShrink: 0, color: 'inherit' }} />
           </Box>
         </DropdownMenuTrigger>
       </Box>
@@ -165,9 +155,10 @@ export default function ProjectSwitcher() {
               py: 1,
               bgcolor: 'secondary.main',
               borderRadius: 2,
+              color: 'text.secondary',
             }}
           >
-            <Search style={{ width: 14, height: 14, color: '#8D99AE', flexShrink: 0 }} />
+            <Search style={{ width: 14, height: 14, color: 'inherit', flexShrink: 0 }} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}

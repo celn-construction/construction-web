@@ -154,6 +154,7 @@ Migrations live in `prisma/migrations/` and run automatically on Vercel builds.
 | Drag & Drop | dnd-kit |
 | File Storage | Vercel Blob |
 | Email | Resend |
+| Icons | Lucide React, Phosphor Icons |
 | Animation | Framer Motion |
 | Unit Tests | Vitest + Testing Library |
 | E2E Tests | Playwright |

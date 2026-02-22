@@ -87,6 +87,17 @@ declare module '@mui/material/styles' {
       hoverBg: string;
       activeItemBg: string;
     };
+    accent: {
+      dark: string;
+      gradientEnd: string;
+    };
+    status: {
+      active: string;
+      inProgress: string;
+      onHold: string;
+      completed: string;
+      archived: string;
+    };
     warm: {
       main: string;
       dark: string;
@@ -113,6 +124,17 @@ declare module '@mui/material/styles' {
       activeBg?: string;
       hoverBg?: string;
       activeItemBg?: string;
+    };
+    accent?: {
+      dark?: string;
+      gradientEnd?: string;
+    };
+    status?: {
+      active?: string;
+      inProgress?: string;
+      onHold?: string;
+      completed?: string;
+      archived?: string;
     };
     warm?: {
       main?: string;
@@ -142,6 +164,17 @@ lightTheme.palette.sidebar = {
   activeBg: '#FFFFFF',     // $--card
   hoverBg: '#F0F0F3',      // $--muted
   activeItemBg: '#FFFFFF', // explicit white for active nav item
+};
+lightTheme.palette.accent = {
+  dark: '#2B2D42',       // dark navy for search bar, project icon, avatar gradient
+  gradientEnd: '#CC6A00', // avatar gradient end
+};
+lightTheme.palette.status = {
+  active: '#22C55E',
+  inProgress: '#F59E0B',
+  onHold: '#8D99AE',
+  completed: '#3B82F6',
+  archived: '#8D99AE',
 };
 lightTheme.palette.warm = {
   main: '#FF8400', // $--primary
@@ -239,6 +272,17 @@ darkTheme.palette.sidebar = {
   activeBg: 'rgba(255, 255, 255, 0.10)',
   hoverBg: 'rgba(255, 255, 255, 0.06)',
   activeItemBg: 'rgba(255, 255, 255, 0.10)',
+};
+darkTheme.palette.accent = {
+  dark: 'rgba(255, 255, 255, 0.10)', // subtle bg in dark mode
+  gradientEnd: '#CC6A00',            // same brand color
+};
+darkTheme.palette.status = {
+  active: '#22C55E',
+  inProgress: '#F59E0B',
+  onHold: '#8D99AE',
+  completed: '#3B82F6',
+  archived: '#8D99AE',
 };
 darkTheme.palette.warm = {
   main: '#FF8400', // $--primary
