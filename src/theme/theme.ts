@@ -11,9 +11,9 @@ export const lightTheme: Theme = createTheme({
       contrastText: '#111111', // $--primary-foreground
     },
     secondary: {
-      main: '#E7E8E5', // $--secondary
-      light: '#F0F0EE',
-      dark: '#CBCCC9',
+      main: '#F0F0F3', // $--secondary (subtle bg)
+      light: '#F8F8FB',
+      dark: '#D9DBE1',
     },
     error: {
       main: '#D93C15', // $--destructive
@@ -40,15 +40,15 @@ export const lightTheme: Theme = createTheme({
       paper: '#FFFFFF',   // $--card
     },
     text: {
-      primary: '#111111',  // $--foreground
-      secondary: '#666666', // $--muted-foreground
-      disabled: '#9A9A9A',
+      primary: '#1A1A2E',  // $--foreground
+      secondary: '#8D99AE', // $--muted-foreground
+      disabled: '#B0B8C4',
     },
-    divider: '#CBCCC9', // $--border
+    divider: '#D9DBE1', // $--border
     action: {
-      hover: '#F2F3F0',              // $--muted
-      selected: 'rgba(255, 132, 0, 0.08)',
-      disabled: '#CBCCC9',
+      hover: '#F0F0F3',              // $--muted
+      selected: 'rgba(43, 45, 66, 0.08)',
+      disabled: '#D9DBE1',
     },
   },
   typography: {
@@ -137,10 +137,10 @@ lightTheme.palette.input = {
 };
 lightTheme.palette.sidebar = {
   background: '#FFFFFF',   // $--card (sidebar uses card bg)
-  border: '#CBCCC9',       // $--sidebar-border
-  indicator: '#FF8400',    // $--primary (active bar)
+  border: '#D9DBE1',       // $--sidebar-border
+  indicator: '#2B2D42',    // active bar (dark navy from pen)
   activeBg: '#FFFFFF',     // $--card
-  hoverBg: '#F2F3F0',      // $--muted
+  hoverBg: '#F0F0F3',      // $--muted
   activeItemBg: '#FFFFFF', // explicit white for active nav item
 };
 lightTheme.palette.warm = {
@@ -235,10 +235,10 @@ darkTheme.palette.input = {
 darkTheme.palette.sidebar = {
   background: '#1A1A1A',                   // $--card (dark)
   border: 'rgba(255, 255, 255, 0.10)',     // $--sidebar-border (dark)
-  indicator: '#FF8400',                    // $--primary (same orange)
-  activeBg: 'rgba(255, 132, 0, 0.10)',
+  indicator: '#E2E8F0',                    // active bar (light on dark)
+  activeBg: 'rgba(255, 255, 255, 0.06)',
   hoverBg: 'rgba(255, 255, 255, 0.04)',
-  activeItemBg: '#1A1A1A',
+  activeItemBg: 'rgba(255, 255, 255, 0.06)',
 };
 darkTheme.palette.warm = {
   main: '#FF8400', // $--primary

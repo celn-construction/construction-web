@@ -21,7 +21,7 @@ function OrgAvatar({ name, size = 34 }: { name: string; size?: number }) {
         width: size,
         height: size,
         borderRadius: '9px',
-        background: 'linear-gradient(180deg, #FF8400 0%, #CC6A00 100%)',
+        background: 'linear-gradient(180deg, #2B2D42 0%, #CC6A00 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -181,7 +181,7 @@ export default function OrgSwitcher() {
                     fontWeight: 600,
                     flexShrink: 0,
                     background: isActive
-                      ? 'linear-gradient(180deg, #FF8400 0%, #CC6A00 100%)'
+                      ? 'linear-gradient(180deg, #2B2D42 0%, #CC6A00 100%)'
                       : undefined,
                     bgcolor: isActive ? undefined : 'action.hover',
                     color: isActive ? 'white' : 'text.secondary',
@@ -197,7 +197,7 @@ export default function OrgSwitcher() {
                     {org.role}
                   </Typography>
                 </Box>
-                {isActive && <Check style={{ width: 16, height: 16, color: '#FF8400', flexShrink: 0 }} />}
+                {isActive && <Check style={{ width: 16, height: 16, color: '#2B2D42', flexShrink: 0 }} />}
               </Box>
             </DropdownMenuItem>
           );
