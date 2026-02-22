@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { X, BarChart2, Folder, Users, FileSearch, ChevronsUpDown, type LucideIcon } from 'lucide-react';
+import { X, ChevronsUpDown } from 'lucide-react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, Users, type Icon } from '@phosphor-icons/react';
 import { Drawer, Box, IconButton, Typography, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import { projectNavItems, getProjectNavHref } from './navItems';
 import OrgSwitcher from './OrgSwitcher';
@@ -17,10 +18,10 @@ function getInitials(name: string | null | undefined): string {
   return (parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)).toUpperCase();
 }
 
-const iconMap: Record<string, LucideIcon> = {
-  BarChart2,
-  Folder,
-  FileSearch,
+const iconMap: Record<string, Icon> = {
+  ChartBar,
+  FolderSimple,
+  FileMagnifyingGlass,
   Users,
 };
 
@@ -90,7 +91,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       >
         <List sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {projectNavItems.map((item) => {
-            const Icon = iconMap[item.icon] ?? BarChart2;
+            const Icon = iconMap[item.icon] ?? ChartBar;
             const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
             const isActive = !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
             const isDisabled = !projectSlug;
