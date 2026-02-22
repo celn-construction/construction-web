@@ -10,6 +10,17 @@ export function formatRole(role: string): string {
 }
 
 /**
+ * Extracts initials from a name string.
+ * e.g. "John Doe" → "JD", "Alice" → "A", null → "?"
+ */
+export function getInitials(name: string | null | undefined): string {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0]!.charAt(0).toUpperCase();
+  return (parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)).toUpperCase();
+}
+
+/**
  * Formats a byte count into a human-readable file size string.
  * e.g. 1536 → "1.5 KB"
  */

@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Building2, Check } from 'lucide-react';
+import { ChevronsUpDown, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams, usePathname } from 'next/navigation';
@@ -13,6 +13,28 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useLoading } from '@/components/providers/LoadingProvider';
+
+function OrgAvatar({ name, size = 34 }: { name: string; size?: number }) {
+  return (
+    <Box
+      sx={{
+        width: size,
+        height: size,
+        borderRadius: '9px',
+        background: (theme) => `linear-gradient(180deg, ${theme.palette.accent.dark} 0%, ${theme.palette.accent.gradientEnd} 100%)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        color: 'common.white',
+        fontSize: '0.6875rem',
+        fontWeight: 600,
+      }}
+    >
+      {name.charAt(0).toUpperCase()}
+    </Box>
+  );
+}
 
 export default function OrgSwitcher() {
   const [orgMenuOpen, setOrgMenuOpen] = useState(false);
@@ -41,146 +63,146 @@ export default function OrgSwitcher() {
 
   const isLoading = orgsLoading;
 
-  // Single org: static text (no dropdown)
-  if (organizations.length <= 1) {
-    return (
-      <Box sx={{ px: 2, py: 1.5 }}>
+  const triggerContent = (
+    <>
+      {isLoading ? (
+        <Skeleton variant="rectangular" width={34} height={34} sx={{ borderRadius: '9px', flexShrink: 0 }} />
+      ) : (
+        <OrgAvatar name={currentOrg?.name ?? 'O'} />
+      )}
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, flex: 1, gap: '2px' }}>
         {isLoading ? (
-          <Skeleton width={120} height={20} />
+          <>
+            <Skeleton width={100} height={14} />
+            <Skeleton width={60} height={10} />
+          </>
         ) : (
-          <Typography
-            sx={{
-              fontSize: '0.9375rem',
-              fontWeight: 600,
-              color: 'text.primary',
-            }}
-          >
-            {currentOrg?.name ?? 'No Organization'}
-          </Typography>
+          <>
+            <Typography
+              sx={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: 'text.primary',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: 130,
+                lineHeight: 1.2,
+              }}
+            >
+              {currentOrg?.name ?? 'No Organization'}
+            </Typography>
+            <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
+              Pro Plan
+            </Typography>
+          </>
         )}
+      </Box>
+      <motion.div
+        animate={{ rotate: orgMenuOpen ? 180 : 0 }}
+        transition={{ duration: 0.15 }}
+        style={{ flexShrink: 0 }}
+      >
+        <ChevronsUpDown style={{ width: 14, height: 14, color: 'inherit' }} />
+      </motion.div>
+    </>
+  );
+
+  // Single org — show as non-interactive row (same layout, no dropdown)
+  if (organizations.length <= 1 && !isLoading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.25,
+          px: 1.75,
+          py: 1.5,
+          width: '100%',
+          color: 'text.disabled',
+        }}
+      >
+        {triggerContent}
       </Box>
     );
   }
 
-  // Multiple orgs: dropdown switcher
+  // Multiple orgs — dropdown switcher
   return (
-    <Box sx={{ px: 1, pb: 1 }}>
-      <DropdownMenu open={orgMenuOpen} onOpenChange={setOrgMenuOpen}>
-        <DropdownMenuTrigger asChild>
-          <Box
-            component="button"
-            disabled={isLoading}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              px: 1.5,
-              py: 1,
-              width: '100%',
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              '&:hover': {
-                bgcolor: 'action.hover',
-                borderColor: 'divider',
-              },
-              '&:focus-visible': {
-                outline: 'none',
-                ring: 2,
-                ringColor: 'var(--focus-ring)',
-              },
-              '&:disabled': {
-                cursor: 'not-allowed',
-                opacity: 0.5,
-              },
-              transition: 'all 0.15s',
-            }}
-          >
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: 1.5,
-                bgcolor: 'warm.main',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Building2 style={{ width: 16, height: 16, color: 'white' }} />
-            </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, flex: 1 }}>
-              <Typography sx={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.disabled', lineHeight: 1 }}>
-                Organization
-              </Typography>
-              {isLoading ? (
-                <Skeleton width={96} height={16} />
-              ) : (
-                <Typography sx={{ color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160, lineHeight: 1.2 }}>
-                  {currentOrg?.name ?? 'Select Organization'}
-                </Typography>
-              )}
-            </Box>
-            <motion.div animate={{ rotate: orgMenuOpen ? 180 : 0 }} transition={{ duration: 0.15 }}>
-              <ChevronDown style={{ width: 16, height: 16, color: 'var(--text-muted)' }} />
-            </motion.div>
-          </Box>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={8}>
-          <Box sx={{ px: 1, py: 0.75, mb: 0.5 }}>
-            <Typography sx={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.disabled', fontWeight: 500 }}>
-              Switch Organization
-            </Typography>
-          </Box>
-          {organizations.map((org) => {
-            const isActive = org.slug === currentOrgSlug;
-            return (
-              <DropdownMenuItem key={org.id} onClick={() => handleSwitch(org.slug)}>
+    <DropdownMenu open={orgMenuOpen} onOpenChange={setOrgMenuOpen}>
+      <DropdownMenuTrigger asChild>
+        <Box
+          component="button"
+          disabled={isLoading}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            px: 1.75,
+            py: 1.5,
+            width: '100%',
+            bgcolor: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'text.disabled',
+            transition: 'background-color 0.15s',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+            '&:disabled': {
+              cursor: 'not-allowed',
+              opacity: 0.5,
+            },
+          }}
+        >
+          {triggerContent}
+        </Box>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={8}>
+        <Box sx={{ px: 1, py: 0.75, mb: 0.5 }}>
+          <Typography sx={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.disabled', fontWeight: 500 }}>
+            Switch Organization
+          </Typography>
+        </Box>
+        {organizations.map((org) => {
+          const isActive = org.slug === currentOrgSlug;
+          return (
+            <DropdownMenuItem key={org.id} onClick={() => handleSwitch(org.slug)}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
                 <Box
                   sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 1.5,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1.5,
-                    width: '100%',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    flexShrink: 0,
+                    background: isActive
+                      ? (theme) => `linear-gradient(180deg, ${theme.palette.accent.dark} 0%, ${theme.palette.accent.gradientEnd} 100%)`
+                      : undefined,
+                    bgcolor: isActive ? undefined : 'action.hover',
+                    color: isActive ? 'white' : 'text.secondary',
                   }}
                 >
-                  <Box
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 1.5,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      flexShrink: 0,
-                      bgcolor: isActive ? 'warm.main' : 'action.hover',
-                      color: isActive ? 'white' : 'text.secondary',
-                    }}
-                  >
-                    {org.name.charAt(0).toUpperCase()}
-                  </Box>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                    <Typography sx={{ fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: isActive ? 500 : 400 }}>
-                      {org.name}
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', textTransform: 'capitalize' }}>
-                      {org.role}
-                    </Typography>
-                  </Box>
-                  {isActive && <Check style={{ width: 16, height: 16, color: 'var(--accent-warm)', flexShrink: 0 }} />}
+                  {org.name.charAt(0).toUpperCase()}
                 </Box>
-              </DropdownMenuItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                  <Typography sx={{ fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: isActive ? 500 : 400 }}>
+                    {org.name}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', textTransform: 'capitalize' }}>
+                    {org.role}
+                  </Typography>
+                </Box>
+                {isActive && <Check style={{ width: 16, height: 16, color: 'inherit', flexShrink: 0 }} />}
+              </Box>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

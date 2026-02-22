@@ -9,7 +9,7 @@ Conventions for adding, naming, and structuring components in `src/components/`.
 | Directory | Purpose |
 |-----------|---------|
 | `ui/` | Shared design-system primitives (Button, Label, dropdowns, image helpers, spinner) |
-| `layout/` | App shell: Header, Sidebar, MobileHeader, OrgSwitcher, UserMenu, PageHeader |
+| `layout/` | App shell: Header, Sidebar, MobileDrawer, OrgSwitcher, ProjectSwitcher, UserMenu, PageHeader |
 | `providers/` | React context providers: ThemeRegistry, OrgProvider, ProjectProvider, LoadingProvider |
 | `dashboard/` | Dashboard feature components (StatsCards, ProjectsList, TeamActivity) |
 | `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectsTree, ProjectDetailPanel) |
@@ -117,7 +117,7 @@ MUI `sx` prop is the primary styling mechanism. Do not use CSS modules or Tailwi
 <Box sx={{ bgcolor: '#fff', color: '#333' }}>
 ```
 
-Lucide icons are always sized via `style={{ width: N, height: N }}` (not `sx`).
+Lucide icons are always sized via `style={{ width: N, height: N }}` (not `sx`). Phosphor icons use the `size` prop instead: `<Icon size={18} />`.
 
 ---
 

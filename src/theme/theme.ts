@@ -1,53 +1,54 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 
-// Light theme - monochrome (black, gray, white)
+// Light theme — matches construction.pen $--variable tokens
 export const lightTheme: Theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#171717', // near-black
-      light: '#404040',
-      dark: '#000000',
+      main: '#FF8400', // $--primary
+      light: '#FF9933',
+      dark: '#CC6A00',
+      contrastText: '#111111', // $--primary-foreground
     },
     secondary: {
-      main: '#737373', // medium gray
-      light: '#a3a3a3',
-      dark: '#525252',
+      main: '#F0F0F3', // $--secondary (subtle bg)
+      light: '#F8F8FB',
+      dark: '#D9DBE1',
     },
     error: {
-      main: '#404040', // dark gray (monochrome)
-      light: '#737373',
-      dark: '#171717',
+      main: '#D93C15', // $--destructive
+      light: '#E8644A',
+      dark: '#B02E0F',
     },
     warning: {
-      main: '#525252', // medium-dark gray (monochrome)
-      light: '#737373',
-      dark: '#404040',
+      main: '#804200',
+      light: '#A35400',
+      dark: '#5C2F00',
     },
     info: {
-      main: '#525252', // medium-dark gray (monochrome)
-      light: '#737373',
-      dark: '#404040',
+      main: '#000066',
+      light: '#0000A3',
+      dark: '#000040',
     },
     success: {
-      main: '#525252', // medium-dark gray (monochrome)
-      light: '#737373',
-      dark: '#404040',
+      main: '#004D1A',
+      light: '#006B24',
+      dark: '#003010',
     },
     background: {
-      default: '#fafafa', // off-white
-      paper: '#ffffff', // white
+      default: '#F0F0F3', // $--background
+      paper: '#FFFFFF',   // $--card
     },
     text: {
-      primary: '#171717', // near-black
-      secondary: '#737373', // medium gray
-      disabled: '#a3a3a3', // light gray
+      primary: '#1A1A2E',  // $--foreground
+      secondary: '#8D99AE', // $--muted-foreground
+      disabled: '#B0B8C4',
     },
-    divider: '#e5e5e5', // very light gray
+    divider: '#D9DBE1', // $--border
     action: {
-      hover: '#f5f5f5', // very light gray
-      selected: 'rgba(23, 23, 23, 0.06)',
-      disabled: '#d4d4d4',
+      hover: '#F0F0F3',              // $--muted
+      selected: 'rgba(43, 45, 66, 0.08)',
+      disabled: '#D9DBE1',
     },
   },
   typography: {
@@ -60,8 +61,8 @@ export const lightTheme: Theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#fafafa',
-          color: '#171717',
+          backgroundColor: '#F2F3F0',
+          color: '#111111',
           transition: 'background-color 0.15s ease, color 0.15s ease',
         },
       },
@@ -84,6 +85,18 @@ declare module '@mui/material/styles' {
       indicator: string;
       activeBg: string;
       hoverBg: string;
+      activeItemBg: string;
+    };
+    accent: {
+      dark: string;
+      gradientEnd: string;
+    };
+    status: {
+      active: string;
+      inProgress: string;
+      onHold: string;
+      completed: string;
+      archived: string;
     };
     warm: {
       main: string;
@@ -110,6 +123,18 @@ declare module '@mui/material/styles' {
       indicator?: string;
       activeBg?: string;
       hoverBg?: string;
+      activeItemBg?: string;
+    };
+    accent?: {
+      dark?: string;
+      gradientEnd?: string;
+    };
+    status?: {
+      active?: string;
+      inProgress?: string;
+      onHold?: string;
+      completed?: string;
+      archived?: string;
     };
     warm?: {
       main?: string;
@@ -127,77 +152,90 @@ declare module '@mui/material/styles' {
 
 // Add custom properties to light theme
 lightTheme.palette.card = {
-  background: '#ffffff',
+  background: '#FFFFFF', // $--card
 };
 lightTheme.palette.input = {
-  background: '#f5f5f5',
+  background: '#CBCCC9', // $--input
 };
 lightTheme.palette.sidebar = {
-  background: '#f5f5f5',
-  border: 'rgba(0, 0, 0, 0.08)',
-  indicator: '#171717',
-  activeBg: 'rgba(23, 23, 23, 0.06)',
-  hoverBg: 'rgba(23, 23, 23, 0.04)',
+  background: '#FFFFFF',   // $--card (sidebar uses card bg)
+  border: '#D9DBE1',       // $--sidebar-border
+  indicator: '#2B2D42',    // active bar (dark navy from pen)
+  activeBg: '#FFFFFF',     // $--card
+  hoverBg: '#F0F0F3',      // $--muted
+  activeItemBg: '#FFFFFF', // explicit white for active nav item
+};
+lightTheme.palette.accent = {
+  dark: '#2B2D42',       // dark navy for search bar, project icon, avatar gradient
+  gradientEnd: '#CC6A00', // avatar gradient end
+};
+lightTheme.palette.status = {
+  active: '#22C55E',
+  inProgress: '#F59E0B',
+  onHold: '#8D99AE',
+  completed: '#3B82F6',
+  archived: '#8D99AE',
 };
 lightTheme.palette.warm = {
-  main: '#171717', // monochrome - black instead of orange
-  dark: '#000000',
+  main: '#FF8400', // $--primary
+  dark: '#CC6A00',
 };
 lightTheme.palette.grid = {
   line: 'rgba(0, 0, 0, 0.04)',
 };
 lightTheme.palette.timeline = {
-  accent: '#171717',
-  accentSubtle: 'rgba(23, 23, 23, 0.06)',
+  accent: '#FF8400',              // $--primary
+  accentSubtle: 'rgba(255, 132, 0, 0.1)',
 };
 
-// Dark theme - monochrome (black, gray, white)
+// Dark theme — matches construction.pen dark mode $--variable tokens
 export const darkTheme: Theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#fafafa', // off-white
-      light: '#ffffff',
-      dark: '#d4d4d4',
+      main: '#FF8400', // $--primary (same orange in dark)
+      light: '#FF9933',
+      dark: '#CC6A00',
+      contrastText: '#111111', // $--primary-foreground
     },
     secondary: {
-      main: '#a3a3a3', // light gray
-      light: '#d4d4d4',
-      dark: '#737373',
+      main: '#2E2E2E', // $--secondary (dark)
+      light: '#3A3A3A',
+      dark: '#1E1E1E',
     },
     error: {
-      main: '#d4d4d4', // light gray (monochrome)
-      light: '#fafafa',
-      dark: '#a3a3a3',
+      main: '#FF5C33', // $--destructive (dark)
+      light: '#FF7A5C',
+      dark: '#CC3A1F',
     },
     warning: {
-      main: '#a3a3a3', // medium-light gray (monochrome)
-      light: '#d4d4d4',
-      dark: '#737373',
+      main: '#FF8400',
+      light: '#FF9933',
+      dark: '#CC6A00',
     },
     info: {
-      main: '#a3a3a3', // medium-light gray (monochrome)
-      light: '#d4d4d4',
-      dark: '#737373',
+      main: '#B2B2FF',
+      light: '#D4D4FF',
+      dark: '#8080CC',
     },
     success: {
-      main: '#a3a3a3', // medium-light gray (monochrome)
-      light: '#d4d4d4',
-      dark: '#737373',
+      main: '#B6FFCE',
+      light: '#D4FFE2',
+      dark: '#80CCA0',
     },
     background: {
-      default: '#0a0a0a', // near-black
-      paper: '#141414', // very dark gray
+      default: '#111111', // $--background (dark)
+      paper: '#1A1A1A',   // $--card (dark)
     },
     text: {
-      primary: '#fafafa', // off-white
-      secondary: '#a3a3a3', // light gray
-      disabled: '#737373', // medium gray
+      primary: '#FFFFFF',  // $--foreground (dark)
+      secondary: '#B8B9B6', // $--muted-foreground (dark)
+      disabled: '#737373',
     },
-    divider: '#262626', // dark gray
+    divider: '#2E2E2E', // $--border (dark)
     action: {
-      hover: '#1f1f1f', // very dark gray
-      selected: 'rgba(250, 250, 250, 0.06)',
+      hover: '#2E2E2E',              // $--muted (dark)
+      selected: 'rgba(255, 132, 0, 0.1)',
       disabled: '#404040',
     },
   },
@@ -211,8 +249,8 @@ export const darkTheme: Theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#0a0a0a',
-          color: '#fafafa',
+          backgroundColor: '#111111',
+          color: '#FFFFFF',
           transition: 'background-color 0.15s ease, color 0.15s ease',
         },
       },
@@ -222,26 +260,38 @@ export const darkTheme: Theme = createTheme({
 
 // Add custom properties to dark theme
 darkTheme.palette.card = {
-  background: '#171717',
+  background: '#1A1A1A', // $--card (dark)
 };
 darkTheme.palette.input = {
-  background: '#1f1f1f',
+  background: '#2E2E2E', // $--input (dark)
 };
 darkTheme.palette.sidebar = {
-  background: '#111111',
-  border: 'rgba(255, 255, 255, 0.08)',
-  indicator: '#fafafa',
-  activeBg: 'rgba(250, 250, 250, 0.08)',
-  hoverBg: 'rgba(250, 250, 250, 0.04)',
+  background: '#1A1A1A',                   // $--card (dark)
+  border: 'rgba(255, 255, 255, 0.10)',     // $--sidebar-border (dark)
+  indicator: '#FFFFFF',                    // active bar (white on dark)
+  activeBg: 'rgba(255, 255, 255, 0.10)',
+  hoverBg: 'rgba(255, 255, 255, 0.06)',
+  activeItemBg: 'rgba(255, 255, 255, 0.10)',
+};
+darkTheme.palette.accent = {
+  dark: 'rgba(255, 255, 255, 0.10)', // subtle bg in dark mode
+  gradientEnd: '#CC6A00',            // same brand color
+};
+darkTheme.palette.status = {
+  active: '#22C55E',
+  inProgress: '#F59E0B',
+  onHold: '#8D99AE',
+  completed: '#3B82F6',
+  archived: '#8D99AE',
 };
 darkTheme.palette.warm = {
-  main: '#fafafa', // monochrome - white instead of yellow
-  dark: '#d4d4d4',
+  main: '#FF8400', // $--primary
+  dark: '#CC6A00',
 };
 darkTheme.palette.grid = {
   line: 'rgba(255, 255, 255, 0.04)',
 };
 darkTheme.palette.timeline = {
-  accent: '#fafafa',
-  accentSubtle: 'rgba(250, 250, 250, 0.06)',
+  accent: '#FF8400',              // $--primary
+  accentSubtle: 'rgba(255, 132, 0, 0.1)',
 };

@@ -3,7 +3,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import FilesContent from '@/components/files/FilesContent';
 
 const BryntumGanttWrapper = dynamic(
@@ -56,12 +56,6 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
             display: isGanttRoute ? 'flex' : 'none',
           }}
         >
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h5" fontWeight={600}>
-              {projectName} - Gantt Chart
-            </Typography>
-          </Box>
-
           <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
             <BryntumGanttWrapper projectId={projectId} isVisible={isGanttRoute} />
           </Box>

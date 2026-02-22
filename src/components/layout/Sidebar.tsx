@@ -1,26 +1,65 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { Home, GanttChart, Users, FolderOpen, FileSearch } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronsUpDown, User, Settings, CreditCard, LifeBuoy, LogOut } from 'lucide-react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, Users, type Icon } from '@phosphor-icons/react';
 import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { projectNavItems, getProjectNavHref } from './navItems';
-import { LogoIcon } from '@/components/ui/Logo';
 import OrgSwitcher from './OrgSwitcher';
+import ProjectSwitcher from './ProjectSwitcher';
+import { authClient, signOut } from '@/lib/auth-client';
+import { getInitials } from '@/lib/utils/formatting';
+import LoadingSpinner from '@/components/ui/loading-spinner';
+
+const iconMap: Record<string, Icon> = {
+  ChartBar,
+  FolderSimple,
+  FileMagnifyingGlass,
+  Users,
+};
+
+const profileMenuItems = [
+  { icon: User, label: 'My Profile' },
+  { icon: Settings, label: 'Account Settings' },
+  { icon: CreditCard, label: 'Billing' },
+  { icon: LifeBuoy, label: 'Help & Support' },
+];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
   const { orgSlug, projectSlug } = params;
+  const router = useRouter();
 
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Home': return Home;
-      case 'FolderOpen': return FolderOpen;
-      case 'GanttChart': return GanttChart;
-      case 'Users': return Users;
-      case 'FileSearch': return FileSearch;
-      default: return Home;
+  const { data: session } = authClient.useSession();
+  const user = session?.user;
+
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            setProfileOpen(false);
+            router.push('/sign-in');
+            router.refresh();
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      setIsLoggingOut(false);
     }
   };
 
@@ -29,127 +68,290 @@ export default function Sidebar() {
       component="aside"
       sx={{
         height: '100vh',
-        width: 208,
+        width: 220,
         bgcolor: 'sidebar.background',
         display: 'flex',
         flexDirection: 'column',
         position: 'sticky',
         top: 0,
-        transition: 'colors 0.15s',
-        boxShadow: 'inset -1px 0 0 0 var(--sidebar-border)',
+        transition: 'background-color 0.15s',
+        borderRight: '1px solid',
+        borderColor: 'sidebar.border',
       }}
     >
-      {/* Branding Area */}
-      <Box
-        sx={{
-          borderBottom: '1px solid',
-          borderColor: 'sidebar.border',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <Box sx={{ px: 2, py: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: 1.5,
-              bgcolor: 'primary.main',
-              color: 'background.default',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              fontSize: '0.875rem',
-            }}
-          >
-            <LogoIcon size={18} />
-          </Box>
-          <Typography sx={{ fontWeight: 500, fontSize: '0.875rem', color: 'text.primary' }}>
-            BuildTrack
-          </Typography>
-        </Box>
+      {/* Org Header */}
+      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
         <OrgSwitcher />
+        <ProjectSwitcher />
       </Box>
 
       {/* Navigation */}
-      <Box component="nav" sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 2, flex: 1 }}>
-        {/* Project Section */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <Typography
+      <Box
+        component="nav"
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          px: 1.5,
+          py: 1,
+          overflow: 'hidden',
+        }}
+      >
+        <List sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {projectNavItems.map((item) => {
+            const Icon = iconMap[item.icon] ?? ChartBar;
+            const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
+            const isActive = !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
+            const isDisabled = !projectSlug;
+
+            return (
+              <ListItemButton
+                key={item.id}
+                component={isDisabled ? 'div' : Link}
+                href={href}
+                disabled={isDisabled}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.25,
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 1,
+                  transition: 'all 0.15s',
+                  border: '1px solid',
+                  borderColor: isActive ? 'sidebar.border' : 'transparent',
+                  bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
+                  color: isActive ? 'text.primary' : 'text.secondary',
+                  opacity: isDisabled ? 0.4 : 1,
+                  cursor: isDisabled ? 'default' : 'pointer',
+                  '&:hover': {
+                    bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg'),
+                    color: isDisabled ? 'text.secondary' : 'text.primary',
+                    borderColor: isActive ? 'sidebar.border' : 'transparent',
+                  },
+                  '&.MuiListItemButton-root:hover': {
+                    bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg'),
+                  },
+                }}
+              >
+                {isActive && (
+                  <Box
+                    sx={{ width: 3, height: 18, borderRadius: '2px', bgcolor: 'sidebar.indicator', flexShrink: 0 }}
+                    aria-hidden="true"
+                  />
+                )}
+                <ListItemIcon sx={{ minWidth: 18, color: 'inherit' }}>
+                  <Icon size={18} />
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    fontWeight: isActive ? 500 : 400,
+                  }}
+                />
+              </ListItemButton>
+            );
+          })}
+        </List>
+      </Box>
+
+      {/* User Row with Profile Dropdown */}
+      <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
+        <DropdownMenuTrigger asChild>
+          <Box
+            component="button"
             sx={{
-              px: 1.5,
-              mb: 0.5,
-              fontSize: '0.625rem',
-              letterSpacing: '0.1em',
-              color: 'text.disabled',
-              fontWeight: 500,
-              textTransform: 'uppercase',
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.25,
+              px: 1.75,
+              py: 1.5,
+              width: '100%',
+              bgcolor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'text.secondary',
+              transition: 'background-color 0.15s',
+              '&:hover': { bgcolor: 'action.hover' },
             }}
           >
-            Project
-          </Typography>
-          <List sx={{ p: 0 }}>
-            {projectNavItems.map((item) => {
-              const Icon = getIcon(item.icon);
-              const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
-              const isActive = projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`);
-              const isDisabled = !projectSlug;
+            <Box
+              sx={{
+                width: 30,
+                height: 30,
+                borderRadius: '999px',
+                bgcolor: 'secondary.main',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                color: 'text.primary',
+              }}
+            >
+              {getInitials(user?.name)}
+            </Box>
 
-              return (
-                <ListItemButton
-                  key={item.id}
-                  component={isDisabled ? 'div' : Link}
-                  href={href}
-                  disabled={isDisabled}
-                  sx={{
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: 2,
-                    transition: 'all 0.15s',
-                    bgcolor: isActive ? 'sidebar.activeBg' : 'transparent',
-                    color: isActive ? 'text.primary' : 'text.secondary',
-                    fontWeight: isActive ? 500 : 400,
-                    opacity: isDisabled ? 0.4 : 1,
-                    cursor: isDisabled ? 'default' : 'pointer',
-                    '&:hover': {
-                      bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeBg' : 'sidebar.hoverBg'),
-                      color: isDisabled ? 'text.secondary' : 'text.primary',
-                    },
-                  }}
-                >
-                  {isActive && (
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        left: 0,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: '3px',
-                        height: 20,
-                        borderRadius: '0 999px 999px 0',
-                        bgcolor: 'sidebar.indicator',
-                      }}
-                      aria-hidden="true"
-                    />
-                  )}
-                  <ListItemIcon sx={{ minWidth: 18, color: 'inherit' }}>
-                    <Icon style={{ width: 18, height: 18 }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{ fontSize: '0.875rem' }}
-                  />
-                </ListItemButton>
-              );
-            })}
-          </List>
-        </Box>
-      </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '1px' }}>
+              <Typography
+                sx={{
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  color: 'text.primary',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.2,
+                  textAlign: 'left',
+                }}
+              >
+                {user?.name ?? 'User'}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.6875rem',
+                  color: 'text.secondary',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.2,
+                  textAlign: 'left',
+                }}
+              >
+                {user?.email ?? ''}
+              </Typography>
+            </Box>
+
+            <ChevronsUpDown style={{ width: 14, height: 14, flexShrink: 0, color: 'inherit' }} />
+          </Box>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent
+          align="start"
+          sideOffset={8}
+          anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+          transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          style={{ width: 240, padding: 0, overflow: 'hidden', borderRadius: 12 }}
+        >
+          {/* Profile Header */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', p: '14px' }}>
+            <Box
+              sx={{
+                width: 34,
+                height: 34,
+                borderRadius: '999px',
+                bgcolor: 'secondary.main',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'text.primary',
+              }}
+            >
+              {getInitials(user?.name)}
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+              <Typography
+                sx={{
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  color: 'text.primary',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.2,
+                }}
+              >
+                {user?.name ?? 'User'}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.6875rem',
+                  color: 'text.secondary',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.2,
+                  mt: '2px',
+                }}
+              >
+                {user?.email ?? ''}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Divider */}
+          <Box sx={{ height: '1px', bgcolor: 'divider' }} />
+
+          {/* Menu Items */}
+          <Box sx={{ py: '4px', px: '6px' }}>
+            {profileMenuItems.map((item) => (
+              <Box
+                key={item.label}
+                component="button"
+                onClick={() => setProfileOpen(false)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  width: '100%',
+                  px: '10px',
+                  py: '8px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  bgcolor: 'transparent',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+              >
+                <item.icon style={{ width: 14, height: 14, color: 'inherit' }} />
+                <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary' }}>
+                  {item.label}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+
+          {/* Divider */}
+          <Box sx={{ height: '1px', bgcolor: 'divider' }} />
+
+          {/* Log Out */}
+          <Box
+            component="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              width: '100%',
+              px: '14px',
+              py: '10px',
+              border: 'none',
+              bgcolor: 'transparent',
+              cursor: 'pointer',
+              color: 'error.main',
+              transition: 'background-color 0.15s',
+              '&:hover': { bgcolor: 'action.hover' },
+              '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
+            }}
+          >
+            <LogOut style={{ width: 14, height: 14, color: 'inherit' }} />
+            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'inherit' }}>
+              Log out
+            </Typography>
+          </Box>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {isLoggingOut && <LoadingSpinner size="lg" fullScreen text="Logging out..." />}
     </Box>
   );
 }
