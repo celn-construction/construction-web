@@ -217,6 +217,11 @@ bryntum/
 
 Follow this sub-structure if adding more Gantt-related code. Do not add Gantt logic to other `components/` folders.
 
+**IMPORTANT: Always consult the Bryntum Gantt documentation before making any changes to Gantt-related code.** Bryntum has many non-obvious internal behaviors (e.g. parent task duration being auto-calculated and non-editable by default, event firing order, scheduling engine quirks) that are not apparent from the config alone. The docs and support forum are the authoritative source:
+- API docs: https://bryntum.com/products/gantt/docs/api/
+- Forum: https://forum.bryntum.com/
+- Support issues: https://github.com/bryntum/support/issues
+
 ---
 
 ## Adding a New Feature Slice

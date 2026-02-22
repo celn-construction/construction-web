@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 import { ganttLoadInputSchema, ganttSyncInputSchema } from "@/lib/validations/gantt";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
@@ -18,7 +19,7 @@ export const ganttRouter = createTRPCRouter({
       });
 
       if (!project) {
-        throw new Error("Project not found or access denied");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
       }
 
       return ctx.db.ganttTask.findMany({
@@ -46,7 +47,7 @@ export const ganttRouter = createTRPCRouter({
       });
 
       if (!project) {
-        throw new Error("Project not found or access denied");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
       }
 
       const task = await ctx.db.ganttTask.findFirst({
@@ -57,6 +58,7 @@ export const ganttRouter = createTRPCRouter({
           percentDone: true,
           startDate: true,
           endDate: true,
+          coverImageUrl: true,
           parentId: true,
           parent: {
             select: { name: true },
@@ -74,6 +76,7 @@ export const ganttRouter = createTRPCRouter({
         percentDone: task.percentDone,
         startDate: task.startDate,
         endDate: task.endDate,
+        coverImageUrl: task.coverImageUrl,
         group: task.parent?.name ?? null,
       };
     }),

@@ -47,6 +47,7 @@ Pages and API routes organized by route groups:
 | `api/auth/` | Better Auth handler |
 | `api/trpc/` | tRPC endpoint |
 | `api/gantt/` | Gantt load/sync REST endpoints |
+| `api/gantt/cover-image/` | Task cover image upload/delete endpoint |
 | `api/upload/` | File upload handler |
 | `invite/[token]/` | Invitation acceptance page |
 

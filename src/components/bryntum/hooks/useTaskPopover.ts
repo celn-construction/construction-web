@@ -32,6 +32,9 @@ export function useTaskPopover() {
 
   const handleTaskClick = useCallback(
     ({ taskRecord, event }: TaskClickEventPayload) => {
+      // Only open the popover for leaf tasks — parent task bars just navigate the chart
+      if (taskRecord.isParent) return;
+
       const taskId = String(taskRecord.id);
 
       if (selectedTaskIdRef.current === taskId) {
