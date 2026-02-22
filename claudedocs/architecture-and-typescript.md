@@ -11,11 +11,15 @@ Standards for this Next.js 15 T3 SaaS codebase. Authoritative — follow these e
 ```
 publicProcedure
   └── protectedProcedure   (guarantees ctx.session)
-        └── orgProcedure   (requires organizationId input, validates membership,
-                            injects ctx.membership + ctx.organization)
+        └── orgProcedure      (requires organizationId input, validates membership,
+        |                      injects ctx.membership + ctx.organization)
+        └── projectProcedure  (requires projectId input, validates ProjectMember record,
+                               injects ctx.projectMember + ctx.project + ctx.organization)
 ```
 
-Every org-scoped router MUST use `orgProcedure`. `ctx.organization.id` is always available inside `orgProcedure` handlers — no null checks needed. Do NOT redeclare `organizationId` in `.input()` when using `orgProcedure`.
+Every org-scoped router MUST use `orgProcedure`. Every project-scoped router MUST use `projectProcedure`. `ctx.organization.id` is always available inside `orgProcedure` handlers — no null checks needed. Do NOT redeclare `organizationId` in `.input()` when using `orgProcedure`, and do NOT redeclare `projectId` when using `projectProcedure`.
+
+`projectProcedure` auto-creates a `ProjectMember` record for org owners/admins/project_managers who access a project they don't yet have an explicit membership row for (backwards-compatibility for projects created before the `ProjectMember` table). Org `member` and `viewer` roles must be explicitly invited to projects.
 
 ### Key Structural Rules
 
@@ -35,6 +39,8 @@ Every org-scoped router MUST use `orgProcedure`. `ctx.organization.id` is always
 | Don't | Do instead |
 |---|---|
 | Manually check org membership in a router | Use `orgProcedure` |
+| Manually check project membership in a router | Use `projectProcedure` |
+| Redundant `.input({ projectId })` on `projectProcedure` | `projectProcedure` already requires it |
 | `throw new Error(...)` inside a tRPC procedure | `throw new TRPCError({ code: "NOT_FOUND", message: "..." })` |
 | Import `db` directly in a helper file | Accept `db: PrismaClient` as a parameter |
 | `memberRole: string` at provider/function boundaries | Use `Role` from `src/lib/permissions.ts` |

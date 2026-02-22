@@ -60,13 +60,16 @@ if (canInviteMembers(currentMember.role)) { /* show button */ }
 
 ## tRPC Procedure Layers
 
-| Procedure | Auth | Org membership | Provides on ctx |
-|-----------|------|----------------|-----------------|
+| Procedure | Auth | Membership | Provides on ctx |
+|-----------|------|------------|-----------------|
 | `publicProcedure` | No | No | `db`, `session` (nullable) |
 | `protectedProcedure` | Yes | No | `db`, `session.user` (guaranteed) |
-| `orgProcedure` | Yes | Yes | Above + `membership`, `organization` |
+| `orgProcedure` | Yes | Org | Above + `membership`, `organization` |
+| `projectProcedure` | Yes | Project | Above + `projectMember`, `project`, `organization` |
 
-`orgProcedure` requires `{ organizationId }` in input and verifies the user has a membership record.
+`orgProcedure` requires `{ organizationId }` in input and verifies the user has a `Membership` record.
+
+`projectProcedure` requires `{ projectId }` in input and verifies the user has a `ProjectMember` record. It auto-creates one for org owners, admins, and project_managers; org members and viewers must be explicitly invited to individual projects.
 
 ## Middleware Route Protection
 

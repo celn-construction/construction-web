@@ -22,6 +22,31 @@ Conventions for adding, naming, and structuring components in `src/components/`.
 
 ---
 
+## Custom Hooks
+
+Hooks are placed based on their scope:
+
+- **`src/hooks/`** — Shared cross-feature hooks used by 2+ unrelated components (e.g. `useOrgFromUrl`, `useNotifications`, `useInvitationActions`). Mark with `'use client'`.
+- **`src/components/<feature>/hooks/`** — Hooks scoped to a single feature (e.g. `bryntum/hooks/useGanttControls.ts`).
+
+Use `src/hooks/` when the logic is consumed by components in different feature directories. Co-locate in the feature directory when the hook is only used within that feature.
+
+---
+
+## Shared Utilities (`src/lib/utils/`)
+
+Pure, reusable utility functions live in `src/lib/utils/`. Current modules:
+
+| File | Purpose |
+|------|---------|
+| `gantt.ts` | Gantt-specific data helpers |
+| `getBaseURL.ts` | Base URL resolution |
+| `slug.ts` | Slug generation |
+| `files.tsx` | `getFileIcon(mimeType)` — returns Lucide icon for a file type |
+| `formatting.ts` | `formatRole(role)`, `formatFileSize(bytes)` — display formatting helpers |
+
+---
+
 ## Naming Conventions
 
 - **Component files**: PascalCase matching the default export — `AddProjectDialog.tsx`

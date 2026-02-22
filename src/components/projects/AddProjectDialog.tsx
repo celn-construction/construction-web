@@ -4,7 +4,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus } from 'lucide-react';
 import { api } from '@/trpc/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import {
   Box,
   Dialog,
@@ -35,11 +36,7 @@ export default function AddProjectDialog({
   const router = useRouter();
   const { showSnackbar } = useSnackbar();
 
-  // Derive org from URL params + org list
-  const params = useParams<{ orgSlug?: string }>();
-  const orgSlug = params.orgSlug ?? '';
-  const { data: organizations = [] } = api.organization.list.useQuery(undefined, { retry: false });
-  const activeOrganizationId = organizations.find((o) => o.slug === orgSlug)?.id ?? '';
+  const { orgSlug, activeOrganizationId } = useOrgFromUrl();
 
   // Initialize form with react-hook-form + zod
   const {

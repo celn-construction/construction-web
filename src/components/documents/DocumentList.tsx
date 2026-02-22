@@ -1,8 +1,10 @@
 'use client';
 
-import { FileText, FileSpreadsheet, FileImage, Download, Trash2 } from 'lucide-react';
+import { Download, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { api } from '@/trpc/react';
+import { getFileIcon } from '@/lib/utils/files';
+import { formatFileSize } from '@/lib/utils/formatting';
 import { Box, Typography, Stack, Skeleton, IconButton } from '@mui/material';
 
 interface DocumentListProps {
@@ -12,26 +14,6 @@ interface DocumentListProps {
   folderId: string;
 }
 
-function getFileIcon(mimeType: string) {
-  const iconStyle = { color: 'var(--text-secondary)' };
-  if (mimeType.startsWith('image/')) {
-    return <FileImage size={20} style={iconStyle} />;
-  }
-  if (
-    mimeType.includes('spreadsheet') ||
-    mimeType.includes('excel') ||
-    mimeType === 'text/csv'
-  ) {
-    return <FileSpreadsheet size={20} style={iconStyle} />;
-  }
-  return <FileText size={20} style={iconStyle} />;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export function DocumentList({
   organizationId,

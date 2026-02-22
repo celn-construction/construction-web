@@ -41,7 +41,7 @@ Pages and API routes organized by route groups:
 | `(app)/` | Main authenticated application shell |
 | `(app)/dashboard/` | Dashboard page |
 | `(app)/[orgSlug]/` | Organization-scoped routes |
-| `(app)/[orgSlug]/projects/[projectSlug]/` | Project-level pages (Gantt, Files) |
+| `(app)/[orgSlug]/projects/[projectSlug]/` | Project-level pages (Gantt, Files, Team) |
 | `(auth)/` | Sign-in, sign-up, forgot/reset password pages |
 | `(onboarding)/` | New user onboarding wizard |
 | `api/auth/` | Better Auth handler |
@@ -70,7 +70,7 @@ Pages and API routes organized by route groups:
 |-----------|---------|
 | `api/trpc.ts` | tRPC initialization and context |
 | `api/root.ts` | Root router combining all sub-routers |
-| `api/routers/` | Feature routers: `organization`, `project`, `user`, `member`, `invitation`, `document`, `notification`, `gantt`, `onboarding` |
+| `api/routers/` | Feature routers: `organization`, `project`, `projectMember`, `user`, `member`, `invitation`, `document`, `notification`, `gantt`, `onboarding` |
 | `api/helpers/` | Shared server utilities (active org/project resolution, Gantt sync/tree helpers, slug generation) |
 | `db.ts` | Prisma database client singleton |
 | `gantt/` | Gantt task template defaults |
@@ -84,7 +84,7 @@ Pages and API routes organized by route groups:
 | `email.ts` | Email templates and Resend integration |
 | `permissions.ts` | Role-based access control logic |
 | `constants/` | App-wide constants (invitation types, etc.) |
-| `utils/` | Gantt utilities, base URL helper, slug generation |
+| `utils/` | Shared utilities: Gantt helpers, base URL, slug generation, file icon resolution (`files.tsx`), role and file size formatting (`formatting.ts`) |
 | `validations/` | Zod schemas for forms and API inputs |
 
 ### `src/trpc/` — tRPC Client
@@ -99,7 +99,7 @@ Pages and API routes organized by route groups:
 
 | Directory | Purpose |
 |-----------|---------|
-| `hooks/` | Custom React hooks (`useSnackbar`) |
+| `hooks/` | Shared cross-feature React hooks (`useSnackbar`, `useOrgFromUrl`, `useProjectSwitcher`, `useNotifications`, `useNavigationLoading`, `useInvitationActions`) |
 | `store/` | Zustand stores (`useThemeStore`) |
 | `styles/` | Global CSS with CSS custom properties for theming |
 | `theme/` | MUI theme configuration |
@@ -121,6 +121,7 @@ Pages and API routes organized by route groups:
 **Application tables:**
 - `Organization` — Company/org profiles
 - `Project` — Projects belonging to an organization
+- `ProjectMember` — User ↔ project relationship with roles (`@@unique([userId, projectId])`); org owners/admins/project_managers are auto-provisioned on first access, org members/viewers must be explicitly invited
 - `Document` — Files uploaded to projects
 - `Membership` — User ↔ organization relationship with roles
 - `Invitation` — Pending team invitations

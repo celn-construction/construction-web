@@ -2,7 +2,7 @@
 
 ## Middleware Routing (`src/middleware.ts`)
 
-Cookies used: `better-auth.session_token`, `onboarding-complete`, `active-org-slug`
+Cookies used: `better-auth.session_token`, `onboarding-complete`, `active-org-slug`, `active-project-slug`
 
 ```
 Request
@@ -14,7 +14,10 @@ Request
   |-- /invite/* + session            --> pass through
   |-- /onboarding + complete         --> redirect /{orgSlug}
   |-- Any route + onboarding incomplete --> redirect /onboarding
+  |-- /dashboard + warm cookies      --> redirect /{orgSlug}/projects/{projectSlug}/gantt (fast-path)
+  |-- /dashboard + no project cookie --> pass through
   |-- /{orgSlug}/* (org-scoped)      --> set active-org-slug cookie, pass through
+  |-- /{orgSlug}/projects/{slug}/*   --> also set active-project-slug cookie, pass through
 ```
 
 ## User Signup and Onboarding
