@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Search, Bell, Undo2, UserPlus } from 'lucide-react';
+import { Search, Bell, Undo2, UserPlus, Moon, Sun } from 'lucide-react';
 import { Box, Typography, IconButton, Divider, Button } from '@mui/material';
-import UserMenu from './UserMenu';
+import { useThemeStore } from '@/store/useThemeStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,7 @@ export default function Header() {
 
   useNavigationLoading();
   const { activeOrganizationId } = useOrgFromUrl();
+  const { theme, toggleTheme } = useThemeStore();
 
   const lastSegment = pathname.split('/').pop() ?? '';
   const pageTitle = PAGE_TITLES[lastSegment] ?? null;
@@ -51,7 +52,7 @@ export default function Header() {
     >
       {/* Page Title */}
       {pageTitle && (
-        <Typography sx={{ fontSize: 18, fontWeight: 700, color: '#1A1A2E', lineHeight: 1 }}>
+        <Typography sx={{ fontSize: 18, fontWeight: 700, color: 'text.primary', lineHeight: 1 }}>
           {pageTitle}
         </Typography>
       )}
@@ -81,7 +82,7 @@ export default function Header() {
       {/* Undo */}
       <IconButton
         aria-label="Undo"
-        sx={{ width: 32, height: 32, borderRadius: 1, '&:hover': { bgcolor: '#F0F0F3' } }}
+        sx={{ width: 32, height: 32, borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}
       >
         <Undo2 style={{ width: 18, height: 18, color: '#8D99AE' }} />
       </IconButton>
@@ -177,8 +178,18 @@ export default function Header() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* User Avatar */}
-      <UserMenu />
+      {/* Theme Toggle */}
+      <IconButton
+        aria-label="Toggle theme"
+        onClick={toggleTheme}
+        sx={{ width: 32, height: 32, borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}
+      >
+        {theme === 'dark' ? (
+          <Sun style={{ width: 18, height: 18, color: '#8D99AE' }} />
+        ) : (
+          <Moon style={{ width: 18, height: 18, color: '#8D99AE' }} />
+        )}
+      </IconButton>
     </Box>
   );
 }

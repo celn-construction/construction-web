@@ -90,12 +90,12 @@ export default function Sidebar() {
                   border: '1px solid',
                   borderColor: isActive ? 'divider' : 'transparent',
                   bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
-                  color: isActive ? '#1A1A2E' : '#8D99AE',
+                  color: isActive ? 'text.primary' : 'text.secondary',
                   opacity: isDisabled ? 0.4 : 1,
                   cursor: isDisabled ? 'default' : 'pointer',
                   '&:hover': {
                     bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg'),
-                    color: isDisabled ? '#8D99AE' : '#1A1A2E',
+                    color: isDisabled ? 'text.secondary' : 'text.primary',
                     borderColor: isActive ? 'divider' : 'transparent',
                   },
                   '&.MuiListItemButton-root:hover': {
@@ -105,7 +105,7 @@ export default function Sidebar() {
               >
                 {isActive && (
                   <Box
-                    sx={{ width: 3, height: 18, borderRadius: '2px', bgcolor: '#2B2D42', flexShrink: 0 }}
+                    sx={{ width: 3, height: 18, borderRadius: '2px', bgcolor: 'sidebar.indicator', flexShrink: 0 }}
                     aria-hidden="true"
                   />
                 )}
@@ -149,7 +149,7 @@ export default function Sidebar() {
             flexShrink: 0,
             fontSize: '0.6875rem',
             fontWeight: 600,
-            color: '#1A1A2E',
+            color: 'text.primary',
           }}
         >
           {getInitials(user?.name)}
@@ -160,7 +160,7 @@ export default function Sidebar() {
             sx={{
               fontSize: '0.8125rem',
               fontWeight: 500,
-              color: '#1A1A2E',
+              color: 'text.primary',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -172,7 +172,7 @@ export default function Sidebar() {
           <Typography
             sx={{
               fontSize: '0.6875rem',
-              color: '#8D99AE',
+              color: 'text.secondary',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',

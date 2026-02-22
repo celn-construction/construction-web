@@ -145,7 +145,7 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
               itemId={childId}
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-                  <FileText size={14} style={{ color: '#6b7280' }} />
+                  <FileText size={14} style={{ color: 'inherit', opacity: 0.6 }} />
                   <Box sx={{ flexGrow: 1 }}>{child.name}</Box>
                   {childDocCount > 0 && (
                     <Chip
