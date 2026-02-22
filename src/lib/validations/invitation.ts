@@ -9,6 +9,7 @@ export type AssignableRole = typeof ASSIGNABLE_ROLES[number];
  */
 export const createInvitationSchema = z.object({
   organizationId: z.string(),
+  projectId: z.string(),
   email: z
     .string()
     .min(1, "Email is required")

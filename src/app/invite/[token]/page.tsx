@@ -41,7 +41,11 @@ export default function InvitePage() {
       document.cookie = "onboarding-complete=true; path=/; max-age=31536000";
       setShowSuccess(true);
       setTimeout(() => {
-        router.push(`/${data.orgSlug}`);
+        if (data.projectSlug) {
+          router.push(`/${data.orgSlug}/projects/${data.projectSlug}/gantt`);
+        } else {
+          router.push(`/${data.orgSlug}`);
+        }
       }, 1500);
     },
     onError: (error) => {
@@ -160,7 +164,7 @@ export default function InvitePage() {
           Welcome aboard!
         </Typography>
         <Typography color="text.secondary">
-          Redirecting to dashboard...
+          Redirecting to project...
         </Typography>
       </Paper>
     );
@@ -233,6 +237,11 @@ export default function InvitePage() {
           <Typography sx={{ fontWeight: 500, mb: 0.25 }}>
             {invitation.organization.name}
           </Typography>
+          {invitation.project && (
+            <Typography variant="body2" color="text.secondary">
+              Project: <strong>{invitation.project.name}</strong>
+            </Typography>
+          )}
           <Typography variant="body2" color="text.secondary">
             Invited by {invitation.invitedBy.name ?? "a team member"}
           </Typography>

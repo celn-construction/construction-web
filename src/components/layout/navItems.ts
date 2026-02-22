@@ -5,17 +5,15 @@ export interface NavItem {
   segment: string;
 }
 
-// Organization-level navigation (always available)
-export const orgNavItems: NavItem[] = [
-  { id: 'home', label: 'Home', icon: 'Home', segment: '' },
-  { id: 'team', label: 'Team', icon: 'Users', segment: 'team' },
-];
+// Organization-level navigation (no longer used)
+export const orgNavItems: NavItem[] = [];
 
 // Project-level navigation (requires a selected project)
 export const projectNavItems: NavItem[] = [
   { id: 'gantt', label: 'Gantt', icon: 'GanttChart', segment: 'gantt' },
   { id: 'files', label: 'Files', icon: 'FolderOpen', segment: 'files' },
   { id: 'document-explorer', label: 'Document Explorer', icon: 'FileSearch', segment: 'document-explorer' },
+  { id: 'team', label: 'Team', icon: 'Users', segment: 'team' },
 ];
 
 // Helper to build org-level URLs

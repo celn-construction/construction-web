@@ -4,6 +4,7 @@ import { userRouter } from "@/server/api/routers/user";
 import { organizationRouter } from "@/server/api/routers/organization";
 import { invitationRouter } from "@/server/api/routers/invitation";
 import { memberRouter } from "@/server/api/routers/member";
+import { projectMemberRouter } from "@/server/api/routers/projectMember";
 import { projectRouter } from "@/server/api/routers/project";
 import { documentRouter } from "@/server/api/routers/document";
 import { notificationRouter } from "@/server/api/routers/notification";
@@ -20,6 +21,7 @@ export const appRouter = createTRPCRouter({
   organization: organizationRouter,
   invitation: invitationRouter,
   member: memberRouter,
+  projectMember: projectMemberRouter,
   project: projectRouter,
   document: documentRouter,
   notification: notificationRouter,
