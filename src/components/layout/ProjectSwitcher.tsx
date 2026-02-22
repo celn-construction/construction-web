@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter, useParams, usePathname } from 'next/navigation';
-import { Building2, ChevronDown, Search, Check, Plus } from 'lucide-react';
+import { ChevronsUpDown, Search, Check, Plus } from 'lucide-react';
+import { Buildings } from '@phosphor-icons/react';
 import { Box, Typography } from '@mui/material';
 import {
   DropdownMenu,
@@ -66,82 +67,71 @@ export default function ProjectSwitcher() {
 
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-      <DropdownMenuTrigger asChild>
-        <Box
-          component="button"
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.25,
-            px: 1.75,
-            py: 1,
-            width: '100%',
-            bgcolor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'inherit',
-            textAlign: 'left',
-            transition: 'background-color 0.15s',
-            '&:hover': { bgcolor: 'action.hover' },
-          }}
-        >
-          {/* Project Icon */}
+      {/* Section wrapper with "PROJECT" label */}
+      <Box sx={{ px: 1.5, pt: 0, pb: 1.5, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <Typography sx={{ fontSize: 9, fontWeight: 700, color: '#8D99AE', letterSpacing: 1.2, textTransform: 'uppercase', lineHeight: 1 }}>
+          Project
+        </Typography>
+
+        <DropdownMenuTrigger asChild>
           <Box
+            component="button"
             sx={{
-              width: 28,
-              height: 28,
-              borderRadius: '7px',
-              bgcolor: 'secondary.main',
-              border: '1px solid',
-              borderColor: 'divider',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
+              gap: '7px',
+              pt: '8px', pr: '8px', pb: '8px', pl: '10px',
+              width: '100%',
+              bgcolor: '#F0F0F3',
+              border: '1px solid #D9DBE1',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              textAlign: 'left',
+              transition: 'background-color 0.15s',
+              '&:hover': { bgcolor: '#E8E8EC' },
             }}
           >
-            <Building2 style={{ width: 14, height: 14, color: '#1A1A2E' }} />
-          </Box>
+            {/* Project Icon */}
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: '7px',
+                bgcolor: '#2B2D42',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Buildings size={16} color="white" />
+            </Box>
 
-          {/* Project Info */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '1px' }}>
-            {projectSlug && currentProject ? (
-              <>
-                <Typography
-                  sx={{
-                    fontSize: '0.8125rem',
-                    fontWeight: 500,
-                    color: '#1A1A2E',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {currentProject.name}
+            {/* Project Info */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '2px' }}>
+              {projectSlug && currentProject ? (
+                <>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#1A1A2E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+                    {currentProject.name}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: getStatusColor(currentProject.status), flexShrink: 0 }} />
+                    <Typography sx={{ fontSize: 9, fontWeight: 500, color: '#8D99AE', lineHeight: 1.2 }}>
+                      {formatStatus(currentProject.status)}
+                    </Typography>
+                  </Box>
+                </>
+              ) : (
+                <Typography sx={{ fontSize: 11, color: '#8D99AE', lineHeight: 1.2 }}>
+                  No project selected
                 </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '0.625rem',
-                    fontWeight: 500,
-                    color: '#2B2D42',
-                    lineHeight: 1.2,
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {formatStatus(currentProject.status)}
-                </Typography>
-              </>
-            ) : (
-              <Typography sx={{ fontSize: '0.8125rem', color: 'text.disabled', lineHeight: 1.2 }}>
-                No project selected
-              </Typography>
-            )}
-          </Box>
+              )}
+            </Box>
 
-          <ChevronDown style={{ width: 14, height: 14, flexShrink: 0, color: '#8D99AE' }} />
-        </Box>
-      </DropdownMenuTrigger>
+            <ChevronsUpDown style={{ width: 11, height: 11, flexShrink: 0, color: '#8D99AE' }} />
+          </Box>
+        </DropdownMenuTrigger>
+      </Box>
 
       <DropdownMenuContent
         align="start"

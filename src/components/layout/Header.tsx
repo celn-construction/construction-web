@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Search, Bell, Undo2, UserPlus } from 'lucide-react';
 import { Box, Typography, IconButton, Divider, Button } from '@mui/material';
 import UserMenu from './UserMenu';
@@ -15,11 +16,22 @@ import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useNavigationLoading } from '@/hooks/useNavigationLoading';
 
+const PAGE_TITLES: Record<string, string> = {
+  gantt: 'Gantt Chart',
+  files: 'File Tree',
+  'document-explorer': 'Document Explorer',
+  team: 'Team',
+};
+
 export default function Header() {
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useNavigationLoading();
   const { activeOrganizationId } = useOrgFromUrl();
+
+  const lastSegment = pathname.split('/').pop() ?? '';
+  const pageTitle = PAGE_TITLES[lastSegment] ?? null;
   const { unreadCount, notificationsData, markAsRead, markAllAsRead } = useNotifications(
     activeOrganizationId,
     notifMenuOpen
@@ -33,11 +45,19 @@ export default function Header() {
         py: 1.5,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end',
         gap: 1.5,
         flexShrink: 0,
       }}
     >
+      {/* Page Title */}
+      {pageTitle && (
+        <Typography sx={{ fontSize: 18, fontWeight: 700, color: '#1A1A2E', lineHeight: 1 }}>
+          {pageTitle}
+        </Typography>
+      )}
+
+      {/* Spacer */}
+      <Box sx={{ flex: 1 }} />
       {/* Dark Search Bar */}
       <Box
         sx={{

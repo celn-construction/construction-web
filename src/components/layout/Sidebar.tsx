@@ -51,7 +51,6 @@ export default function Sidebar() {
       {/* Org Header */}
       <Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
         <OrgSwitcher />
-        <Box sx={{ height: '1px', bgcolor: 'divider' }} />
         <ProjectSwitcher />
       </Box>
 
