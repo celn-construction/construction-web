@@ -80,13 +80,12 @@ export default function Sidebar() {
                 href={href}
                 disabled={isDisabled}
                 sx={{
-                  position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1.25,
                   px: 1.5,
                   py: 1,
-                  borderRadius: 2,
+                  borderRadius: 1,
                   transition: 'all 0.15s',
                   border: '1px solid',
                   borderColor: isActive ? 'divider' : 'transparent',
@@ -106,16 +105,7 @@ export default function Sidebar() {
               >
                 {isActive && (
                   <Box
-                    sx={{
-                      position: 'absolute',
-                      left: 0,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '3px',
-                      height: 18,
-                      borderRadius: '0 2px 2px 0',
-                      bgcolor: 'sidebar.indicator',
-                    }}
+                    sx={{ width: 3, height: 18, borderRadius: '2px', bgcolor: '#2B2D42', flexShrink: 0 }}
                     aria-hidden="true"
                   />
                 )}
