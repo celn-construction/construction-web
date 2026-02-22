@@ -88,7 +88,7 @@ export default function Sidebar() {
                   borderRadius: 1,
                   transition: 'all 0.15s',
                   border: '1px solid',
-                  borderColor: isActive ? 'divider' : 'transparent',
+                  borderColor: isActive ? 'sidebar.border' : 'transparent',
                   bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
                   color: isActive ? 'text.primary' : 'text.secondary',
                   opacity: isDisabled ? 0.4 : 1,
@@ -96,7 +96,7 @@ export default function Sidebar() {
                   '&:hover': {
                     bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg'),
                     color: isDisabled ? 'text.secondary' : 'text.primary',
-                    borderColor: isActive ? 'divider' : 'transparent',
+                    borderColor: isActive ? 'sidebar.border' : 'transparent',
                   },
                   '&.MuiListItemButton-root:hover': {
                     bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg'),

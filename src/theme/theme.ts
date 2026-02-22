@@ -235,10 +235,10 @@ darkTheme.palette.input = {
 darkTheme.palette.sidebar = {
   background: '#1A1A1A',                   // $--card (dark)
   border: 'rgba(255, 255, 255, 0.10)',     // $--sidebar-border (dark)
-  indicator: '#E2E8F0',                    // active bar (light on dark)
-  activeBg: 'rgba(255, 255, 255, 0.06)',
-  hoverBg: 'rgba(255, 255, 255, 0.04)',
-  activeItemBg: 'rgba(255, 255, 255, 0.06)',
+  indicator: '#FFFFFF',                    // active bar (white on dark)
+  activeBg: 'rgba(255, 255, 255, 0.10)',
+  hoverBg: 'rgba(255, 255, 255, 0.06)',
+  activeItemBg: 'rgba(255, 255, 255, 0.10)',
 };
 darkTheme.palette.warm = {
   main: '#FF8400', // $--primary
