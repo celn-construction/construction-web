@@ -68,7 +68,7 @@ export default function ProjectSwitcher() {
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       {/* Section wrapper with "PROJECT" label */}
-      <Box sx={{ px: 1.5, pt: 0, pb: 1.5, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <Box sx={{ px: 1.5, pt: 1, pb: 1.5, display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <Typography sx={{ fontSize: 9, fontWeight: 700, color: '#8D99AE', letterSpacing: 1.2, textTransform: 'uppercase', lineHeight: 1 }}>
           Project
         </Typography>
@@ -128,7 +128,7 @@ export default function ProjectSwitcher() {
               )}
             </Box>
 
-            <ChevronsUpDown style={{ width: 11, height: 11, flexShrink: 0, color: '#8D99AE' }} />
+            <ChevronsUpDown style={{ width: 14, height: 14, flexShrink: 0, color: '#8D99AE' }} />
           </Box>
         </DropdownMenuTrigger>
       </Box>

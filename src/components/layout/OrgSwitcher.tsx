@@ -103,7 +103,7 @@ export default function OrgSwitcher() {
         transition={{ duration: 0.15 }}
         style={{ flexShrink: 0 }}
       >
-        <ChevronsUpDown style={{ width: 16, height: 16, color: 'currentColor' }} />
+        <ChevronsUpDown style={{ width: 14, height: 14, color: '#8D99AE' }} />
       </motion.div>
     </>
   );
