@@ -56,6 +56,16 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     handlePresetChange,
   } = useGanttControls();
 
+  // toggleParentTasksOnClick is a config-only prop in Bryntum's React adapter, so it must
+  // also be set imperatively on the instance after load to guarantee it takes effect.
+  useEffect(() => {
+    if (isLoading) return;
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    gantt.toggleParentTasksOnClick = false;
+  }, [isLoading, getGanttInstance]);
+
   // Invalidate tRPC cache when Bryntum syncs so sibling components (e.g. file tree) refetch
   const utils = api.useUtils();
   useEffect(() => {

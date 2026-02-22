@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useCallback, Fragment } from 'react';
-import { X, Folder, FileText, Plus, Download } from 'lucide-react';
-import { Box, Popover, IconButton, Chip, Typography } from '@mui/material';
+import { useState, useMemo, useCallback, useRef, Fragment } from 'react';
+import { X, Folder, FileText, Plus, Download, ImagePlus, Trash2 } from 'lucide-react';
+import { Box, Popover, IconButton, Chip, Typography, CircularProgress } from '@mui/material';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { POPOVER_WIDTH } from '../constants';
@@ -374,6 +374,15 @@ export function TaskDetailsPopover({
 }: TaskDetailsPopoverProps) {
   const { projectId, organizationId } = useProjectContext();
   const [selectedDoc, setSelectedDoc] = useState<DocItem | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const utils = api.useUtils();
+
+  const { data: taskDetail } = api.gantt.taskDetail.useQuery(
+    { organizationId, projectId, taskId: taskId! },
+    { enabled: !!organizationId && !!projectId && !!taskId }
+  );
 
   const { data: allDocs } = api.document.listByTask.useQuery(
     { organizationId, projectId, taskId: taskId! },
@@ -384,6 +393,50 @@ export function TaskDetailsPopover({
     { organizationId, projectId, taskId: taskId! },
     { enabled: !!organizationId && !!projectId && !!taskId }
   );
+
+  const coverImageUrl = taskDetail?.coverImageUrl ?? null;
+
+  const handleCoverUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !taskId) return;
+
+      setCoverUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('projectId', projectId);
+        formData.append('taskId', taskId);
+
+        const res = await fetch('/api/gantt/cover-image', { method: 'POST', body: formData });
+        if (res.ok) {
+          void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
+        }
+      } finally {
+        setCoverUploading(false);
+        // Reset input so the same file can be re-selected
+        if (coverInputRef.current) coverInputRef.current.value = '';
+      }
+    },
+    [taskId, projectId, organizationId, utils]
+  );
+
+  const handleCoverRemove = useCallback(async () => {
+    if (!taskId) return;
+    setCoverUploading(true);
+    try {
+      const res = await fetch('/api/gantt/cover-image', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId, taskId }),
+      });
+      if (res.ok) {
+        void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
+      }
+    } finally {
+      setCoverUploading(false);
+    }
+  }, [taskId, projectId, organizationId, utils]);
 
   const handleSelectedItemsChange = useCallback(
     (_event: React.SyntheticEvent | null, itemId: string | null) => {
@@ -432,53 +485,160 @@ export function TaskDetailsPopover({
           sx: {
             m: popoverPlacement?.paperMargin ?? '0 0 0 8px',
             transition: 'width 0.2s ease',
+            overflow: 'hidden',
           },
         },
       }}
     >
       <Box sx={{ display: 'flex', width: isExpanded ? POPOVER_WIDTH * 2 : POPOVER_WIDTH, transition: 'width 0.2s ease' }}>
-        {/* Left panel: tree (always visible) */}
-        <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, p: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
-            <Box>
-              <Box component="h3" sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
-                {taskName}
+        {/* Left panel: cover image + tree (always visible) */}
+        <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+          {/* Cover image area */}
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            style={{ display: 'none' }}
+            onChange={handleCoverUpload}
+          />
+
+          {coverImageUrl ? (
+            <Box
+              sx={{
+                position: 'relative',
+                width: '100%',
+                height: 120,
+                '&:hover .cover-actions': { opacity: 1 },
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={coverImageUrl}
+                alt="Task cover"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+              <Box
+                className="cover-actions"
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  bgcolor: 'rgba(0,0,0,0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1,
+                  opacity: 0,
+                  transition: 'opacity 0.2s',
+                }}
+              >
+                {coverUploading ? (
+                  <CircularProgress size={24} sx={{ color: 'white' }} />
+                ) : (
+                  <>
+                    <IconButton
+                      size="small"
+                      onClick={() => coverInputRef.current?.click()}
+                      sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.15)', '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}
+                      aria-label="Change cover image"
+                    >
+                      <ImagePlus size={16} />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={handleCoverRemove}
+                      sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.15)', '&:hover': { bgcolor: 'rgba(220,38,38,0.6)' } }}
+                      aria-label="Remove cover image"
+                    >
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </>
+                )}
               </Box>
             </Box>
-            {!isExpanded && (
-              <Box
-                component="button"
-                onClick={handleClose}
-                sx={{
-                  p: 0.5,
-                  borderRadius: 1,
-                  border: 'none',
-                  bgcolor: 'transparent',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: 'action.hover' },
-                  transition: 'background-color 0.2s',
-                }}
-                aria-label="Close"
-              >
-                <X size={16} style={{ color: 'var(--text-secondary)' }} />
+          ) : (
+            <Box
+              component="button"
+              onClick={() => coverInputRef.current?.click()}
+              sx={{
+                width: '100%',
+                height: 48,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                border: 'none',
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'action.hover',
+                cursor: 'pointer',
+                color: 'text.secondary',
+                fontSize: '0.75rem',
+                '&:hover': { bgcolor: 'action.selected', color: 'text.primary' },
+                transition: 'background-color 0.2s, color 0.2s',
+              }}
+            >
+              {coverUploading ? (
+                <CircularProgress size={16} />
+              ) : (
+                <>
+                  <ImagePlus size={14} />
+                  Add cover image
+                </>
+              )}
+            </Box>
+          )}
+
+          {/* Task name + folder tree */}
+          <Box sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
+              <Box>
+                <Box component="h3" sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
+                  {taskName}
+                </Box>
               </Box>
+              {!isExpanded && (
+                <Box
+                  component="button"
+                  onClick={handleClose}
+                  sx={{
+                    p: 0.5,
+                    borderRadius: 1,
+                    border: 'none',
+                    bgcolor: 'transparent',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'action.hover' },
+                    transition: 'background-color 0.2s',
+                  }}
+                  aria-label="Close"
+                >
+                  <X size={16} style={{ color: 'var(--text-secondary)' }} />
+                </Box>
+              )}
+            </Box>
+            {taskId && (
+              <SimpleTreeView onSelectedItemsChange={handleSelectedItemsChange}>
+                {folderData.map((folder) => (
+                  <PopoverFolderNode
+                    key={folder.id}
+                    folder={folder}
+                    taskId={taskId}
+                    projectId={projectId}
+                    organizationId={organizationId}
+                    allDocs={allDocs ?? []}
+                    counts={counts}
+                  />
+                ))}
+              </SimpleTreeView>
             )}
           </Box>
-          {taskId && (
-            <SimpleTreeView onSelectedItemsChange={handleSelectedItemsChange}>
-              {folderData.map((folder) => (
-                <PopoverFolderNode
-                  key={folder.id}
-                  folder={folder}
-                  taskId={taskId}
-                  projectId={projectId}
-                  organizationId={organizationId}
-                  allDocs={allDocs ?? []}
-                  counts={counts}
-                />
-              ))}
-            </SimpleTreeView>
-          )}
         </Box>
 
         {/* Right panel: preview (visible when doc selected) */}

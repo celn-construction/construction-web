@@ -121,6 +121,36 @@ Bryntum CrudManager POST { tasks, dependencies, resources, assignments, timeRang
 Phantom ID flow: Bryntum assigns temp `$PhantomId` to new records --> server maps to cuid2 IDs
 --> response returns mapping --> client updates local store.
 
+## Gantt Task Detail
+
+**Router**: `gantt.ts` | **Procedure**: orgProcedure (`gantt.taskDetail`)
+
+```
+TaskDetailsPopover --> gantt.taskDetail({ projectId, taskId }):
+  Verify project belongs to org --> query GanttTask by (id, projectId)
+  --> Return { id, name, percentDone, startDate, endDate, coverImageUrl, group }
+```
+
+## Gantt Task Cover Image
+
+**Endpoint**: `POST /api/gantt/cover-image` | `DELETE /api/gantt/cover-image`
+
+```
+Upload:
+  User clicks "Add cover image" in TaskDetailsPopover
+  --> POST /api/gantt/cover-image (multipart: file, projectId, taskId)
+  --> Auth check --> verifyAccess (project exists, org membership, task exists)
+  --> Validate file (size <= 10 MB, MIME: JPEG/PNG/GIF/WebP)
+  --> Delete old blob if exists --> put() to Vercel Blob: projects/{projectId}/covers/{taskId}/{filename}
+  --> Update GanttTask.coverImageUrl --> return { coverImageUrl }
+
+Delete:
+  User clicks "Remove" on existing cover image
+  --> DELETE /api/gantt/cover-image (JSON: projectId, taskId)
+  --> Auth check --> verifyAccess --> del() from Vercel Blob
+  --> Set GanttTask.coverImageUrl = null --> return { success }
+```
+
 ## Document Upload
 
 **Endpoint**: `POST /api/upload` (multipart FormData)

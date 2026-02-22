@@ -16,6 +16,7 @@ export type TaskClickEventPayload = {
   taskRecord: {
     id: string | number;
     name?: string;
+    isParent?: boolean;
   };
   event: {
     target: EventTarget | null;
@@ -49,6 +50,7 @@ export type GanttConfig = {
   detectCSSCompatibilityIssues: boolean;
   rowHeight?: number;
   animateTreeNodeToggle?: boolean;
+  toggleParentTasksOnClick?: boolean;
   project: {
     autoLoad: boolean;
     autoSync?: boolean;
@@ -86,5 +88,7 @@ export type GanttConfig = {
   barMargin: number;
   listeners: {
     taskClick: TaskClickHandler;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cellDblClick?: (...args: any[]) => void;
   };
 };

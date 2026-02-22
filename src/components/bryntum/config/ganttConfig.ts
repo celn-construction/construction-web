@@ -31,6 +31,7 @@ export function createGanttConfig(
     autoHeight: false,
     rowHeight: 45, // Consistent row height for better performance
     animateTreeNodeToggle: false, // Disable animations for faster rendering
+    toggleParentTasksOnClick: false, // Prevent clicking a parent task bar from collapsing its children
 
     project: {
       autoLoad: true,
@@ -105,6 +106,19 @@ export function createGanttConfig(
     barMargin: 10,
     listeners: {
       taskClick: onTaskClick,
+      // Bryntum blocks the duration cell editor for parent tasks before
+      // beforeCellEditStart ever fires (checked internally in DurationColumn).
+      // cellDblClick fires first, so we can set manuallyScheduled: true here —
+      // telling the scheduling engine to stop auto-deriving duration from children
+      // — before Bryntum decides whether to open the editor.
+      cellDblClick({ record, column }: {
+        record: { isParent: boolean; manuallyScheduled: boolean; set: (field: string, value: unknown) => void };
+        column: { type: string };
+      }) {
+        if (column.type === 'duration' && record.isParent && !record.manuallyScheduled) {
+          record.set('manuallyScheduled', true);
+        }
+      },
     },
   };
 }
