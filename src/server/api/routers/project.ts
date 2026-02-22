@@ -145,6 +145,15 @@ export const projectRouter = createTRPCRouter({
         });
       }
 
+      // Add creator as project owner
+      await ctx.db.projectMember.create({
+        data: {
+          userId: ctx.session.user.id,
+          projectId: project.id,
+          role: "owner",
+        },
+      });
+
       // Set as active project for user
       await ctx.db.user.update({
         where: { id: ctx.session.user.id },

@@ -13,6 +13,10 @@ export function middleware(request: NextRequest) {
   const activeOrgSlug = activeOrgSlugCookie?.value && /^[a-z0-9-]+$/.test(activeOrgSlugCookie.value)
     ? activeOrgSlugCookie.value
     : null;
+  const activeProjectSlugCookie = request.cookies.get("active-project-slug");
+  const activeProjectSlug = activeProjectSlugCookie?.value && /^[a-z0-9-]+$/.test(activeProjectSlugCookie.value)
+    ? activeProjectSlugCookie.value
+    : null;
   const pathname = request.nextUrl.pathname;
 
   const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up") || pathname.startsWith("/forgot-password") || pathname.startsWith("/reset-password");
@@ -74,17 +78,33 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
+  // Fast-path: /dashboard with warm cookies skips the server component entirely
+  if (pathname === "/dashboard") {
+    if (activeOrgSlug && activeProjectSlug) {
+      return NextResponse.redirect(
+        new URL(`/${activeOrgSlug}/projects/${activeProjectSlug}/gantt`, request.url)
+      );
+    }
+    return NextResponse.next();
+  }
+
   // Update active-org-slug cookie from URL for any org-scoped route
   const staticPrefixes = ['api', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'onboarding', 'invite', 'dashboard', '_next'];
-  const firstSegment = pathname.split('/')[1];
+  const segments = pathname.split('/');
+  const firstSegment = segments[1];
   if (firstSegment && !staticPrefixes.includes(firstSegment) && /^[a-z0-9-]+$/.test(firstSegment)) {
     const response = NextResponse.next();
-    response.cookies.set("active-org-slug", firstSegment, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "lax" as const,
       maxAge: 60 * 60 * 24 * 365,
-    });
+    };
+    response.cookies.set("active-org-slug", firstSegment, cookieOptions);
+    // Track active project slug from project-scoped routes: /{orgSlug}/projects/{projectSlug}/...
+    if (segments[2] === 'projects' && segments[3] && /^[a-z0-9-]+$/.test(segments[3])) {
+      response.cookies.set("active-project-slug", segments[3], cookieOptions);
+    }
     return response;
   }
 

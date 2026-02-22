@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure, publicProcedure, orgProcedure } from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure, projectProcedure } from "@/server/api/trpc";
 import { canInviteMembers, canAssignRole } from "@/lib/permissions";
 import { sendInvitationEmail } from "@/lib/email";
 import { randomBytes } from "crypto";
@@ -8,47 +8,47 @@ import { createInvitationSchema } from "@/lib/validations/invitation";
 import { INVITATION_STATUS } from "@/lib/constants/invitation";
 
 export const invitationRouter = createTRPCRouter({
-  create: orgProcedure
+  create: projectProcedure
     .input(createInvitationSchema)
     .mutation(async ({ ctx, input }) => {
       // Check permission
-      if (!canInviteMembers(ctx.membership.role)) {
+      if (!canInviteMembers(ctx.projectMember.role)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You don't have permission to invite members",
         });
       }
 
-      // Enforce role hierarchy — inviters cannot assign roles at or above their own level
-      if (!canAssignRole(ctx.membership.role, input.role)) {
+      // Enforce role hierarchy
+      if (!canAssignRole(ctx.projectMember.role, input.role)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You cannot assign a role equal to or higher than your own",
         });
       }
 
-      // Check if user is already a member
+      // Check if user is already a project member
       const existingUser = await ctx.db.user.findUnique({
         where: { email: input.email },
         include: {
-          memberships: {
-            where: { organizationId: input.organizationId },
+          projectMembers: {
+            where: { projectId: input.projectId },
           },
         },
       });
 
-      if (existingUser?.memberships.length) {
+      if (existingUser?.projectMembers.length) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "User is already a member of this organization",
+          message: "User is already a member of this project",
         });
       }
 
-      // Check for existing pending invitation
+      // Check for existing pending invitation for this project
       const existingInvitation = await ctx.db.invitation.findFirst({
         where: {
           email: input.email,
-          organizationId: input.organizationId,
+          projectId: input.projectId,
           status: INVITATION_STATUS.PENDING,
         },
       });
@@ -73,7 +73,8 @@ export const invitationRouter = createTRPCRouter({
           token,
           expiresAt,
           invitedById: ctx.session.user.id,
-          organizationId: input.organizationId,
+          organizationId: ctx.organization.id,
+          projectId: input.projectId,
         },
       });
 
@@ -82,7 +83,8 @@ export const invitationRouter = createTRPCRouter({
         input.email,
         ctx.organization.name,
         ctx.session.user.name || "A team member",
-        token
+        token,
+        ctx.project.name,
       );
 
       if (!emailResult.success) {
@@ -97,10 +99,10 @@ export const invitationRouter = createTRPCRouter({
       return { invitation };
     }),
 
-  list: orgProcedure.query(async ({ ctx, input }) => {
+  list: projectProcedure.query(async ({ ctx, input }) => {
     const invitations = await ctx.db.invitation.findMany({
       where: {
-        organizationId: input.organizationId,
+        projectId: input.projectId,
       },
       include: {
         invitedBy: {
@@ -116,11 +118,11 @@ export const invitationRouter = createTRPCRouter({
     return invitations;
   }),
 
-  revoke: orgProcedure
+  revoke: projectProcedure
     .input(z.object({ invitationId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Check permission
-      if (!canInviteMembers(ctx.membership.role)) {
+      if (!canInviteMembers(ctx.projectMember.role)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You don't have permission to revoke invitations",
@@ -130,7 +132,7 @@ export const invitationRouter = createTRPCRouter({
       const invitation = await ctx.db.invitation.update({
         where: {
           id: input.invitationId,
-          organizationId: input.organizationId,
+          projectId: input.projectId,
         },
         data: {
           status: INVITATION_STATUS.REVOKED,
@@ -140,11 +142,11 @@ export const invitationRouter = createTRPCRouter({
       return { invitation };
     }),
 
-  resend: orgProcedure
+  resend: projectProcedure
     .input(z.object({ invitationId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Check permission
-      if (!canInviteMembers(ctx.membership.role)) {
+      if (!canInviteMembers(ctx.projectMember.role)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You don't have permission to resend invitations",
@@ -158,7 +160,7 @@ export const invitationRouter = createTRPCRouter({
       const invitation = await ctx.db.invitation.update({
         where: {
           id: input.invitationId,
-          organizationId: input.organizationId,
+          projectId: input.projectId,
         },
         data: {
           expiresAt,
@@ -171,7 +173,8 @@ export const invitationRouter = createTRPCRouter({
         invitation.email,
         ctx.organization.name,
         ctx.session.user.name || "A team member",
-        invitation.token
+        invitation.token,
+        ctx.project.name,
       );
 
       if (!emailResult.success) {
@@ -194,6 +197,12 @@ export const invitationRouter = createTRPCRouter({
             select: {
               id: true,
               name: true,
+            },
+          },
+          project: {
+            select: {
+              name: true,
+              slug: true,
             },
           },
           invitedBy: {
@@ -243,6 +252,13 @@ export const invitationRouter = createTRPCRouter({
               slug: true,
             },
           },
+          project: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
         },
       });
 
@@ -277,16 +293,33 @@ export const invitationRouter = createTRPCRouter({
         });
       }
 
-      // Create membership and mark invitation as accepted
       await ctx.db.$transaction(async (tx) => {
-        // Create membership
-        await tx.membership.create({
-          data: {
+        // Upsert org membership (ensure user has org access)
+        await tx.membership.upsert({
+          where: {
+            userId_organizationId: {
+              userId: ctx.session.user.id,
+              organizationId: invitation.organizationId,
+            },
+          },
+          create: {
             userId: ctx.session.user.id,
             organizationId: invitation.organizationId,
-            role: invitation.role,
+            role: "member",
           },
+          update: {},
         });
+
+        // Create project membership
+        if (invitation.projectId) {
+          await tx.projectMember.create({
+            data: {
+              userId: ctx.session.user.id,
+              projectId: invitation.projectId,
+              role: invitation.role,
+            },
+          });
+        }
 
         // Update invitation status
         await tx.invitation.update({
@@ -294,39 +327,44 @@ export const invitationRouter = createTRPCRouter({
           data: { status: INVITATION_STATUS.ACCEPTED },
         });
 
-        // Complete onboarding
+        // Complete onboarding and set active project
         await tx.user.update({
           where: { id: ctx.session.user.id },
-          data: { onboardingComplete: true },
-        });
-
-        // Get all existing org members (excluding the joining user)
-        const existingMembers = await tx.membership.findMany({
-          where: {
-            organizationId: invitation.organizationId,
-            userId: { not: ctx.session.user.id },
+          data: {
+            onboardingComplete: true,
+            ...(invitation.projectId ? { activeProjectId: invitation.projectId } : {}),
           },
-          select: { userId: true },
         });
 
-        // Create notifications for all existing members
-        if (existingMembers.length > 0) {
-          const joinerName = ctx.session.user.name ?? ctx.session.user.email;
-          await tx.notification.createMany({
-            data: existingMembers.map((member) => ({
-              type: "MEMBER_JOINED",
-              message: `${joinerName} joined the team`,
-              userId: member.userId,
-              organizationId: invitation.organizationId,
-              actorId: ctx.session.user.id,
-            })),
+        // Notify existing project members
+        if (invitation.projectId) {
+          const existingMembers = await tx.projectMember.findMany({
+            where: {
+              projectId: invitation.projectId,
+              userId: { not: ctx.session.user.id },
+            },
+            select: { userId: true },
           });
+
+          if (existingMembers.length > 0) {
+            const joinerName = ctx.session.user.name ?? ctx.session.user.email;
+            await tx.notification.createMany({
+              data: existingMembers.map((member) => ({
+                type: "MEMBER_JOINED",
+                message: `${joinerName} joined the project`,
+                userId: member.userId,
+                organizationId: invitation.organizationId,
+                actorId: ctx.session.user.id,
+              })),
+            });
+          }
         }
       });
 
       return {
         organization: invitation.organization,
         orgSlug: invitation.organization.slug,
+        projectSlug: invitation.project?.slug ?? null,
       };
     }),
 });
