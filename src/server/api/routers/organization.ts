@@ -1,8 +1,10 @@
-import { createTRPCRouter, protectedProcedure, orgProcedure } from "@/server/api/trpc";
+import { createTRPCRouter, publicProcedure, orgProcedure } from "@/server/api/trpc";
 import { z } from "zod";
 
 export const organizationRouter = createTRPCRouter({
-  list: protectedProcedure.query(async ({ ctx }) => {
+  list: publicProcedure.query(async ({ ctx }) => {
+    if (!ctx.session) return [];
+
     const memberships = await ctx.db.membership.findMany({
       where: { userId: ctx.session.user.id },
       include: { organization: true },

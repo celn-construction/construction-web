@@ -64,12 +64,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow onboarding page if not complete
+  // Always allow onboarding page — the page itself checks the DB
+  // and redirects to the user's org if they already have one
   if (isOnboardingPage) {
-    // If onboarding is complete, redirect to org home
-    if (onboardingComplete && activeOrgSlug) {
-      return NextResponse.redirect(new URL(`/${activeOrgSlug}`, request.url));
-    }
     return NextResponse.next();
   }
 
