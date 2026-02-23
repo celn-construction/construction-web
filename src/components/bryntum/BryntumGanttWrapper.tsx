@@ -262,7 +262,6 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
   return (
     <div style={WRAPPER_STYLE}>
       <BryntumPanelHeader
-        title="Bryntum Schedule"
         onAddTask={handleAddTask}
         onPresetChange={handlePresetChange}
         onZoomIn={handleZoomIn}
@@ -279,7 +278,9 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
       {/* Bryntum must always render in a visible container so its internal layout
           calculations use real dimensions.  The loading/error overlays sit on top. */}
       <div style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
-        <BryntumGantt ref={ganttRef} {...ganttConfig} />
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <BryntumGantt ref={ganttRef} {...ganttConfig} />
+        </div>
 
         {isLoading && (
           <Box
