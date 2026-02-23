@@ -35,7 +35,22 @@ const TITLE_STYLE: CSSProperties = {
   flex: 1,
 };
 
-const ADD_BUTTON_STYLE: CSSProperties = {
+const ADD_TASK_BUTTON_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '5px 14px',
+  fontSize: '0.8rem',
+  fontWeight: 600,
+  color: 'var(--accent-primary, #2563eb)',
+  backgroundColor: 'transparent',
+  border: '1px solid var(--accent-primary, #2563eb)',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  transition: 'background-color 0.15s, color 0.15s, box-shadow 0.15s',
+};
+
+const SAVE_BUTTON_STYLE: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: '4px',
@@ -140,6 +155,14 @@ export function BryntumPanelHeader({
           from { stroke-dashoffset: 20; opacity: 0; }
           to { stroke-dashoffset: 0; opacity: 1; }
         }
+        .gantt-add-task-btn:hover {
+          background-color: var(--accent-primary, #2563eb) !important;
+          color: #fff !important;
+          box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+        }
+        .gantt-add-task-btn:active {
+          transform: scale(0.97);
+        }
       `}</style>
       <div style={TITLE_ROW_STYLE}>
         <svg style={ICON_STYLE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -147,14 +170,21 @@ export function BryntumPanelHeader({
         </svg>
         <h2 style={TITLE_STYLE}>{title}</h2>
         {onAddTask && (
-          <button style={ADD_BUTTON_STYLE} onClick={onAddTask}>
-            + Add Task
+          <button
+            className="gantt-add-task-btn"
+            style={ADD_TASK_BUTTON_STYLE}
+            onClick={onAddTask}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Add Task
           </button>
         )}
         {onSave && (
           <button
             style={{
-              ...ADD_BUTTON_STYLE,
+              ...SAVE_BUTTON_STYLE,
               ...(isSaving || justSaved
                 ? {
                     color: justSaved ? 'var(--success, #16a34a)' : 'var(--text-secondary)',
