@@ -11,7 +11,6 @@ The document explorer uses Voyage AI vector embeddings for semantic (AI) search.
 | `src/server/services/embeddings.ts` | Voyage AI SDK wrapper — `embedDocuments()`, `embedQuery()`, `toVectorSql()` |
 | `src/server/api/routers/document.ts` | `document.aiSearch` procedure — vector similarity search |
 | `src/app/api/upload/route.ts` | Generates embedding after document upload |
-| `scripts/backfill-embeddings.ts` | One-time backfill for existing documents |
 
 ## Tech Stack
 
