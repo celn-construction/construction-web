@@ -26,6 +26,9 @@ const WRAPPER_STYLE: CSSProperties = {
 
 const GANTT_CONTENT_STYLE: CSSProperties = {
   flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  position: 'relative',
   overflow: 'clip',
 };
 
@@ -238,10 +241,8 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
 
       {/* Bryntum must always render in a visible container so its internal layout
           calculations use real dimensions.  The loading/error overlays sit on top. */}
-      <div style={{ ...GANTT_CONTENT_STYLE, position: 'relative' }} className="bryntum-gantt-container">
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <BryntumGantt ref={ganttRef} {...ganttConfig} />
-        </div>
+      <div style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
+        <BryntumGantt ref={ganttRef} {...ganttConfig} />
 
         {isLoading && (
           <Box
