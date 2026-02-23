@@ -22,7 +22,7 @@ export async function syncTasks(
   if (changes.removed) {
     await db.ganttTask.deleteMany({
       where: {
-        id: { in: changes.removed.map((r) => r.id) },
+        id: { in: changes.removed.filter((r): r is { id: string } => r != null && typeof r.id === 'string').map((r) => r.id) },
         projectId,
       },
     });
@@ -173,7 +173,7 @@ export async function syncDependencies(
   if (changes.removed) {
     await db.ganttDependency.deleteMany({
       where: {
-        id: { in: changes.removed.map((r) => r.id) },
+        id: { in: changes.removed.filter((r): r is { id: string } => r != null && typeof r.id === 'string').map((r) => r.id) },
         projectId,
       },
     });
@@ -253,7 +253,7 @@ export async function syncResources(
   if (changes.removed) {
     await db.ganttResource.deleteMany({
       where: {
-        id: { in: changes.removed.map((r) => r.id) },
+        id: { in: changes.removed.filter((r): r is { id: string } => r != null && typeof r.id === 'string').map((r) => r.id) },
         projectId,
       },
     });
@@ -320,7 +320,7 @@ export async function syncAssignments(
   if (changes.removed) {
     await db.ganttAssignment.deleteMany({
       where: {
-        id: { in: changes.removed.map((r) => r.id) },
+        id: { in: changes.removed.filter((r): r is { id: string } => r != null && typeof r.id === 'string').map((r) => r.id) },
         projectId,
       },
     });
@@ -393,7 +393,7 @@ export async function syncTimeRanges(
   if (changes.removed) {
     await db.ganttTimeRange.deleteMany({
       where: {
-        id: { in: changes.removed.map((r) => r.id) },
+        id: { in: changes.removed.filter((r): r is { id: string } => r != null && typeof r.id === 'string').map((r) => r.id) },
         projectId,
       },
     });

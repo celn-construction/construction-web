@@ -20,11 +20,14 @@ export function useGanttControls() {
       startDate: new Date(),
       duration: 1,
     });
-    // Let the scheduling engine process, then scroll to show the new task
+    // Immediately scroll the timeline to today so the task bar area is visible
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.scrollToDate(new Date(), { block: 'center', animate: true });
+    // After the scheduling engine processes, scroll to the specific task row + bar
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync().then(() => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      if (task) gantt.scrollTaskIntoView(task, { block: 'nearest', animate: { duration: 300 } });
+      if (task) gantt.scrollTaskIntoView(task, { block: 'center', animate: { duration: 300 } });
     });
   }, [getGanttInstance]);
 

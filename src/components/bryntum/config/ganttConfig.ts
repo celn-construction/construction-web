@@ -1,4 +1,4 @@
-import type { GanttConfig, TaskClickHandler } from '../types';
+import type { GanttConfig } from '../types';
 import { SCROLL_TO_COLUMN_ID } from '../constants';
 
 function formatTooltipText(record: Record<string, unknown>, field?: string): string {
@@ -21,7 +21,6 @@ interface LoadingCallbacks {
 }
 
 export function createGanttConfig(
-  onTaskClick: TaskClickHandler,
   projectId?: string,
   loadingCallbacks?: LoadingCallbacks
 ): GanttConfig {
@@ -126,7 +125,6 @@ export function createGanttConfig(
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
     barMargin: 10,
     listeners: {
-      taskClick: onTaskClick,
       // Bryntum blocks the duration cell editor for parent tasks before
       // beforeCellEditStart ever fires (checked internally in DurationColumn).
       // cellDblClick fires first, so we can set manuallyScheduled: true here —

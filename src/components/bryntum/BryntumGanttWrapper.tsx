@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
+import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
 import '@bryntum/gantt/gantt.css';
 import { CircularProgress, Box } from '@mui/material';
@@ -188,6 +188,30 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     };
   }, [isLoading, getGanttInstance, showSnackbar]);
 
+  // Close the task popover when the selected task is removed (e.g. parent deletion cascades)
+  useEffect(() => {
+    if (isLoading) return;
+    const gantt = getGanttInstance();
+    if (!gantt?.project?.taskStore) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onTaskRemove = ({ records }: { records: any[] }) => {
+      if (!selectedTask) return;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const removedIds = new Set(records.map((r) => String(r.id)));
+      if (removedIds.has(selectedTask.id)) {
+        closeTaskPopover();
+      }
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.project.taskStore.on('remove', onTaskRemove);
+    return () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.project?.taskStore?.un('remove', onTaskRemove);
+    };
+  }, [isLoading, getGanttInstance, selectedTask, closeTaskPopover]);
+
   // Silently refresh data when returning to the Gantt tab after the stale threshold.
   // Bryntum's CrudManager merges fresh data without resetting scroll, selections, or expanded state.
   const hiddenSinceRef = useRef(0);
@@ -205,22 +229,35 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     }
   }, [isVisible, getGanttInstance]);
 
-  const ganttConfig = useMemo(
-    () => createGanttConfig(handleTaskClick, projectId, {
-      onLoadStart: () => {
-        setIsLoading(true);
-        setLoadError(null);
-      },
-      onLoadComplete: () => {
-        setIsLoading(false);
-      },
-      onLoadError: (error: string) => {
-        setIsLoading(false);
-        setLoadError(error);
-      },
-    }),
-    [handleTaskClick, projectId]
-  );
+  // Bryntum React best practice: use useState (not useMemo) so the config object is
+  // created exactly once and never recreated on re-render.  A new config reference
+  // would make the React wrapper re-initialise the Bryntum instance (including
+  // autoLoad), which wipes locally-added tasks.
+  const [ganttConfig] = useState(() => createGanttConfig(projectId, {
+    onLoadStart: () => {
+      setIsLoading(true);
+      setLoadError(null);
+    },
+    onLoadComplete: () => {
+      setIsLoading(false);
+    },
+    onLoadError: (error: string) => {
+      setIsLoading(false);
+      setLoadError(error);
+    },
+  }));
+
+  // Attach the taskClick listener on the Bryntum instance (not in the static config)
+  // so we can use the latest handleTaskClick reference from useTaskPopover.
+  useEffect(() => {
+    if (isLoading) return;
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.on('taskClick', handleTaskClick);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    return () => { gantt.un('taskClick', handleTaskClick); };
+  }, [isLoading, getGanttInstance, handleTaskClick]);
 
   return (
     <div style={WRAPPER_STYLE}>
