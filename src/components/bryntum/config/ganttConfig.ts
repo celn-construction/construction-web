@@ -1,4 +1,5 @@
 import type { GanttConfig, TaskClickHandler } from '../types';
+import { SCROLL_TO_COLUMN_ID } from '../constants';
 
 function formatTooltipText(record: Record<string, unknown>, field?: string): string {
   if (!field) {
@@ -35,7 +36,7 @@ export function createGanttConfig(
 
     project: {
       autoLoad: true,
-      autoSync: !!projectId,
+      autoSync: false,
 
       // Enable delay calculation for better initial load performance
       delayCalculation: true,
@@ -72,6 +73,7 @@ export function createGanttConfig(
         },
       },
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     columns: [
       {
         type: 'name',
@@ -93,6 +95,24 @@ export function createGanttConfig(
         width: 100,
         resizable: true,
       },
+      // Action column: chevron icon to scroll timeline to the task's bar
+      {
+        type: 'column',
+        id: SCROLL_TO_COLUMN_ID,
+        text: '',
+        width: 40,
+        resizable: false,
+        sortable: false,
+        filterable: false,
+        htmlEncode: false,
+        editor: false,
+        cellCls: 'b-scroll-to-cell',
+        renderer({ record }: { record: { startDate?: Date | null } }) {
+          const isScheduled = record.startDate != null;
+          if (!isScheduled) return '';
+          return `<div class="scroll-to-timeline-btn" title="Scroll to timeline" style="display:flex;align-items:center;justify-content:center;height:100%;cursor:pointer;opacity:0.4;transition:opacity 0.15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>`;
+        },
+      } as any,
     ],
     features: {
       cellTooltip: {
@@ -118,6 +138,21 @@ export function createGanttConfig(
         if (column.type === 'duration' && record.isParent && !record.manuallyScheduled) {
           record.set('manuallyScheduled', true);
         }
+      },
+      cellClick({ record, column, grid }: {
+        record: { id: string | number; startDate?: Date | null };
+        column: { id?: string };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        grid: any;
+      }) {
+        if (column.id !== SCROLL_TO_COLUMN_ID) return;
+        if (!record.startDate) return;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        grid.scrollTaskIntoView(record, {
+          block: 'center',
+          animate: { duration: 300 },
+          highlight: true,
+        });
       },
     },
   };

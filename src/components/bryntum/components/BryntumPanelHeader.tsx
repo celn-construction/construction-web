@@ -102,6 +102,10 @@ type BryntumPanelHeaderProps = {
   onZoomToFit?: () => void;
   onShiftPrevious?: () => void;
   onShiftNext?: () => void;
+  onSave?: () => void;
+  isSaving?: boolean;
+  hasPendingChanges?: boolean;
+  justSaved?: boolean;
 };
 
 export function BryntumPanelHeader({
@@ -113,6 +117,10 @@ export function BryntumPanelHeader({
   onZoomToFit,
   onShiftPrevious,
   onShiftNext,
+  onSave,
+  isSaving,
+  hasPendingChanges,
+  justSaved,
 }: BryntumPanelHeaderProps) {
   const [activePreset, setActivePreset] = useState('weekAndDayLetter');
 
@@ -123,6 +131,16 @@ export function BryntumPanelHeader({
 
   return (
     <div style={HEADER_STYLE}>
+      <style>{`
+        @keyframes gantt-save-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes gantt-check-draw {
+          from { stroke-dashoffset: 20; opacity: 0; }
+          to { stroke-dashoffset: 0; opacity: 1; }
+        }
+      `}</style>
       <div style={TITLE_ROW_STYLE}>
         <svg style={ICON_STYLE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
@@ -131,6 +149,65 @@ export function BryntumPanelHeader({
         {onAddTask && (
           <button style={ADD_BUTTON_STYLE} onClick={onAddTask}>
             + Add Task
+          </button>
+        )}
+        {onSave && (
+          <button
+            style={{
+              ...ADD_BUTTON_STYLE,
+              ...(isSaving || justSaved
+                ? {
+                    color: justSaved ? 'var(--success, #16a34a)' : 'var(--text-secondary)',
+                    border: justSaved ? '1px solid var(--success, #16a34a)' : '1px solid var(--border-color)',
+                    opacity: isSaving ? 0.7 : 1,
+                    cursor: 'default',
+                  }
+                : hasPendingChanges
+                  ? {
+                      color: 'var(--accent-primary, #2563eb)',
+                      border: '1px solid var(--accent-primary, #2563eb)',
+                    }
+                  : {
+                      opacity: 0.5,
+                      cursor: 'default',
+                    }),
+            }}
+            onClick={hasPendingChanges && !isSaving && !justSaved ? onSave : undefined}
+            disabled={!hasPendingChanges || isSaving || justSaved}
+            title={isSaving ? 'Saving…' : justSaved ? 'Changes saved' : hasPendingChanges ? 'Save changes' : 'No unsaved changes'}
+          >
+            {isSaving && (
+              <span style={{
+                display: 'inline-block',
+                width: 11,
+                height: 11,
+                border: '2px solid currentColor',
+                borderTopColor: 'transparent',
+                borderRadius: '50%',
+                animation: 'gantt-save-spin 0.65s linear infinite',
+                flexShrink: 0,
+              }} />
+            )}
+            {justSaved && (
+              <svg
+                width={11}
+                height={11}
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0 }}
+              >
+                <path
+                  d="M1.5 6.5 L4.5 9.5 L10.5 2.5"
+                  strokeDasharray="20"
+                  style={{ animation: 'gantt-check-draw 0.35s ease-out forwards' }}
+                />
+              </svg>
+            )}
+            {isSaving ? 'Saving…' : hasPendingChanges ? 'Save' : 'Saved'}
           </button>
         )}
       </div>

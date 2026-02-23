@@ -90,5 +90,7 @@ export type GanttConfig = {
     taskClick: TaskClickHandler;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cellDblClick?: (...args: any[]) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cellClick?: (...args: any[]) => void;
   };
 };
