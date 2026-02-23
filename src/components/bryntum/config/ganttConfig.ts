@@ -110,7 +110,8 @@ export function createGanttConfig(
         renderer({ record }: { record: { startDate?: Date | null } }) {
           const isScheduled = record.startDate != null;
           if (!isScheduled) return '';
-          return `<div class="scroll-to-timeline-btn" title="Scroll to timeline" style="display:flex;align-items:center;justify-content:center;height:100%;cursor:pointer;opacity:0.4;transition:opacity 0.15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>`;
+          // Phosphor NavigationArrow (fill weight, viewBox 0 0 256 256)
+          return `<div class="scroll-to-timeline-btn" title="Scroll to timeline" style="display:flex;align-items:center;justify-content:center;height:100%;cursor:pointer;opacity:0.4;transition:opacity 0.15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'"><svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M248,121.58a15.76,15.76,0,0,1-11.29,15l-.2.06-78,21.84-21.84,78-.06.2a15.77,15.77,0,0,1-15,11.29h-.3a15.77,15.77,0,0,1-15.07-10.67L41,61.41a1,1,0,0,1-.05-.16A16,16,0,0,1,61.25,40.9l.16.05,175.92,65.26A15.78,15.78,0,0,1,248,121.58Z"/></svg></div>`;
         },
       } as any,
     ],
@@ -141,11 +142,11 @@ export function createGanttConfig(
       },
       cellClick({ record, column, grid }: {
         record: { id: string | number; startDate?: Date | null };
-        column: { id?: string };
+        column: { id?: string } | undefined;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         grid: any;
       }) {
-        if (column.id !== SCROLL_TO_COLUMN_ID) return;
+        if (!column || column.id !== SCROLL_TO_COLUMN_ID) return;
         if (!record.startDate) return;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         grid.scrollTaskIntoView(record, {

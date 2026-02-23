@@ -65,14 +65,18 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     handlePresetChange,
   } = useGanttControls();
 
-  // toggleParentTasksOnClick is a config-only prop in Bryntum's React adapter, so it must
-  // also be set imperatively on the instance after load to guarantee it takes effect.
+  // After data loads, finalize the project so the scheduling engine and layout are
+  // fully ready before the user can interact.  delayCalculation defers the initial
+  // engine run until commitAsync — calling it here ensures the project is calculated
+  // before "Add Task" or any other interaction.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    void gantt.project.commitAsync();
   }, [isLoading, getGanttInstance]);
 
   const handleSave = useCallback(async () => {
@@ -232,16 +236,25 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
         justSaved={justSaved}
       />
 
-      <div style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
+      {/* Bryntum must always render in a visible container so its internal layout
+          calculations use real dimensions.  The loading/error overlays sit on top. */}
+      <div style={{ ...GANTT_CONTENT_STYLE, position: 'relative' }} className="bryntum-gantt-container">
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <BryntumGantt ref={ganttRef} {...ganttConfig} />
+        </div>
+
         {isLoading && (
           <Box
             sx={{
+              position: 'absolute',
+              inset: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '100%',
               flexDirection: 'column',
               gap: 2,
+              bgcolor: 'var(--bg-card)',
+              zIndex: 1,
             }}
           >
             <CircularProgress />
@@ -252,28 +265,22 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
         {loadError && (
           <Box
             sx={{
+              position: 'absolute',
+              inset: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '100%',
               flexDirection: 'column',
               gap: 2,
               color: 'error.main',
+              bgcolor: 'var(--bg-card)',
+              zIndex: 1,
             }}
           >
             <div>Failed to load Gantt chart</div>
             <div style={{ fontSize: '0.875rem' }}>{loadError}</div>
           </Box>
         )}
-
-        <div style={{
-          display: isLoading || loadError ? 'none' : 'flex',
-          flexDirection: 'column',
-          flex: 1,
-          minHeight: 0,
-        }}>
-          <BryntumGantt ref={ganttRef} {...ganttConfig} />
-        </div>
       </div>
 
       <TaskDetailsPopover
