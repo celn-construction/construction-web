@@ -10,29 +10,20 @@ import {
   Skeleton,
   Chip,
   LinearProgress,
+  Switch,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { Search, FileText, FileSpreadsheet, FileImage } from 'lucide-react';
+import { Search, Sparkles, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/react';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { folderData, expandFolderIds } from '@/lib/folders';
+import { getFileIcon } from '@/lib/utils/files';
+import { formatFileSize } from '@/lib/utils/formatting';
 
 const LIMIT = 20;
-
-function getFileIcon(mimeType: string) {
-  const iconStyle = { color: 'var(--text-secondary)' };
-  if (mimeType.startsWith('image/')) return <FileImage size={32} style={iconStyle} />;
-  if (mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType === 'text/csv')
-    return <FileSpreadsheet size={32} style={iconStyle} />;
-  return <FileText size={32} style={iconStyle} />;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export default function DocumentExplorerPage() {
   const { projectId, organizationId } = useProjectContext();
@@ -40,15 +31,18 @@ export default function DocumentExplorerPage() {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(1);
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiSearchQuery, setAiSearchQuery] = useState('');
 
-  // Debounce search input
+  // Debounce search input (only for fuzzy mode)
   useEffect(() => {
+    if (aiEnabled) return;
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
       setPage(1);
     }, 300);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, aiEnabled]);
 
   const offset = (page - 1) * LIMIT;
 
@@ -70,7 +64,38 @@ export default function DocumentExplorerPage() {
     setPage(1);
   };
 
-  const { data, isLoading, isFetching } = api.document.search.useQuery(
+  const handleAiToggle = () => {
+    setAiEnabled((prev) => {
+      const next = !prev;
+      if (!next) {
+        // Switching back to fuzzy: clear AI state, sync debounced query
+        setAiSearchQuery('');
+        setDebouncedQuery(query);
+      } else {
+        // Switching to AI: clear debounced to avoid stale fuzzy query
+        setDebouncedQuery('');
+      }
+      setPage(1);
+      return next;
+    });
+  };
+
+  const handleAiSubmit = () => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setAiSearchQuery(trimmed);
+    setPage(1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (aiEnabled && e.key === 'Enter') {
+      e.preventDefault();
+      handleAiSubmit();
+    }
+  };
+
+  // Fuzzy search query (AI OFF)
+  const fuzzyQuery = api.document.search.useQuery(
     {
       organizationId,
       projectId,
@@ -80,36 +105,115 @@ export default function DocumentExplorerPage() {
       folderIds,
     },
     {
-      enabled: !!organizationId && !!projectId,
+      enabled: !aiEnabled && !!organizationId && !!projectId,
       placeholderData: keepPreviousData,
     },
   );
 
-  const results = data?.results ?? [];
-  const total = data?.total ?? 0;
+  // AI semantic search query (AI ON)
+  const aiQuery = api.document.aiSearch.useQuery(
+    {
+      organizationId,
+      projectId,
+      query: aiSearchQuery,
+      limit: LIMIT,
+      offset,
+      folderIds,
+    },
+    {
+      enabled: aiEnabled && !!aiSearchQuery && !!organizationId && !!projectId,
+      staleTime: 60_000,
+      retry: 1,
+    },
+  );
+
+  // When AI is on but no search submitted, show all docs via fuzzy (empty query)
+  const allDocsQuery = api.document.search.useQuery(
+    {
+      organizationId,
+      projectId,
+      query: '',
+      limit: LIMIT,
+      offset,
+      folderIds,
+    },
+    {
+      enabled: aiEnabled && !aiSearchQuery && !!organizationId && !!projectId,
+      placeholderData: keepPreviousData,
+    },
+  );
+
+  // Pick the active data source
+  const activeQuery = aiEnabled
+    ? aiSearchQuery
+      ? aiQuery
+      : allDocsQuery
+    : fuzzyQuery;
+
+  const results = activeQuery.data?.results ?? [];
+  const total = activeQuery.data?.total ?? 0;
   const totalPages = Math.ceil(total / LIMIT);
-  const isBackgroundFetching = isFetching && !isLoading;
+  const isLoading = activeQuery.isLoading;
+  const isBackgroundFetching = activeQuery.isFetching && !isLoading;
 
   return (
     <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Search bar */}
-      <TextField
-        placeholder="Search documents..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        fullWidth
-        size="small"
-        slotProps={{
-          input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search size={18} style={{ color: 'var(--text-secondary)' }} />
-              </InputAdornment>
-            ),
-          },
-        }}
-        sx={{ mb: 0.5 }}
-      />
+      {/* Search bar row */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+        <TextField
+          placeholder={aiEnabled ? 'Describe what you\'re looking for...' : 'Search documents...'}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          fullWidth
+          size="small"
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  {aiEnabled ? (
+                    <Sparkles size={18} style={{ color: 'var(--mui-palette-primary-main, #1976d2)' }} />
+                  ) : (
+                    <Search size={18} style={{ color: 'var(--text-secondary)' }} />
+                  )}
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+
+        {/* Search button (AI mode only) */}
+        {aiEnabled && (
+          <Tooltip title="Search">
+            <IconButton
+              onClick={handleAiSubmit}
+              color="primary"
+              size="small"
+              sx={{
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': { bgcolor: 'primary.dark' },
+                borderRadius: 1,
+                px: 2,
+              }}
+            >
+              <Search size={18} />
+            </IconButton>
+          </Tooltip>
+        )}
+
+        {/* AI toggle */}
+        <Tooltip title={aiEnabled ? 'AI search on' : 'AI search off'}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5 }}>
+            <Sparkles size={16} style={{ color: aiEnabled ? 'var(--mui-palette-primary-main, #1976d2)' : 'var(--text-secondary)' }} />
+            <Switch
+              checked={aiEnabled}
+              onChange={handleAiToggle}
+              size="small"
+            />
+          </Box>
+        </Tooltip>
+      </Box>
 
       {/* Fetching indicator */}
       <Box sx={{ height: 4, mb: 1 }}>
@@ -137,9 +241,11 @@ export default function DocumentExplorerPage() {
       {/* Result count */}
       {!isLoading && total > 0 && (
         <Typography variant="caption" sx={{ color: 'text.secondary', mb: 1.5 }}>
-          {debouncedQuery
-            ? `${total} result${total !== 1 ? 's' : ''} for "${debouncedQuery}"`
-            : `${total} document${total !== 1 ? 's' : ''}`}
+          {aiEnabled && aiSearchQuery
+            ? `${total} result${total !== 1 ? 's' : ''} for "${aiSearchQuery}"`
+            : debouncedQuery && !aiEnabled
+              ? `${total} result${total !== 1 ? 's' : ''} for "${debouncedQuery}"`
+              : `${total} document${total !== 1 ? 's' : ''}`}
         </Typography>
       )}
 
@@ -181,12 +287,16 @@ export default function DocumentExplorerPage() {
         >
           <FileText size={48} style={{ color: 'var(--text-disabled)', marginBottom: 16 }} />
           <Typography variant="h6" sx={{ color: 'text.secondary', mb: 0.5 }}>
-            {debouncedQuery ? 'No results found' : 'No documents yet'}
+            {(aiEnabled && aiSearchQuery) || (!aiEnabled && debouncedQuery)
+              ? 'No results found'
+              : 'No documents yet'}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-            {debouncedQuery
-              ? `No documents match "${debouncedQuery}"`
-              : 'Upload documents to see them here'}
+            {aiEnabled && aiSearchQuery
+              ? `No documents match "${aiSearchQuery}"`
+              : !aiEnabled && debouncedQuery
+                ? `No documents match "${debouncedQuery}"`
+                : 'Upload documents to see them here'}
           </Typography>
         </Box>
       )}

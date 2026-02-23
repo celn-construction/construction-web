@@ -3,6 +3,8 @@ import { put } from "@vercel/blob";
 import { db } from "@/server/db";
 import { auth } from "@/lib/auth";
 import { analyzeDocument } from "@/server/services/tagging";
+import { embedDocuments, toVectorSql } from "@/server/services/embeddings";
+import { env } from "@/env";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -144,6 +146,19 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+
+    // Generate and store embedding for semantic search (non-blocking — don't fail upload if this fails)
+    if (env.VOYAGE_API_KEY && analysis.description) {
+      try {
+        const [embedding] = await embedDocuments([analysis.description]);
+        if (embedding) {
+          const vectorSql = toVectorSql(embedding);
+          await db.$executeRaw`UPDATE "Document" SET embedding = ${vectorSql}::vector WHERE id = ${document.id}`;
+        }
+      } catch (embeddingError) {
+        console.error("Embedding generation failed:", embeddingError);
+      }
+    }
 
     return NextResponse.json(document);
   } catch (error) {

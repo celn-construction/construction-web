@@ -8,6 +8,7 @@
 @claudedocs/architecture-and-typescript.md
 @claudedocs/testing-guide.md
 @claudedocs/components-guide.md
+@claudedocs/voyage-embeddings.md
 
 ## Documentation Update Rules
 When making changes that affect these docs, update them in the same task:
