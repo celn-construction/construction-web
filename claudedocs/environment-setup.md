@@ -12,6 +12,7 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 | `APP_URL` | Server-side base URL for email links and redirects | Yes (defaults to `http://localhost:5050`) | `https://construction-web-ashen.vercel.app` |
 | `RESEND_API_KEY` | Resend transactional email API key | Optional | `re_...` (omit for dev console logging) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token for file uploads | Optional | Provided by Vercel integration |
+| `VOYAGE_API_KEY` | Voyage AI API key for semantic document search embeddings | Optional | `pa-...` (get from dash.voyageai.com) |
 | `NEXT_PUBLIC_APP_URL` | Client-side base URL | Optional | `http://localhost:5050` |
 | `NODE_ENV` | Runtime environment | Auto | `development` / `production` / `test` |
 | `PORT` | Dev server port | Auto (defaults to `5050`) | `5050` |

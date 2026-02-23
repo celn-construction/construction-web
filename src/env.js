@@ -15,6 +15,7 @@ export const env = createEnv({
     RESEND_API_KEY: z.string().optional(),
     APP_URL: z.string().url().default("http://localhost:5050"),
     BLOB_READ_WRITE_TOKEN: z.string().optional(),
+    VOYAGE_API_KEY: z.string().optional(),
   },
 
   /**
@@ -37,6 +38,7 @@ export const env = createEnv({
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     APP_URL: process.env.APP_URL,
     BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN || undefined,
+    VOYAGE_API_KEY: process.env.VOYAGE_API_KEY,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

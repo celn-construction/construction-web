@@ -167,6 +167,47 @@ User drops file --> POST /api/upload (file, projectId, taskId, folderId)
 **Queries**: `listByFolder` | `listByTask` | `countByTask` (returns `{ [folderId]: count }`)
 **Delete**: verify org ownership --> `del(blobUrl)` from Vercel Blob --> delete DB record
 
+**Embedding on upload**: If `VOYAGE_API_KEY` is set and the document has an AI-generated description,
+the upload route calls `embedDocuments([description])` (Voyage AI `voyage-4-lite`, 1024 dims),
+converts to pgvector format via `toVectorSql()`, and writes to `Document.embedding` via `$executeRaw`.
+Failures are caught and logged without failing the upload.
+
+## Document Search
+
+**Router**: `document.ts` | **Procedure**: orgProcedure
+
+### Fuzzy Search (`document.search`)
+
+```
+User types in document explorer search bar (auto-debounced 300ms)
+  --> document.search({ projectId, query, limit, offset, folderIds? }):
+       Verify project belongs to org
+       --> Empty query: return all documents (Prisma findMany, ordered by createdAt DESC)
+       --> Short query (< 3 chars): ILIKE prefix match (trigrams need 3-char windows)
+       --> Full query (3+ chars): hybrid fuzzy + full-text search
+            $transaction:
+              SET LOCAL pg_trgm.similarity_threshold = 0.3
+              --> pg_trgm similarity (d.name % query) OR full-text (search_vector @@ websearch_to_tsquery)
+              --> Rank = GREATEST(trigram_similarity, ts_rank_cd)
+              --> COUNT(*) OVER() for total count (single query, no separate count)
+  --> Return { results: shaped documents with uploader info, total }
+```
+
+### AI Semantic Search (`document.aiSearch`)
+
+```
+User enables AI toggle, types query, clicks search button
+  --> document.aiSearch({ projectId, query, limit, offset, folderIds? }):
+       Verify project belongs to org
+       --> embedQuery(query) via Voyage AI (input_type: "query")
+       --> toVectorSql(embedding) converts to pgvector format
+       --> $queryRaw: cosine similarity search (d.embedding <=> vector)
+            Filter: embedding IS NOT NULL, projectId, optional folderIds
+            Rank = (1 - cosine_distance)
+            ORDER BY cosine distance ASC (closest first)
+  --> Return { results: shaped documents with uploader info, total }
+```
+
 ## Organization and Project Context
 
 ### OrgProvider (`(app)/[orgSlug]/layout.tsx` --> `OrgProvider.tsx`)
