@@ -64,9 +64,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow onboarding page if not complete
+  // Redirect to org home if user already completed onboarding
   if (isOnboardingPage) {
-    // If onboarding is complete, redirect to org home
     if (onboardingComplete && activeOrgSlug) {
       return NextResponse.redirect(new URL(`/${activeOrgSlug}`, request.url));
     }
