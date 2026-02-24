@@ -158,7 +158,7 @@ export default function DocumentFilterPopup({
         </Box>
       </Box>
 
-      <Box sx={{ height: 1, bgcolor: 'divider' }} />
+      <Box sx={{ height: '1px', bgcolor: 'divider', flexShrink: 0 }} />
 
       {/* Document Type */}
       <Box sx={{ px: 2, py: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -220,7 +220,7 @@ export default function DocumentFilterPopup({
         </Box>
       </Box>
 
-      <Box sx={{ height: 1, bgcolor: 'divider' }} />
+      <Box sx={{ height: '1px', bgcolor: 'divider', flexShrink: 0 }} />
 
       {/* Link Status */}
       <Box sx={{ px: 2, py: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -263,7 +263,7 @@ export default function DocumentFilterPopup({
         </Box>
       </Box>
 
-      <Box sx={{ height: 1, bgcolor: 'divider' }} />
+      <Box sx={{ height: '1px', bgcolor: 'divider', flexShrink: 0 }} />
 
       {/* Footer */}
       <Box
