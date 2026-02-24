@@ -318,6 +318,19 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
 
       {/* Bryntum must always render in a visible container so its internal layout
           calculations use real dimensions.  The loading/error overlays sit on top. */}
+      <style>{`
+        .bryntum-gantt-container .b-tree-cell { cursor: pointer; }
+        .bryntum-gantt-container .b-gantt-task.b-highlight {
+          animation: gantt-bar-glow 1s ease-out !important;
+          outline: none !important;
+        }
+        @keyframes gantt-bar-glow {
+          0% { box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.6); }
+          50% { box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.3); }
+          100% { box-shadow: none; }
+        }
+      `}</style>
+
       <div style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <BryntumGantt ref={ganttRef} {...ganttConfig} />

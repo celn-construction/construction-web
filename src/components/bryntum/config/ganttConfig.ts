@@ -1,5 +1,4 @@
 import type { GanttConfig } from '../types';
-import { SCROLL_TO_COLUMN_ID } from '../constants';
 
 function formatTooltipText(record: Record<string, unknown>, field?: string): string {
   if (!field) {
@@ -13,6 +12,9 @@ function formatTooltipText(record: Record<string, unknown>, field?: string): str
 
   return String(value);
 }
+
+// Debounce timer so a double-click (edit) cancels the single-click scroll
+let pendingScrollTimer: ReturnType<typeof setTimeout> | undefined;
 
 interface LoadingCallbacks {
   onLoadStart?: () => void;
@@ -81,6 +83,8 @@ export function createGanttConfig(
         minWidth: 300,
         resizable: true,
       },
+      // Single-clicking the name cell scrolls the timeline to the task's bar (see cellClick listener).
+      // Double-clicking starts inline name editing (Bryntum native behavior).
       {
         type: 'startdate',
         field: 'startDate',
@@ -94,25 +98,6 @@ export function createGanttConfig(
         width: 100,
         resizable: true,
       },
-      // Action column: chevron icon to scroll timeline to the task's bar
-      {
-        type: 'column',
-        id: SCROLL_TO_COLUMN_ID,
-        text: '',
-        width: 40,
-        resizable: false,
-        sortable: false,
-        filterable: false,
-        htmlEncode: false,
-        editor: false,
-        cellCls: 'b-scroll-to-cell',
-        renderer({ record }: { record: { startDate?: Date | null } }) {
-          const isScheduled = record.startDate != null;
-          if (!isScheduled) return '';
-          // Phosphor NavigationArrow (fill weight, viewBox 0 0 256 256)
-          return `<div class="scroll-to-timeline-btn" title="Scroll to timeline" style="display:flex;align-items:center;justify-content:center;height:100%;cursor:pointer;opacity:0.4;transition:opacity 0.15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'"><svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M248,121.58a15.76,15.76,0,0,1-11.29,15l-.2.06-78,21.84-21.84,78-.06.2a15.77,15.77,0,0,1-15,11.29h-.3a15.77,15.77,0,0,1-15.07-10.67L41,61.41a1,1,0,0,1-.05-.16A16,16,0,0,1,61.25,40.9l.16.05,175.92,65.26A15.78,15.78,0,0,1,248,121.58Z"/></svg></div>`;
-        },
-      } as any,
     ],
     features: {
       cellTooltip: {
@@ -134,24 +119,32 @@ export function createGanttConfig(
         record: { isParent: boolean; manuallyScheduled: boolean; set: (field: string, value: unknown) => void };
         column: { type: string };
       }) {
+        // Cancel any pending single-click scroll so editing starts cleanly
+        clearTimeout(pendingScrollTimer);
         if (column.type === 'duration' && record.isParent && !record.manuallyScheduled) {
           record.set('manuallyScheduled', true);
         }
       },
+      // Single-click on the task name cell → scroll the timeline bar into view.
+      // Guards against unscheduled tasks (no startDate) to avoid a Bryntum crash.
       cellClick({ record, column, grid }: {
         record: { id: string | number; startDate?: Date | null };
-        column: { id?: string } | undefined;
+        column: { type?: string } | undefined;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         grid: any;
       }) {
-        if (!column || column.id !== SCROLL_TO_COLUMN_ID) return;
+        if (column?.type !== 'name') return;
         if (!record.startDate) return;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        grid.scrollTaskIntoView(record, {
-          block: 'center',
-          animate: { duration: 300 },
-          highlight: true,
-        });
+        // Debounce: wait 200ms so a double-click (edit) can cancel the scroll
+        clearTimeout(pendingScrollTimer);
+        pendingScrollTimer = setTimeout(() => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          grid.scrollTaskIntoView(record, {
+            block: 'center',
+            animate: { duration: 300 },
+            highlight: true,
+          });
+        }, 200);
       },
     },
   };
