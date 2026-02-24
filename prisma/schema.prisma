@@ -146,7 +146,7 @@ model Document {
     size         Int
     tags         String[]                       @default([])
     description  String
-    embedding    Unsupported("vector(1024)")?
+    embedding    Unsupported("vector(1536)")?
     taskId       String
     folderId     String
     projectId    String

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { Prisma } from "../../../../generated/prisma";
 import { TRPCError } from "@trpc/server";
 import { del } from "@vercel/blob";
 import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
@@ -192,9 +191,6 @@ export const documentRouter = createTRPCRouter({
       const folderFilter = input.folderIds?.length
         ? { folderId: { in: input.folderIds } }
         : {};
-      const folderSqlFilter = input.folderIds?.length
-        ? Prisma.sql`AND d."folderId" = ANY(${input.folderIds})`
-        : Prisma.empty;
 
       // Empty query: return recent documents
       if (!trimmed) {
@@ -217,64 +213,29 @@ export const documentRouter = createTRPCRouter({
         return { results, total };
       }
 
-      // Short queries (< 3 chars): use ILIKE prefix match
-      // Trigrams need 3-char windows, so short queries would return garbage
-      if (trimmed.length < 3) {
-        const prefix = `${trimmed}%`;
-        const rows = await ctx.db.$queryRaw<RawDocumentRow[]>`
-          SELECT
-            d.id, d.name, d."blobUrl", d."mimeType", d.size, d.tags,
-            d.description, d."taskId", d."folderId", d."projectId",
-            d."uploadedById", d."createdAt",
-            1.0::float AS rank,
-            COUNT(*) OVER () AS total_count,
-            u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email
-          FROM "Document" d
-            JOIN "User" u ON u.id = d."uploadedById"
-          WHERE d."projectId" = ${input.projectId}
-            AND d.name ILIKE ${prefix}
-            ${folderSqlFilter}
-          ORDER BY d."createdAt" DESC
-          LIMIT ${input.limit} OFFSET ${input.offset}
-        `;
+      // Case-insensitive contains match on document name
+      const where = {
+        projectId: input.projectId,
+        name: { contains: trimmed, mode: "insensitive" as const },
+        ...folderFilter,
+      };
 
-        const total = Number(rows[0]?.total_count ?? 0);
-        return { results: shapeResults(rows), total };
-      }
+      const [results, total] = await Promise.all([
+        ctx.db.document.findMany({
+          where,
+          include: {
+            uploadedBy: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: input.limit,
+          skip: input.offset,
+        }),
+        ctx.db.document.count({ where }),
+      ]);
 
-      // Hybrid fuzzy (pg_trgm) + full-text search
-      // Wrap in $transaction so SET LOCAL persists for the query
-      const rows = await ctx.db.$transaction(async (tx) => {
-        await tx.$executeRaw`SET LOCAL pg_trgm.similarity_threshold = 0.3`;
-
-        return tx.$queryRaw<RawDocumentRow[]>`
-          SELECT
-            d.id, d.name, d."blobUrl", d."mimeType", d.size, d.tags,
-            d.description, d."taskId", d."folderId", d."projectId",
-            d."uploadedById", d."createdAt",
-            GREATEST(
-              s.sim,
-              CASE WHEN q.tsq::text != '' AND d.search_vector @@ q.tsq
-                THEN ts_rank_cd('{0.1, 0.4, 0.8, 1.0}', d.search_vector, q.tsq)
-                ELSE 0
-              END
-            ) AS rank,
-            COUNT(*) OVER () AS total_count,
-            u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email
-          FROM "Document" d
-            CROSS JOIN LATERAL (SELECT similarity(d.name, ${trimmed}) AS sim) s
-            CROSS JOIN LATERAL (SELECT websearch_to_tsquery('english', ${trimmed}) AS tsq) q
-            JOIN "User" u ON u.id = d."uploadedById"
-          WHERE d."projectId" = ${input.projectId}
-            AND (d.name % ${trimmed} OR (q.tsq::text != '' AND d.search_vector @@ q.tsq))
-            ${folderSqlFilter}
-          ORDER BY rank DESC
-          LIMIT ${input.limit} OFFSET ${input.offset}
-        `;
-      });
-
-      const total = Number(rows[0]?.total_count ?? 0);
-      return { results: shapeResults(rows), total };
+      return { results, total };
     }),
 
   aiSearch: orgProcedure
@@ -300,31 +261,43 @@ export const documentRouter = createTRPCRouter({
         return { results: [], total: 0 };
       }
 
-      const folderSqlFilter = input.folderIds?.length
-        ? Prisma.sql`AND d."folderId" = ANY(${input.folderIds})`
-        : Prisma.empty;
-
       // Embed the user's query
       const queryEmbedding = await embedQuery(input.query);
       const vectorSql = toVectorSql(queryEmbedding);
 
-      // Cosine similarity search using pgvector
-      const rows = await ctx.db.$queryRaw<RawDocumentRow[]>`
-        SELECT
-          d.id, d.name, d."blobUrl", d."mimeType", d.size, d.tags,
-          d.description, d."taskId", d."folderId", d."projectId",
-          d."uploadedById", d."createdAt",
-          (1 - (d.embedding <=> ${vectorSql}::vector))::float AS rank,
-          COUNT(*) OVER () AS total_count,
-          u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email
-        FROM "Document" d
-          JOIN "User" u ON u.id = d."uploadedById"
-        WHERE d."projectId" = ${input.projectId}
-          AND d.embedding IS NOT NULL
-          ${folderSqlFilter}
-        ORDER BY d.embedding <=> ${vectorSql}::vector
-        LIMIT ${input.limit} OFFSET ${input.offset}
-      `;
+      // Cosine similarity search using pgvector — two branches to avoid Prisma.empty
+      const rows = input.folderIds?.length
+        ? await ctx.db.$queryRaw<RawDocumentRow[]>`
+            SELECT
+              d.id, d.name, d."blobUrl", d."mimeType", d.size, d.tags,
+              d.description, d."taskId", d."folderId", d."projectId",
+              d."uploadedById", d."createdAt",
+              (1 - (d.embedding <=> ${vectorSql}::vector))::float AS rank,
+              COUNT(*) OVER () AS total_count,
+              u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email
+            FROM "Document" d
+              JOIN "User" u ON u.id = d."uploadedById"
+            WHERE d."projectId" = ${input.projectId}
+              AND d.embedding IS NOT NULL
+              AND d."folderId" = ANY(${input.folderIds})
+            ORDER BY d.embedding <=> ${vectorSql}::vector
+            LIMIT ${input.limit} OFFSET ${input.offset}
+          `
+        : await ctx.db.$queryRaw<RawDocumentRow[]>`
+            SELECT
+              d.id, d.name, d."blobUrl", d."mimeType", d.size, d.tags,
+              d.description, d."taskId", d."folderId", d."projectId",
+              d."uploadedById", d."createdAt",
+              (1 - (d.embedding <=> ${vectorSql}::vector))::float AS rank,
+              COUNT(*) OVER () AS total_count,
+              u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email
+            FROM "Document" d
+              JOIN "User" u ON u.id = d."uploadedById"
+            WHERE d."projectId" = ${input.projectId}
+              AND d.embedding IS NOT NULL
+            ORDER BY d.embedding <=> ${vectorSql}::vector
+            LIMIT ${input.limit} OFFSET ${input.offset}
+          `;
 
       const total = Number(rows[0]?.total_count ?? 0);
       return { results: shapeResults(rows), total };
