@@ -11,15 +11,24 @@ export function useGanttControls() {
     return (ganttRef.current as unknown as { instance: unknown })?.instance;
   }, []);
 
-  const handleAddTask = useCallback(async () => {
+  const handleAddTask = useCallback(() => {
     const gantt = getGanttInstance();
     if (!gantt) return;
-    gantt.taskStore.add({
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const [task] = gantt.taskStore.add({
       name: 'New Task',
       startDate: new Date(),
       duration: 1,
     });
-    await gantt.project.commitAsync();
+    // Immediately scroll the timeline to today so the task bar area is visible
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.scrollToDate(new Date(), { block: 'center', animate: true });
+    // After the scheduling engine processes, scroll to the specific task row + bar
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    void gantt.project.commitAsync().then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      if (task) gantt.scrollTaskIntoView(task, { block: 'center', animate: { duration: 300 } });
+    });
   }, [getGanttInstance]);
 
   const handleZoomIn = useCallback(() => getGanttInstance()?.zoomIn(), [getGanttInstance]);

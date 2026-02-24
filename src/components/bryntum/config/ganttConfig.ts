@@ -1,4 +1,4 @@
-import type { GanttConfig, TaskClickHandler } from '../types';
+import type { GanttConfig } from '../types';
 
 function formatTooltipText(record: Record<string, unknown>, field?: string): string {
   if (!field) {
@@ -13,6 +13,9 @@ function formatTooltipText(record: Record<string, unknown>, field?: string): str
   return String(value);
 }
 
+// Debounce timer so a double-click (edit) cancels the single-click scroll
+let pendingScrollTimer: ReturnType<typeof setTimeout> | undefined;
+
 interface LoadingCallbacks {
   onLoadStart?: () => void;
   onLoadComplete?: () => void;
@@ -20,7 +23,6 @@ interface LoadingCallbacks {
 }
 
 export function createGanttConfig(
-  onTaskClick: TaskClickHandler,
   projectId?: string,
   loadingCallbacks?: LoadingCallbacks
 ): GanttConfig {
@@ -35,7 +37,7 @@ export function createGanttConfig(
 
     project: {
       autoLoad: true,
-      autoSync: !!projectId,
+      autoSync: false,
 
       // Enable delay calculation for better initial load performance
       delayCalculation: true,
@@ -72,6 +74,7 @@ export function createGanttConfig(
         },
       },
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     columns: [
       {
         type: 'name',
@@ -80,6 +83,8 @@ export function createGanttConfig(
         minWidth: 300,
         resizable: true,
       },
+      // Single-clicking the name cell scrolls the timeline to the task's bar (see cellClick listener).
+      // Double-clicking starts inline name editing (Bryntum native behavior).
       {
         type: 'startdate',
         field: 'startDate',
@@ -105,7 +110,6 @@ export function createGanttConfig(
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
     barMargin: 10,
     listeners: {
-      taskClick: onTaskClick,
       // Bryntum blocks the duration cell editor for parent tasks before
       // beforeCellEditStart ever fires (checked internally in DurationColumn).
       // cellDblClick fires first, so we can set manuallyScheduled: true here —
@@ -115,9 +119,32 @@ export function createGanttConfig(
         record: { isParent: boolean; manuallyScheduled: boolean; set: (field: string, value: unknown) => void };
         column: { type: string };
       }) {
+        // Cancel any pending single-click scroll so editing starts cleanly
+        clearTimeout(pendingScrollTimer);
         if (column.type === 'duration' && record.isParent && !record.manuallyScheduled) {
           record.set('manuallyScheduled', true);
         }
+      },
+      // Single-click on the task name cell → scroll the timeline bar into view.
+      // Guards against unscheduled tasks (no startDate) to avoid a Bryntum crash.
+      cellClick({ record, column, grid }: {
+        record: { id: string | number; startDate?: Date | null };
+        column: { type?: string } | undefined;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        grid: any;
+      }) {
+        if (column?.type !== 'name') return;
+        if (!record.startDate) return;
+        // Debounce: wait 200ms so a double-click (edit) can cancel the scroll
+        clearTimeout(pendingScrollTimer);
+        pendingScrollTimer = setTimeout(() => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          grid.scrollTaskIntoView(record, {
+            block: 'center',
+            animate: { duration: 300 },
+            highlight: true,
+          });
+        }, 200);
       },
     },
   };

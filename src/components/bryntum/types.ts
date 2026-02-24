@@ -87,8 +87,10 @@ export type GanttConfig = {
   endDate?: Date;
   barMargin: number;
   listeners: {
-    taskClick: TaskClickHandler;
+    taskClick?: TaskClickHandler;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cellDblClick?: (...args: any[]) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cellClick?: (...args: any[]) => void;
   };
 };

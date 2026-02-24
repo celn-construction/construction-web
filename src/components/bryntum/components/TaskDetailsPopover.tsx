@@ -7,7 +7,7 @@ import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { POPOVER_WIDTH } from '../constants';
 import type { PopoverPlacement } from '../types';
-import { folderData } from '@/components/projects/ProjectsTree';
+import { folderData } from '@/lib/folders';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
