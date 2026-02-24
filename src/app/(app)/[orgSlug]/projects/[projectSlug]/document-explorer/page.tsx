@@ -1,27 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  InputAdornment,
-  Pagination,
-  Skeleton,
-  Chip,
-  LinearProgress,
-  Switch,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
-import { Search, Sparkles, FileText } from 'lucide-react';
-import { format } from 'date-fns';
+import { Box, Typography, Pagination, Skeleton, LinearProgress } from '@mui/material';
+import { FileText, LayoutGrid, List } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/react';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
-import { folderData, expandFolderIds } from '@/lib/folders';
-import { getFileIcon } from '@/lib/utils/files';
-import { formatFileSize } from '@/lib/utils/formatting';
+import { expandFolderIds } from '@/lib/folders';
+import DocumentToolbar from '@/components/documents/DocumentToolbar';
+import DocumentFilterTabs from '@/components/documents/DocumentFilterTabs';
+import DocumentCard from '@/components/documents/DocumentCard';
+import DocumentTable from '@/components/documents/DocumentTable';
+import type { DocumentResult } from '@/components/documents/types';
 
 const LIMIT = 20;
 
@@ -30,9 +20,10 @@ export default function DocumentExplorerPage() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiSearchQuery, setAiSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [activeTab, setActiveTab] = useState('all');
 
   // Debounce search input (only for fuzzy mode)
   useEffect(() => {
@@ -46,21 +37,13 @@ export default function DocumentExplorerPage() {
 
   const offset = (page - 1) * LIMIT;
 
-  const folderIds =
-    selectedFolders.size > 0
-      ? [...selectedFolders].flatMap((id) => expandFolderIds(id))
-      : undefined;
+  // Derive folder filter from active tab
+  const folderIds = ['all', 'linked', 'unlinked'].includes(activeTab)
+    ? undefined
+    : expandFolderIds(activeTab);
 
-  const toggleFolder = (id: string) => {
-    setSelectedFolders((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
     setPage(1);
   };
 
@@ -68,11 +51,9 @@ export default function DocumentExplorerPage() {
     setAiEnabled((prev) => {
       const next = !prev;
       if (!next) {
-        // Switching back to fuzzy: clear AI state, sync debounced query
         setAiSearchQuery('');
         setDebouncedQuery(query);
       } else {
-        // Switching to AI: clear debounced to avoid stale fuzzy query
         setDebouncedQuery('');
       }
       setPage(1);
@@ -94,186 +75,167 @@ export default function DocumentExplorerPage() {
     }
   };
 
-  // Fuzzy search query (AI OFF)
+  // Fuzzy search (AI OFF)
   const fuzzyQuery = api.document.search.useQuery(
-    {
-      organizationId,
-      projectId,
-      query: debouncedQuery,
-      limit: LIMIT,
-      offset,
-      folderIds,
-    },
-    {
-      enabled: !aiEnabled && !!organizationId && !!projectId,
-      placeholderData: keepPreviousData,
-    },
+    { organizationId, projectId, query: debouncedQuery, limit: LIMIT, offset, folderIds },
+    { enabled: !aiEnabled && !!organizationId && !!projectId, placeholderData: keepPreviousData },
   );
 
-  // AI semantic search query (AI ON)
+  // AI semantic search (AI ON + query submitted)
   const aiQuery = api.document.aiSearch.useQuery(
-    {
-      organizationId,
-      projectId,
-      query: aiSearchQuery,
-      limit: LIMIT,
-      offset,
-      folderIds,
-    },
-    {
-      enabled: aiEnabled && !!aiSearchQuery && !!organizationId && !!projectId,
-      staleTime: 60_000,
-      retry: 1,
-    },
+    { organizationId, projectId, query: aiSearchQuery, limit: LIMIT, offset, folderIds },
+    { enabled: aiEnabled && !!aiSearchQuery && !!organizationId && !!projectId, staleTime: 60_000, retry: 1 },
   );
 
-  // When AI is on but no search submitted, show all docs via fuzzy (empty query)
+  // All docs fallback (AI ON, no search submitted)
   const allDocsQuery = api.document.search.useQuery(
-    {
-      organizationId,
-      projectId,
-      query: '',
-      limit: LIMIT,
-      offset,
-      folderIds,
-    },
-    {
-      enabled: aiEnabled && !aiSearchQuery && !!organizationId && !!projectId,
-      placeholderData: keepPreviousData,
-    },
+    { organizationId, projectId, query: '', limit: LIMIT, offset, folderIds },
+    { enabled: aiEnabled && !aiSearchQuery && !!organizationId && !!projectId, placeholderData: keepPreviousData },
   );
 
-  // Pick the active data source
-  const activeQuery = aiEnabled
-    ? aiSearchQuery
-      ? aiQuery
-      : allDocsQuery
-    : fuzzyQuery;
+  // Active data source
+  const activeQuery = aiEnabled ? (aiSearchQuery ? aiQuery : allDocsQuery) : fuzzyQuery;
 
-  const results = activeQuery.data?.results ?? [];
+  const rawResults = (activeQuery.data?.results ?? []) as DocumentResult[];
   const total = activeQuery.data?.total ?? 0;
   const totalPages = Math.ceil(total / LIMIT);
   const isLoading = activeQuery.isLoading;
   const isBackgroundFetching = activeQuery.isFetching && !isLoading;
 
+  // Client-side linked filter
+  const filteredResults = activeTab === 'linked'
+    ? rawResults.filter((d) => d.taskId)
+    : activeTab === 'unlinked'
+      ? rawResults.filter((d) => !d.taskId)
+      : rawResults;
+
+  const displayQuery = aiEnabled && aiSearchQuery
+    ? aiSearchQuery
+    : !aiEnabled && debouncedQuery
+      ? debouncedQuery
+      : '';
+
   return (
     <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Search bar row */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <TextField
-          placeholder={aiEnabled ? 'Describe what you\'re looking for...' : 'Search documents...'}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          fullWidth
-          size="small"
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  {aiEnabled ? (
-                    <Sparkles size={18} style={{ color: 'var(--mui-palette-primary-main, #1976d2)' }} />
-                  ) : (
-                    <Search size={18} style={{ color: 'var(--text-secondary)' }} />
-                  )}
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
+      <DocumentToolbar
+        query={query}
+        onQueryChange={setQuery}
+        onKeyDown={handleKeyDown}
+        aiEnabled={aiEnabled}
+        isAiSearching={aiEnabled && !!aiSearchQuery && aiQuery.isFetching}
+        onAiToggle={handleAiToggle}
+        onUploadClick={() => {/* Upload dialog integration deferred */}}
+      />
 
-        {/* Search button (AI mode only) */}
-        {aiEnabled && (
-          <Tooltip title="Search">
-            <IconButton
-              onClick={handleAiSubmit}
-              color="primary"
-              size="small"
-              sx={{
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                '&:hover': { bgcolor: 'primary.dark' },
-                borderRadius: 1,
-                px: 2,
-              }}
-            >
-              <Search size={18} />
-            </IconButton>
-          </Tooltip>
-        )}
-
-        {/* AI toggle */}
-        <Tooltip title={aiEnabled ? 'AI search on' : 'AI search off'}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5 }}>
-            <Sparkles size={16} style={{ color: aiEnabled ? 'var(--mui-palette-primary-main, #1976d2)' : 'var(--text-secondary)' }} />
-            <Switch
-              checked={aiEnabled}
-              onChange={handleAiToggle}
-              size="small"
-            />
-          </Box>
-        </Tooltip>
-      </Box>
+      <DocumentFilterTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* Fetching indicator */}
       <Box sx={{ height: 4, mb: 1 }}>
         {isBackgroundFetching && <LinearProgress sx={{ borderRadius: 1 }} />}
       </Box>
 
-      {/* Folder category filters */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-        {folderData.map((folder) => {
-          const selected = selectedFolders.has(folder.id);
-          return (
-            <Chip
-              key={folder.id}
-              label={folder.name}
-              size="small"
-              variant={selected ? 'filled' : 'outlined'}
-              color={selected ? 'primary' : 'default'}
-              onClick={() => toggleFolder(folder.id)}
-              sx={{ cursor: 'pointer' }}
-            />
-          );
-        })}
-      </Box>
-
-      {/* Result count */}
+      {/* Count row — design: doc count | pagination | sort + view toggle */}
       {!isLoading && total > 0 && (
-        <Typography variant="caption" sx={{ color: 'text.secondary', mb: 1.5 }}>
-          {aiEnabled && aiSearchQuery
-            ? `${total} result${total !== 1 ? 's' : ''} for "${aiSearchQuery}"`
-            : debouncedQuery && !aiEnabled
-              ? `${total} result${total !== 1 ? 's' : ''} for "${debouncedQuery}"`
-              : `${total} document${total !== 1 ? 's' : ''}`}
-        </Typography>
-      )}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 500, lineHeight: 1.2, color: '#8D99AE' }}>
+            {displayQuery
+              ? `${filteredResults.length} result${filteredResults.length !== 1 ? 's' : ''} for "${displayQuery}"`
+              : `${filteredResults.length} document${filteredResults.length !== 1 ? 's' : ''}`}
+          </Typography>
 
-      {/* Loading state — first load only */}
-      {isLoading && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: 2,
-          }}
-        >
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Box key={i} sx={{ borderRadius: 2, border: 1, borderColor: 'divider', overflow: 'hidden' }}>
-              <Skeleton variant="rectangular" height={160} />
-              <Box sx={{ p: 1.5 }}>
-                <Skeleton width="80%" height={20} sx={{ mb: 0.5 }} />
-                <Skeleton width="100%" height={14} />
-                <Skeleton width="60%" height={14} />
-                <Skeleton width="40%" height={14} sx={{ mt: 1 }} />
-              </Box>
+          {/* Pagination (centered) */}
+          {totalPages > 1 && (
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(_, value) => setPage(value)}
+              color="primary"
+              size="small"
+            />
+          )}
+
+          {/* View toggle — design: 32x32 buttons, cornerRadius 6, active fill #F0F0F3 */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <Box
+              component="button"
+              onClick={() => setViewMode('grid')}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                borderRadius: '6px',
+                border: 'none',
+                bgcolor: viewMode === 'grid' ? '#F0F0F3' : 'transparent',
+                color: viewMode === 'grid' ? '#1A1A2E' : '#8D99AE',
+                cursor: 'pointer',
+                '&:hover': { bgcolor: '#F0F0F3' },
+              }}
+            >
+              <LayoutGrid size={16} />
             </Box>
-          ))}
+            <Box
+              component="button"
+              onClick={() => setViewMode('list')}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                borderRadius: '6px',
+                border: 'none',
+                bgcolor: viewMode === 'list' ? '#F0F0F3' : 'transparent',
+                color: viewMode === 'list' ? '#1A1A2E' : '#8D99AE',
+                cursor: 'pointer',
+                '&:hover': { bgcolor: '#F0F0F3' },
+              }}
+            >
+              <List size={16} />
+            </Box>
+          </Box>
         </Box>
       )}
 
+      {/* Loading skeletons */}
+      {isLoading && (
+        viewMode === 'grid' ? (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 2, alignItems: 'start' }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Box key={i} sx={{ borderRadius: '14px', border: 1, borderColor: 'divider', overflow: 'hidden' }}>
+                <Skeleton variant="rectangular" height={180} />
+                <Box sx={{ px: 2, pt: 2, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Skeleton width="75%" height={17} />
+                  <Skeleton width="30%" height={16} sx={{ borderRadius: '999px' }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Skeleton width="45%" height={13} />
+                    <Skeleton width="20%" height={13} />
+                  </Box>
+                  <Skeleton width="40%" height={13} sx={{ mt: '6px' }} />
+                </Box>
+                <Box sx={{ height: '1px', bgcolor: 'divider' }} />
+                <Box sx={{ px: 2, py: 1, display: 'flex', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', gap: 1.5 }}>
+                    <Skeleton variant="circular" width={14} height={14} />
+                    <Skeleton variant="circular" width={14} height={14} />
+                  </Box>
+                  <Skeleton variant="circular" width={14} height={14} />
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        ) : (
+          <Box>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} height={48} sx={{ mb: 0.5 }} />
+            ))}
+          </Box>
+        )
+      )}
+
       {/* Empty state */}
-      {!isLoading && results.length === 0 && (
+      {!isLoading && filteredResults.length === 0 && (
         <Box
           sx={{
             display: 'flex',
@@ -287,159 +249,43 @@ export default function DocumentExplorerPage() {
         >
           <FileText size={48} style={{ color: 'var(--text-disabled)', marginBottom: 16 }} />
           <Typography variant="h6" sx={{ color: 'text.secondary', mb: 0.5 }}>
-            {(aiEnabled && aiSearchQuery) || (!aiEnabled && debouncedQuery)
-              ? 'No results found'
-              : 'No documents yet'}
+            {displayQuery ? 'No results found' : 'No documents yet'}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-            {aiEnabled && aiSearchQuery
-              ? `No documents match "${aiSearchQuery}"`
-              : !aiEnabled && debouncedQuery
-                ? `No documents match "${debouncedQuery}"`
-                : 'Upload documents to see them here'}
+            {displayQuery
+              ? `No documents match "${displayQuery}"`
+              : 'Upload documents to see them here'}
           </Typography>
         </Box>
       )}
 
-      {/* Results grid */}
-      {!isLoading && results.length > 0 && (
-        <>
+      {/* Results */}
+      {!isLoading && filteredResults.length > 0 && (
+        viewMode === 'grid' ? (
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
               gap: 2,
-              flex: 1,
+              alignItems: 'start',
               opacity: isBackgroundFetching ? 0.6 : 1,
               transition: 'opacity 0.2s',
             }}
           >
-            {results.map((doc) => (
-              <Box
-                key={doc.id}
-                component="a"
-                href={doc.blobUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: 2,
-                  border: 1,
-                  borderColor: 'divider',
-                  overflow: 'hidden',
-                  textDecoration: 'none',
-                  transition: 'box-shadow 0.2s, border-color 0.2s',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    boxShadow: 1,
-                  },
-                }}
-              >
-                {/* Thumbnail / icon area */}
-                <Box
-                  sx={{
-                    height: 160,
-                    bgcolor: 'action.hover',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {doc.mimeType.startsWith('image/') ? (
-                    <Box
-                      component="img"
-                      src={doc.blobUrl}
-                      alt={doc.name}
-                      sx={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  ) : (
-                    getFileIcon(doc.mimeType)
-                  )}
-                </Box>
-
-                {/* Card body */}
-                <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 600,
-                      color: 'text.primary',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {doc.name}
-                  </Typography>
-
-                  {doc.description && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: 'text.secondary',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {doc.description}
-                    </Typography>
-                  )}
-
-                  {doc.tags && doc.tags.length > 0 && (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                      {doc.tags.slice(0, 3).map((tag) => (
-                        <Chip
-                          key={tag}
-                          label={tag}
-                          size="small"
-                          sx={{ height: 20, fontSize: '0.65rem' }}
-                        />
-                      ))}
-                      {doc.tags.length > 3 && (
-                        <Chip
-                          label={`+${doc.tags.length - 3}`}
-                          size="small"
-                          variant="outlined"
-                          sx={{ height: 20, fontSize: '0.65rem' }}
-                        />
-                      )}
-                    </Box>
-                  )}
-
-                  <Typography
-                    variant="caption"
-                    sx={{ color: 'text.disabled', mt: 0.5 }}
-                  >
-                    {formatFileSize(doc.size)} &middot;{' '}
-                    {format(new Date(doc.createdAt), 'MMM d, yyyy')}
-                  </Typography>
-                </Box>
-              </Box>
+            {filteredResults.map((doc) => (
+              <DocumentCard key={doc.id} doc={doc} />
             ))}
           </Box>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(_, value) => setPage(value)}
-                color="primary"
-                size="small"
-              />
-            </Box>
-          )}
-        </>
+        ) : (
+          <Box
+            sx={{
+              opacity: isBackgroundFetching ? 0.6 : 1,
+              transition: 'opacity 0.2s',
+            }}
+          >
+            <DocumentTable docs={filteredResults} />
+          </Box>
+        )
       )}
     </Box>
   );

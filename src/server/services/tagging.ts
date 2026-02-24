@@ -1,12 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic();
-
 const IMAGE_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+
+// TODO: Add AI analysis for Word docs, spreadsheets, and CSV files (requires text extraction libraries)
 
 export interface DocumentAnalysis {
   tags: string[];
   description: string;
+}
+
+function createClient(): Anthropic {
+  return new Anthropic();
 }
 
 export async function analyzeDocument(
@@ -18,12 +22,15 @@ export async function analyzeDocument(
     if (IMAGE_MIME_TYPES.includes(mimeType)) {
       return await analyzeImage(blobUrl, mimeType);
     }
+    if (mimeType === "application/pdf") {
+      return await analyzePdf(blobUrl, name);
+    }
     return {
       tags: tagByType(mimeType, name),
       description: describeByType(mimeType, name),
     };
   } catch {
-    return { tags: [], description: describeByType(mimeType, name) };
+    return { tags: tagByType(mimeType, name), description: describeByType(mimeType, name) };
   }
 }
 
@@ -31,6 +38,7 @@ async function analyzeImage(
   blobUrl: string,
   mimeType: string
 ): Promise<DocumentAnalysis> {
+  const client = createClient();
   const response = await fetch(blobUrl);
   const buffer = await response.arrayBuffer();
   const base64 = Buffer.from(buffer).toString("base64");
@@ -64,16 +72,60 @@ Return ONLY valid JSON, no markdown fences.`,
   });
 
   const text = message.content[0]?.type === "text" ? message.content[0].text : "{}";
+  return parseAnalysisResponse(text, mimeType, "image");
+}
 
+async function analyzePdf(
+  blobUrl: string,
+  name: string
+): Promise<DocumentAnalysis> {
+  const client = createClient();
+  const response = await fetch(blobUrl);
+  const buffer = await response.arrayBuffer();
+  const base64 = Buffer.from(buffer).toString("base64");
+
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 512,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "document",
+            source: {
+              type: "base64",
+              media_type: "application/pdf",
+              data: base64,
+            },
+          },
+          {
+            type: "text",
+            text: `Analyze this construction document. Return a JSON object with two fields:
+1. "tags": an array of 5-10 lowercase tags describing the document type, trade, materials, project phase, or subject matter (e.g. "submittal", "rfi", "permit", "structural", "electrical", "plumbing", "concrete", "steel", "specifications", "drawings", "schedule", "inspection").
+2. "description": a 1-3 sentence natural language description of the document's content and purpose. Be specific about what this document covers.
+
+Return ONLY valid JSON, no markdown fences.`,
+          },
+        ],
+      },
+    ],
+  });
+
+  const text = message.content[0]?.type === "text" ? message.content[0].text : "{}";
+  return parseAnalysisResponse(text, "application/pdf", name);
+}
+
+function parseAnalysisResponse(text: string, mimeType: string, name: string): DocumentAnalysis {
   try {
     const cleaned = text.replace(/```json\s*|\s*```/g, "").trim();
     const parsed = JSON.parse(cleaned) as { tags?: string[]; description?: string };
     return {
       tags: Array.isArray(parsed.tags) ? parsed.tags : [],
-      description: typeof parsed.description === "string" ? parsed.description : describeByType("image/*", "image"),
+      description: typeof parsed.description === "string" ? parsed.description : describeByType(mimeType, name),
     };
   } catch {
-    return { tags: [], description: describeByType("image/*", "image") };
+    return { tags: [], description: describeByType(mimeType, name) };
   }
 }
 

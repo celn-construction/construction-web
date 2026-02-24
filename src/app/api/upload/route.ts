@@ -148,9 +148,12 @@ export async function POST(req: NextRequest) {
     });
 
     // Generate and store embedding for semantic search (non-blocking — don't fail upload if this fails)
-    if (env.VOYAGE_API_KEY && analysis.description) {
+    // Embed filename + description + tags for richer semantic matching
+    if (env.OPENAI_API_KEY && analysis.description) {
       try {
-        const [embedding] = await embedDocuments([analysis.description]);
+        const cleanName = file.name.replace(/\.[^.]+$/, '').replace(/[\s_\-]+/g, ' ');
+        const textToEmbed = [cleanName, analysis.description, `Tags: ${analysis.tags.join(', ')}`].join('. ');
+        const [embedding] = await embedDocuments([textToEmbed]);
         if (embedding) {
           const vectorSql = toVectorSql(embedding);
           await db.$executeRaw`UPDATE "Document" SET embedding = ${vectorSql}::vector WHERE id = ${document.id}`;
@@ -162,9 +165,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(document);
   } catch (error) {
-    console.error("Upload error:", error);
+    const message = error instanceof Error ? error.message : "An error occurred during upload";
+    console.error("Upload error:", message, error);
     return NextResponse.json(
-      { error: "An error occurred during upload" },
+      { error: message },
       { status: 500 }
     );
   }
