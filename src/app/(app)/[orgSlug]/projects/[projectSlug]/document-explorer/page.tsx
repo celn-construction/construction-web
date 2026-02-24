@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, Pagination, Skeleton, LinearProgress } from '@mui/material';
-import { FileText, LayoutGrid, List } from 'lucide-react';
+import { Box, Typography, Skeleton, LinearProgress } from '@mui/material';
+import Pagination from '@/components/ui/Pagination';
+import { FileText, LayoutGrid, List, ChevronDown } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/react';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { expandFolderIds } from '@/lib/folders';
 import DocumentToolbar from '@/components/documents/DocumentToolbar';
 import DocumentFilterTabs from '@/components/documents/DocumentFilterTabs';
+import DocumentFilterPopup from '@/components/documents/DocumentFilterPopup';
+import type { LinkFilter } from '@/components/documents/DocumentFilterPopup';
 import DocumentCard from '@/components/documents/DocumentCard';
 import DocumentTable from '@/components/documents/DocumentTable';
 import type { DocumentResult } from '@/components/documents/types';
@@ -23,7 +26,11 @@ export default function DocumentExplorerPage() {
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiSearchQuery, setAiSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [activeTab, setActiveTab] = useState('all');
+
+  // Filter state
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [linkFilter, setLinkFilter] = useState<LinkFilter>('all');
+  const [filterAnchorEl, setFilterAnchorEl] = useState<HTMLElement | null>(null);
 
   // Debounce search input (only for fuzzy mode)
   useEffect(() => {
@@ -37,15 +44,11 @@ export default function DocumentExplorerPage() {
 
   const offset = (page - 1) * LIMIT;
 
-  // Derive folder filter from active tab
-  const folderIds = ['all', 'linked', 'unlinked'].includes(activeTab)
-    ? undefined
-    : expandFolderIds(activeTab);
-
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    setPage(1);
-  };
+  // Derive folder filter from selected types
+  const folderIds =
+    selectedTypes.length === 0
+      ? undefined
+      : selectedTypes.flatMap((type) => expandFolderIds(type));
 
   const handleAiToggle = () => {
     setAiEnabled((prev) => {
@@ -73,6 +76,22 @@ export default function DocumentExplorerPage() {
       e.preventDefault();
       handleAiSubmit();
     }
+  };
+
+  const handleFilterApply = (types: string[], link: LinkFilter) => {
+    setSelectedTypes(types);
+    setLinkFilter(link);
+    setPage(1);
+  };
+
+  const handleRemoveType = (type: string) => {
+    setSelectedTypes((prev) => prev.filter((t) => t !== type));
+    setPage(1);
+  };
+
+  const handleRemoveLinkFilter = () => {
+    setLinkFilter('all');
+    setPage(1);
   };
 
   // Fuzzy search (AI OFF)
@@ -103,17 +122,19 @@ export default function DocumentExplorerPage() {
   const isBackgroundFetching = activeQuery.isFetching && !isLoading;
 
   // Client-side linked filter
-  const filteredResults = activeTab === 'linked'
-    ? rawResults.filter((d) => d.taskId)
-    : activeTab === 'unlinked'
-      ? rawResults.filter((d) => !d.taskId)
-      : rawResults;
+  const filteredResults =
+    linkFilter === 'linked'
+      ? rawResults.filter((d) => d.taskId)
+      : linkFilter === 'unlinked'
+        ? rawResults.filter((d) => !d.taskId)
+        : rawResults;
 
-  const displayQuery = aiEnabled && aiSearchQuery
-    ? aiSearchQuery
-    : !aiEnabled && debouncedQuery
-      ? debouncedQuery
-      : '';
+  const displayQuery =
+    aiEnabled && aiSearchQuery
+      ? aiSearchQuery
+      : !aiEnabled && debouncedQuery
+        ? debouncedQuery
+        : '';
 
   return (
     <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -127,72 +148,95 @@ export default function DocumentExplorerPage() {
         onUploadClick={() => {/* Upload dialog integration deferred */}}
       />
 
-      <DocumentFilterTabs activeTab={activeTab} onTabChange={handleTabChange} />
+      <DocumentFilterTabs
+        selectedTypes={selectedTypes}
+        linkFilter={linkFilter}
+        onOpenPopup={(e) => setFilterAnchorEl(e.currentTarget)}
+        onRemoveType={handleRemoveType}
+        onRemoveLinkFilter={handleRemoveLinkFilter}
+        isLoading={isLoading}
+      />
+
+      <DocumentFilterPopup
+        open={Boolean(filterAnchorEl)}
+        anchorEl={filterAnchorEl}
+        selectedTypes={selectedTypes}
+        linkFilter={linkFilter}
+        onClose={() => setFilterAnchorEl(null)}
+        onApply={handleFilterApply}
+      />
 
       {/* Fetching indicator */}
       <Box sx={{ height: 4, mb: 1 }}>
         {isBackgroundFetching && <LinearProgress sx={{ borderRadius: 1 }} />}
       </Box>
 
-      {/* Count row — design: doc count | pagination | sort + view toggle */}
+      {/* Count row */}
       {!isLoading && total > 0 && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 500, lineHeight: 1.2, color: '#8D99AE' }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 500, lineHeight: 1.2, color: 'text.secondary' }}>
             {displayQuery
               ? `${filteredResults.length} result${filteredResults.length !== 1 ? 's' : ''} for "${displayQuery}"`
               : `${filteredResults.length} document${filteredResults.length !== 1 ? 's' : ''}`}
           </Typography>
 
-          {/* Pagination (centered) */}
           {totalPages > 1 && (
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-              size="small"
-            />
+            <Pagination count={totalPages} page={page} onChange={setPage} />
           )}
 
-          {/* View toggle — design: 32x32 buttons, cornerRadius 6, active fill #F0F0F3 */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-            <Box
-              component="button"
-              onClick={() => setViewMode('grid')}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 32,
-                height: 32,
-                borderRadius: '6px',
-                border: 'none',
-                bgcolor: viewMode === 'grid' ? '#F0F0F3' : 'transparent',
-                color: viewMode === 'grid' ? '#1A1A2E' : '#8D99AE',
-                cursor: 'pointer',
-                '&:hover': { bgcolor: '#F0F0F3' },
-              }}
-            >
-              <LayoutGrid size={16} />
+          {/* Right group: sort + view toggle */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Sort control */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 400, color: 'text.secondary' }}>
+                Sort by:
+              </Typography>
+              <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'text.primary' }}>
+                Date added
+              </Typography>
+              <ChevronDown style={{ width: 14, height: 14 }} />
             </Box>
-            <Box
-              component="button"
-              onClick={() => setViewMode('list')}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 32,
-                height: 32,
-                borderRadius: '6px',
-                border: 'none',
-                bgcolor: viewMode === 'list' ? '#F0F0F3' : 'transparent',
-                color: viewMode === 'list' ? '#1A1A2E' : '#8D99AE',
-                cursor: 'pointer',
-                '&:hover': { bgcolor: '#F0F0F3' },
-              }}
-            >
-              <List size={16} />
+
+            {/* View toggle */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <Box
+                component="button"
+                onClick={() => setViewMode('grid')}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 32,
+                  height: 32,
+                  borderRadius: '6px',
+                  border: 'none',
+                  bgcolor: viewMode === 'grid' ? 'secondary.main' : 'transparent',
+                  color: viewMode === 'grid' ? 'text.primary' : 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'secondary.main' },
+                }}
+              >
+                <LayoutGrid size={16} />
+              </Box>
+              <Box
+                component="button"
+                onClick={() => setViewMode('list')}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 32,
+                  height: 32,
+                  borderRadius: '6px',
+                  border: 'none',
+                  bgcolor: viewMode === 'list' ? 'secondary.main' : 'transparent',
+                  color: viewMode === 'list' ? 'text.primary' : 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'secondary.main' },
+                }}
+              >
+                <List size={16} />
+              </Box>
             </Box>
           </Box>
         </Box>
