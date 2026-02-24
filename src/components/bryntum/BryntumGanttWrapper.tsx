@@ -33,6 +33,9 @@ const GANTT_CONTENT_STYLE: CSSProperties = {
 };
 
 const STALE_THRESHOLD_MS = 60_000; // 60 seconds
+// Short settle time so the Bryntum scheduling engine finishes before we sync
+const AUTO_SAVE_DELAY_MS = 1_000; // 1 second
+const AUTO_SAVE_STORAGE_KEY = 'gantt-autosave-enabled';
 
 interface BryntumGanttWrapperProps {
   projectId?: string;
@@ -46,8 +49,20 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
   const [isSaving, setIsSaving] = useState(false);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem(AUTO_SAVE_STORAGE_KEY) !== 'false';
+  });
+
   const justSavedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Refs so timer callbacks always read fresh state without stale closures
+  const isSavingRef = useRef(false);
+  const autoSaveEnabledRef = useRef(autoSaveEnabled);
   const isRevertingRef = useRef(false);
+
+  useEffect(() => { isSavingRef.current = isSaving; }, [isSaving]);
+  useEffect(() => { autoSaveEnabledRef.current = autoSaveEnabled; }, [autoSaveEnabled]);
 
   const { showSnackbar } = useSnackbar();
 
@@ -90,6 +105,16 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     // isSaving and hasPendingChanges are reset by the sync/syncFail event listeners
   }, [getGanttInstance]);
 
+  const handleToggleAutoSave = useCallback(() => {
+    setAutoSaveEnabled(prev => {
+      const next = !prev;
+      localStorage.setItem(AUTO_SAVE_STORAGE_KEY, String(next));
+      // Cancel any pending auto-save when turning off
+      if (!next) clearTimeout(autoSaveTimerRef.current);
+      return next;
+    });
+  }, []);
+
   // Invalidate tRPC cache when Bryntum syncs so sibling components (e.g. file tree) refetch
   const utils = api.useUtils();
   useEffect(() => {
@@ -98,6 +123,7 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     if (!gantt?.project) return;
 
     const onSync = () => {
+      clearTimeout(autoSaveTimerRef.current);
       setIsSaving(false);
       setHasPendingChanges(false);
       setJustSaved(true);
@@ -119,7 +145,9 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     };
   }, [isLoading, getGanttInstance, utils]);
 
-  // Mark pending changes when any store is modified locally
+  // Mark pending changes when any store is modified locally.
+  // When auto-save is enabled, schedule a save shortly after each change so the
+  // Bryntum scheduling engine has time to settle before we sync.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
@@ -133,14 +161,25 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
       gantt.project.assignmentStore,
       gantt.project.timeRangeStore,
     ];
-    const onStoreChange = () => setHasPendingChanges(true);
+
+    const onStoreChange = () => {
+      setHasPendingChanges(true);
+      if (!autoSaveEnabledRef.current) return;
+      // Debounce so rapid successive engine updates collapse into one sync call
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = setTimeout(() => {
+        if (!isSavingRef.current) void handleSave();
+      }, AUTO_SAVE_DELAY_MS);
+    };
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     stores.forEach(store => store?.on('change', onStoreChange));
     return () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       stores.forEach(store => store?.un('change', onStoreChange));
+      clearTimeout(autoSaveTimerRef.current);
     };
-  }, [isLoading, getGanttInstance]);
+  }, [isLoading, getGanttInstance, handleSave]);
 
   // Validate parent task duration: revert and warn if shortened below subtask span
   useEffect(() => {
@@ -273,6 +312,8 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
         isSaving={isSaving}
         hasPendingChanges={hasPendingChanges}
         justSaved={justSaved}
+        autoSaveEnabled={autoSaveEnabled}
+        onToggleAutoSave={handleToggleAutoSave}
       />
 
       {/* Bryntum must always render in a visible container so its internal layout

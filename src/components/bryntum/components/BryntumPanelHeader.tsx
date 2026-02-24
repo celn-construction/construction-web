@@ -93,6 +93,8 @@ type BryntumPanelHeaderProps = {
   isSaving?: boolean;
   hasPendingChanges?: boolean;
   justSaved?: boolean;
+  autoSaveEnabled?: boolean;
+  onToggleAutoSave?: () => void;
 };
 
 export function BryntumPanelHeader({
@@ -107,6 +109,8 @@ export function BryntumPanelHeader({
   isSaving,
   hasPendingChanges,
   justSaved,
+  autoSaveEnabled = false,
+  onToggleAutoSave,
 }: BryntumPanelHeaderProps) {
   const [activePreset, setActivePreset] = useState('weekAndDayLetter');
 
@@ -133,6 +137,9 @@ export function BryntumPanelHeader({
         }
         .gantt-add-task-btn:active {
           transform: scale(0.97);
+        }
+        .gantt-autosave-toggle:hover {
+          opacity: 1 !important;
         }
       `}</style>
 
@@ -188,6 +195,55 @@ export function BryntumPanelHeader({
       {/* Spacer pushes action buttons to the right */}
       <div style={{ flex: 1 }} />
 
+      {/* Auto-save toggle */}
+      {onToggleAutoSave && (
+        <button
+          className="gantt-autosave-toggle"
+          onClick={onToggleAutoSave}
+          title={autoSaveEnabled ? 'Auto-save is on — click to disable' : 'Auto-save is off — click to enable'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '7px',
+            padding: '4px 10px',
+            fontSize: '0.75rem',
+            fontWeight: 500,
+            color: autoSaveEnabled ? 'var(--success, #16a34a)' : 'var(--text-secondary)',
+            backgroundColor: 'transparent',
+            border: `1px solid ${autoSaveEnabled ? 'var(--success, #16a34a)' : 'var(--border-color)'}`,
+            borderRadius: '6px',
+            cursor: 'pointer',
+            opacity: autoSaveEnabled ? 1 : 0.55,
+            transition: 'color 0.15s, border-color 0.15s, opacity 0.15s',
+            userSelect: 'none',
+          }}
+        >
+          {/* Toggle pill */}
+          <span style={{
+            display: 'inline-flex',
+            width: '26px',
+            height: '15px',
+            borderRadius: '8px',
+            backgroundColor: autoSaveEnabled ? 'var(--success, #16a34a)' : 'var(--border-color)',
+            padding: '2px',
+            alignItems: 'center',
+            flexShrink: 0,
+            transition: 'background-color 0.2s',
+          }}>
+            <span style={{
+              width: '11px',
+              height: '11px',
+              borderRadius: '50%',
+              backgroundColor: 'white',
+              transform: autoSaveEnabled ? 'translateX(11px)' : 'translateX(0)',
+              transition: 'transform 0.2s',
+              flexShrink: 0,
+            }} />
+          </span>
+          Auto-save
+        </button>
+      )}
+
       {onAddTask && (
         <button
           className="gantt-add-task-btn"
@@ -201,7 +257,8 @@ export function BryntumPanelHeader({
         </button>
       )}
 
-      {onSave && (
+      {/* Only show manual save button when auto-save is off */}
+      {onSave && !autoSaveEnabled && (
         <button
           style={{
             ...SAVE_BUTTON_STYLE,
