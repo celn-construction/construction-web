@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Typography, Skeleton } from '@mui/material';
+import { Box, Typography, Skeleton, useTheme } from '@mui/material';
 import { SlidersHorizontal, X, SquareCheck, CircleDashed } from 'lucide-react';
 import type { LinkFilter } from '@/components/documents/DocumentFilterPopup';
 
@@ -29,6 +29,7 @@ export default function DocumentFilterTabs({
   onRemoveLinkFilter,
   isLoading,
 }: DocumentFilterTabsProps) {
+  const theme = useTheme();
   const activeCount = selectedTypes.length + (linkFilter !== 'all' ? 1 : 0);
 
   if (isLoading) {
@@ -38,7 +39,7 @@ export default function DocumentFilterTabs({
           variant="rectangular"
           width={94}
           height={32}
-          sx={{ borderRadius: '999px', bgcolor: '#E2E5E9' }}
+          sx={{ borderRadius: '999px', bgcolor: 'action.disabled' }}
         />
       </Box>
     );
@@ -71,12 +72,13 @@ export default function DocumentFilterTabs({
           border: '1px solid',
           borderColor: 'divider',
           bgcolor: 'background.paper',
+          color: 'text.primary',
           cursor: 'pointer',
           transition: 'all 0.15s',
           '&:hover': { bgcolor: 'action.hover' },
         }}
       >
-        <SlidersHorizontal style={{ width: 14, height: 14 }} />
+        <SlidersHorizontal style={{ width: 14, height: 14, color: 'currentColor' }} />
         <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'text.primary' }}>
           Filters
         </Typography>
@@ -128,9 +130,9 @@ export default function DocumentFilterTabs({
       {linkFilter !== 'all' && (
         <Box sx={activeChipSx}>
           {linkFilter === 'linked' ? (
-            <SquareCheck style={{ width: 12, height: 12, color: '#059669', flexShrink: 0 }} />
+            <SquareCheck style={{ width: 12, height: 12, color: theme.palette.docExplorer.linkedGreen, flexShrink: 0 }} />
           ) : (
-            <CircleDashed style={{ width: 12, height: 12, color: '#8D99AE', flexShrink: 0 }} />
+            <CircleDashed style={{ width: 12, height: 12, color: theme.palette.text.secondary, flexShrink: 0 }} />
           )}
           <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.primary' }}>
             {linkFilter === 'linked' ? 'Linked to Task' : 'Unlinked'}

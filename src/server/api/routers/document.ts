@@ -47,6 +47,14 @@ function shapeResults(rows: RawDocumentRow[]) {
   }));
 }
 
+const linkFilterSchema = z.enum(["all", "linked", "unlinked"]).default("all");
+
+function buildLinkCondition(linkFilter: z.infer<typeof linkFilterSchema>) {
+  if (linkFilter === "linked") return { taskId: { not: "" } };
+  if (linkFilter === "unlinked") return { taskId: "" };
+  return {};
+}
+
 export const documentRouter = createTRPCRouter({
   listByFolder: orgProcedure
     .input(
@@ -173,6 +181,7 @@ export const documentRouter = createTRPCRouter({
         limit: z.number().min(1).max(50).default(20),
         offset: z.number().min(0).default(0),
         folderIds: z.array(z.string()).optional(),
+        linkFilter: linkFilterSchema,
       })
     )
     .query(async ({ ctx, input }) => {
@@ -191,12 +200,14 @@ export const documentRouter = createTRPCRouter({
       const folderFilter = input.folderIds?.length
         ? { folderId: { in: input.folderIds } }
         : {};
+      const linkCondition = buildLinkCondition(input.linkFilter);
 
       // Empty query: return recent documents
       if (!trimmed) {
+        const where = { projectId: input.projectId, ...folderFilter, ...linkCondition };
         const [results, total] = await Promise.all([
           ctx.db.document.findMany({
-            where: { projectId: input.projectId, ...folderFilter },
+            where,
             include: {
               uploadedBy: {
                 select: { id: true, name: true, email: true },
@@ -206,9 +217,7 @@ export const documentRouter = createTRPCRouter({
             take: input.limit,
             skip: input.offset,
           }),
-          ctx.db.document.count({
-            where: { projectId: input.projectId, ...folderFilter },
-          }),
+          ctx.db.document.count({ where }),
         ]);
         return { results, total };
       }
@@ -218,6 +227,7 @@ export const documentRouter = createTRPCRouter({
         projectId: input.projectId,
         name: { contains: trimmed, mode: "insensitive" as const },
         ...folderFilter,
+        ...linkCondition,
       };
 
       const [results, total] = await Promise.all([
@@ -247,6 +257,7 @@ export const documentRouter = createTRPCRouter({
         limit: z.number().min(1).max(50).default(20),
         offset: z.number().min(0).default(0),
         folderIds: z.array(z.string()).optional(),
+        linkFilter: linkFilterSchema,
       })
     )
     .query(async ({ ctx, input }) => {
@@ -265,7 +276,8 @@ export const documentRouter = createTRPCRouter({
       const queryEmbedding = await embedQuery(input.query);
       const vectorSql = toVectorSql(queryEmbedding);
 
-      // Cosine similarity search using pgvector — two branches to avoid Prisma.empty
+      // Two branches for folderIds to avoid Prisma.empty (which breaks $queryRaw parameter numbering).
+      // linkFilter is passed as a parameterized value — PostgreSQL evaluates the matching branch.
       const rows = input.folderIds?.length
         ? await ctx.db.$queryRaw<RawDocumentRow[]>`
             SELECT
@@ -280,6 +292,9 @@ export const documentRouter = createTRPCRouter({
             WHERE d."projectId" = ${input.projectId}
               AND d.embedding IS NOT NULL
               AND d."folderId" = ANY(${input.folderIds})
+              AND (${input.linkFilter} = 'all'
+                OR (${input.linkFilter} = 'linked' AND d."taskId" != '')
+                OR (${input.linkFilter} = 'unlinked' AND d."taskId" = ''))
             ORDER BY d.embedding <=> ${vectorSql}::vector
             LIMIT ${input.limit} OFFSET ${input.offset}
           `
@@ -295,6 +310,9 @@ export const documentRouter = createTRPCRouter({
               JOIN "User" u ON u.id = d."uploadedById"
             WHERE d."projectId" = ${input.projectId}
               AND d.embedding IS NOT NULL
+              AND (${input.linkFilter} = 'all'
+                OR (${input.linkFilter} = 'linked' AND d."taskId" != '')
+                OR (${input.linkFilter} = 'unlinked' AND d."taskId" = ''))
             ORDER BY d.embedding <=> ${vectorSql}::vector
             LIMIT ${input.limit} OFFSET ${input.offset}
           `;

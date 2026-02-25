@@ -1,14 +1,14 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 
-// Light theme — matches construction.pen $--variable tokens
+// Light theme — matches construction.pen $--variable tokens (3rd iteration)
 export const lightTheme: Theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#FF8400', // $--primary
-      light: '#FF9933',
-      dark: '#CC6A00',
-      contrastText: '#111111', // $--primary-foreground
+      main: '#2B2D42', // $--primary
+      light: '#4A4D6A',
+      dark: '#1A1C2B',
+      contrastText: '#FFFFFF', // $--primary-foreground
     },
     secondary: {
       main: '#F0F0F3', // $--secondary (subtle bg)
@@ -21,19 +21,19 @@ export const lightTheme: Theme = createTheme({
       dark: '#B02E0F',
     },
     warning: {
-      main: '#804200',
-      light: '#A35400',
-      dark: '#5C2F00',
+      main: '#8B6914', // $--color-warning-foreground
+      light: '#A87E1A',
+      dark: '#6E5210',
     },
     info: {
-      main: '#000066',
+      main: '#000066', // $--color-info-foreground
       light: '#0000A3',
       dark: '#000040',
     },
     success: {
-      main: '#004D1A',
-      light: '#006B24',
-      dark: '#003010',
+      main: '#3D6B4F', // $--color-success-foreground
+      light: '#4F8A65',
+      dark: '#2A4C38',
     },
     background: {
       default: '#F0F0F3', // $--background
@@ -61,8 +61,8 @@ export const lightTheme: Theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#F2F3F0',
-          color: '#111111',
+          backgroundColor: '#F0F0F3',
+          color: '#1A1A2E',
           transition: 'background-color 0.15s ease, color 0.15s ease',
         },
       },
@@ -109,6 +109,14 @@ declare module '@mui/material/styles' {
       accent: string;
       accentSubtle: string;
     };
+    docExplorer: {
+      destructiveMain: string;
+      destructiveDark: string;
+      destructiveLight: string;
+      linkedGreen: string;
+      badgeBg: string;
+      aiPurple: string;
+    };
   }
   interface PaletteOptions {
     card?: {
@@ -147,6 +155,14 @@ declare module '@mui/material/styles' {
       accent?: string;
       accentSubtle?: string;
     };
+    docExplorer?: {
+      destructiveMain?: string;
+      destructiveDark?: string;
+      destructiveLight?: string;
+      linkedGreen?: string;
+      badgeBg?: string;
+      aiPurple?: string;
+    };
   }
 }
 
@@ -155,19 +171,19 @@ lightTheme.palette.card = {
   background: '#FFFFFF', // $--card
 };
 lightTheme.palette.input = {
-  background: '#CBCCC9', // $--input
+  background: '#D9DBE1', // $--input
 };
 lightTheme.palette.sidebar = {
-  background: '#FFFFFF',   // $--card (sidebar uses card bg)
+  background: '#FFFFFF',   // $--sidebar
   border: '#D9DBE1',       // $--sidebar-border
-  indicator: '#2B2D42',    // active bar (dark navy from pen)
+  indicator: '#2B2D42',    // active bar
   activeBg: '#FFFFFF',     // $--card
-  hoverBg: '#F0F0F3',      // $--muted
-  activeItemBg: '#FFFFFF', // explicit white for active nav item
+  hoverBg: '#F0F0F3',      // $--sidebar-accent
+  activeItemBg: '#FFFFFF',
 };
 lightTheme.palette.accent = {
-  dark: '#2B2D42',       // dark navy for search bar, project icon, avatar gradient
-  gradientEnd: '#CC6A00', // avatar gradient end
+  dark: '#2B2D42',       // $--primary (dark navy)
+  gradientEnd: '#1A1C2B',
 };
 lightTheme.palette.status = {
   active: '#22C55E',
@@ -177,15 +193,23 @@ lightTheme.palette.status = {
   archived: '#8D99AE',
 };
 lightTheme.palette.warm = {
-  main: '#FF8400', // $--primary
-  dark: '#CC6A00',
+  main: '#2B2D42', // $--primary
+  dark: '#1A1C2B',
 };
 lightTheme.palette.grid = {
   line: 'rgba(0, 0, 0, 0.04)',
 };
 lightTheme.palette.timeline = {
-  accent: '#FF8400',              // $--primary
-  accentSubtle: 'rgba(255, 132, 0, 0.1)',
+  accent: '#2B2D42',              // $--primary
+  accentSubtle: 'rgba(43, 45, 66, 0.08)',
+};
+lightTheme.palette.docExplorer = {
+  destructiveMain: '#8B4049',
+  destructiveDark: '#7a3540',
+  destructiveLight: '#F5EDEC',
+  linkedGreen: '#059669',
+  badgeBg: '#DFDFE6',
+  aiPurple: '#A855F7',
 };
 
 // Dark theme — matches construction.pen dark mode $--variable tokens
@@ -193,10 +217,10 @@ export const darkTheme: Theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#FF8400', // $--primary (same orange in dark)
-      light: '#FF9933',
-      dark: '#CC6A00',
-      contrastText: '#111111', // $--primary-foreground
+      main: '#4A90D9', // $--primary (dark)
+      light: '#6BAAE0',
+      dark: '#3A7AC4',
+      contrastText: '#FFFFFF', // $--primary-foreground (dark)
     },
     secondary: {
       main: '#2E2E2E', // $--secondary (dark)
@@ -209,17 +233,17 @@ export const darkTheme: Theme = createTheme({
       dark: '#CC3A1F',
     },
     warning: {
-      main: '#FF8400',
-      light: '#FF9933',
+      main: '#FF8400', // $--color-warning-foreground (dark)
+      light: '#FFA033',
       dark: '#CC6A00',
     },
     info: {
-      main: '#B2B2FF',
+      main: '#B2B2FF', // $--color-info-foreground (dark)
       light: '#D4D4FF',
       dark: '#8080CC',
     },
     success: {
-      main: '#B6FFCE',
+      main: '#B6FFCE', // $--color-success-foreground (dark)
       light: '#D4FFE2',
       dark: '#80CCA0',
     },
@@ -228,14 +252,14 @@ export const darkTheme: Theme = createTheme({
       paper: '#1A1A1A',   // $--card (dark)
     },
     text: {
-      primary: '#FFFFFF',  // $--foreground (dark)
+      primary: '#FFFFFF',   // $--foreground (dark)
       secondary: '#B8B9B6', // $--muted-foreground (dark)
       disabled: '#737373',
     },
     divider: '#2E2E2E', // $--border (dark)
     action: {
       hover: '#2E2E2E',              // $--muted (dark)
-      selected: 'rgba(255, 132, 0, 0.1)',
+      selected: 'rgba(255, 255, 255, 0.1)',
       disabled: '#404040',
     },
   },
@@ -268,14 +292,14 @@ darkTheme.palette.input = {
 darkTheme.palette.sidebar = {
   background: '#1A1A1A',                   // $--card (dark)
   border: 'rgba(255, 255, 255, 0.10)',     // $--sidebar-border (dark)
-  indicator: '#FFFFFF',                    // active bar (white on dark)
+  indicator: '#4A90D9',                    // active bar ($--primary dark)
   activeBg: 'rgba(255, 255, 255, 0.10)',
   hoverBg: 'rgba(255, 255, 255, 0.06)',
   activeItemBg: 'rgba(255, 255, 255, 0.10)',
 };
 darkTheme.palette.accent = {
-  dark: 'rgba(255, 255, 255, 0.10)', // subtle bg in dark mode
-  gradientEnd: '#CC6A00',            // same brand color
+  dark: '#4A90D9',                       // $--primary (dark)
+  gradientEnd: 'rgba(255, 255, 255, 0.1)',
 };
 darkTheme.palette.status = {
   active: '#22C55E',
@@ -285,13 +309,21 @@ darkTheme.palette.status = {
   archived: '#8D99AE',
 };
 darkTheme.palette.warm = {
-  main: '#FF8400', // $--primary
-  dark: '#CC6A00',
+  main: '#4A90D9', // $--primary (dark)
+  dark: '#3A7AC4',
 };
 darkTheme.palette.grid = {
   line: 'rgba(255, 255, 255, 0.04)',
 };
 darkTheme.palette.timeline = {
-  accent: '#FF8400',              // $--primary
-  accentSubtle: 'rgba(255, 132, 0, 0.1)',
+  accent: '#4A90D9',                     // $--primary (dark)
+  accentSubtle: 'rgba(74, 144, 217, 0.15)',
+};
+darkTheme.palette.docExplorer = {
+  destructiveMain: '#C96B75',
+  destructiveDark: '#A85862',
+  destructiveLight: '#3D2A2C',
+  linkedGreen: '#34D399',
+  badgeBg: '#3A3A3A',
+  aiPurple: '#C084FC',
 };

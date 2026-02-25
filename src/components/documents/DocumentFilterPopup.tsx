@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, Popover } from '@mui/material';
+import { Box, Typography, Popover, useTheme } from '@mui/material';
 import { X, SlidersHorizontal, Check } from 'lucide-react';
 
 const FOLDER_FILTERS = [
@@ -36,6 +36,7 @@ export default function DocumentFilterPopup({
   onClose,
   onApply,
 }: DocumentFilterPopupProps) {
+  const theme = useTheme();
   const [pendingTypes, setPendingTypes] = useState<string[]>(selectedTypes);
   const [pendingLink, setPendingLink] = useState<LinkFilter>(linkFilter);
 
@@ -181,7 +182,7 @@ export default function DocumentFilterPopup({
             sx={isTypeActive('all') ? activeChip : inactiveChip}
           >
             {isTypeActive('all') && (
-              <Check style={{ width: 11, height: 11, flexShrink: 0, color: '#111111' }} />
+              <Check style={{ width: 11, height: 11, flexShrink: 0, color: theme.palette.primary.contrastText }} />
             )}
             <Typography
               sx={{
@@ -203,7 +204,7 @@ export default function DocumentFilterPopup({
                 sx={active ? activeChip : inactiveChip}
               >
                 {active && (
-                  <Check style={{ width: 11, height: 11, flexShrink: 0, color: '#111111' }} />
+                  <Check style={{ width: 11, height: 11, flexShrink: 0, color: theme.palette.primary.contrastText }} />
                 )}
                 <Typography
                   sx={{
@@ -246,7 +247,7 @@ export default function DocumentFilterPopup({
                 sx={active ? activeChip : inactiveChip}
               >
                 {active && (
-                  <Check style={{ width: 11, height: 11, flexShrink: 0, color: '#111111' }} />
+                  <Check style={{ width: 11, height: 11, flexShrink: 0, color: theme.palette.primary.contrastText }} />
                 )}
                 <Typography
                   sx={{
@@ -334,7 +335,7 @@ export default function DocumentFilterPopup({
               '&:hover': { opacity: 0.9 },
             }}
           >
-            <SlidersHorizontal style={{ width: 12, height: 12, color: '#111111' }} />
+            <SlidersHorizontal style={{ width: 12, height: 12, color: theme.palette.primary.contrastText }} />
             <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'primary.contrastText' }}>
               Apply
             </Typography>
