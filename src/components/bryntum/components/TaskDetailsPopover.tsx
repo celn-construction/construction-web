@@ -526,7 +526,7 @@ export function TaskDetailsPopover({
           </Box>
 
           {/* ── DIVIDER ── */}
-          <Box sx={{ height: 1, bgcolor: 'divider' }} />
+          <Box sx={{ height: '1px', bgcolor: 'divider' }} />
 
           {/* ── DOCUMENTS SECTION ── */}
           <Box
@@ -771,7 +771,7 @@ export function TaskDetailsPopover({
           </Box>
 
           {/* ── DIVIDER ── */}
-          <Box sx={{ height: 1, bgcolor: 'divider' }} />
+          <Box sx={{ height: '1px', bgcolor: 'divider' }} />
 
           {/* ── FOOTER ── */}
           <Box
