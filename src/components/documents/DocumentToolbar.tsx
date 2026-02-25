@@ -27,9 +27,9 @@ export default function DocumentToolbar({
   const primaryDark = theme.palette.primary.dark;
 
   const glowPulse = keyframes`
-    0% { box-shadow: 0 0 0 0 rgba(255, 132, 0, 0); }
-    40% { box-shadow: 0 0 16px 4px rgba(255, 132, 0, 0.25); }
-    100% { box-shadow: 0 0 0 0 rgba(255, 132, 0, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+    40% { box-shadow: 0 0 16px 4px rgba(0, 0, 0, 0.15); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
   `;
 
   return (
