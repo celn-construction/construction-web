@@ -15,6 +15,8 @@ import {
   ChevronRight,
   Upload,
   FolderTree,
+  Calendar,
+  Timer,
 } from 'lucide-react';
 import { Box, Popover, IconButton, Typography, CircularProgress } from '@mui/material';
 import { POPOVER_WIDTH } from '../constants';
@@ -314,7 +316,7 @@ export function TaskDetailsPopover({
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                p: '16px 16px 16px 16px',
+                p: '16px 20px 16px 16px',
                 gap: 1.5,
                 minWidth: 0,
               }}
@@ -376,7 +378,7 @@ export function TaskDetailsPopover({
               </Box>
 
               {/* Title section */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Typography
                   sx={{
                     fontWeight: 700,
@@ -391,33 +393,43 @@ export function TaskDetailsPopover({
                 </Typography>
                 {(metaDateRange || durationLabel) && (
                   <Box
-                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}
                   >
                     {metaDateRange && (
-                      <Typography
-                        variant="caption"
-                        sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
-                      >
-                        {metaDateRange}
-                      </Typography>
-                    )}
-                    {metaDateRange && durationLabel && (
-                      <Box
-                        sx={{
-                          width: 3,
-                          height: 3,
-                          borderRadius: '50%',
-                          bgcolor: 'text.disabled',
-                        }}
-                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Calendar
+                          size={12}
+                          style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }}
+                        />
+                        <Typography
+                          sx={{
+                            fontSize: 11,
+                            fontWeight: 500,
+                            color: 'text.secondary',
+                            fontFamily: 'Inter, sans-serif',
+                          }}
+                        >
+                          {metaDateRange}
+                        </Typography>
+                      </Box>
                     )}
                     {durationLabel && (
-                      <Typography
-                        variant="caption"
-                        sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
-                      >
-                        {durationLabel}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Timer
+                          size={12}
+                          style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }}
+                        />
+                        <Typography
+                          sx={{
+                            fontSize: 11,
+                            fontWeight: 500,
+                            color: 'text.secondary',
+                            fontFamily: 'Inter, sans-serif',
+                          }}
+                        >
+                          {durationLabel}
+                        </Typography>
+                      </Box>
                     )}
                   </Box>
                 )}
@@ -692,16 +704,18 @@ export function TaskDetailsPopover({
                               display: 'flex',
                               alignItems: 'center',
                               gap: 1,
-                              px: 1,
-                              py: 0.875,
+                              pt: '7px',
+                              pb: '7px',
+                              pr: 1,
+                              pl: '18px',
                               borderRadius: 1.5,
                               '&:hover': { bgcolor: 'action.hover' },
                               cursor: 'default',
                             }}
                           >
                             <FileText
-                              size={13}
-                              style={{ color: '#3b82f6', flexShrink: 0 }}
+                              size={14}
+                              style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }}
                             />
                             <Typography
                               sx={{
@@ -716,6 +730,22 @@ export function TaskDetailsPopover({
                             >
                               {doc.name}
                             </Typography>
+                            {'createdAt' in doc && doc.createdAt && (
+                              <Typography
+                                sx={{
+                                  fontSize: 11,
+                                  color: 'text.secondary',
+                                  fontFamily: 'Inter, sans-serif',
+                                  flexShrink: 0,
+                                  opacity: 0.7,
+                                }}
+                              >
+                                {new Date(doc.createdAt as string | Date).toLocaleDateString(
+                                  'en-US',
+                                  { month: 'short', day: 'numeric' }
+                                )}
+                              </Typography>
+                            )}
                           </Box>
                         ))}
                       </Box>
