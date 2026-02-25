@@ -58,6 +58,8 @@ export const ganttRouter = createTRPCRouter({
           percentDone: true,
           startDate: true,
           endDate: true,
+          duration: true,
+          durationUnit: true,
           coverImageUrl: true,
           parentId: true,
           parent: {
@@ -76,6 +78,8 @@ export const ganttRouter = createTRPCRouter({
         percentDone: task.percentDone,
         startDate: task.startDate,
         endDate: task.endDate,
+        duration: task.duration,
+        durationUnit: task.durationUnit,
         coverImageUrl: task.coverImageUrl,
         group: task.parent?.name ?? null,
       };
