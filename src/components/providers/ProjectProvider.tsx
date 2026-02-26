@@ -30,3 +30,7 @@ export function useProjectContext(): ProjectContextValue {
   }
   return context;
 }
+
+export function useOptionalProjectContext(): ProjectContextValue | null {
+  return useContext(ProjectContext);
+}

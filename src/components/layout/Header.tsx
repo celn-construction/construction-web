@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { Search, Bell, Undo2, UserPlus, Moon, Sun } from 'lucide-react';
 import { Box, Typography, IconButton, Divider, Button } from '@mui/material';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -12,9 +12,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
+import { Buildings } from '@phosphor-icons/react';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useNavigationLoading } from '@/hooks/useNavigationLoading';
+import { api } from '@/trpc/react';
 
 const PAGE_TITLES: Record<string, string> = {
   gantt: 'Gantt Chart',
@@ -30,6 +32,13 @@ export default function Header() {
   useNavigationLoading();
   const { activeOrganizationId } = useOrgFromUrl();
   const { theme, toggleTheme } = useThemeStore();
+  const params = useParams<{ projectSlug?: string }>();
+
+  const { data: projects = [] } = api.project.list.useQuery(
+    { organizationId: activeOrganizationId },
+    { retry: false, enabled: !!activeOrganizationId }
+  );
+  const currentProject = projects.find((p) => p.slug === params.projectSlug);
 
   const lastSegment = pathname.split('/').pop() ?? '';
   const pageTitle = PAGE_TITLES[lastSegment] ?? null;
@@ -52,9 +61,20 @@ export default function Header() {
     >
       {/* Page Title */}
       {pageTitle && (
-        <Typography sx={{ fontSize: 18, fontWeight: 700, color: 'text.primary', lineHeight: 1 }}>
-          {pageTitle}
-        </Typography>
+        <>
+          <Typography sx={{ fontSize: 18, fontWeight: 700, color: 'text.primary', lineHeight: 1 }}>
+            {pageTitle}
+          </Typography>
+          {currentProject && (
+            <>
+              <Typography sx={{ color: 'text.disabled', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>·</Typography>
+              <Buildings size={15} style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }} />
+              <Typography sx={{ fontSize: 14, fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
+                {currentProject.name}
+              </Typography>
+            </>
+          )}
+        </>
       )}
 
       {/* Spacer */}

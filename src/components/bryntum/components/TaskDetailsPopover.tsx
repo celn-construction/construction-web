@@ -1,39 +1,51 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useDropzone } from 'react-dropzone';
 import {
   X,
-  Folder,
+  FolderSimple,
   FileText,
   Plus,
-  ImagePlus,
-  Trash2,
-  Pencil,
-  MoreHorizontal,
+  Image,
+  Trash,
+  PencilSimple,
+  DotsThree,
   ArrowRight,
-  ChevronDown,
-  ChevronRight,
-  Upload,
-  FolderTree,
-  Calendar,
+  CaretDown,
+  CaretRight,
+  UploadSimple,
+  TreeStructure,
+  CalendarBlank,
   Timer,
-} from 'lucide-react';
-import { Box, Popover, IconButton, Typography, CircularProgress } from '@mui/material';
-import { POPOVER_WIDTH } from '../constants';
+  SquaresFour,
+  List,
+  ImageSquare,
+  DownloadSimple,
+  ArrowsOut,
+} from '@phosphor-icons/react';
+import { Box, Popover, IconButton, Typography, CircularProgress, Divider } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import type { Theme } from '@mui/material/styles';
+import UploadOverlay from '@/components/ui/UploadOverlay';
+import FileDropzone from '@/components/ui/FileDropzone';
+import { POPOVER_WIDTH, POPOVER_EXPANDED_WIDTH, ESTIMATED_POPOVER_HEIGHT } from '../constants';
+import { formatFileSize } from '@/lib/utils/formatting';
 import type { PopoverPlacement } from '../types';
 import { folderData } from '@/lib/folders';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
+import { useSnackbar } from '@/hooks/useSnackbar';
 
-function getStatusInfo(percentDone: number) {
+function getStatusInfo(percentDone: number, palette: Theme['palette']) {
   if (percentDone >= 100) {
-    return { label: 'Complete', dotColor: '#16A34A', chipBg: '#dcfce7', chipColor: '#166534' };
+    return { label: 'Complete', dotColor: palette.status.active, chipBg: palette.status.activeBg, chipColor: palette.status.activeText };
   }
   if (percentDone > 0) {
-    return { label: 'In Progress', dotColor: '#D97706', chipBg: '#fef3c7', chipColor: '#92400e' };
+    return { label: 'In Progress', dotColor: palette.status.inProgress, chipBg: palette.status.inProgressBg, chipColor: palette.status.inProgressText };
   }
-  return { label: 'Not Started', dotColor: '#9ca3af', chipBg: '#f3f4f6', chipColor: '#4b5563' };
+  return { label: 'Not Started', dotColor: palette.text.disabled, chipBg: palette.action.hover, chipColor: palette.text.secondary };
 }
 
 function formatDate(date: Date | string | null | undefined): string {
@@ -64,10 +76,24 @@ export function TaskDetailsPopover({
   onClose,
 }: TaskDetailsPopoverProps) {
   const { projectId, organizationId } = useProjectContext();
+  const theme = useTheme();
+  const { showSnackbar } = useSnackbar();
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [uploadFolder, setUploadFolder] = useState<{ id: string; name: string } | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
-  const coverInputRef = useRef<HTMLInputElement>(null);
+  const [coverDeleting, setCoverDeleting] = useState(false);
+  const [coverImageLoaded, setCoverImageLoaded] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [photosViewMode, setPhotosViewMode] = useState<'grid' | 'list'>('grid');
+  const [previewDoc, setPreviewDoc] = useState<{
+    id: string;
+    name: string;
+    blobUrl: string;
+    mimeType: string;
+    size: number;
+    createdAt: string | Date;
+    uploadedBy: { name: string | null } | null;
+  } | null>(null);
 
   const utils = api.useUtils();
 
@@ -88,12 +114,18 @@ export function TaskDetailsPopover({
 
   const coverImageUrl = taskDetail?.coverImageUrl ?? null;
   const percentDone = taskDetail?.percentDone ?? 0;
-  const statusInfo = getStatusInfo(percentDone);
 
-  const handleCoverUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !taskId) return;
+  // Reset image loaded state when cover URL changes (different task opened)
+  useEffect(() => {
+    setCoverImageLoaded(false);
+  }, [coverImageUrl]);
+  const statusInfo = getStatusInfo(percentDone, theme.palette);
+
+  const uploadCoverImage = useCallback(
+    async (file: File) => {
+      if (!taskId) return;
+      const preview = URL.createObjectURL(file);
+      setPreviewUrl(preview);
       setCoverUploading(true);
       try {
         const formData = new FormData();
@@ -103,18 +135,30 @@ export function TaskDetailsPopover({
         const res = await fetch('/api/gantt/cover-image', { method: 'POST', body: formData });
         if (res.ok) {
           void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
+        } else {
+          const body = await res.json().catch(() => ({ error: 'Upload failed' }));
+          showSnackbar((body as { error?: string }).error ?? 'Upload failed', 'error');
         }
       } finally {
         setCoverUploading(false);
-        if (coverInputRef.current) coverInputRef.current.value = '';
+        URL.revokeObjectURL(preview);
+        setPreviewUrl(null);
       }
     },
-    [taskId, projectId, organizationId, utils]
+    [taskId, projectId, organizationId, utils, showSnackbar]
   );
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const handleCoverRemove = useCallback(async () => {
     if (!taskId) return;
     setCoverUploading(true);
+    setCoverDeleting(true);
     try {
       const res = await fetch('/api/gantt/cover-image', {
         method: 'DELETE',
@@ -126,6 +170,7 @@ export function TaskDetailsPopover({
       }
     } finally {
       setCoverUploading(false);
+      setCoverDeleting(false);
     }
   }, [taskId, projectId, organizationId, utils]);
 
@@ -147,11 +192,39 @@ export function TaskDetailsPopover({
 
   const handleClose = () => {
     setExpandedFolders(new Set());
+    setPreviewDoc(null);
     onClose();
   };
 
+  const { getRootProps, getInputProps, isDragActive, open: openFilePicker } = useDropzone({
+    onDrop: (files) => {
+      if (files[0]) void uploadCoverImage(files[0]);
+    },
+    onDropRejected: (rejections) => {
+      const code = rejections[0]?.errors[0]?.code;
+      if (code === 'file-too-large') {
+        showSnackbar('Image must be under 10MB', 'error');
+      } else if (code === 'file-invalid-type') {
+        showSnackbar('Only JPG, PNG, GIF, and WebP images are supported', 'error');
+      } else {
+        showSnackbar('File not accepted', 'error');
+      }
+    },
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/gif': ['.gif'],
+      'image/webp': ['.webp'],
+    },
+    maxFiles: 1,
+    maxSize: 10 * 1024 * 1024,
+    noClick: !!coverImageUrl,
+    noKeyboard: !!coverImageUrl,
+    disabled: coverUploading,
+  });
+
   const badgeText = taskDetail?.group ?? taskName.split(' ')[0] ?? 'Task';
-  const badgeColor = '#E67E22';
+  const badgeColor = theme.palette.status.badge;
 
   const metaDateRange = [
     taskDetail?.startDate ? formatDate(taskDetail.startDate) : null,
@@ -185,47 +258,91 @@ export function TaskDetailsPopover({
               borderColor: 'divider',
               boxShadow:
                 '0 16px 48px -8px rgba(0,0,0,0.18), 0 4px 12px -4px rgba(0,0,0,0.05)',
-              width: POPOVER_WIDTH,
+              width: previewDoc ? POPOVER_EXPANDED_WIDTH : POPOVER_WIDTH,
+              minHeight: ESTIMATED_POPOVER_HEIGHT,
+              transition: 'width 0.25s ease',
             },
           },
         }}
       >
-        <Box sx={{ width: POPOVER_WIDTH, bgcolor: 'background.paper' }}>
+        <Box sx={{ display: 'flex', minHeight: ESTIMATED_POPOVER_HEIGHT }}>
+        {/* ── LEFT PANEL ── */}
+        <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, minHeight: ESTIMATED_POPOVER_HEIGHT, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
 
           {/* ── HEADER ── */}
-          <Box sx={{ display: 'flex', minHeight: 160 }}>
+          {/* position: relative + explicit height gives all absolutely-positioned
+              children a definite containing block — avoids flex-stretch ambiguity */}
+          <Box sx={{ position: 'relative', height: 180, flexShrink: 0 }}>
 
-            {/* Cover image column (160px) */}
+            {/* Cover image column (160px) — absolutely positioned, full header height */}
             <Box
+              {...getRootProps()}
               sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                bottom: 0,
                 width: 160,
-                flexShrink: 0,
-                position: 'relative',
-                bgcolor: 'action.hover',
                 overflow: 'hidden',
+                outline: 'none',
+                ...(!coverImageUrl && {
+                  bgcolor: isDragActive ? 'action.selected' : 'action.hover',
+                  transition: 'background-color 0.2s',
+                }),
                 '&:hover .cover-actions': { opacity: 1 },
               }}
             >
-              <input
-                ref={coverInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                style={{ display: 'none' }}
-                onChange={handleCoverUpload}
-              />
-              {coverImageUrl ? (
+              <input {...getInputProps()} />
+
+              {/* State 1 & 2: Uploading (with or without preview) */}
+              {coverUploading ? (
+                <Box sx={{ position: 'absolute', inset: 0 }}>
+                  <UploadOverlay
+                    previewUrl={previewUrl}
+                    variant={coverDeleting ? 'dark' : previewUrl ? 'dark' : 'light'}
+                    text={coverDeleting ? 'Removing\u2026' : 'Uploading\u2026'}
+                  />
+                </Box>
+              ) : coverImageUrl ? (
+                /* State 3: Existing cover image */
                 <>
+                  {/* Shimmer skeleton shown until image is decoded */}
+                  {!coverImageLoaded && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 0.5,
+                        '@keyframes shimmer': {
+                          '0%': { backgroundPosition: '-200% 0' },
+                          '100%': { backgroundPosition: '200% 0' },
+                        },
+                        background: 'linear-gradient(90deg, var(--mui-palette-background-default) 25%, var(--mui-palette-divider) 50%, var(--mui-palette-background-default) 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.8s ease-in-out infinite',
+                        zIndex: 1,
+                      }}
+                    >
+                      <ImageSquare size={24} color="var(--mui-palette-text-disabled)" />
+                    </Box>
+                  )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={coverImageUrl}
                     alt="Task cover"
+                    onLoad={() => setCoverImageLoaded(true)}
                     style={{
+                      position: 'absolute',
+                      inset: 0,
                       width: '100%',
                       height: '100%',
                       objectFit: 'cover',
+                      objectPosition: 'center',
                       display: 'block',
-                      position: 'absolute',
-                      inset: 0,
                     }}
                   />
                   <Box
@@ -242,83 +359,69 @@ export function TaskDetailsPopover({
                       transition: 'opacity 0.2s',
                     }}
                   >
-                    {coverUploading ? (
-                      <CircularProgress size={20} sx={{ color: 'white' }} />
-                    ) : (
-                      <>
-                        <IconButton
-                          size="small"
-                          onClick={() => coverInputRef.current?.click()}
-                          sx={{
-                            color: 'white',
-                            bgcolor: 'rgba(255,255,255,0.15)',
-                            '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
-                          }}
-                          aria-label="Change cover image"
-                        >
-                          <ImagePlus size={14} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={handleCoverRemove}
-                          sx={{
-                            color: 'white',
-                            bgcolor: 'rgba(255,255,255,0.15)',
-                            '&:hover': { bgcolor: 'rgba(220,38,38,0.6)' },
-                          }}
-                          aria-label="Remove cover image"
-                        >
-                          <Trash2 size={14} />
-                        </IconButton>
-                      </>
-                    )}
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFilePicker();
+                      }}
+                      sx={{
+                        color: 'white',
+                        bgcolor: 'rgba(255,255,255,0.15)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                      }}
+                      aria-label="Change cover image"
+                    >
+                      <Image size={14} />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleCoverRemove();
+                      }}
+                      sx={{
+                        color: 'white',
+                        bgcolor: 'rgba(255,255,255,0.15)',
+                        '&:hover': { bgcolor: 'rgba(220,38,38,0.6)' },
+                      }}
+                      aria-label="Remove cover image"
+                    >
+                      <Trash size={14} />
+                    </IconButton>
                   </Box>
                 </>
               ) : (
-                <Box
-                  component="button"
-                  onClick={() => coverInputRef.current?.click()}
+                /* State 4: Empty — dropzone with drag-active feedback */
+                <FileDropzone
+                  isDragActive={isDragActive}
+                  icon={<Image size={20} />}
+                  primaryText={isDragActive ? 'Drop image' : 'Add cover'}
                   sx={{
-                    width: '100%',
-                    height: '100%',
-                    minHeight: 160,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 0.75,
-                    border: 'none',
-                    bgcolor: 'transparent',
                     cursor: 'pointer',
-                    color: 'text.disabled',
-                    '&:hover': { color: 'text.secondary', bgcolor: 'action.selected' },
-                    transition: 'background-color 0.2s, color 0.2s',
+                    color: isDragActive ? 'text.secondary' : 'text.disabled',
+                    transition: 'color 0.2s',
+                    border: isDragActive ? '2px dashed' : '2px dashed transparent',
+                    borderColor: isDragActive ? 'text.disabled' : 'transparent',
                   }}
-                >
-                  {coverUploading ? (
-                    <CircularProgress size={18} />
-                  ) : (
-                    <>
-                      <ImagePlus size={20} />
-                      <Typography sx={{ fontSize: '0.7rem', color: 'inherit' }}>
-                        Add cover
-                      </Typography>
-                    </>
-                  )}
-                </Box>
+                />
               )}
             </Box>
 
-            {/* Right content column */}
+            {/* Right content column — absolutely positioned right of the cover image */}
             <Box
               sx={{
-                flex: 1,
+                position: 'absolute',
+                top: 0,
+                left: 160,
+                right: 0,
+                bottom: 0,
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                p: '16px 20px 16px 16px',
-                gap: 1.5,
-                minWidth: 0,
+                p: '14px 20px 14px 16px',
+                gap: 1,
+                overflow: 'hidden',
               }}
             >
               {/* Top row: badge + close */}
@@ -361,7 +464,7 @@ export function TaskDetailsPopover({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRadius: 2,
+                    borderRadius: '8px',
                     border: '1px solid',
                     borderColor: 'divider',
                     bgcolor: 'transparent',
@@ -397,9 +500,10 @@ export function TaskDetailsPopover({
                   >
                     {metaDateRange && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <Calendar
+                        <CalendarBlank
                           size={12}
-                          style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }}
+                          color="var(--mui-palette-text-secondary)"
+                          style={{ flexShrink: 0 }}
                         />
                         <Typography
                           sx={{
@@ -417,7 +521,8 @@ export function TaskDetailsPopover({
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                         <Timer
                           size={12}
-                          style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }}
+                          color="var(--mui-palette-text-secondary)"
+                          style={{ flexShrink: 0 }}
                         />
                         <Typography
                           sx={{
@@ -514,7 +619,7 @@ export function TaskDetailsPopover({
                       sx={{
                         height: '100%',
                         borderRadius: 999,
-                        bgcolor: percentDone >= 100 ? '#16A34A' : '#D97706',
+                        bgcolor: statusInfo.dotColor,
                         width: `${Math.min(percentDone, 100)}%`,
                         transition: 'width 0.3s ease',
                       }}
@@ -526,7 +631,7 @@ export function TaskDetailsPopover({
           </Box>
 
           {/* ── DIVIDER ── */}
-          <Box sx={{ height: '1px', bgcolor: 'divider' }} />
+          <Divider />
 
           {/* ── DOCUMENTS SECTION ── */}
           <Box
@@ -535,6 +640,8 @@ export function TaskDetailsPopover({
               display: 'flex',
               flexDirection: 'column',
               gap: 1.25,
+              flex: 1,
+              minHeight: 200,
             }}
           >
             {/* Section header */}
@@ -546,7 +653,7 @@ export function TaskDetailsPopover({
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <FolderTree size={16} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                <TreeStructure size={16} color="var(--mui-palette-text-secondary)" />
                 <Typography
                   sx={{
                     fontSize: 13,
@@ -567,23 +674,27 @@ export function TaskDetailsPopover({
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 0.5,
+                  gap: '5px',
                   border: 'none',
-                  bgcolor: 'transparent',
+                  bgcolor: 'text.primary',
+                  color: 'background.paper',
                   cursor: 'pointer',
-                  color: 'primary.main',
-                  p: 0,
-                  '&:hover': { opacity: 0.75 },
+                  borderRadius: 999,
+                  px: 1.5,
+                  py: '5px',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+                  '&:hover': { opacity: 0.85 },
                   transition: 'opacity 0.15s',
                 }}
               >
-                <Upload size={12} />
+                <UploadSimple size={12} />
                 <Typography
                   sx={{
                     fontSize: 12,
-                    fontWeight: 500,
+                    fontWeight: 600,
                     color: 'inherit',
                     fontFamily: 'Inter, sans-serif',
+                    letterSpacing: 0.3,
                   }}
                 >
                   Upload
@@ -617,19 +728,22 @@ export function TaskDetailsPopover({
                       onClick={() => toggleFolder(folder.id)}
                     >
                       {isOpen ? (
-                        <ChevronDown
+                        <CaretDown
                           size={14}
-                          style={{ color: '#9ca3af', flexShrink: 0 }}
+                          color="var(--mui-palette-text-disabled)"
+                          style={{ flexShrink: 0 }}
                         />
                       ) : (
-                        <ChevronRight
+                        <CaretRight
                           size={14}
-                          style={{ color: '#9ca3af', flexShrink: 0 }}
+                          color="var(--mui-palette-text-disabled)"
+                          style={{ flexShrink: 0 }}
                         />
                       )}
-                      <Folder
+                      <FolderSimple
                         size={16}
-                        style={{ color: folder.color, flexShrink: 0 }}
+                        color={folder.color}
+                        style={{ flexShrink: 0 }}
                       />
                       <Typography
                         sx={{
@@ -687,8 +801,224 @@ export function TaskDetailsPopover({
                       </IconButton>
                     </Box>
 
-                    {/* Expanded file rows */}
-                    {isOpen && folderDocs.length > 0 && (
+                    {/* Expanded file rows — Photos folder gets grid/list; others get standard list */}
+                    {isOpen && folderDocs.length > 0 && folder.id === 'photos' && (
+                      <Box sx={{ pt: 1, pl: '20px' }}>
+                        {/* Grid Toolbar */}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            pb: 0.5,
+                          }}
+                        >
+                          {/* View Toggle Pill */}
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              bgcolor: 'action.selected',
+                              borderRadius: 1.5,
+                              p: '2px',
+                            }}
+                          >
+                            <Box
+                              component="button"
+                              onClick={() => setPhotosViewMode('grid')}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                                border: 'none',
+                                cursor: 'pointer',
+                                bgcolor: photosViewMode === 'grid' ? 'background.paper' : 'transparent',
+                                color: photosViewMode === 'grid' ? 'text.primary' : 'text.secondary',
+                                transition: 'all 0.15s',
+                                boxShadow: photosViewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                              }}
+                              aria-label="Grid view"
+                            >
+                              <SquaresFour size={13} />
+                            </Box>
+                            <Box
+                              component="button"
+                              onClick={() => setPhotosViewMode('list')}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                                border: 'none',
+                                cursor: 'pointer',
+                                bgcolor: photosViewMode === 'list' ? 'background.paper' : 'transparent',
+                                color: photosViewMode === 'list' ? 'text.primary' : 'text.secondary',
+                                transition: 'all 0.15s',
+                                boxShadow: photosViewMode === 'list' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                              }}
+                              aria-label="List view"
+                            >
+                              <List size={13} />
+                            </Box>
+                          </Box>
+                          {/* Date label */}
+                          {folderDocs[0]?.createdAt && (
+                            <Typography
+                              sx={{
+                                fontSize: 11,
+                                fontWeight: 500,
+                                color: 'text.secondary',
+                                fontFamily: 'Inter, sans-serif',
+                              }}
+                            >
+                              {new Date(folderDocs[0].createdAt as string | Date).toLocaleDateString(
+                                'en-US',
+                                { month: 'short', year: 'numeric' }
+                              )}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {/* Grid or List */}
+                        {photosViewMode === 'grid' ? (
+                          <Box
+                            sx={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(3, 1fr)',
+                              gap: '6px',
+                              pt: 0.5,
+                            }}
+                          >
+                            {folderDocs.map((doc) => (
+                              <Box
+                                key={doc.id}
+                                onClick={() =>
+                                  setPreviewDoc({
+                                    id: doc.id,
+                                    name: doc.name,
+                                    blobUrl: doc.blobUrl,
+                                    mimeType: doc.mimeType,
+                                    size: doc.size,
+                                    createdAt: doc.createdAt as string | Date,
+                                    uploadedBy: doc.uploadedBy ?? null,
+                                  })
+                                }
+                                sx={{
+                                  height: 85,
+                                  borderRadius: 1.5,
+                                  overflow: 'hidden',
+                                  cursor: 'pointer',
+                                  bgcolor: 'action.hover',
+                                  border: previewDoc?.id === doc.id ? '2px solid' : '2px solid transparent',
+                                  borderColor: previewDoc?.id === doc.id ? 'primary.main' : 'transparent',
+                                  transition: 'border-color 0.15s',
+                                  '&:hover': { opacity: 0.85 },
+                                }}
+                              >
+                                {doc.mimeType.startsWith('image/') ? (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img
+                                    src={doc.blobUrl}
+                                    alt={doc.name}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover',
+                                      display: 'block',
+                                    }}
+                                  />
+                                ) : (
+                                  <Box
+                                    sx={{
+                                      width: '100%',
+                                      height: '100%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                  >
+                                    <FileText size={20} color="var(--mui-palette-text-disabled)" />
+                                  </Box>
+                                )}
+                              </Box>
+                            ))}
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.125, pt: 0.5 }}>
+                            {folderDocs.map((doc) => (
+                              <Box
+                                key={doc.id}
+                                onClick={() =>
+                                  setPreviewDoc({
+                                    id: doc.id,
+                                    name: doc.name,
+                                    blobUrl: doc.blobUrl,
+                                    mimeType: doc.mimeType,
+                                    size: doc.size,
+                                    createdAt: doc.createdAt as string | Date,
+                                    uploadedBy: doc.uploadedBy ?? null,
+                                  })
+                                }
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                  py: '7px',
+                                  pr: 1,
+                                  pl: '18px',
+                                  borderRadius: 1.5,
+                                  cursor: 'pointer',
+                                  bgcolor: previewDoc?.id === doc.id ? 'action.selected' : 'transparent',
+                                  '&:hover': { bgcolor: 'action.hover' },
+                                }}
+                              >
+                                <FileText
+                                  size={14}
+                                  color="var(--mui-palette-text-secondary)"
+                                  style={{ flexShrink: 0 }}
+                                />
+                                <Typography
+                                  sx={{
+                                    fontSize: 12,
+                                    flex: 1,
+                                    color: 'text.primary',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    fontFamily: 'Inter, sans-serif',
+                                  }}
+                                >
+                                  {doc.name}
+                                </Typography>
+                                {'createdAt' in doc && doc.createdAt && (
+                                  <Typography
+                                    sx={{
+                                      fontSize: 11,
+                                      color: 'text.secondary',
+                                      fontFamily: 'Inter, sans-serif',
+                                      flexShrink: 0,
+                                      opacity: 0.7,
+                                    }}
+                                  >
+                                    {new Date(doc.createdAt as string | Date).toLocaleDateString(
+                                      'en-US',
+                                      { month: 'short', day: 'numeric' }
+                                    )}
+                                  </Typography>
+                                )}
+                              </Box>
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                    {isOpen && folderDocs.length > 0 && folder.id !== 'photos' && (
                       <Box
                         sx={{
                           pl: '20px',
@@ -700,6 +1030,17 @@ export function TaskDetailsPopover({
                         {folderDocs.map((doc) => (
                           <Box
                             key={doc.id}
+                            onClick={() =>
+                              setPreviewDoc({
+                                id: doc.id,
+                                name: doc.name,
+                                blobUrl: doc.blobUrl,
+                                mimeType: doc.mimeType,
+                                size: doc.size,
+                                createdAt: doc.createdAt as string | Date,
+                                uploadedBy: doc.uploadedBy ?? null,
+                              })
+                            }
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
@@ -709,17 +1050,22 @@ export function TaskDetailsPopover({
                               pr: 1,
                               pl: '18px',
                               borderRadius: 1.5,
-                              '&:hover': { bgcolor: 'action.hover' },
-                              cursor: 'default',
+                              cursor: 'pointer',
+                              bgcolor: previewDoc?.id === doc.id ? 'action.selected' : 'transparent',
+                              '&:hover': { bgcolor: previewDoc?.id === doc.id ? 'action.selected' : 'action.hover' },
                             }}
                           >
                             <FileText
                               size={14}
-                              style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }}
+                              color={previewDoc?.id === doc.id
+                                ? 'var(--mui-palette-primary-main)'
+                                : 'var(--mui-palette-text-secondary)'}
+                              style={{ flexShrink: 0 }}
                             />
                             <Typography
                               sx={{
                                 fontSize: 12,
+                                fontWeight: previewDoc?.id === doc.id ? 500 : 400,
                                 flex: 1,
                                 color: 'text.primary',
                                 overflow: 'hidden',
@@ -771,7 +1117,7 @@ export function TaskDetailsPopover({
           </Box>
 
           {/* ── DIVIDER ── */}
-          <Box sx={{ height: '1px', bgcolor: 'divider' }} />
+          <Divider />
 
           {/* ── FOOTER ── */}
           <Box
@@ -806,7 +1152,7 @@ export function TaskDetailsPopover({
                   transition: 'background-color 0.15s',
                 }}
               >
-                <Pencil size={13} />
+                <PencilSimple size={13} />
                 Edit Task
               </Box>
               <Box
@@ -828,7 +1174,7 @@ export function TaskDetailsPopover({
                 }}
                 aria-label="More options"
               >
-                <MoreHorizontal size={14} />
+                <DotsThree size={14} />
               </Box>
             </Box>
 
@@ -857,6 +1203,194 @@ export function TaskDetailsPopover({
               <ArrowRight size={13} />
             </Box>
           </Box>
+        </Box>
+        {/* ── END LEFT PANEL ── */}
+
+        {/* ── RIGHT PREVIEW PANEL ── */}
+        {previewDoc && (
+          <>
+            <Divider orientation="vertical" flexItem />
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: 'background.paper',
+                minWidth: 0,
+                animation: 'slideInRight 0.22s ease',
+                '@keyframes slideInRight': {
+                  from: { opacity: 0, transform: 'translateX(16px)' },
+                  to: { opacity: 1, transform: 'translateX(0)' },
+                },
+              }}
+            >
+              {/* Preview Header */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  px: '20px',
+                  py: '14px',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  {previewDoc.mimeType.startsWith('image/') ? (
+                    <ImageSquare
+                      size={16}
+                      color="var(--mui-palette-text-secondary)"
+                      style={{ flexShrink: 0 }}
+                    />
+                  ) : (
+                    <FileText
+                      size={16}
+                      color="var(--mui-palette-text-secondary)"
+                      style={{ flexShrink: 0 }}
+                    />
+                  )}
+                  <Typography
+                    noWrap
+                    sx={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      fontFamily: 'Inter, sans-serif',
+                    }}
+                  >
+                    {previewDoc.name}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                  <Box
+                    component="button"
+                    onClick={() => window.open(previewDoc.blobUrl, '_blank')}
+                    sx={{
+                      width: 30,
+                      height: 30,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 1.5,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      bgcolor: 'transparent',
+                      cursor: 'pointer',
+                      color: 'text.secondary',
+                      '&:hover': { bgcolor: 'action.hover' },
+                      transition: 'background-color 0.15s',
+                    }}
+                    aria-label="Download"
+                  >
+                    <DownloadSimple size={14} />
+                  </Box>
+                  <Box
+                    component="button"
+                    onClick={() => window.open(previewDoc.blobUrl, '_blank')}
+                    sx={{
+                      width: 30,
+                      height: 30,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 1.5,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      bgcolor: 'transparent',
+                      cursor: 'pointer',
+                      color: 'text.secondary',
+                      '&:hover': { bgcolor: 'action.hover' },
+                      transition: 'background-color 0.15s',
+                    }}
+                    aria-label="Expand"
+                  >
+                    <ArrowsOut size={14} />
+                  </Box>
+                </Box>
+              </Box>
+
+              <Divider />
+
+              {/* Image / File Preview Area */}
+              <Box
+                sx={{
+                  flex: 1,
+                  overflow: 'hidden',
+                  bgcolor: 'action.hover',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {previewDoc.mimeType.startsWith('image/') ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={previewDoc.blobUrl}
+                    alt={previewDoc.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                ) : (
+                  <FileText
+                    size={48}
+                    color="var(--mui-palette-text-disabled)"
+                  />
+                )}
+              </Box>
+
+              <Divider />
+
+              {/* File Metadata */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  px: '20px',
+                  py: '14px',
+                }}
+              >
+                {previewDoc.uploadedBy?.name && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                      Uploaded by
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                      {previewDoc.uploadedBy.name}
+                    </Typography>
+                  </Box>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                    Date
+                  </Typography>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                    {new Date(previewDoc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                    Size
+                  </Typography>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                    {formatFileSize(previewDoc.size)}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                    Type
+                  </Typography>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                    {previewDoc.mimeType.split('/')[1]?.toUpperCase() ?? previewDoc.mimeType}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </>
+        )}
         </Box>
       </Popover>
 

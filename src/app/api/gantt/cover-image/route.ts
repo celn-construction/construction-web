@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { put, del } from "@vercel/blob";
 import { db } from "@/server/db";
 import { auth } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -28,9 +29,11 @@ async function verifyAccess(userId: string, projectId: string, taskId: string) {
         organizationId: project.organizationId,
       },
     },
+    select: { role: true },
   });
 
   if (!membership) return null;
+  if (!hasPermission(membership.role, 'MANAGE_PROJECTS')) return null;
 
   const task = await db.ganttTask.findFirst({
     where: { id: taskId, projectId },
