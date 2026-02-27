@@ -176,6 +176,8 @@ const { control, handleSubmit, reset, formState: { errors } } = useForm<InputTyp
 | `Label` | MUI | Accessible form labels |
 | `LoadingSpinner` | `CircularProgress` | Standard loading indicator |
 | `ImageWithFallback` / `OptimizedImage` | `next/image` | Always use over bare `<img>` |
+| `FileDropzone` | `react-dropzone` | Standalone or embedded dropzone; accepts `getRootProps`/`getInputProps` for standalone mode |
+| `UploadOverlay` | `CircularProgress` | Upload progress overlay with spinner; variants: `dark` (image overlay), `light` (form area) |
 
 For any MUI component without a `ui/` wrapper, use MUI directly — do not create wrappers unless the abstraction is used in 3+ places.
 

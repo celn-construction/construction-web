@@ -11,6 +11,7 @@ export interface Folder {
   id: string;
   name: string;
   isLeaf: boolean;
+  color: string;
   children?: FolderChild[];
 }
 
@@ -19,11 +20,13 @@ export const folderData: Folder[] = [
     id: 'rfi',
     name: 'RFI',
     isLeaf: true,
+    color: '#D97706',
   },
   {
     id: 'submittals',
     name: 'Submittals',
     isLeaf: false,
+    color: '#2563EB',
     children: [
       { id: 'submittals-product', name: 'Product Data' },
       { id: 'submittals-shop', name: 'Shop Drawings' },
@@ -34,16 +37,19 @@ export const folderData: Folder[] = [
     id: 'change-orders',
     name: 'Change Orders',
     isLeaf: true,
+    color: '#E67E22',
   },
   {
     id: 'photos',
     name: 'Photos',
     isLeaf: true,
+    color: '#16A34A',
   },
   {
     id: 'inspections',
     name: 'Inspections',
     isLeaf: false,
+    color: '#8E44AD',
     children: [
       { id: 'inspections-structural', name: 'Structural' },
       { id: 'inspections-mep', name: 'MEP' },

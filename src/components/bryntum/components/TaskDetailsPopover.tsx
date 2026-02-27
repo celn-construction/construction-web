@@ -1,360 +1,63 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef, Fragment } from 'react';
-import { X, Folder, FileText, Plus, Download, ImagePlus, Trash2 } from 'lucide-react';
-import { Box, Popover, IconButton, Chip, Typography, CircularProgress } from '@mui/material';
-import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
-import { TreeItem } from '@mui/x-tree-view/TreeItem';
-import { POPOVER_WIDTH } from '../constants';
+import { useState, useCallback, useEffect } from 'react';
+import { useDropzone } from 'react-dropzone';
+import {
+  X,
+  FolderSimple,
+  FileText,
+  Plus,
+  Image,
+  Trash,
+  PencilSimple,
+  DotsThree,
+  ArrowRight,
+  CaretDown,
+  CaretRight,
+  UploadSimple,
+  TreeStructure,
+  CalendarBlank,
+  Timer,
+  SquaresFour,
+  List,
+  ImageSquare,
+  DownloadSimple,
+  ArrowsOut,
+} from '@phosphor-icons/react';
+import { Box, Popover, IconButton, Typography, CircularProgress, Divider } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import type { Theme } from '@mui/material/styles';
+import UploadOverlay from '@/components/ui/UploadOverlay';
+import FileDropzone from '@/components/ui/FileDropzone';
+import { POPOVER_WIDTH, POPOVER_EXPANDED_WIDTH, ESTIMATED_POPOVER_HEIGHT } from '../constants';
+import { formatFileSize } from '@/lib/utils/formatting';
 import type { PopoverPlacement } from '../types';
 import { folderData } from '@/lib/folders';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
+import { useSnackbar } from '@/hooks/useSnackbar';
 
-type DocItem = {
-  id: string;
-  name: string;
-  blobUrl: string;
-  mimeType: string;
-  size: number;
-  folderId: string;
-  uploadedBy?: { name: string | null } | null;
-};
-
-function PopoverFolderNode({
-  folder,
-  taskId,
-  projectId,
-  organizationId,
-  allDocs,
-  counts,
-}: {
-  folder: (typeof folderData)[0];
-  taskId: string;
-  projectId: string;
-  organizationId: string;
-  allDocs: DocItem[];
-  counts: Record<string, number> | undefined;
-}) {
-  const folderId = `popover-${taskId}-${folder.id}`;
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const utils = api.useUtils();
-
-  const folderDocs = useMemo(
-    () => allDocs.filter((d) => d.folderId === folder.id),
-    [allDocs, folder.id]
-  );
-
-  const documentCount = counts?.[folder.id] || 0;
-
-  const handleUploadComplete = () => {
-    void utils.document.countByTask.invalidate({ organizationId, projectId, taskId });
-    void utils.document.listByTask.invalidate({ organizationId, projectId, taskId });
-    void utils.document.listByFolder.invalidate();
-  };
-
-  return (
-    <Fragment>
-      <TreeItem
-        key={folderId}
-        itemId={folderId}
-        label={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-            <Folder size={14} style={{ color: '#f59e0b' }} />
-            <Box sx={{ fontWeight: 500, flexGrow: 1 }}>{folder.name}</Box>
-            {documentCount > 0 && (
-              <Chip
-                label={documentCount}
-                size="small"
-                sx={{
-                  height: 18,
-                  fontSize: '0.65rem',
-                  bgcolor: 'warning.light',
-                  color: 'warning.dark',
-                  '& .MuiChip-label': { px: 1 },
-                }}
-              />
-            )}
-            <IconButton
-              size="small"
-              aria-label={`Upload file to ${folder.name}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setUploadOpen(true);
-              }}
-              sx={{
-                p: 0.5,
-                color: 'text.disabled',
-                '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
-              }}
-            >
-              <Plus size={14} />
-            </IconButton>
-          </Box>
-        }
-      >
-        {!folder.isLeaf &&
-          folder.children &&
-          folder.children
-            .filter((child) => (counts?.[child.id] ?? 0) > 0)
-            .map((child) => {
-              const childId = `popover-${taskId}-${folder.id}-${child.id}`;
-              const childDocCount = counts?.[child.id] || 0;
-              const childDocs = allDocs.filter((d) => d.folderId === child.id);
-
-              return (
-                <TreeItem
-                  key={childId}
-                  itemId={childId}
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-                      <FileText size={14} style={{ color: '#6b7280' }} />
-                      <Box sx={{ flexGrow: 1 }}>{child.name}</Box>
-                      {childDocCount > 0 && (
-                        <Chip
-                          label={childDocCount}
-                          size="small"
-                          sx={{
-                            height: 18,
-                            fontSize: '0.65rem',
-                            bgcolor: 'action.hover',
-                            color: 'text.secondary',
-                            '& .MuiChip-label': { px: 1 },
-                          }}
-                        />
-                      )}
-                      <IconButton
-                        size="small"
-                        aria-label={`Upload file to ${child.name}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setUploadOpen(true);
-                        }}
-                        sx={{
-                          p: 0.5,
-                          color: 'text.disabled',
-                          '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
-                        }}
-                      >
-                        <Plus size={14} />
-                      </IconButton>
-                    </Box>
-                  }
-                >
-                  {childDocs.map((doc) => (
-                    <TreeItem
-                      key={`popover-${taskId}-doc-${doc.id}`}
-                      itemId={`popover-${taskId}-doc-${doc.id}`}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.25 }}>
-                          <FileText size={12} style={{ color: '#3b82f6' }} />
-                          <Box
-                            sx={{
-                              flexGrow: 1,
-                              fontSize: '0.8rem',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {doc.name}
-                          </Box>
-                        </Box>
-                      }
-                    />
-                  ))}
-                </TreeItem>
-              );
-            })}
-        {folderDocs.map((doc) => (
-          <TreeItem
-            key={`popover-${taskId}-doc-${doc.id}`}
-            itemId={`popover-${taskId}-doc-${doc.id}`}
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.25 }}>
-                <FileText size={12} style={{ color: '#3b82f6' }} />
-                <Box
-                  sx={{
-                    flexGrow: 1,
-                    fontSize: '0.8rem',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {doc.name}
-                </Box>
-              </Box>
-            }
-          />
-        ))}
-      </TreeItem>
-
-      <UploadDialog
-        open={uploadOpen}
-        onOpenChange={setUploadOpen}
-        projectId={projectId}
-        taskId={taskId}
-        folderId={folder.id}
-        folderName={folder.name}
-        onUploadComplete={handleUploadComplete}
-      />
-    </Fragment>
-  );
+function getStatusInfo(percentDone: number, palette: Theme['palette']) {
+  if (percentDone >= 100) {
+    return { label: 'Complete', dotColor: palette.status.active, chipBg: palette.status.activeBg, chipColor: palette.status.activeText };
+  }
+  if (percentDone > 0) {
+    return { label: 'In Progress', dotColor: palette.status.inProgress, chipBg: palette.status.inProgressBg, chipColor: palette.status.inProgressText };
+  }
+  return { label: 'Not Started', dotColor: palette.text.disabled, chipBg: palette.action.hover, chipColor: palette.text.secondary };
 }
 
-function DocumentPreview({ doc, onClose }: { doc: DocItem; onClose: () => void }) {
-  const isPdf = doc.mimeType === 'application/pdf';
-  const isImage = doc.mimeType.startsWith('image/');
+function formatDate(date: Date | string | null | undefined): string {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
-  return (
-    <Box
-      sx={{
-        width: POPOVER_WIDTH,
-        borderLeft: '1px solid',
-        borderColor: 'divider',
-        p: 2,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-        <Box
-          component="button"
-          onClick={onClose}
-          sx={{
-            p: 0.5,
-            borderRadius: 1,
-            border: 'none',
-            bgcolor: 'transparent',
-            cursor: 'pointer',
-            '&:hover': { bgcolor: 'action.hover' },
-            transition: 'background-color 0.2s',
-          }}
-          aria-label="Close preview"
-        >
-          <X size={16} style={{ color: 'var(--text-secondary)' }} />
-        </Box>
-      </Box>
-
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          mb: 2,
-          pb: 1.5,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 1,
-            bgcolor: isPdf ? '#dc2626' : 'text.primary',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <FileText size={16} />
-        </Box>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 600,
-              fontSize: '0.8125rem',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {doc.name}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {(doc.size / 1024).toFixed(1)} KB
-            {doc.uploadedBy?.name && ` · ${doc.uploadedBy.name}`}
-          </Typography>
-        </Box>
-        <IconButton
-          component="a"
-          href={doc.blobUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          download={doc.name}
-          size="small"
-          sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-          aria-label="Download"
-        >
-          <Download size={16} />
-        </IconButton>
-      </Box>
-
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 1,
-          bgcolor: 'action.hover',
-          overflow: 'hidden',
-          minHeight: 180,
-        }}
-      >
-        {isImage && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={doc.blobUrl}
-            alt={doc.name}
-            style={{
-              maxWidth: '100%',
-              maxHeight: 280,
-              objectFit: 'contain',
-              borderRadius: 4,
-            }}
-          />
-        )}
-        {isPdf && (
-          <iframe
-            src={doc.blobUrl}
-            title={doc.name}
-            style={{ width: '100%', height: 360, border: 'none', borderRadius: 4 }}
-          />
-        )}
-        {!isImage && !isPdf && (
-          <Box sx={{ textAlign: 'center', py: 3 }}>
-            <FileText size={40} style={{ color: '#d1d5db', marginBottom: 8 }} />
-            <Typography variant="caption" display="block" sx={{ color: 'text.secondary', mb: 1 }}>
-              {doc.name}
-            </Typography>
-            <Typography
-              component="a"
-              href={doc.blobUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              download={doc.name}
-              variant="body2"
-              sx={{
-                color: 'primary.main',
-                textDecoration: 'none',
-                fontWeight: 500,
-                '&:hover': { textDecoration: 'underline' },
-              }}
-            >
-              Download ↗
-            </Typography>
-          </Box>
-        )}
-      </Box>
-    </Box>
-  );
+function formatDuration(duration: number | null | undefined, unit: string): string {
+  if (!duration) return '';
+  const rounded = Math.round(duration);
+  const u = unit === 'day' ? 'day' : unit;
+  return `${rounded} ${u}${rounded !== 1 ? 's' : ''}`;
 }
 
 type TaskDetailsPopoverProps = {
@@ -373,9 +76,24 @@ export function TaskDetailsPopover({
   onClose,
 }: TaskDetailsPopoverProps) {
   const { projectId, organizationId } = useProjectContext();
-  const [selectedDoc, setSelectedDoc] = useState<DocItem | null>(null);
+  const theme = useTheme();
+  const { showSnackbar } = useSnackbar();
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [uploadFolder, setUploadFolder] = useState<{ id: string; name: string } | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
-  const coverInputRef = useRef<HTMLInputElement>(null);
+  const [coverDeleting, setCoverDeleting] = useState(false);
+  const [coverImageLoaded, setCoverImageLoaded] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [photosViewMode, setPhotosViewMode] = useState<'grid' | 'list'>('grid');
+  const [previewDoc, setPreviewDoc] = useState<{
+    id: string;
+    name: string;
+    blobUrl: string;
+    mimeType: string;
+    size: number;
+    createdAt: string | Date;
+    uploadedBy: { name: string | null } | null;
+  } | null>(null);
 
   const utils = api.useUtils();
 
@@ -395,35 +113,52 @@ export function TaskDetailsPopover({
   );
 
   const coverImageUrl = taskDetail?.coverImageUrl ?? null;
+  const percentDone = taskDetail?.percentDone ?? 0;
 
-  const handleCoverUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !taskId) return;
+  // Reset image loaded state when cover URL changes (different task opened)
+  useEffect(() => {
+    setCoverImageLoaded(false);
+  }, [coverImageUrl]);
+  const statusInfo = getStatusInfo(percentDone, theme.palette);
 
+  const uploadCoverImage = useCallback(
+    async (file: File) => {
+      if (!taskId) return;
+      const preview = URL.createObjectURL(file);
+      setPreviewUrl(preview);
       setCoverUploading(true);
       try {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('projectId', projectId);
         formData.append('taskId', taskId);
-
         const res = await fetch('/api/gantt/cover-image', { method: 'POST', body: formData });
         if (res.ok) {
           void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
+        } else {
+          const body = await res.json().catch(() => ({ error: 'Upload failed' }));
+          showSnackbar((body as { error?: string }).error ?? 'Upload failed', 'error');
         }
       } finally {
         setCoverUploading(false);
-        // Reset input so the same file can be re-selected
-        if (coverInputRef.current) coverInputRef.current.value = '';
+        URL.revokeObjectURL(preview);
+        setPreviewUrl(null);
       }
     },
-    [taskId, projectId, organizationId, utils]
+    [taskId, projectId, organizationId, utils, showSnackbar]
   );
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const handleCoverRemove = useCallback(async () => {
     if (!taskId) return;
     setCoverUploading(true);
+    setCoverDeleting(true);
     try {
       const res = await fetch('/api/gantt/cover-image', {
         method: 'DELETE',
@@ -435,217 +170,1244 @@ export function TaskDetailsPopover({
       }
     } finally {
       setCoverUploading(false);
+      setCoverDeleting(false);
     }
   }, [taskId, projectId, organizationId, utils]);
 
-  const handleSelectedItemsChange = useCallback(
-    (_event: React.SyntheticEvent | null, itemId: string | null) => {
-      if (!itemId || !allDocs) {
-        setSelectedDoc(null);
-        return;
-      }
-      const docPrefix = `popover-${taskId}-doc-`;
-      if (!itemId.startsWith(docPrefix)) {
-        setSelectedDoc(null);
-        return;
-      }
-      const docId = itemId.slice(docPrefix.length);
-      const doc = allDocs.find((d) => d.id === docId);
-      if (doc) {
-        setSelectedDoc({
-          id: doc.id,
-          name: doc.name,
-          blobUrl: doc.blobUrl,
-          mimeType: doc.mimeType,
-          size: doc.size,
-          folderId: doc.folderId,
-          uploadedBy: doc.uploadedBy,
-        });
-      }
-    },
-    [allDocs, taskId]
-  );
+  const toggleFolder = useCallback((folderId: string) => {
+    setExpandedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(folderId)) next.delete(folderId);
+      else next.add(folderId);
+      return next;
+    });
+  }, []);
+
+  const handleUploadComplete = useCallback(() => {
+    void utils.document.countByTask.invalidate({ organizationId, projectId, taskId: taskId! });
+    void utils.document.listByTask.invalidate({ organizationId, projectId, taskId: taskId! });
+    void utils.document.listByFolder.invalidate();
+    setUploadFolder(null);
+  }, [organizationId, projectId, taskId, utils]);
 
   const handleClose = () => {
-    setSelectedDoc(null);
+    setExpandedFolders(new Set());
+    setPreviewDoc(null);
     onClose();
   };
 
-  const isExpanded = selectedDoc !== null;
+  const { getRootProps, getInputProps, isDragActive, open: openFilePicker } = useDropzone({
+    onDrop: (files) => {
+      if (files[0]) void uploadCoverImage(files[0]);
+    },
+    onDropRejected: (rejections) => {
+      const code = rejections[0]?.errors[0]?.code;
+      if (code === 'file-too-large') {
+        showSnackbar('Image must be under 10MB', 'error');
+      } else if (code === 'file-invalid-type') {
+        showSnackbar('Only JPG, PNG, GIF, and WebP images are supported', 'error');
+      } else {
+        showSnackbar('File not accepted', 'error');
+      }
+    },
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/gif': ['.gif'],
+      'image/webp': ['.webp'],
+    },
+    maxFiles: 1,
+    maxSize: 10 * 1024 * 1024,
+    noClick: !!coverImageUrl,
+    noKeyboard: !!coverImageUrl,
+    disabled: coverUploading,
+  });
+
+  const badgeText = taskDetail?.group ?? taskName.split(' ')[0] ?? 'Task';
+  const badgeColor = theme.palette.status.badge;
+
+  const metaDateRange = [
+    taskDetail?.startDate ? formatDate(taskDetail.startDate) : null,
+    taskDetail?.endDate ? formatDate(taskDetail.endDate) : null,
+  ]
+    .filter(Boolean)
+    .join(' — ');
+
+  const durationLabel = formatDuration(
+    taskDetail?.duration,
+    taskDetail?.durationUnit ?? 'day'
+  );
 
   return (
-    <Popover
-      open={open}
-      anchorReference="anchorPosition"
-      anchorPosition={popoverPlacement?.anchorPosition}
-      onClose={handleClose}
-      transformOrigin={popoverPlacement?.transformOrigin ?? { vertical: 'center', horizontal: 'left' }}
-      slotProps={{
-        paper: {
-          sx: {
-            m: popoverPlacement?.paperMargin ?? '0 0 0 8px',
-            transition: 'width 0.2s ease',
-            overflow: 'hidden',
+    <>
+      <Popover
+        open={open}
+        anchorReference="anchorPosition"
+        anchorPosition={popoverPlacement?.anchorPosition}
+        onClose={handleClose}
+        transformOrigin={
+          popoverPlacement?.transformOrigin ?? { vertical: 'center', horizontal: 'left' }
+        }
+        slotProps={{
+          paper: {
+            sx: {
+              m: popoverPlacement?.paperMargin ?? '0 0 0 8px',
+              borderRadius: 4,
+              overflow: 'hidden',
+              border: '1px solid',
+              borderColor: 'divider',
+              boxShadow:
+                '0 16px 48px -8px rgba(0,0,0,0.18), 0 4px 12px -4px rgba(0,0,0,0.05)',
+              width: previewDoc ? POPOVER_EXPANDED_WIDTH : POPOVER_WIDTH,
+              minHeight: ESTIMATED_POPOVER_HEIGHT,
+              transition: 'width 0.25s ease',
+            },
           },
-        },
-      }}
-    >
-      <Box sx={{ display: 'flex', width: isExpanded ? POPOVER_WIDTH * 2 : POPOVER_WIDTH, transition: 'width 0.2s ease' }}>
-        {/* Left panel: cover image + tree (always visible) */}
-        <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-          {/* Cover image area */}
-          <input
-            ref={coverInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            style={{ display: 'none' }}
-            onChange={handleCoverUpload}
-          />
+        }}
+      >
+        <Box sx={{ display: 'flex', minHeight: ESTIMATED_POPOVER_HEIGHT }}>
+        {/* ── LEFT PANEL ── */}
+        <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, minHeight: ESTIMATED_POPOVER_HEIGHT, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
 
-          {coverImageUrl ? (
+          {/* ── HEADER ── */}
+          {/* position: relative + explicit height gives all absolutely-positioned
+              children a definite containing block — avoids flex-stretch ambiguity */}
+          <Box sx={{ position: 'relative', height: 180, flexShrink: 0 }}>
+
+            {/* Cover image column (160px) — absolutely positioned, full header height */}
             <Box
+              {...getRootProps()}
               sx={{
-                position: 'relative',
-                width: '100%',
-                height: 120,
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: 160,
+                overflow: 'hidden',
+                outline: 'none',
+                ...(!coverImageUrl && {
+                  bgcolor: isDragActive ? 'action.selected' : 'action.hover',
+                  transition: 'background-color 0.2s',
+                }),
                 '&:hover .cover-actions': { opacity: 1 },
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={coverImageUrl}
-                alt="Task cover"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-              />
-              <Box
-                className="cover-actions"
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  bgcolor: 'rgba(0,0,0,0.4)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                  opacity: 0,
-                  transition: 'opacity 0.2s',
-                }}
-              >
-                {coverUploading ? (
-                  <CircularProgress size={24} sx={{ color: 'white' }} />
-                ) : (
-                  <>
+              <input {...getInputProps()} />
+
+              {/* State 1 & 2: Uploading (with or without preview) */}
+              {coverUploading ? (
+                <Box sx={{ position: 'absolute', inset: 0 }}>
+                  <UploadOverlay
+                    previewUrl={previewUrl}
+                    variant={coverDeleting ? 'dark' : previewUrl ? 'dark' : 'light'}
+                    text={coverDeleting ? 'Removing\u2026' : 'Uploading\u2026'}
+                  />
+                </Box>
+              ) : coverImageUrl ? (
+                /* State 3: Existing cover image */
+                <>
+                  {/* Shimmer skeleton shown until image is decoded */}
+                  {!coverImageLoaded && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 0.5,
+                        '@keyframes shimmer': {
+                          '0%': { backgroundPosition: '-200% 0' },
+                          '100%': { backgroundPosition: '200% 0' },
+                        },
+                        background: 'linear-gradient(90deg, var(--mui-palette-background-default) 25%, var(--mui-palette-divider) 50%, var(--mui-palette-background-default) 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.8s ease-in-out infinite',
+                        zIndex: 1,
+                      }}
+                    >
+                      <ImageSquare size={24} color="var(--mui-palette-text-disabled)" />
+                    </Box>
+                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={coverImageUrl}
+                    alt="Task cover"
+                    onLoad={() => setCoverImageLoaded(true)}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center',
+                      display: 'block',
+                    }}
+                  />
+                  <Box
+                    className="cover-actions"
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      bgcolor: 'rgba(0,0,0,0.4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1,
+                      opacity: 0,
+                      transition: 'opacity 0.2s',
+                    }}
+                  >
                     <IconButton
                       size="small"
-                      onClick={() => coverInputRef.current?.click()}
-                      sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.15)', '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFilePicker();
+                      }}
+                      sx={{
+                        color: 'white',
+                        bgcolor: 'rgba(255,255,255,0.15)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                      }}
                       aria-label="Change cover image"
                     >
-                      <ImagePlus size={16} />
+                      <Image size={14} />
                     </IconButton>
                     <IconButton
                       size="small"
-                      onClick={handleCoverRemove}
-                      sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.15)', '&:hover': { bgcolor: 'rgba(220,38,38,0.6)' } }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleCoverRemove();
+                      }}
+                      sx={{
+                        color: 'white',
+                        bgcolor: 'rgba(255,255,255,0.15)',
+                        '&:hover': { bgcolor: 'rgba(220,38,38,0.6)' },
+                      }}
                       aria-label="Remove cover image"
                     >
-                      <Trash2 size={16} />
+                      <Trash size={14} />
                     </IconButton>
-                  </>
-                )}
-              </Box>
-            </Box>
-          ) : (
-            <Box
-              component="button"
-              onClick={() => coverInputRef.current?.click()}
-              sx={{
-                width: '100%',
-                height: 48,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 1,
-                border: 'none',
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'action.hover',
-                cursor: 'pointer',
-                color: 'text.secondary',
-                fontSize: '0.75rem',
-                '&:hover': { bgcolor: 'action.selected', color: 'text.primary' },
-                transition: 'background-color 0.2s, color 0.2s',
-              }}
-            >
-              {coverUploading ? (
-                <CircularProgress size={16} />
-              ) : (
-                <>
-                  <ImagePlus size={14} />
-                  Add cover image
+                  </Box>
                 </>
+              ) : (
+                /* State 4: Empty — dropzone with drag-active feedback */
+                <FileDropzone
+                  isDragActive={isDragActive}
+                  icon={<Image size={20} />}
+                  primaryText={isDragActive ? 'Drop image' : 'Add cover'}
+                  sx={{
+                    cursor: 'pointer',
+                    color: isDragActive ? 'text.secondary' : 'text.disabled',
+                    transition: 'color 0.2s',
+                    border: isDragActive ? '2px dashed' : '2px dashed transparent',
+                    borderColor: isDragActive ? 'text.disabled' : 'transparent',
+                  }}
+                />
               )}
             </Box>
-          )}
 
-          {/* Task name + folder tree */}
-          <Box sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
-              <Box>
-                <Box component="h3" sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
-                  {taskName}
+            {/* Right content column — absolutely positioned right of the cover image */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 160,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                p: '14px 20px 14px 16px',
+                gap: 1,
+                overflow: 'hidden',
+              }}
+            >
+              {/* Top row: badge + close */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: badgeColor,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <Typography
+                    noWrap
+                    sx={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: badgeColor,
+                      fontFamily: 'Inter, sans-serif',
+                    }}
+                  >
+                    {badgeText}
+                  </Typography>
                 </Box>
-              </Box>
-              {!isExpanded && (
                 <Box
                   component="button"
                   onClick={handleClose}
                   sx={{
-                    p: 0.5,
-                    borderRadius: 1,
-                    border: 'none',
+                    width: 28,
+                    height: 28,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '8px',
+                    border: '1px solid',
+                    borderColor: 'divider',
                     bgcolor: 'transparent',
                     cursor: 'pointer',
+                    color: 'text.secondary',
+                    flexShrink: 0,
                     '&:hover': { bgcolor: 'action.hover' },
-                    transition: 'background-color 0.2s',
+                    transition: 'background-color 0.15s',
                   }}
                   aria-label="Close"
                 >
-                  <X size={16} style={{ color: 'var(--text-secondary)' }} />
+                  <X size={14} />
                 </Box>
-              )}
-            </Box>
-            {taskId && (
-              <SimpleTreeView onSelectedItemsChange={handleSelectedItemsChange}>
-                {folderData.map((folder) => (
-                  <PopoverFolderNode
-                    key={folder.id}
-                    folder={folder}
-                    taskId={taskId}
-                    projectId={projectId}
-                    organizationId={organizationId}
-                    allDocs={allDocs ?? []}
-                    counts={counts}
+              </Box>
+
+              {/* Title section */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: '1.125rem',
+                    lineHeight: 1.3,
+                    fontFamily: 'Inter, sans-serif',
+                    color: 'text.primary',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {taskName}
+                </Typography>
+                {(metaDateRange || durationLabel) && (
+                  <Box
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}
+                  >
+                    {metaDateRange && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <CalendarBlank
+                          size={12}
+                          color="var(--mui-palette-text-secondary)"
+                          style={{ flexShrink: 0 }}
+                        />
+                        <Typography
+                          sx={{
+                            fontSize: 11,
+                            fontWeight: 500,
+                            color: 'text.secondary',
+                            fontFamily: 'Inter, sans-serif',
+                          }}
+                        >
+                          {metaDateRange}
+                        </Typography>
+                      </Box>
+                    )}
+                    {durationLabel && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Timer
+                          size={12}
+                          color="var(--mui-palette-text-secondary)"
+                          style={{ flexShrink: 0 }}
+                        />
+                        <Typography
+                          sx={{
+                            fontSize: 11,
+                            fontWeight: 500,
+                            color: 'text.secondary',
+                            fontFamily: 'Inter, sans-serif',
+                          }}
+                        >
+                          {durationLabel}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </Box>
+
+              {/* Status chip + progress */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {/* Status chip */}
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1.25,
+                    py: 0.5,
+                    borderRadius: 999,
+                    bgcolor: statusInfo.chipBg,
+                    width: 'fit-content',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      bgcolor: statusInfo.dotColor,
+                      flexShrink: 0,
+                    }}
                   />
-                ))}
-              </SimpleTreeView>
-            )}
+                  <Typography
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: statusInfo.chipColor,
+                      fontFamily: 'Inter, sans-serif',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {statusInfo.label}
+                  </Typography>
+                </Box>
+
+                {/* Progress bar */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: 11,
+                        color: 'text.secondary',
+                        fontFamily: 'Inter, sans-serif',
+                      }}
+                    >
+                      Progress
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: 'text.primary',
+                        fontFamily: 'Inter, sans-serif',
+                      }}
+                    >
+                      {Math.round(percentDone)}%
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: 5,
+                      borderRadius: 999,
+                      bgcolor: 'action.selected',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        height: '100%',
+                        borderRadius: 999,
+                        bgcolor: statusInfo.dotColor,
+                        width: `${Math.min(percentDone, 100)}%`,
+                        transition: 'width 0.3s ease',
+                      }}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* ── DIVIDER ── */}
+          <Divider />
+
+          {/* ── DOCUMENTS SECTION ── */}
+          <Box
+            sx={{
+              p: '16px 24px 20px 24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.25,
+              flex: 1,
+              minHeight: 200,
+            }}
+          >
+            {/* Section header */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TreeStructure size={16} color="var(--mui-palette-text-secondary)" />
+                <Typography
+                  sx={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'text.primary',
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                >
+                  Files
+                </Typography>
+              </Box>
+              <Box
+                component="button"
+                onClick={() => {
+                  const first = folderData[0];
+                  if (first) setUploadFolder({ id: first.id, name: first.name });
+                }}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  border: 'none',
+                  bgcolor: 'text.primary',
+                  color: 'background.paper',
+                  cursor: 'pointer',
+                  borderRadius: 999,
+                  px: 1.5,
+                  py: '5px',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+                  '&:hover': { opacity: 0.85 },
+                  transition: 'opacity 0.15s',
+                }}
+              >
+                <UploadSimple size={12} />
+                <Typography
+                  sx={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'inherit',
+                    fontFamily: 'Inter, sans-serif',
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  Upload
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Folder tree */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+              {folderData.map((folder) => {
+                const count = counts?.[folder.id] ?? 0;
+                const isOpen = expandedFolders.has(folder.id);
+                const folderDocs = (allDocs ?? []).filter((d) => d.folderId === folder.id);
+
+                return (
+                  <Box key={folder.id}>
+                    {/* Folder row */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 1,
+                        py: 1,
+                        borderRadius: 2,
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        '&:hover': { bgcolor: 'action.hover' },
+                        transition: 'background-color 0.15s',
+                      }}
+                      onClick={() => toggleFolder(folder.id)}
+                    >
+                      {isOpen ? (
+                        <CaretDown
+                          size={14}
+                          color="var(--mui-palette-text-disabled)"
+                          style={{ flexShrink: 0 }}
+                        />
+                      ) : (
+                        <CaretRight
+                          size={14}
+                          color="var(--mui-palette-text-disabled)"
+                          style={{ flexShrink: 0 }}
+                        />
+                      )}
+                      <FolderSimple
+                        size={16}
+                        color={folder.color}
+                        style={{ flexShrink: 0 }}
+                      />
+                      <Typography
+                        sx={{
+                          fontSize: 13,
+                          fontWeight: isOpen ? 600 : 500,
+                          flex: 1,
+                          color: 'text.primary',
+                          fontFamily: 'Inter, sans-serif',
+                        }}
+                      >
+                        {folder.name}
+                      </Typography>
+                      {count > 0 && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: 20,
+                            height: 20,
+                            borderRadius: 999,
+                            bgcolor: 'action.selected',
+                            px: 1,
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: 'text.secondary',
+                              fontFamily: 'Inter, sans-serif',
+                              lineHeight: 1,
+                            }}
+                          >
+                            {count}
+                          </Typography>
+                        </Box>
+                      )}
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUploadFolder({ id: folder.id, name: folder.name });
+                        }}
+                        sx={{
+                          p: 0.5,
+                          width: 24,
+                          height: 24,
+                          color: 'text.disabled',
+                          '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
+                        }}
+                        aria-label={`Upload to ${folder.name}`}
+                      >
+                        <Plus size={13} />
+                      </IconButton>
+                    </Box>
+
+                    {/* Expanded file rows — Photos folder gets grid/list; others get standard list */}
+                    {isOpen && folderDocs.length > 0 && folder.id === 'photos' && (
+                      <Box sx={{ pt: 1, pl: '20px' }}>
+                        {/* Grid Toolbar */}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            pb: 0.5,
+                          }}
+                        >
+                          {/* View Toggle Pill */}
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              bgcolor: 'action.selected',
+                              borderRadius: 1.5,
+                              p: '2px',
+                            }}
+                          >
+                            <Box
+                              component="button"
+                              onClick={() => setPhotosViewMode('grid')}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                                border: 'none',
+                                cursor: 'pointer',
+                                bgcolor: photosViewMode === 'grid' ? 'background.paper' : 'transparent',
+                                color: photosViewMode === 'grid' ? 'text.primary' : 'text.secondary',
+                                transition: 'all 0.15s',
+                                boxShadow: photosViewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                              }}
+                              aria-label="Grid view"
+                            >
+                              <SquaresFour size={13} />
+                            </Box>
+                            <Box
+                              component="button"
+                              onClick={() => setPhotosViewMode('list')}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                                border: 'none',
+                                cursor: 'pointer',
+                                bgcolor: photosViewMode === 'list' ? 'background.paper' : 'transparent',
+                                color: photosViewMode === 'list' ? 'text.primary' : 'text.secondary',
+                                transition: 'all 0.15s',
+                                boxShadow: photosViewMode === 'list' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                              }}
+                              aria-label="List view"
+                            >
+                              <List size={13} />
+                            </Box>
+                          </Box>
+                          {/* Date label */}
+                          {folderDocs[0]?.createdAt && (
+                            <Typography
+                              sx={{
+                                fontSize: 11,
+                                fontWeight: 500,
+                                color: 'text.secondary',
+                                fontFamily: 'Inter, sans-serif',
+                              }}
+                            >
+                              {new Date(folderDocs[0].createdAt as string | Date).toLocaleDateString(
+                                'en-US',
+                                { month: 'short', year: 'numeric' }
+                              )}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {/* Grid or List */}
+                        {photosViewMode === 'grid' ? (
+                          <Box
+                            sx={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(3, 1fr)',
+                              gap: '6px',
+                              pt: 0.5,
+                            }}
+                          >
+                            {folderDocs.map((doc) => (
+                              <Box
+                                key={doc.id}
+                                onClick={() =>
+                                  setPreviewDoc({
+                                    id: doc.id,
+                                    name: doc.name,
+                                    blobUrl: doc.blobUrl,
+                                    mimeType: doc.mimeType,
+                                    size: doc.size,
+                                    createdAt: doc.createdAt as string | Date,
+                                    uploadedBy: doc.uploadedBy ?? null,
+                                  })
+                                }
+                                sx={{
+                                  height: 85,
+                                  borderRadius: 1.5,
+                                  overflow: 'hidden',
+                                  cursor: 'pointer',
+                                  bgcolor: 'action.hover',
+                                  border: previewDoc?.id === doc.id ? '2px solid' : '2px solid transparent',
+                                  borderColor: previewDoc?.id === doc.id ? 'primary.main' : 'transparent',
+                                  transition: 'border-color 0.15s',
+                                  '&:hover': { opacity: 0.85 },
+                                }}
+                              >
+                                {doc.mimeType.startsWith('image/') ? (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img
+                                    src={doc.blobUrl}
+                                    alt={doc.name}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover',
+                                      display: 'block',
+                                    }}
+                                  />
+                                ) : (
+                                  <Box
+                                    sx={{
+                                      width: '100%',
+                                      height: '100%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                  >
+                                    <FileText size={20} color="var(--mui-palette-text-disabled)" />
+                                  </Box>
+                                )}
+                              </Box>
+                            ))}
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.125, pt: 0.5 }}>
+                            {folderDocs.map((doc) => (
+                              <Box
+                                key={doc.id}
+                                onClick={() =>
+                                  setPreviewDoc({
+                                    id: doc.id,
+                                    name: doc.name,
+                                    blobUrl: doc.blobUrl,
+                                    mimeType: doc.mimeType,
+                                    size: doc.size,
+                                    createdAt: doc.createdAt as string | Date,
+                                    uploadedBy: doc.uploadedBy ?? null,
+                                  })
+                                }
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                  py: '7px',
+                                  pr: 1,
+                                  pl: '18px',
+                                  borderRadius: 1.5,
+                                  cursor: 'pointer',
+                                  bgcolor: previewDoc?.id === doc.id ? 'action.selected' : 'transparent',
+                                  '&:hover': { bgcolor: 'action.hover' },
+                                }}
+                              >
+                                <FileText
+                                  size={14}
+                                  color="var(--mui-palette-text-secondary)"
+                                  style={{ flexShrink: 0 }}
+                                />
+                                <Typography
+                                  sx={{
+                                    fontSize: 12,
+                                    flex: 1,
+                                    color: 'text.primary',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    fontFamily: 'Inter, sans-serif',
+                                  }}
+                                >
+                                  {doc.name}
+                                </Typography>
+                                {'createdAt' in doc && doc.createdAt && (
+                                  <Typography
+                                    sx={{
+                                      fontSize: 11,
+                                      color: 'text.secondary',
+                                      fontFamily: 'Inter, sans-serif',
+                                      flexShrink: 0,
+                                      opacity: 0.7,
+                                    }}
+                                  >
+                                    {new Date(doc.createdAt as string | Date).toLocaleDateString(
+                                      'en-US',
+                                      { month: 'short', day: 'numeric' }
+                                    )}
+                                  </Typography>
+                                )}
+                              </Box>
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                    {isOpen && folderDocs.length > 0 && folder.id !== 'photos' && (
+                      <Box
+                        sx={{
+                          pl: '20px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 0.125,
+                        }}
+                      >
+                        {folderDocs.map((doc) => (
+                          <Box
+                            key={doc.id}
+                            onClick={() =>
+                              setPreviewDoc({
+                                id: doc.id,
+                                name: doc.name,
+                                blobUrl: doc.blobUrl,
+                                mimeType: doc.mimeType,
+                                size: doc.size,
+                                createdAt: doc.createdAt as string | Date,
+                                uploadedBy: doc.uploadedBy ?? null,
+                              })
+                            }
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              pt: '7px',
+                              pb: '7px',
+                              pr: 1,
+                              pl: '18px',
+                              borderRadius: 1.5,
+                              cursor: 'pointer',
+                              bgcolor: previewDoc?.id === doc.id ? 'action.selected' : 'transparent',
+                              '&:hover': { bgcolor: previewDoc?.id === doc.id ? 'action.selected' : 'action.hover' },
+                            }}
+                          >
+                            <FileText
+                              size={14}
+                              color={previewDoc?.id === doc.id
+                                ? 'var(--mui-palette-primary-main)'
+                                : 'var(--mui-palette-text-secondary)'}
+                              style={{ flexShrink: 0 }}
+                            />
+                            <Typography
+                              sx={{
+                                fontSize: 12,
+                                fontWeight: previewDoc?.id === doc.id ? 500 : 400,
+                                flex: 1,
+                                color: 'text.primary',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontFamily: 'Inter, sans-serif',
+                              }}
+                            >
+                              {doc.name}
+                            </Typography>
+                            {'createdAt' in doc && doc.createdAt && (
+                              <Typography
+                                sx={{
+                                  fontSize: 11,
+                                  color: 'text.secondary',
+                                  fontFamily: 'Inter, sans-serif',
+                                  flexShrink: 0,
+                                  opacity: 0.7,
+                                }}
+                              >
+                                {new Date(doc.createdAt as string | Date).toLocaleDateString(
+                                  'en-US',
+                                  { month: 'short', day: 'numeric' }
+                                )}
+                              </Typography>
+                            )}
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                    {isOpen && folderDocs.length === 0 && (
+                      <Box sx={{ pl: '36px', py: 0.75 }}>
+                        <Typography
+                          sx={{
+                            fontSize: 11,
+                            color: 'text.disabled',
+                            fontFamily: 'Inter, sans-serif',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          No files yet
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+
+          {/* ── DIVIDER ── */}
+          <Divider />
+
+          {/* ── FOOTER ── */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              px: 3,
+              py: 1.75,
+            }}
+          >
+            {/* Left: Edit Task + More */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box
+                component="button"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  px: 1.75,
+                  height: 34,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'transparent',
+                  cursor: 'pointer',
+                  color: 'text.primary',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  '&:hover': { bgcolor: 'action.hover' },
+                  transition: 'background-color 0.15s',
+                }}
+              >
+                <PencilSimple size={13} />
+                Edit Task
+              </Box>
+              <Box
+                component="button"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'transparent',
+                  cursor: 'pointer',
+                  color: 'text.secondary',
+                  '&:hover': { bgcolor: 'action.hover' },
+                  transition: 'background-color 0.15s',
+                }}
+                aria-label="More options"
+              >
+                <DotsThree size={14} />
+              </Box>
+            </Box>
+
+            {/* Right: Open Details */}
+            <Box
+              component="button"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.75,
+                px: 2.25,
+                height: 34,
+                borderRadius: 2,
+                border: 'none',
+                bgcolor: 'text.primary',
+                cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'background.paper',
+                '&:hover': { opacity: 0.88 },
+                transition: 'opacity 0.15s',
+              }}
+            >
+              Open Details
+              <ArrowRight size={13} />
+            </Box>
           </Box>
         </Box>
+        {/* ── END LEFT PANEL ── */}
 
-        {/* Right panel: preview (visible when doc selected) */}
-        {selectedDoc && (
-          <DocumentPreview doc={selectedDoc} onClose={() => setSelectedDoc(null)} />
+        {/* ── RIGHT PREVIEW PANEL ── */}
+        {previewDoc && (
+          <>
+            <Divider orientation="vertical" flexItem />
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: 'background.paper',
+                minWidth: 0,
+                animation: 'slideInRight 0.22s ease',
+                '@keyframes slideInRight': {
+                  from: { opacity: 0, transform: 'translateX(16px)' },
+                  to: { opacity: 1, transform: 'translateX(0)' },
+                },
+              }}
+            >
+              {/* Preview Header */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  px: '20px',
+                  py: '14px',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  {previewDoc.mimeType.startsWith('image/') ? (
+                    <ImageSquare
+                      size={16}
+                      color="var(--mui-palette-text-secondary)"
+                      style={{ flexShrink: 0 }}
+                    />
+                  ) : (
+                    <FileText
+                      size={16}
+                      color="var(--mui-palette-text-secondary)"
+                      style={{ flexShrink: 0 }}
+                    />
+                  )}
+                  <Typography
+                    noWrap
+                    sx={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      fontFamily: 'Inter, sans-serif',
+                    }}
+                  >
+                    {previewDoc.name}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                  <Box
+                    component="button"
+                    onClick={() => window.open(previewDoc.blobUrl, '_blank')}
+                    sx={{
+                      width: 30,
+                      height: 30,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 1.5,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      bgcolor: 'transparent',
+                      cursor: 'pointer',
+                      color: 'text.secondary',
+                      '&:hover': { bgcolor: 'action.hover' },
+                      transition: 'background-color 0.15s',
+                    }}
+                    aria-label="Download"
+                  >
+                    <DownloadSimple size={14} />
+                  </Box>
+                  <Box
+                    component="button"
+                    onClick={() => window.open(previewDoc.blobUrl, '_blank')}
+                    sx={{
+                      width: 30,
+                      height: 30,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 1.5,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      bgcolor: 'transparent',
+                      cursor: 'pointer',
+                      color: 'text.secondary',
+                      '&:hover': { bgcolor: 'action.hover' },
+                      transition: 'background-color 0.15s',
+                    }}
+                    aria-label="Expand"
+                  >
+                    <ArrowsOut size={14} />
+                  </Box>
+                </Box>
+              </Box>
+
+              <Divider />
+
+              {/* Image / File Preview Area */}
+              <Box
+                sx={{
+                  flex: 1,
+                  overflow: 'hidden',
+                  bgcolor: 'action.hover',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {previewDoc.mimeType.startsWith('image/') ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={previewDoc.blobUrl}
+                    alt={previewDoc.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                ) : (
+                  <FileText
+                    size={48}
+                    color="var(--mui-palette-text-disabled)"
+                  />
+                )}
+              </Box>
+
+              <Divider />
+
+              {/* File Metadata */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  px: '20px',
+                  py: '14px',
+                }}
+              >
+                {previewDoc.uploadedBy?.name && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                      Uploaded by
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                      {previewDoc.uploadedBy.name}
+                    </Typography>
+                  </Box>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                    Date
+                  </Typography>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                    {new Date(previewDoc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                    Size
+                  </Typography>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                    {formatFileSize(previewDoc.size)}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                    Type
+                  </Typography>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                    {previewDoc.mimeType.split('/')[1]?.toUpperCase() ?? previewDoc.mimeType}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </>
         )}
-      </Box>
-    </Popover>
+        </Box>
+      </Popover>
+
+      {/* Upload dialog */}
+      {uploadFolder && taskId && (
+        <UploadDialog
+          open
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setUploadFolder(null);
+          }}
+          projectId={projectId}
+          taskId={taskId}
+          folderId={uploadFolder.id}
+          folderName={uploadFolder.name}
+          onUploadComplete={handleUploadComplete}
+        />
+      )}
+    </>
   );
 }

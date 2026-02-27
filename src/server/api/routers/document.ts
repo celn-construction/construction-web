@@ -103,7 +103,6 @@ export const documentRouter = createTRPCRouter({
   listByTask: orgProcedure
     .input(
       z.object({
-        organizationId: z.string(),
         projectId: z.string(),
         taskId: z.string(),
       })
@@ -112,7 +111,7 @@ export const documentRouter = createTRPCRouter({
       const project = await ctx.db.project.findFirst({
         where: {
           id: input.projectId,
-          organizationId: input.organizationId,
+          organizationId: ctx.organization.id,
         },
       });
 
@@ -175,7 +174,6 @@ export const documentRouter = createTRPCRouter({
   search: orgProcedure
     .input(
       z.object({
-        organizationId: z.string(),
         projectId: z.string(),
         query: z.string().max(200),
         limit: z.number().min(1).max(50).default(20),
@@ -188,7 +186,7 @@ export const documentRouter = createTRPCRouter({
       const project = await ctx.db.project.findFirst({
         where: {
           id: input.projectId,
-          organizationId: input.organizationId,
+          organizationId: ctx.organization.id,
         },
       });
 
@@ -251,7 +249,6 @@ export const documentRouter = createTRPCRouter({
   aiSearch: orgProcedure
     .input(
       z.object({
-        organizationId: z.string(),
         projectId: z.string(),
         query: z.string().min(1).max(500),
         limit: z.number().min(1).max(50).default(20),
@@ -264,7 +261,7 @@ export const documentRouter = createTRPCRouter({
       const project = await ctx.db.project.findFirst({
         where: {
           id: input.projectId,
-          organizationId: input.organizationId,
+          organizationId: ctx.organization.id,
         },
       });
 

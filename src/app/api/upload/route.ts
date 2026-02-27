@@ -52,6 +52,8 @@ export async function POST(req: NextRequest) {
     const projectId = formData.get("projectId") as string | null;
     const taskId = formData.get("taskId") as string | null;
     const folderId = formData.get("folderId") as string | null;
+    const title = (formData.get("title") as string | null)?.trim() || null;
+    const notes = (formData.get("notes") as string | null)?.trim() ?? "";
 
     // Validate required fields
     if (!file || !projectId || !taskId || !folderId) {
@@ -125,12 +127,13 @@ export async function POST(req: NextRequest) {
     // Create document record with tags and description
     const document = await db.document.create({
       data: {
-        name: file.name,
+        name: title || file.name,
         blobUrl: blob.url,
         mimeType: file.type,
         size: file.size,
         tags: analysis.tags,
         description: analysis.description,
+        notes,
         taskId,
         folderId,
         projectId,
@@ -165,10 +168,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(document);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "An error occurred during upload";
-    console.error("Upload error:", message, error);
+    console.error("Upload error:", error);
     return NextResponse.json(
-      { error: message },
+      { error: "An error occurred during upload" },
       { status: 500 }
     );
   }

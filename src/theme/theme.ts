@@ -97,6 +97,11 @@ declare module '@mui/material/styles' {
       onHold: string;
       completed: string;
       archived: string;
+      activeBg: string;
+      activeText: string;
+      inProgressBg: string;
+      inProgressText: string;
+      badge: string;
     };
     warm: {
       main: string;
@@ -143,6 +148,11 @@ declare module '@mui/material/styles' {
       onHold?: string;
       completed?: string;
       archived?: string;
+      activeBg?: string;
+      activeText?: string;
+      inProgressBg?: string;
+      inProgressText?: string;
+      badge?: string;
     };
     warm?: {
       main?: string;
@@ -191,6 +201,11 @@ lightTheme.palette.status = {
   onHold: '#8D99AE',
   completed: '#3B82F6',
   archived: '#8D99AE',
+  activeBg: '#dcfce7',
+  activeText: '#166534',
+  inProgressBg: '#fef3c7',
+  inProgressText: '#92400e',
+  badge: '#E67E22',
 };
 lightTheme.palette.warm = {
   main: '#2B2D42', // $--primary
@@ -307,6 +322,11 @@ darkTheme.palette.status = {
   onHold: '#8D99AE',
   completed: '#3B82F6',
   archived: '#8D99AE',
+  activeBg: 'rgba(34, 197, 94, 0.15)',
+  activeText: '#86efac',
+  inProgressBg: 'rgba(245, 158, 11, 0.15)',
+  inProgressText: '#fcd34d',
+  badge: '#E67E22',
 };
 darkTheme.palette.warm = {
   main: '#4A90D9', // $--primary (dark)

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, projectProcedure } from "@/server/api/trpc";
-import { canRemoveMembers } from "@/lib/permissions";
+import { canRemoveMembers, canAssignRole } from "@/lib/permissions";
 
 export const projectMemberRouter = createTRPCRouter({
   list: projectProcedure.query(async ({ ctx, input }) => {
@@ -44,6 +44,13 @@ export const projectMemberRouter = createTRPCRouter({
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Member not found",
+        });
+      }
+
+      if (!canAssignRole(ctx.projectMember.role, target.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Cannot remove a member with equal or higher privileges",
         });
       }
 
