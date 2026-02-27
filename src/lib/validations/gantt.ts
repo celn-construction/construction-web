@@ -10,6 +10,7 @@ export const ganttLoadInputSchema = z.object({
 const taskRecordSchema = z.object({
   id: z.string().optional(),
   $PhantomId: z.string().optional(),
+  version: z.number().int().optional(),
   parentId: z.string().nullable().optional(),
   name: z.string().optional(),
   percentDone: z.number().min(0).max(100).optional(),

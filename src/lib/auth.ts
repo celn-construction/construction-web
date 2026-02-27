@@ -13,13 +13,18 @@ export const auth = betterAuth({
   database: prismaAdapter(db, {
     provider: "postgresql",
   }),
-  trustedOrigins: [
-    "http://localhost:3000",
-    "http://localhost:5050",
-    "https://localhost:5050",
-    process.env.APP_URL || "",
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "",
-  ].filter(Boolean),
+  trustedOrigins: (request: Request) => {
+    const origin = request.headers.get("origin") ?? "";
+    // In development, trust any localhost port (Conductor uses dynamic ports)
+    if (process.env.NODE_ENV !== "production" && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+      return [origin];
+    }
+    return [
+      process.env.BETTER_AUTH_URL ?? "",
+      process.env.APP_URL ?? "",
+      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "",
+    ].filter(Boolean);
+  },
   session: {
     cookieCache: {
       enabled: true,

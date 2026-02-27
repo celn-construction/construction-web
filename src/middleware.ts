@@ -54,14 +54,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow invite pages for all users (page handles auth state inline)
+  if (isInvitePage) {
+    return NextResponse.next();
+  }
+
   // Redirect to sign-in if no session cookie for protected routes
   if (!sessionCookie) {
     return NextResponse.redirect(new URL("/sign-in?callbackUrl=" + pathname, request.url));
-  }
-
-  // Allow invite pages for authenticated users
-  if (isInvitePage) {
-    return NextResponse.next();
   }
 
   // Redirect to org home if user already completed onboarding

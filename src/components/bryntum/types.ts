@@ -54,6 +54,8 @@ export type GanttConfig = {
   project: {
     autoLoad: boolean;
     autoSync?: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    taskModelClass?: any;
     delayCalculation?: boolean;
     transport: {
       load: {

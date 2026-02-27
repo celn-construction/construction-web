@@ -7,8 +7,9 @@ import { CircularProgress, Box } from '@mui/material';
 import { useThemeStore } from '@/store/useThemeStore';
 import { api } from '@/trpc/react';
 import { createGanttConfig } from './config/ganttConfig';
-import { BryntumPanelHeader } from './components/BryntumPanelHeader';
+import { GanttToolbar } from './components/GanttToolbar';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
+import ConflictDialog from './components/ConflictDialog';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
 import { useTaskPopover } from './hooks/useTaskPopover';
@@ -53,6 +54,7 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     if (typeof window === 'undefined') return true;
     return localStorage.getItem(AUTO_SAVE_STORAGE_KEY) !== 'false';
   });
+  const [conflictOpen, setConflictOpen] = useState(false);
 
   const justSavedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -60,6 +62,12 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
   const isSavingRef = useRef(false);
   const autoSaveEnabledRef = useRef(autoSaveEnabled);
   const isRevertingRef = useRef(false);
+  // Guards against spurious auto-save when stores change during a conflict reload
+  const isReloadingRef = useRef(false);
+  // Guards against spurious hasPendingChanges when Bryntum writes server response back to stores
+  const isSyncingRef = useRef(false);
+  // When true, beforeSync skips version injection so the save goes through without version check
+  const skipVersionRef = useRef(false);
 
   useEffect(() => { isSavingRef.current = isSaving; }, [isSaving]);
   useEffect(() => { autoSaveEnabledRef.current = autoSaveEnabled; }, [autoSaveEnabled]);
@@ -100,6 +108,17 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
   const handleSave = useCallback(async () => {
     const gantt = getGanttInstance();
     if (!gantt?.project) return;
+    // Bryntum returns null from .changes when there's nothing to sync.
+    // Calling sync() with no dirty records skips the HTTP request entirely and
+    // fires neither 'sync' nor 'syncFail', so isSaving would never reset.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const changes = gantt.project.changes as unknown;
+    if (!changes) {
+      console.log('[Gantt:handleSave] No Bryntum changes to sync — resetting hasPendingChanges');
+      setHasPendingChanges(false);
+      return;
+    }
+    console.log('[Gantt:handleSave] Starting sync, autoSave:', autoSaveEnabledRef.current, 'changes:', JSON.stringify(changes));
     setIsSaving(true);
     await gantt.project.sync();
     // isSaving and hasPendingChanges are reset by the sync/syncFail event listeners
@@ -122,7 +141,36 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     const gantt = getGanttInstance();
     if (!gantt?.project) return;
 
+    // Detect version conflicts BEFORE Bryntum applies the response data.
+    // `beforeResponseApply` is the only CrudManager event that passes the decoded
+    // response object for sync requests. The `sync` event does NOT include it.
+    // Returning false prevents Bryntum from applying the empty conflict response.
+    const onBeforeResponseApply = ({ requestType, response }: { requestType: string; response: Record<string, unknown> }) => {
+      if (requestType !== 'sync') return;
+      console.log('[Gantt:beforeResponseApply] response keys:', Object.keys(response), 'conflict:', response.conflict);
+
+      if (response.conflict) {
+        console.log('[Gantt:beforeResponseApply] CONFLICT detected');
+        setIsSaving(false);
+
+        // Manually clear Bryntum's "Saving changes, please wait..." mask
+        // since returning false prevents the sync cycle from finalizing.
+        const g = getGanttInstance();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        if (g) (g as unknown as { unmask?: () => void }).unmask?.();
+
+        setConflictOpen(true);
+        return false; // Keep records dirty so "Keep My Changes" can re-sync them
+      }
+    };
+
     const onSync = () => {
+      console.log('[Gantt:onSync] Sync succeeded, skipVersion was:', skipVersionRef.current);
+      skipVersionRef.current = false;
+      // Block store 'change' events fired when Bryntum writes server response
+      // data (e.g. new version numbers) back into its stores — those are not
+      // user edits and must not re-arm hasPendingChanges.
+      isSyncingRef.current = true;
       clearTimeout(autoSaveTimerRef.current);
       setIsSaving(false);
       setHasPendingChanges(false);
@@ -130,17 +178,66 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
       clearTimeout(justSavedTimerRef.current);
       justSavedTimerRef.current = setTimeout(() => setJustSaved(false), 2000);
       void utils.gantt.tasks.invalidate();
-    };
-    const onSyncFail = () => {
-      setIsSaving(false);
-      // hasPendingChanges stays true — changes weren't saved
+      // Clear the guard after the microtask queue drains so all synchronous
+      // store updates from the sync response are suppressed.
+      setTimeout(() => { isSyncingRef.current = false; }, 0);
     };
 
+    const onSyncFail = () => {
+      setIsSaving(false);
+      skipVersionRef.current = false;
+      // For non-conflict errors, hasPendingChanges stays true so user can retry
+    };
+
+    // Inject version into sync payload for optimistic locking.
+    // Bryntum only sends changed fields; version is never edited by users so we must
+    // manually inject it for each updated record. Engine-cascaded records (successor
+    // recalculations) are intentionally NOT injected — they skip the version check.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onBeforeSync = ({ pack }: { pack: any }) => {
+      console.log('[Gantt:beforeSync] FIRED — skipVersion:', skipVersionRef.current, 'pack keys:', Object.keys(pack as object));
+
+      // When user clicks "Proceed" after a conflict, skip version injection
+      // so the server does a last-write-wins save (no version check).
+      if (skipVersionRef.current) {
+        console.log('[Gantt:beforeSync] Skipping version injection (force save)');
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const taskChanges = pack?.tasks as { updated?: Array<Record<string, unknown>> } | undefined;
+      console.log('[Gantt:beforeSync] taskChanges:', taskChanges ? `updated: ${taskChanges.updated?.length ?? 0}` : 'none');
+      if (taskChanges?.updated) {
+        for (const task of taskChanges.updated) {
+          console.log('[Gantt:beforeSync] Task in pack:', task.id, 'typeof id:', typeof task.id, 'existing version in pack:', task.version);
+          if (task.id && typeof task.id === 'string') {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            const record = gantt.project.taskStore.getById(task.id) as { get?: (field: string) => unknown; data?: Record<string, unknown> } | null;
+            console.log('[Gantt:beforeSync] Record found:', !!record, 'has get:', !!record?.get);
+            if (record?.get) {
+              const version = record.get('version');
+              console.log('[Gantt:beforeSync] Task', task.id, '→ store version:', version, 'typeof:', typeof version);
+              if (typeof version === 'number') {
+                task.version = version;
+                console.log('[Gantt:beforeSync] Task', task.id, '→ INJECTED version:', version);
+              } else {
+                console.warn('[Gantt:beforeSync] Task', task.id, '→ version NOT a number, skipping injection. record.data:', JSON.stringify(record.data));
+              }
+            }
+          }
+        }
+      }
+    };
+
+    gantt.project.on('beforeResponseApply', onBeforeResponseApply);
     gantt.project.on('sync', onSync);
     gantt.project.on('syncFail', onSyncFail);
+    gantt.project.on('beforeSync', onBeforeSync);
     return () => {
+      gantt.project?.un('beforeResponseApply', onBeforeResponseApply);
       gantt.project?.un('sync', onSync);
       gantt.project?.un('syncFail', onSyncFail);
+      gantt.project?.un('beforeSync', onBeforeSync);
       clearTimeout(justSavedTimerRef.current);
     };
   }, [isLoading, getGanttInstance, utils]);
@@ -163,12 +260,24 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     ];
 
     const onStoreChange = () => {
+      // Skip store changes triggered by a conflict reload or by Bryntum writing
+      // server response data back into its stores after a successful sync.
+      if (isReloadingRef.current || isSyncingRef.current) {
+        console.log('[Gantt:onStoreChange] Suppressed (reloading:', isReloadingRef.current, 'syncing:', isSyncingRef.current, ')');
+        return;
+      }
+      console.log('[Gantt:onStoreChange] Change detected, autoSave:', autoSaveEnabledRef.current, 'isSaving:', isSavingRef.current);
       setHasPendingChanges(true);
       if (!autoSaveEnabledRef.current) return;
       // Debounce so rapid successive engine updates collapse into one sync call
       clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = setTimeout(() => {
-        if (!isSavingRef.current) void handleSave();
+        if (!isSavingRef.current) {
+          console.log('[Gantt:autoSave] Debounce fired — triggering save');
+          void handleSave();
+        } else {
+          console.log('[Gantt:autoSave] Debounce fired — skipped (save already in flight)');
+        }
       }, AUTO_SAVE_DELAY_MS);
     };
 
@@ -286,6 +395,24 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     },
   }));
 
+  const handleConflictProceed = useCallback(() => {
+    setConflictOpen(false);
+    skipVersionRef.current = true;
+    void handleSave();
+  }, [handleSave]);
+
+  const handleConflictRefresh = useCallback(() => {
+    setConflictOpen(false);
+    isReloadingRef.current = true;
+    const g = getGanttInstance();
+    if (g?.project) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      void g.project.load().then(() => { isReloadingRef.current = false; });
+    } else {
+      isReloadingRef.current = false;
+    }
+  }, [getGanttInstance]);
+
   // Attach the taskClick listener on the Bryntum instance (not in the static config)
   // so we can use the latest handleTaskClick reference from useTaskPopover.
   useEffect(() => {
@@ -300,7 +427,7 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
 
   return (
     <div style={WRAPPER_STYLE}>
-      <BryntumPanelHeader
+      <GanttToolbar
         onAddTask={handleAddTask}
         onPresetChange={handlePresetChange}
         onZoomIn={handleZoomIn}
@@ -382,6 +509,12 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
         taskId={selectedTask?.id}
         popoverPlacement={popoverPlacement}
         onClose={closeTaskPopover}
+      />
+
+      <ConflictDialog
+        open={conflictOpen}
+        onProceed={handleConflictProceed}
+        onRefresh={handleConflictRefresh}
       />
     </div>
   );

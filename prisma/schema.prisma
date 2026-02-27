@@ -258,6 +258,8 @@ model GanttTask {
     note               String?
     baselines          Json?
     coverImageUrl      String?
+    version            Int       @default(1)
+    updatedAt          DateTime  @updatedAt
 
     project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
     parent       GanttTask?     @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: Cascade)

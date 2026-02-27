@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Box, Typography, Tabs, Tab, Paper, Button } from '@mui/material';
@@ -35,6 +35,12 @@ export default function ProjectTeamPage() {
   const canManage = currentMembership ? canInviteMembers(currentMembership.role) : false;
 
   const pendingCount = invitations.filter((inv) => inv.status === 'pending').length;
+
+  useEffect(() => {
+    if (pendingCount === 0 && activeTab === 'pending') {
+      setActiveTab('members');
+    }
+  }, [pendingCount, activeTab]);
 
   return (
     <Box

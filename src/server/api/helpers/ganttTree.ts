@@ -22,6 +22,7 @@ type GanttTaskSelect = {
   note: string | null;
   baselines: unknown;
   orderIndex: number;
+  version: number;
 };
 
 // Bryntum expects specific field names - map DB fields to Bryntum fields
@@ -46,6 +47,7 @@ export function mapTaskToGantt(task: GanttTaskSelect): Record<string, unknown> {
     iconCls: task.iconCls,
     note: task.note,
     baselines: task.baselines,
+    version: task.version,
   };
 }
 
