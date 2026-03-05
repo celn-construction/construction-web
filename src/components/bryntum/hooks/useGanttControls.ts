@@ -47,7 +47,28 @@ export function useGanttControls() {
   const handlePresetChange = useCallback(
     (preset: string) => {
       const gantt = getGanttInstance();
-      if (gantt) gantt.viewPreset = preset;
+      if (!gantt) return;
+
+      // Narrow the visible date range for finer presets to avoid
+      // "too long time axis" errors from Bryntum's tick generation.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const center = gantt.viewportCenterDate as Date | undefined;
+      const anchor = center ?? new Date();
+
+      const rangeMonths: Record<string, number> = {
+        hourAndDay: 1,
+        weekAndDayLetter: 6,
+        weekAndMonth: 12,
+        monthAndYear: 36,
+      };
+      const half = (rangeMonths[preset] ?? 12) / 2;
+      const start = new Date(anchor.getFullYear(), anchor.getMonth() - half, 1);
+      const end   = new Date(anchor.getFullYear(), anchor.getMonth() + half, 1);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.setTimeSpan(start, end);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      gantt.viewPreset = preset;
     },
     [getGanttInstance]
   );

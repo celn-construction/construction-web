@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { Prisma } from "../../../../generated/prisma";
 import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 import { ganttLoadInputSchema, ganttSyncInputSchema } from "@/lib/validations/gantt";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
-import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges } from "@/server/api/helpers/ganttSync";
+import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
 
 export const ganttRouter = createTRPCRouter({
   /**
@@ -102,7 +103,7 @@ export const ganttRouter = createTRPCRouter({
       });
 
       if (!project) {
-        throw new Error("Project not found or access denied");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
       }
 
       // Fetch all Gantt data in parallel with optimized queries
@@ -132,6 +133,7 @@ export const ganttRouter = createTRPCRouter({
             note: true,
             baselines: true,
             orderIndex: true,
+            version: true,
           },
         }),
         ctx.db.ganttDependency.findMany({
@@ -193,36 +195,58 @@ export const ganttRouter = createTRPCRouter({
       });
 
       if (!project) {
-        throw new Error("Project not found or access denied");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
       }
 
-      // Use transaction for atomicity
-      const result = await ctx.db.$transaction(async (tx) => {
-        const phantomIdMap = new Map<string, string>();
+      try {
+        // RepeatableRead isolation eliminates TOCTOU race between version check and update.
+        // If another transaction modifies the same row between our read and write,
+        // PostgreSQL raises a serialization error (P2034) which we catch below.
+        const result = await ctx.db.$transaction(
+          async (tx) => {
+            const phantomIdMap = new Map<string, string>();
 
-        // Process changes in dependency order:
-        // 1. Tasks first (dependencies need task IDs)
-        // 2. Resources (assignments need resource IDs)
-        // 3. Dependencies (need task IDs)
-        // 4. Assignments (need task + resource IDs)
-        // 5. Time ranges (independent)
+            // Process changes in dependency order:
+            // 1. Tasks first (dependencies need task IDs)
+            // 2. Resources (assignments need resource IDs)
+            // 3. Dependencies (need task IDs)
+            // 4. Assignments (need task + resource IDs)
+            // 5. Time ranges (independent)
 
-        const taskResult = await syncTasks(tx, projectId, tasks, phantomIdMap);
-        const resourceResult = await syncResources(tx, projectId, resources, phantomIdMap);
-        const dependencyResult = await syncDependencies(tx, projectId, dependencies, phantomIdMap);
-        const assignmentResult = await syncAssignments(tx, projectId, assignments, phantomIdMap);
-        const timeRangeResult = await syncTimeRanges(tx, projectId, timeRanges, phantomIdMap);
+            const taskResult = await syncTasks(tx, projectId, tasks, phantomIdMap);
+            const resourceResult = await syncResources(tx, projectId, resources, phantomIdMap);
+            const dependencyResult = await syncDependencies(tx, projectId, dependencies, phantomIdMap);
+            const assignmentResult = await syncAssignments(tx, projectId, assignments, phantomIdMap);
+            const timeRangeResult = await syncTimeRanges(tx, projectId, timeRanges, phantomIdMap);
 
-        return {
-          success: true,
-          tasks: taskResult,
-          resources: resourceResult,
-          dependencies: dependencyResult,
-          assignments: assignmentResult,
-          timeRanges: timeRangeResult,
-        };
-      });
+            return {
+              success: true,
+              tasks: taskResult,
+              resources: resourceResult,
+              dependencies: dependencyResult,
+              assignments: assignmentResult,
+              timeRanges: timeRangeResult,
+            };
+          },
+          { isolationLevel: 'RepeatableRead' },
+        );
 
-      return result;
+        return result;
+      } catch (error) {
+        if (error instanceof VersionConflictError) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: error.message,
+          });
+        }
+        // P2034 = serialization failure from RepeatableRead (concurrent row modification)
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Another user modified this data. Please reload and try again.",
+          });
+        }
+        throw error;
+      }
     }),
 });

@@ -1,4 +1,16 @@
+import { TaskModel } from '@bryntum/gantt';
 import type { GanttConfig } from '../types';
+
+// Extend TaskModel to include the `version` field used for optimistic locking.
+// Without this, Bryntum silently drops the version from loaded data and
+// record.get('version') returns undefined.
+class VersionedTaskModel extends TaskModel {
+  static override get fields() {
+    return [
+      { name: 'version', type: 'int', defaultValue: 1 },
+    ];
+  }
+}
 
 function formatTooltipText(record: Record<string, unknown>, field?: string): string {
   if (!field) {
@@ -38,6 +50,7 @@ export function createGanttConfig(
     project: {
       autoLoad: true,
       autoSync: false,
+      taskModelClass: VersionedTaskModel,
 
       // Enable delay calculation for better initial load performance
       delayCalculation: true,

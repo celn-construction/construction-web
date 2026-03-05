@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     // Add cache headers for better performance
     return NextResponse.json(result, {
       headers: {
-        'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+        'Cache-Control': 'private, no-cache',
       },
     });
   } catch (error) {
