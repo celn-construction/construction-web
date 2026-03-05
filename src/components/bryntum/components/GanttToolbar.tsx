@@ -145,7 +145,7 @@ type GanttToolbarProps = {
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function GanttToolbar({
+export default function GanttToolbar({
   onAddTask,
   onPresetChange,
   onZoomIn,

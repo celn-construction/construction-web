@@ -8,7 +8,7 @@
 - **Session**: Cookie-cached for 5 minutes (`cookieCache.maxAge = 300`)
 - **Cookie names**: `better-auth.session_token` (localhost) / `__Secure-better-auth.session_token` (production)
 - **Custom pages**: `/sign-in`, `/sign-up`
-- **Trusted origins**: `localhost:3000`, `localhost:5050`, `BETTER_AUTH_URL`, `APP_URL`, `VERCEL_URL`
+- **Trusted origins**: Dynamic — in development, any `localhost` origin (any port) is trusted; in production, only `BETTER_AUTH_URL`, `APP_URL`, and `VERCEL_URL`
 
 ### Client Setup
 
@@ -85,8 +85,8 @@ if (canInviteMembers(currentMember.role)) { /* show button */ }
 
 1. **Auth pages + session cookie** -- redirect to `/{activeOrgSlug}` (if onboarded) or `/onboarding`
 2. **Auth pages + no session** -- allow through
-3. **No session cookie** -- redirect to `/sign-in?callbackUrl={pathname}`
-4. **`/invite/*`** -- allow for authenticated users (no onboarding check)
+3. **`/invite/*`** -- allow for all users (the invite page handles auth state inline)
+4. **No session cookie** -- redirect to `/sign-in?callbackUrl={pathname}`
 5. **`/onboarding`** -- allow if not onboarded; redirect to org home if already onboarded
 6. **Not onboarded** -- redirect to `/onboarding`
 7. **Org-scoped route** (first segment matches `[a-z0-9-]+` and is not a static prefix) -- set `active-org-slug` cookie (httpOnly, 1-year TTL)

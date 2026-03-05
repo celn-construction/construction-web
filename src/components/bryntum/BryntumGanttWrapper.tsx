@@ -7,7 +7,7 @@ import { CircularProgress, Box } from '@mui/material';
 import { useThemeStore } from '@/store/useThemeStore';
 import { api } from '@/trpc/react';
 import { createGanttConfig } from './config/ganttConfig';
-import { GanttToolbar } from './components/GanttToolbar';
+import GanttToolbar from './components/GanttToolbar';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
 import ConflictDialog from './components/ConflictDialog';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -407,7 +407,7 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     const g = getGanttInstance();
     if (g?.project) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      void g.project.load().then(() => { isReloadingRef.current = false; });
+      void g.project.load().finally(() => { isReloadingRef.current = false; });
     } else {
       isReloadingRef.current = false;
     }
