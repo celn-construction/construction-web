@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { Box, Typography, Button, Paper } from '@mui/material';
+import { Box, Typography, Paper } from '@mui/material';
+import { Button } from '@/components/ui/button';
 import AddProjectDialog from '@/components/projects/AddProjectDialog';
 
 export default function CreateFirstProject() {
@@ -36,8 +37,8 @@ export default function CreateFirstProject() {
           tasks, track timelines, and collaborate with your team.
         </Typography>
         <Button
-          variant="contained"
-          size="large"
+          variant="default"
+          size="lg"
           startIcon={<Plus />}
           onClick={() => setDialogOpen(true)}
         >
