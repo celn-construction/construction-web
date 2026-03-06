@@ -19,6 +19,7 @@ export const lightTheme: Theme = createTheme({
       main: '#D93C15', // $--destructive
       light: '#E8644A',
       dark: '#B02E0F',
+      contrastText: '#FFFFFF', // --destructive-foreground
     },
     warning: {
       main: '#8B6914', // $--color-warning-foreground
@@ -64,6 +65,16 @@ export const lightTheme: Theme = createTheme({
           backgroundColor: '#F0F0F3',
           color: '#1A1A2E',
           transition: 'background-color 0.15s ease, color 0.15s ease',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 4,
+          textTransform: 'none',
+          boxShadow: 'none',
+          '&:hover': { boxShadow: 'none' },
         },
       },
     },
@@ -246,6 +257,7 @@ export const darkTheme: Theme = createTheme({
       main: '#FF5C33', // $--destructive (dark)
       light: '#FF7A5C',
       dark: '#CC3A1F',
+      contrastText: '#FFFFFF', // --destructive-foreground
     },
     warning: {
       main: '#FF8400', // $--color-warning-foreground (dark)
@@ -291,6 +303,16 @@ export const darkTheme: Theme = createTheme({
           backgroundColor: '#111111',
           color: '#FFFFFF',
           transition: 'background-color 0.15s ease, color 0.15s ease',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 4,
+          textTransform: 'none',
+          boxShadow: 'none',
+          '&:hover': { boxShadow: 'none' },
         },
       },
     },

@@ -1,6 +1,7 @@
 'use client';
 
-import { Dialog, Box, Typography, Divider, Button } from '@mui/material';
+import { Dialog, Box, Typography, Divider } from '@mui/material';
+import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 
 interface ConflictDialogProps {
@@ -71,7 +72,7 @@ export default function ConflictDialog({ open, onProceed, onRefresh }: ConflictD
         }}
       >
         <Button
-          variant="outlined"
+          variant="outline"
           onClick={onRefresh}
           sx={{
             height: 32,
@@ -81,14 +82,13 @@ export default function ConflictDialog({ open, onProceed, onRefresh }: ConflictD
             color: 'text.primary',
             borderColor: 'divider',
             borderRadius: '8px',
-            textTransform: 'none',
             '&:hover': { borderColor: 'text.secondary', bgcolor: 'action.hover' },
           }}
         >
           Discard My Changes
         </Button>
         <Button
-          variant="contained"
+          variant="default"
           onClick={onProceed}
           sx={{
             height: 32,
@@ -96,9 +96,6 @@ export default function ConflictDialog({ open, onProceed, onRefresh }: ConflictD
             fontSize: 13,
             fontWeight: 500,
             borderRadius: '8px',
-            textTransform: 'none',
-            boxShadow: 'none',
-            '&:hover': { boxShadow: 'none' },
           }}
         >
           Keep My Changes

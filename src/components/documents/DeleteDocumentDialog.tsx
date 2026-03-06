@@ -1,6 +1,7 @@
 'use client';
 
-import { Dialog, Box, Typography, Divider, Button, CircularProgress, useTheme } from '@mui/material';
+import { Dialog, Box, Typography, Divider, CircularProgress, useTheme } from '@mui/material';
+import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { api } from '@/trpc/react';
 
@@ -101,7 +102,7 @@ export default function DeleteDocumentDialog({
         }}
       >
         <Button
-          variant="outlined"
+          variant="outline"
           onClick={onClose}
           disabled={deleteMutation.isPending}
           sx={{
@@ -112,14 +113,13 @@ export default function DeleteDocumentDialog({
             color: 'text.primary',
             borderColor: 'divider',
             borderRadius: '8px',
-            textTransform: 'none',
             '&:hover': { borderColor: 'text.secondary', bgcolor: 'action.hover' },
           }}
         >
           Cancel
         </Button>
         <Button
-          variant="contained"
+          variant="default"
           onClick={handleDelete}
           disabled={deleteMutation.isPending}
           startIcon={
@@ -134,9 +134,7 @@ export default function DeleteDocumentDialog({
             fontWeight: 500,
             bgcolor: 'docExplorer.destructiveMain',
             borderRadius: '8px',
-            textTransform: 'none',
-            boxShadow: 'none',
-            '&:hover': { bgcolor: 'docExplorer.destructiveDark', boxShadow: 'none' },
+            '&:hover': { bgcolor: 'docExplorer.destructiveDark' },
             '&:disabled': { bgcolor: 'docExplorer.destructiveMain', opacity: 0.6, color: 'white' },
           }}
         >

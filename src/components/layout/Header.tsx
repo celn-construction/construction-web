@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { usePathname, useParams } from 'next/navigation';
 import { Search, Bell, Undo2, UserPlus, Moon, Sun } from 'lucide-react';
-import { Box, Typography, IconButton, Divider, Button } from '@mui/material';
+import { Box, Typography, IconButton, Divider } from '@mui/material';
+import { Button } from '@/components/ui/button';
 import { useThemeStore } from '@/store/useThemeStore';
 import {
   DropdownMenu,
@@ -145,10 +146,11 @@ export default function Header() {
             <Typography sx={{ fontSize: 14, fontWeight: 600 }}>Notifications</Typography>
             {unreadCount > 0 && (
               <Button
-                size="small"
+                variant="ghost"
+                size="sm"
                 onClick={() => markAllAsRead.mutate({ organizationId: activeOrganizationId })}
                 disabled={markAllAsRead.isPending}
-                sx={{ fontSize: 12, textTransform: 'none' }}
+                sx={{ fontSize: 12 }}
               >
                 Mark all read
               </Button>

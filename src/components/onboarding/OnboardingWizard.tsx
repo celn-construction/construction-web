@@ -11,7 +11,8 @@ import { StepIdentity } from "./steps/StepIdentity";
 import { StepContact } from "./steps/StepContact";
 import { StepReview } from "./steps/StepReview";
 import { api } from "@/trpc/react";
-import { Box, Button, CircularProgress, Typography, Paper } from "@mui/material";
+import { Box, CircularProgress, Typography, Paper } from "@mui/material";
+import { Button } from "@/components/ui/button";
 import { useSnackbar } from "@/hooks/useSnackbar";
 
 const steps = [
@@ -278,7 +279,7 @@ export function OnboardingWizard() {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
                   {currentStep > 0 && (
                     <Button
-                      variant="text"
+                      variant="ghost"
                       onClick={goBack}
                       sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
                     >
@@ -290,7 +291,7 @@ export function OnboardingWizard() {
 
                   {currentStep < steps.length - 1 ? (
                     <Button
-                      variant="contained"
+                      variant="default"
                       onClick={goForward}
                       sx={{ height: 48, borderRadius: 2, px: 3 }}
                     >
@@ -298,8 +299,9 @@ export function OnboardingWizard() {
                     </Button>
                   ) : (
                     <Button
-                      variant="contained"
+                      variant="default"
                       onClick={completeMutation.isPending ? undefined : handleSubmit}
+                      disabled={completeMutation.isPending}
                       endIcon={
                         completeMutation.isPending ? (
                           <CircularProgress size={16} sx={{ color: 'primary.contrastText' }} />
@@ -329,7 +331,7 @@ export function OnboardingWizard() {
                 {currentStep === 1 && (
                   <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                     <Button
-                      variant="text"
+                      variant="ghost"
                       onClick={handleSkip}
                       sx={{ fontSize: '0.875rem', color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
                     >

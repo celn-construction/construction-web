@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Box, Typography, Button, Paper } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import { Box, Typography, Paper } from "@mui/material";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import AddProjectDialog from "@/components/projects/AddProjectDialog";
 
 export function NoProjectPrompt() {
@@ -36,9 +37,9 @@ export function NoProjectPrompt() {
           tasks, track timelines, and collaborate with your team.
         </Typography>
         <Button
-          variant="contained"
-          size="large"
-          startIcon={<AddIcon />}
+          variant="default"
+          size="lg"
+          startIcon={<Plus size={20} />}
           onClick={() => setDialogOpen(true)}
         >
           Create Project
