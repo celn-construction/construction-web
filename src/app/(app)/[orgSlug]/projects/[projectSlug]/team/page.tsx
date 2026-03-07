@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Box, Typography, Tabs, Tab, Paper } from '@mui/material';
-import { Button } from '@/components/ui/button';
+import { Box, Typography, Tabs, Tab, Paper, Button } from '@mui/material';
 import { api } from '@/trpc/react';
 import { canInviteMembers } from '@/lib/permissions';
 import InviteDialog from '@/components/team/InviteDialog';
@@ -74,7 +73,7 @@ export default function ProjectTeamPage() {
         </Box>
         {canManage && (
           <Button
-            variant="default"
+            variant="contained"
             onClick={() => setInviteDialogOpen(true)}
             startIcon={<UserPlus size={16} />}
           >

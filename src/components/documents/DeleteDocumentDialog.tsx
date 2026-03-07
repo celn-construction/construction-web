@@ -1,7 +1,6 @@
 'use client';
 
-import { Dialog, Box, Typography, Divider, CircularProgress, useTheme } from '@mui/material';
-import { Button } from '@/components/ui/button';
+import { Dialog, Box, Typography, Divider, CircularProgress, useTheme, Button } from '@mui/material';
 import { Trash2 } from 'lucide-react';
 import { api } from '@/trpc/react';
 
@@ -102,7 +101,7 @@ export default function DeleteDocumentDialog({
         }}
       >
         <Button
-          variant="outline"
+          variant="outlined"
           onClick={onClose}
           disabled={deleteMutation.isPending}
           sx={{
@@ -119,7 +118,7 @@ export default function DeleteDocumentDialog({
           Cancel
         </Button>
         <Button
-          variant="default"
+          variant="contained"
           onClick={handleDelete}
           disabled={deleteMutation.isPending}
           startIcon={
