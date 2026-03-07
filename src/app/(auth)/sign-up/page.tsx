@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, User, KeyRound } from 'lucide-react';
 import { signUp } from '@/lib/auth-client';
+import { api } from '@/trpc/react';
+import { TRPCClientError } from '@trpc/client';
 import { LogoIcon } from '@/components/ui/Logo';
 import {
   Box,
@@ -27,9 +29,12 @@ export default function SignUpPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [betaCode, setBetaCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const validateCode = api.beta.validateCode.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +42,8 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
+      await validateCode.mutateAsync({ code: betaCode });
+
       const result = await signUp.email({
         name,
         email,
@@ -53,7 +60,11 @@ export default function SignUpPage() {
         }
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      if (err instanceof TRPCClientError) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -233,6 +244,37 @@ export default function SignUpPage() {
                         >
                           {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'input.background',
+                    },
+                  }}
+                />
+              </Box>
+
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'text.secondary', mb: 1 }}
+                >
+                  Beta access code
+                </Typography>
+                <TextField
+                  id="betaCode"
+                  type="text"
+                  value={betaCode}
+                  onChange={(e) => setBetaCode(e.target.value)}
+                  placeholder="Enter your beta code"
+                  fullWidth
+                  required
+                  inputProps={{ 'aria-label': 'Beta access code' }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <KeyRound size={20} />
                       </InputAdornment>
                     ),
                   }}
