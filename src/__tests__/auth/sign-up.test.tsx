@@ -12,12 +12,25 @@ vi.mock("@/lib/auth-client", () => ({
   },
 }));
 
+// Mock @/trpc/react to avoid pulling in server-side env/db imports
+const mockValidateCode = vi.fn();
+vi.mock("@/trpc/react", () => ({
+  api: {
+    beta: {
+      validateCode: {
+        useMutation: () => ({ mutateAsync: mockValidateCode }),
+      },
+    },
+  },
+}));
+
 describe("SignUpPage", () => {
   const mockPush = vi.fn();
   const mockSignUpEmail = signUp.email as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockValidateCode.mockResolvedValue({ valid: true });
     (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({
       push: mockPush,
     });
@@ -32,6 +45,7 @@ describe("SignUpPage", () => {
     expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/beta access code/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument();
   });
 
@@ -44,6 +58,7 @@ describe("SignUpPage", () => {
     await user.type(screen.getByLabelText(/full name/i), "John Doe");
     await user.type(screen.getByLabelText(/email address/i), "john@example.com");
     await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText(/beta access code/i), "test-code");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
@@ -64,6 +79,7 @@ describe("SignUpPage", () => {
     await user.type(screen.getByLabelText(/full name/i), "John Doe");
     await user.type(screen.getByLabelText(/email address/i), "john@example.com");
     await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText(/beta access code/i), "test-code");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
@@ -86,6 +102,7 @@ describe("SignUpPage", () => {
     await user.type(screen.getByLabelText(/full name/i), "John Doe");
     await user.type(screen.getByLabelText(/email address/i), "john@example.com");
     await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText(/beta access code/i), "test-code");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
@@ -104,6 +121,7 @@ describe("SignUpPage", () => {
     await user.type(screen.getByLabelText(/full name/i), "John Doe");
     await user.type(screen.getByLabelText(/email address/i), "existing@example.com");
     await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText(/beta access code/i), "test-code");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
@@ -120,11 +138,33 @@ describe("SignUpPage", () => {
     await user.type(screen.getByLabelText(/full name/i), "John Doe");
     await user.type(screen.getByLabelText(/email address/i), "john@example.com");
     await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText(/beta access code/i), "test-code");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/an unexpected error occurred/i)).toBeInTheDocument();
     });
+  });
+
+  it("displays error message when beta code is invalid", async () => {
+    const user = userEvent.setup();
+    const { TRPCClientError } = await import("@trpc/client");
+    mockValidateCode.mockRejectedValue(
+      new TRPCClientError("Invalid beta access code")
+    );
+
+    render(<SignUpPage />);
+
+    await user.type(screen.getByLabelText(/full name/i), "John Doe");
+    await user.type(screen.getByLabelText(/email address/i), "john@example.com");
+    await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText(/beta access code/i), "wrong-code");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid beta access code/i)).toBeInTheDocument();
+    });
+    expect(mockSignUpEmail).not.toHaveBeenCalled();
   });
 
   it('shows "Creating account..." during loading', async () => {
@@ -141,6 +181,7 @@ describe("SignUpPage", () => {
     await user.type(screen.getByLabelText(/full name/i), "John Doe");
     await user.type(screen.getByLabelText(/email address/i), "john@example.com");
     await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText(/beta access code/i), "test-code");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     expect(await screen.findByText(/creating account\.\.\./i)).toBeInTheDocument();
