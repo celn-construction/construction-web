@@ -125,6 +125,7 @@ export default function SignUpPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  color: 'white',
                 }}
               >
                 <LogoIcon size={28} />

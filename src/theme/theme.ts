@@ -222,8 +222,8 @@ lightTheme.palette.status = {
   badge: '#E67E22',
 };
 lightTheme.palette.warm = {
-  main: '#2B2D42', // $--primary
-  dark: '#1A1C2B',
+  main: '#d97706', // amber, matching --accent-warm
+  dark: '#b45309',
 };
 lightTheme.palette.grid = {
   line: 'rgba(0, 0, 0, 0.04)',
