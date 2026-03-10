@@ -103,6 +103,7 @@ export default function ForgotPasswordPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  color: 'white',
                 }}
               >
                 <LogoIcon size={28} />
