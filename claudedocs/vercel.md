@@ -62,3 +62,36 @@ All environments currently share the same Neon database. Do not change without e
 | `.env.local` | development | gitignored |
 | `.env.preview` | preview | gitignored |
 | `.env.production` | production | gitignored |
+
+## 1Password Secret Management
+
+Local dev secrets are stored in the **`celn` 1Password vault** under the item `construction-local-dev` (tagged `local-dev`). This is the source of truth for all non-Vercel secrets.
+
+**Requires**: 1Password CLI (`brew install 1password-cli`) + CLI integration enabled in the 1Password app (Settings → Developer → Integrate with 1Password CLI).
+
+```bash
+# View all local dev secrets
+op item get construction-local-dev --vault celn
+
+# Generate .env.local from 1Password (then manually append APP_URL)
+op inject -i .env.template -o .env.local
+
+# Pull Vercel preview env vars
+vercel env pull .env.preview --environment preview --scope celn --yes
+
+# Pull Vercel production env vars
+vercel env pull .env.production --environment production --scope celn --yes
+```
+
+**Adding a new secret:**
+```bash
+# Add a field to the existing item
+op item edit construction-local-dev --vault celn "NEW_KEY=value"
+
+# Then update .env.template with the op:// reference
+# NEW_KEY=op://celn/construction-local-dev/NEW_KEY
+```
+
+**Secret references** use the format `op://vault/item/field`, e.g.:
+- `op://celn/construction-local-dev/DATABASE_URL`
+- `op://celn/construction-local-dev/OPENAI_API_KEY`

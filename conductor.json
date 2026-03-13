@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "setup": "[[ \"$CONDUCTOR_PORT\" =~ ^[0-9]+$ ]] || exit 1 && op inject -i .env.template -o .env.local && echo \"APP_URL=\\\"http://localhost:$CONDUCTOR_PORT\\\"\" >> .env.local && mkdir -p .vercel && printf '{\"projectId\":\"%s\",\"orgId\":\"%s\"}' \"$(op item get construction-local-dev --vault celn --field VERCEL_PROJECT_ID --reveal)\" \"$(op item get construction-local-dev --vault celn --field VERCEL_ORG_ID --reveal)\" > .vercel/project.json && npm install",
+    "run": "npm run dev",
+    "archive": "rm -f .env.local && rm -rf .vercel && rm -rf node_modules && rm -rf .next"
+  }
+}
