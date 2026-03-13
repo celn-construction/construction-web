@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { Box, Typography, Button, Paper } from '@mui/material';
+import { Box, Typography, Paper, Button } from '@mui/material';
 import AddProjectDialog from '@/components/projects/AddProjectDialog';
 
 export default function CreateFirstProject() {

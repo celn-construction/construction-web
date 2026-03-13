@@ -72,11 +72,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Enforce onboarding for all other protected routes
-  if (!onboardingComplete) {
-    return NextResponse.redirect(new URL("/onboarding", request.url));
-  }
-
   // Fast-path: /dashboard with warm cookies skips the server component entirely
   if (pathname === "/dashboard") {
     if (activeOrgSlug && activeProjectSlug) {

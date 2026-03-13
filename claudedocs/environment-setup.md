@@ -13,6 +13,7 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token for file uploads | Optional | Provided by Vercel integration |
 | `OPENAI_API_KEY` | OpenAI API key for semantic search embeddings | Optional | `sk-proj-...` (get from platform.openai.com) |
 | `ANTHROPIC_API_KEY` | Anthropic API key for AI document analysis (image + PDF descriptions) | Optional | `sk-ant-...` (get from console.anthropic.com) |
+| `BETA_ACCESS_CODE` | Beta access code required on sign-up form. Omit to disable the gate. | Optional | `buildtrack-beta-2026` |
 | `NEXT_PUBLIC_APP_URL` | Client-side base URL | Optional | `http://localhost:5050` |
 | `NODE_ENV` | Runtime environment | Auto | `development` / `production` / `test` |
 | `PORT` | Dev server port | Auto (defaults to `5050`) | `5050` |

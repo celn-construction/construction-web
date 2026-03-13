@@ -420,9 +420,8 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     const gantt = getGanttInstance();
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    gantt.on('taskClick', handleTaskClick);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    return () => { gantt.un('taskClick', handleTaskClick); };
+    const detach = gantt.on('taskClick', handleTaskClick) as (() => void) | undefined;
+    return () => { detach?.(); };
   }, [isLoading, getGanttInstance, handleTaskClick]);
 
   return (

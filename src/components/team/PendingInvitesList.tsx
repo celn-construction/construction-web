@@ -140,28 +140,28 @@ export default function PendingInvitesList({
               <Button
                 variant="text"
                 size="small"
+                disabled={isResending}
+                startIcon={isResending ? <CircularProgress size={14} /> : undefined}
                 onClick={() =>
                   resendInvitation.mutate({
                     projectId,
                     invitationId: invitation.id,
                   })
                 }
-                disabled={isResending}
-                startIcon={isResending ? <CircularProgress size={14} /> : null}
               >
                 Resend
               </Button>
               <Button
                 variant="text"
                 size="small"
+                disabled={isRevoking}
+                startIcon={isRevoking ? <CircularProgress size={14} /> : undefined}
                 onClick={() =>
                   revokeInvitation.mutate({
                     projectId,
                     invitationId: invitation.id,
                   })
                 }
-                disabled={isRevoking}
-                startIcon={isRevoking ? <CircularProgress size={14} /> : null}
                 sx={{ color: 'text.secondary' }}
               >
                 Revoke

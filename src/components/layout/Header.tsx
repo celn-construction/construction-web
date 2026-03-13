@@ -145,10 +145,11 @@ export default function Header() {
             <Typography sx={{ fontSize: 14, fontWeight: 600 }}>Notifications</Typography>
             {unreadCount > 0 && (
               <Button
+                variant="text"
                 size="small"
                 onClick={() => markAllAsRead.mutate({ organizationId: activeOrganizationId })}
                 disabled={markAllAsRead.isPending}
-                sx={{ fontSize: 12, textTransform: 'none' }}
+                sx={{ fontSize: 12 }}
               >
                 Mark all read
               </Button>

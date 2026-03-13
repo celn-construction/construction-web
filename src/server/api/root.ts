@@ -9,6 +9,7 @@ import { projectRouter } from "@/server/api/routers/project";
 import { documentRouter } from "@/server/api/routers/document";
 import { notificationRouter } from "@/server/api/routers/notification";
 import { ganttRouter } from "@/server/api/routers/gantt";
+import { betaRouter } from "@/server/api/routers/beta";
 
 /**
  * This is the primary router for your server.
@@ -26,6 +27,7 @@ export const appRouter = createTRPCRouter({
   document: documentRouter,
   notification: notificationRouter,
   gantt: ganttRouter,
+  beta: betaRouter,
 });
 
 // export type definition of API

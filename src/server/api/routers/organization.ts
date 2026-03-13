@@ -5,7 +5,9 @@ export const organizationRouter = createTRPCRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
     const memberships = await ctx.db.membership.findMany({
       where: { userId: ctx.session.user.id },
-      include: { organization: true },
+      include: {
+        organization: { select: { id: true, name: true, slug: true } },
+      },
       orderBy: { createdAt: "asc" },
     });
 

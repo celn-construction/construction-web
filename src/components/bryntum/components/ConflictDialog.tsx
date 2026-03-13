@@ -81,7 +81,6 @@ export default function ConflictDialog({ open, onProceed, onRefresh }: ConflictD
             color: 'text.primary',
             borderColor: 'divider',
             borderRadius: '8px',
-            textTransform: 'none',
             '&:hover': { borderColor: 'text.secondary', bgcolor: 'action.hover' },
           }}
         >
@@ -96,9 +95,6 @@ export default function ConflictDialog({ open, onProceed, onRefresh }: ConflictD
             fontSize: 13,
             fontWeight: 500,
             borderRadius: '8px',
-            textTransform: 'none',
-            boxShadow: 'none',
-            '&:hover': { boxShadow: 'none' },
           }}
         >
           Keep My Changes

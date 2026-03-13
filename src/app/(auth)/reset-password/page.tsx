@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Lock, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { LogoIcon } from '@/components/ui/Logo';
 import {
   Box,
@@ -16,6 +15,8 @@ import {
   IconButton,
   Stack,
   Paper,
+  Button,
+  CircularProgress,
 } from '@mui/material';
 
 function ResetPasswordForm() {
@@ -119,10 +120,12 @@ function ResetPasswordForm() {
           <Button
             component={Link}
             href="/forgot-password"
-            className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group"
+            variant="contained"
+            fullWidth
+            endIcon={<ArrowRight size={20} />}
+            sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
           >
             Request new link
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Button>
         </Paper>
       </Box>
@@ -235,10 +238,12 @@ function ResetPasswordForm() {
           {success ? (
             <Button
               onClick={() => router.push('/sign-in')}
-              className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
+              variant="contained"
+              fullWidth
+              endIcon={<ArrowRight size={20} />}
+              sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
             >
               Continue to sign in
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           ) : (
             <Box component="form" onSubmit={handleSubmit}>
@@ -333,11 +338,13 @@ function ResetPasswordForm() {
 
                 <Button
                   type="submit"
-                  loading={loading}
-                  className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
+                  variant="contained"
+                  fullWidth
+                  disabled={loading}
+                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={20} />}
+                  sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
                 >
                   Reset password
-                  {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                 </Button>
               </Stack>
             </Box>

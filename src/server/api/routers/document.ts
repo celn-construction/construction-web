@@ -153,22 +153,18 @@ export const documentRouter = createTRPCRouter({
         return {};
       }
 
-      const documents = await ctx.db.document.findMany({
+      const grouped = await ctx.db.document.groupBy({
+        by: ["folderId"],
         where: {
           projectId: input.projectId,
           taskId: input.taskId,
         },
-        select: {
-          folderId: true,
-        },
+        _count: { folderId: true },
       });
 
-      const counts: Record<string, number> = {};
-      for (const doc of documents) {
-        counts[doc.folderId] = (counts[doc.folderId] || 0) + 1;
-      }
-
-      return counts;
+      return Object.fromEntries(
+        grouped.map((g) => [g.folderId, g._count.folderId])
+      );
     }),
 
   search: orgProcedure

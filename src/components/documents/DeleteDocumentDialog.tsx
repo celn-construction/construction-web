@@ -1,6 +1,6 @@
 'use client';
 
-import { Dialog, Box, Typography, Divider, Button, CircularProgress, useTheme } from '@mui/material';
+import { Dialog, Box, Typography, Divider, CircularProgress, useTheme, Button } from '@mui/material';
 import { Trash2 } from 'lucide-react';
 import { api } from '@/trpc/react';
 
@@ -112,7 +112,6 @@ export default function DeleteDocumentDialog({
             color: 'text.primary',
             borderColor: 'divider',
             borderRadius: '8px',
-            textTransform: 'none',
             '&:hover': { borderColor: 'text.secondary', bgcolor: 'action.hover' },
           }}
         >
@@ -134,9 +133,7 @@ export default function DeleteDocumentDialog({
             fontWeight: 500,
             bgcolor: 'docExplorer.destructiveMain',
             borderRadius: '8px',
-            textTransform: 'none',
-            boxShadow: 'none',
-            '&:hover': { bgcolor: 'docExplorer.destructiveDark', boxShadow: 'none' },
+            '&:hover': { bgcolor: 'docExplorer.destructiveDark' },
             '&:disabled': { bgcolor: 'docExplorer.destructiveMain', opacity: 0.6, color: 'white' },
           }}
         >

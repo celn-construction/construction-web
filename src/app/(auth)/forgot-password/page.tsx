@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { LogoIcon } from '@/components/ui/Logo';
 import {
   Box,
@@ -14,7 +13,8 @@ import {
   InputAdornment,
   Stack,
   Paper,
-  Button as MuiButton,
+  Button,
+  CircularProgress,
 } from '@mui/material';
 
 export default function ForgotPasswordPage() {
@@ -155,7 +155,7 @@ export default function ForgotPasswordPage() {
             <Stack spacing={3}>
               <Typography variant="body2" color="text.secondary">
                 Didn&apos;t receive the email? Check your spam folder or{' '}
-                <MuiButton
+                <Button
                   onClick={() => {
                     setSubmitted(false);
                     setEmail('');
@@ -173,15 +173,17 @@ export default function ForgotPasswordPage() {
                   }}
                 >
                   try another email address
-                </MuiButton>
+                </Button>
               </Typography>
 
               <Button
                 component={Link}
                 href="/sign-in"
-                className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group"
+                variant="contained"
+                fullWidth
+                startIcon={<ArrowLeft size={20} />}
+                sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
               >
-                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                 Back to sign in
               </Button>
             </Stack>
@@ -227,11 +229,13 @@ export default function ForgotPasswordPage() {
 
                 <Button
                   type="submit"
-                  loading={loading}
-                  className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
+                  variant="contained"
+                  fullWidth
+                  disabled={loading}
+                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={20} />}
+                  sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
                 >
                   Send reset link
-                  {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                 </Button>
 
                 <Box

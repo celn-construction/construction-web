@@ -6,7 +6,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { signIn } from '@/lib/auth-client';
-import { Button } from '@/components/ui/button';
 import { LogoIcon } from '@/components/ui/Logo';
 import {
   Box,
@@ -20,6 +19,7 @@ import {
   Stack,
   Paper,
   CircularProgress,
+  Button,
 } from '@mui/material';
 
 function SignInForm() {
@@ -248,11 +248,13 @@ function SignInForm() {
 
               <Button
                 type="submit"
-                loading={loading}
-                className="w-full h-14 bg-[var(--accent-primary)] text-white text-base rounded-md hover:opacity-90 transition-colors flex items-center justify-center gap-2 group cursor-pointer"
+                variant="contained"
+                fullWidth
+                disabled={loading}
+                endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={20} />}
+                sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
               >
                 Sign in
-                {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
               </Button>
             </Stack>
           </Box>
