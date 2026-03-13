@@ -23,11 +23,17 @@ export default async function ProjectLayout({
   const { orgSlug, projectSlug } = await params;
   const userId = session.user.id;
 
-  // Get organization ID from orgSlug
-  const organization = await db.organization.findUnique({
-    where: { slug: orgSlug },
-    select: { id: true },
-  });
+  // Fetch org and current user activeProjectId in parallel
+  const [organization, user] = await Promise.all([
+    db.organization.findUnique({
+      where: { slug: orgSlug },
+      select: { id: true },
+    }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { activeProjectId: true },
+    }),
+  ]);
 
   if (!organization) {
     redirect(`/${orgSlug}`);
@@ -48,11 +54,13 @@ export default async function ProjectLayout({
     redirect(`/${orgSlug}`);
   }
 
-  // Set as active project
-  await db.user.update({
-    where: { id: userId },
-    data: { activeProjectId: project.id },
-  });
+  // Only write if the active project actually changed
+  if (user?.activeProjectId !== project.id) {
+    await db.user.update({
+      where: { id: userId },
+      data: { activeProjectId: project.id },
+    });
+  }
 
   return (
     <ProjectProvider
