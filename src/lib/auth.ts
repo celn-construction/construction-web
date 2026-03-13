@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 
 export const auth = betterAuth({
   basePath: "/api/auth",
+  baseURL: process.env.APP_URL,
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
@@ -20,7 +21,6 @@ export const auth = betterAuth({
       return [origin];
     }
     return [
-      process.env.BETTER_AUTH_URL ?? "",
       process.env.APP_URL ?? "",
       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "",
     ].filter(Boolean);
