@@ -1,5 +1,3 @@
-'use client';
-
 import { Maximize2, CheckCircle2 } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { Box, Typography, Paper, IconButton, Stack, Avatar, Divider } from '@mui/material';
