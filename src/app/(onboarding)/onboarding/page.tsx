@@ -19,6 +19,12 @@ export default async function OnboardingPage() {
   });
 
   if (userOrg) {
+    // Fix data inconsistency: user has org but onboardingComplete may be false,
+    // which causes an infinite redirect loop with (app)/layout.tsx
+    await db.user.update({
+      where: { id: session.user.id },
+      data: { onboardingComplete: true },
+    });
     redirect(`/${userOrg.slug}`);
   }
 
