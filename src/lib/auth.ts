@@ -20,7 +20,6 @@ export const auth = betterAuth({
       return [origin];
     }
     return [
-      process.env.BETTER_AUTH_URL ?? "",
       process.env.APP_URL ?? "",
       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "",
     ].filter(Boolean);

@@ -8,7 +8,6 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 |---|---|---|---|
 | `DATABASE_URL` | PostgreSQL connection string (Neon on Vercel) | Yes | `postgresql://USER@localhost:5432/construction?schema=public` |
 | `BETTER_AUTH_SECRET` | Signing secret for Better Auth sessions | Yes | Any strong random string |
-| `BETTER_AUTH_URL` | Base URL Better Auth uses for callbacks | Yes | `http://localhost:5050` |
 | `APP_URL` | Server-side base URL for email links and redirects | Yes (defaults to `http://localhost:5050`) | `https://construction-web-ashen.vercel.app` |
 | `RESEND_API_KEY` | Resend transactional email API key | Optional | `re_...` (omit for dev console logging) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token for file uploads | Optional | Provided by Vercel integration |
