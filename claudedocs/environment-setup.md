@@ -8,8 +8,7 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 |---|---|---|---|
 | `DATABASE_URL` | PostgreSQL connection string (Neon on Vercel) | Yes | `postgresql://USER@localhost:5432/construction?schema=public` |
 | `BETTER_AUTH_SECRET` | Signing secret for Better Auth sessions | Yes | Any strong random string |
-| `BETTER_AUTH_URL` | Base URL Better Auth uses for callbacks | Yes | `http://localhost:5050` |
-| `APP_URL` | Server-side base URL for email links and redirects | Yes (defaults to `http://localhost:5050`) | `https://construction-web-ashen.vercel.app` |
+| `APP_URL` | Base URL for Better Auth callbacks, trusted origins, invite links, and password reset links. Must be set per-environment — see `claudedocs/vercel.md`. | Yes (defaults to `http://localhost:5050`) | `https://celn.app` |
 | `RESEND_API_KEY` | Resend transactional email API key | Optional | `re_...` (omit for dev console logging) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token for file uploads | Optional | Provided by Vercel integration |
 | `OPENAI_API_KEY` | OpenAI API key for semantic search embeddings | Optional | `sk-proj-...` (get from platform.openai.com) |
@@ -49,7 +48,7 @@ npm run dev          # http://localhost:5050
 
 **Notes**
 - Email functionality falls back to console logging when `RESEND_API_KEY` is not set.
-- Better Auth trusts `localhost:3000`, `localhost:5050`, plus any URL in `BETTER_AUTH_URL` and `APP_URL`.
+- Better Auth trusts any localhost origin in development, and `APP_URL` in production (see `src/lib/auth.ts`).
 
 ## Available Scripts
 
@@ -72,9 +71,10 @@ npm run dev          # http://localhost:5050
 
 - **Platform**: Vercel
 - **Project name**: `construction-web`
-- **Production URL**: https://construction-web-ashen.vercel.app
+- **Production URL**: https://celn.app
+- **Staging URL**: https://preview.celn.app
 - **Database**: Neon PostgreSQL (configured via Vercel integration)
 - **Build command** (vercel.json): `npx prisma migrate deploy && npx prisma generate && npx next build`
 - **Install command**: `npm install`
 
-Database migrations run automatically on every Vercel build. Set `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `APP_URL`, and `RESEND_API_KEY` in the Vercel project environment settings. `BLOB_READ_WRITE_TOKEN` is auto-provisioned by the Vercel Blob integration.
+Database migrations run automatically on every Vercel build. Set `DATABASE_URL`, `BETTER_AUTH_SECRET`, `APP_URL`, and `RESEND_API_KEY` in the Vercel project environment settings per environment. `BLOB_READ_WRITE_TOKEN` is auto-provisioned by the Vercel Blob integration. See `claudedocs/vercel.md` for CLI commands.
