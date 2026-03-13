@@ -51,9 +51,13 @@ These must be set correctly per environment via Vercel CLI:
 
 `DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, and all `POSTGRES_*` / `PG*` vars are managed by Vercel integrations. Do not overwrite these manually.
 
-## Shared Resources
+## Database Branching
 
-All environments currently share the same Neon database. Do not change without explicit discussion.
+Each environment uses an isolated Neon database branch via the Vercel-Neon integration:
+- **Production** → `main` Neon branch
+- **Preview deployments** → auto-created `preview/...` Neon branch (forked from `main` at deploy time)
+
+The integration injects the correct `DATABASE_URL` per deployment automatically — no manual configuration needed. On the free Neon plan branches are limited (10 max), so delete old preview branches from closed PRs as needed.
 
 ## Local Env Files
 

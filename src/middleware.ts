@@ -114,6 +114,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - images folder (public images)
      */
-    "/((?!_next/static|_next/image|favicon.ico|favicon.svg|images|bryntum).*)",
+    "/((?!_next/static|_next/image|favicon.ico|favicon.svg|images|bryntum/).*)",
   ],
 };

@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "setup": "[[ \"$CONDUCTOR_PORT\" =~ ^[0-9]+$ ]] || exit 1 && eval $(op signin) && op inject -i .env.template -o .env.local && echo \"APP_URL=\\\"http://localhost:$CONDUCTOR_PORT\\\"\" >> .env.local && mkdir -p .vercel && printf '{\"projectId\":\"%s\",\"orgId\":\"%s\"}' \"$(op item get construction-local-dev --vault celn --field VERCEL_PROJECT_ID --reveal)\" \"$(op item get construction-local-dev --vault celn --field VERCEL_ORG_ID --reveal)\" > .vercel/project.json && npm install",
+    "setup": "[[ \"$CONDUCTOR_PORT\" =~ ^[0-9]+$ ]] || exit 1 && mkdir -p .vercel && echo '{\"projectId\":\"prj_MtFEiGJYPNEb5KaBhGeCVNg1czWJ\",\"orgId\":\"team_fd2AWh9hEaC9t7oQA5W3wGXd\"}' > .vercel/project.json && vercel env pull .env.local --environment development --scope celn --yes && (grep -q '^APP_URL=' .env.local && sed -i '' \"s|^APP_URL=.*|APP_URL=\\\"http://localhost:$CONDUCTOR_PORT\\\"|\" .env.local || echo \"APP_URL=\\\"http://localhost:$CONDUCTOR_PORT\\\"\" >> .env.local) && npm install",
     "run": "npm run dev",
     "archive": "rm -f .env.local && rm -rf .vercel && rm -rf node_modules && rm -rf .next"
   }

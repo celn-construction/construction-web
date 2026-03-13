@@ -57,3 +57,4 @@ generated/
 
 # serena mcp (local agent cache and memories)
 .serena/
+.env*.local
