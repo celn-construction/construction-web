@@ -27,18 +27,37 @@ Validation is defined in `src/env.js` using `@t3-oss/env-nextjs` and Zod. The bu
 - Node.js 24 (see `.nvmrc`; use `nvm use`)
 - npm 11.3+ (declared in `packageManager` field)
 - PostgreSQL instance (local or remote)
+- 1Password CLI (`brew install 1password-cli`) with CLI integration enabled in the 1Password app
+
+**Getting secrets (1Password)**
+
+All local dev secrets are stored in the `celn` vault under the `construction-local-dev` item (tagged `local-dev`). Retrieve them with:
+
+```bash
+# List all fields in the item
+op item get construction-local-dev --vault celn
+
+# Get a specific field value
+op item get construction-local-dev --vault celn --field DATABASE_URL
+
+# Inject all secrets into a command at runtime (no disk writes)
+op run --env-file=.env.template -- npm run dev
+```
+
+The `.env.template` file (committed to the repo) contains `op://` references — no real values. The actual `.env.local` (gitignored) is used for direct dev server runs.
 
 **Setup**
 
 ```bash
 # 1. Clone and install
-git clone <repo-url> && cd cebu-v1
+git clone <repo-url> && cd providence
 nvm use
 npm install          # runs prisma generate via postinstall
 
-# 2. Create local env file
-cp .env.example .env.local
-# Edit .env.local with your DATABASE_URL and BETTER_AUTH_SECRET
+# 2. Create local env file from 1Password
+op inject -i .env.template -o .env.local
+# APP_URL must be set manually since it depends on your local port:
+echo 'APP_URL="http://localhost:5050"' >> .env.local
 
 # 3. Apply database migrations
 npx prisma migrate dev
@@ -50,6 +69,7 @@ npm run dev          # http://localhost:5050
 **Notes**
 - Email functionality falls back to console logging when `RESEND_API_KEY` is not set.
 - Better Auth trusts any localhost origin in development, and `APP_URL` in production (see `src/lib/auth.ts`).
+- In Conductor, `conductor.json` handles setup automatically — `APP_URL` is set using `$CONDUCTOR_PORT`.
 
 ## Available Scripts
 
