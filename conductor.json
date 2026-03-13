@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "setup": "cp \"$CONDUCTOR_ROOT_PATH/.env.local\" .env.local && echo \"APP_URL=\\\"http://localhost:$CONDUCTOR_PORT\\\"\" >> .env.local && mkdir -p .vercel && printf '{\"projectId\":\"prj_MtFEiGJYPNEb5KaBhGeCVNg1czWJ\",\"orgId\":\"team_fd2AWh9hEaC9t7oQA5W3wGXd\"}' > .vercel/project.json && npm install",
+    "run": "npm run dev"
+  }
+}
