@@ -7,6 +7,7 @@
 @claudedocs/testing-guide.md
 @claudedocs/components-guide.md
 @claudedocs/embeddings.md
+@claudedocs/vercel.md
 
 ## Documentation Update Rules
 When making changes that affect these docs, update them in the same task:
@@ -15,8 +16,10 @@ When making changes that affect these docs, update them in the same task:
 - Architecture or TypeScript pattern changes → update `claudedocs/architecture-and-typescript.md`
 - New tests added or test patterns change → update `claudedocs/testing-guide.md`
 - New components, naming/styling changes, or new feature slices → update `claudedocs/components-guide.md`
+- Vercel env vars, deployments, or project config changes → update `claudedocs/vercel.md`
 
 ## Vercel
-- Vercel project name: `construction-web`
-- Production URL: https://construction-web-ashen.vercel.app
-- Database: Neon PostgreSQL (configured via Vercel integration)
+- See `claudedocs/vercel.md` for full Vercel configuration reference
+- Team: CELN (`celn`) — always use `--scope celn` with Vercel CLI
+- Production URL: https://celn.app
+- Staging URL: https://preview.celn.app

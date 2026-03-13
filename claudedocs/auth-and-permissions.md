@@ -8,7 +8,7 @@
 - **Session**: Cookie-cached for 5 minutes (`cookieCache.maxAge = 300`)
 - **Cookie names**: `better-auth.session_token` (localhost) / `__Secure-better-auth.session_token` (production)
 - **Custom pages**: `/sign-in`, `/sign-up`
-- **Trusted origins**: Dynamic — in development, any `localhost` origin (any port) is trusted; in production, only `APP_URL` and `VERCEL_URL`
+- **Trusted origins**: Dynamic — in development, any `localhost` origin (any port) is trusted; in production, `APP_URL` and `VERCEL_URL`. `APP_URL` is also set as `baseURL` in the auth config, so it is the single env var controlling Better Auth's base URL and trusted origins.
 
 ### Client Setup
 
