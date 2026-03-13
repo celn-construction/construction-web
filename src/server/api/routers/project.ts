@@ -169,7 +169,7 @@ export const projectRouter = createTRPCRouter({
       const project = await ctx.db.project.findUnique({
         where: { id: input.id },
         include: {
-          organization: true,
+          organization: { select: { id: true, name: true, slug: true } },
         },
       });
 
@@ -221,7 +221,7 @@ export const projectRouter = createTRPCRouter({
           },
         },
         include: {
-          organization: true,
+          organization: { select: { id: true, name: true, slug: true } },
         },
       });
 
@@ -274,7 +274,7 @@ export const projectRouter = createTRPCRouter({
       const project = await ctx.db.project.findUnique({
         where: { id: activeProjectId },
         include: {
-          organization: true,
+          organization: { select: { id: true, name: true, slug: true } },
         },
       });
 
@@ -288,7 +288,7 @@ export const projectRouter = createTRPCRouter({
       const project = await ctx.db.project.findUnique({
         where: { id: input.projectId },
         include: {
-          organization: true,
+          organization: { select: { id: true, name: true, slug: true } },
         },
       });
 

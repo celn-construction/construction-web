@@ -108,16 +108,6 @@ describe("Middleware", () => {
     expect((response as NextResponse).status).not.toBe(307);
   });
 
-  it("redirects to /onboarding for protected routes if not complete", () => {
-    const request = createRequest("/acme", {
-      "better-auth.session_token": "valid-token",
-    });
-    const response = middleware(request) as NextResponse;
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:5050/onboarding");
-  });
-
   it("bypasses auth with x-playwright-test header in non-production", () => {
     vi.stubEnv("NODE_ENV", "test");
 

@@ -23,19 +23,25 @@ export default async function OrgLayout({
   const { orgSlug } = await params;
   const userId = session.user.id;
 
-  // Resolve organization by slug
-  const organization = await db.organization.findUnique({
-    where: { slug: orgSlug },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      memberships: {
-        where: { userId },
-        select: { role: true },
+  // Resolve organization and current user activeOrganizationId in parallel
+  const [organization, user] = await Promise.all([
+    db.organization.findUnique({
+      where: { slug: orgSlug },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        memberships: {
+          where: { userId },
+          select: { role: true },
+        },
       },
-    },
-  });
+    }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { activeOrganizationId: true },
+    }),
+  ]);
 
   // Organization not found or user not a member
   if (!organization || organization.memberships.length === 0) {
@@ -58,11 +64,13 @@ export default async function OrgLayout({
 
   const memberRole = organization.memberships[0]!.role;
 
-  // Sync active organization in database
-  await db.user.update({
-    where: { id: userId },
-    data: { activeOrganizationId: organization.id },
-  });
+  // Only sync active organization if it actually changed
+  if (user?.activeOrganizationId !== organization.id) {
+    await db.user.update({
+      where: { id: userId },
+      data: { activeOrganizationId: organization.id },
+    });
+  }
 
   return (
     <OrgProvider
