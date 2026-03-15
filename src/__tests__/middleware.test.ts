@@ -86,21 +86,23 @@ describe("Middleware", () => {
     expect((response as NextResponse).status).not.toBe(307);
   });
 
-  it("redirects to org home if onboarding complete and visiting /onboarding", () => {
+  it("allows /onboarding even if onboarding complete (page handles its own redirect)", () => {
     const request = createRequest("/onboarding", {
       "better-auth.session_token": "valid-token",
       "onboarding-complete": "true",
       "active-org-slug": "my-org",
+      "email-verified": "true",
     });
-    const response = middleware(request) as NextResponse;
+    const response = middleware(request);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:5050/my-org");
+    expect(response).toBeInstanceOf(NextResponse);
+    expect((response as NextResponse).status).not.toBe(307);
   });
 
   it("allows /onboarding if not complete", () => {
     const request = createRequest("/onboarding", {
       "better-auth.session_token": "valid-token",
+      "email-verified": "true",
     });
     const response = middleware(request);
 

@@ -10,6 +10,12 @@ vi.mock("@/lib/auth-client", () => ({
   signUp: {
     email: vi.fn(),
   },
+  authClient: {
+    emailOtp: {
+      verifyEmail: vi.fn(),
+      sendVerificationOtp: vi.fn(),
+    },
+  },
 }));
 
 // Mock @/trpc/react to avoid pulling in server-side env/db imports
@@ -70,7 +76,7 @@ describe("SignUpPage", () => {
     });
   });
 
-  it("redirects to /onboarding on successful sign-up", async () => {
+  it("shows OTP verification step on successful sign-up", async () => {
     const user = userEvent.setup();
     mockSignUpEmail.mockResolvedValue({ data: { user: { id: "1" } } });
 
@@ -83,11 +89,12 @@ describe("SignUpPage", () => {
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/onboarding");
+      expect(screen.getByText(/verify your email/i)).toBeInTheDocument();
     });
+    expect(screen.getByText(/we sent a 6-digit code/i)).toBeInTheDocument();
   });
 
-  it("redirects to /invite/{token} when invite param is present", async () => {
+  it("shows OTP step with invite param preserved", async () => {
     const user = userEvent.setup();
     const mockGet = vi.fn((key: string) => {
       if (key === "invite") return "invite-token-456";
@@ -106,7 +113,7 @@ describe("SignUpPage", () => {
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/invite/invite-token-456");
+      expect(screen.getByText(/verify your email/i)).toBeInTheDocument();
     });
   });
 
@@ -188,7 +195,7 @@ describe("SignUpPage", () => {
 
     resolveSignUp!({ data: { user: { id: "1" } } });
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalled();
+      expect(screen.getByText(/verify your email/i)).toBeInTheDocument();
     });
   });
 
