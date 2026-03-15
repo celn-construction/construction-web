@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
-import { signIn } from '@/lib/auth-client';
+import { authClient, signIn } from '@/lib/auth-client';
+import OtpInput from '@/components/ui/OtpInput';
 import { LogoIcon } from '@/components/ui/Logo';
 import {
   Box,
@@ -30,11 +31,14 @@ function SignInForm() {
     ? `/invite/${inviteToken}`
     : (searchParams.get('callbackUrl') || '/dashboard');
 
+  const [step, setStep] = useState<'login' | 'verify-otp'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,15 +54,91 @@ function SignInForm() {
             router.push(callbackUrl);
             router.refresh();
           },
-          onError: (ctx) => {
-            setError(ctx.error.message || 'Sign in failed');
-            setLoading(false);
+          onError: async (ctx) => {
+            const msg = ctx.error.message || '';
+            if (msg.toLowerCase().includes('not verified')) {
+              try {
+                await authClient.emailOtp.sendVerificationOtp({
+                  email,
+                  type: 'email-verification',
+                });
+              } catch {
+                // OTP may have been sent already via sendVerificationOnSignUp
+              }
+              setStep('verify-otp');
+              setLoading(false);
+            } else {
+              setError(msg || 'Sign in failed');
+              setLoading(false);
+            }
           },
         },
       });
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const result = await authClient.emailOtp.verifyEmail({
+        email,
+        otp,
+      });
+
+      if (result.error) {
+        setError(result.error.message || 'Verification failed');
+      } else {
+        await fetch('/api/auth/set-email-verified', { method: 'POST' });
+        // Re-attempt sign-in after verification
+        await signIn.email({
+          email,
+          password,
+          fetchOptions: {
+            onSuccess: () => {
+              router.push(callbackUrl);
+              router.refresh();
+            },
+            onError: (ctx) => {
+              setError(ctx.error.message || 'Sign in failed');
+              setLoading(false);
+            },
+          },
+        });
+      }
+    } catch {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setError('');
+
+    try {
+      await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: 'email-verification',
+      });
+      setResendCooldown(60);
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch {
+      setError('Failed to resend code');
     }
   };
 
@@ -130,134 +210,183 @@ function SignInForm() {
               </Typography>
             </Stack>
             <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 500, mb: 1.5 }}>
-              Welcome back
+              {step === 'login' ? 'Welcome back' : 'Verify your email'}
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Sign in to continue to your dashboard
+              {step === 'login'
+                ? 'Sign in to continue to your dashboard'
+                : `We sent a 6-digit code to ${email}`}
             </Typography>
           </Box>
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={3}>
-              {error && (
-                <Alert severity="error" sx={{ borderRadius: 3 }}>
-                  {error}
-                </Alert>
-              )}
+          {step === 'login' ? (
+            <Box component="form" onSubmit={handleSubmit}>
+              <Stack spacing={3}>
+                {error && (
+                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                    {error}
+                  </Alert>
+                )}
 
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'text.secondary', mb: 1 }}
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    Email address
+                  </Typography>
+                  <TextField
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your.email@company.com"
+                    fullWidth
+                    required
+                    inputProps={{ 'aria-label': 'Email address' }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Mail size={20} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'input.background',
+                      },
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    Password
+                  </Typography>
+                  <TextField
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    fullWidth
+                    required
+                    inputProps={{ 'aria-label': 'Password' }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Lock size={20} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                          >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'input.background',
+                      },
+                    }}
+                  />
+                </Box>
+
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
                 >
-                  Email address
-                </Typography>
-                <TextField
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@company.com"
+                  <FormControlLabel
+                    control={<Checkbox size="small" />}
+                    label={
+                      <Typography variant="body2" color="text.secondary">
+                        Remember me
+                      </Typography>
+                    }
+                  />
+                  <Typography
+                    component={Link}
+                    href="/forgot-password"
+                    variant="body2"
+                    sx={{
+                      color: 'text.primary',
+                      textDecoration: 'none',
+                      '&:hover': { textDecoration: 'underline' },
+                    }}
+                  >
+                    Forgot password?
+                  </Typography>
+                </Box>
+
+                <Button
+                  type="submit"
+                  variant="contained"
                   fullWidth
-                  required
-                  inputProps={{ 'aria-label': 'Email address' }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Mail size={20} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'input.background',
-                    },
-                  }}
-                />
-              </Box>
-
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'text.secondary', mb: 1 }}
+                  disabled={loading}
+                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={20} />}
+                  sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
                 >
-                  Password
-                </Typography>
-                <TextField
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  Sign in
+                </Button>
+              </Stack>
+            </Box>
+          ) : (
+            <Box component="form" onSubmit={handleVerifyOtp}>
+              <Stack spacing={3}>
+                {error && (
+                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                    {error}
+                  </Alert>
+                )}
+
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    Verification code
+                  </Typography>
+                  <OtpInput value={otp} onChange={setOtp} autoFocus />
+                </Box>
+
+                <Button
+                  type="submit"
+                  variant="contained"
                   fullWidth
-                  required
-                  inputProps={{ 'aria-label': 'Password' }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Lock size={20} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
-                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'input.background',
-                    },
-                  }}
-                />
-              </Box>
-
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <FormControlLabel
-                  control={<Checkbox size="small" />}
-                  label={
-                    <Typography variant="body2" color="text.secondary">
-                      Remember me
-                    </Typography>
-                  }
-                />
-                <Typography
-                  component={Link}
-                  href="/forgot-password"
-                  variant="body2"
-                  sx={{
-                    color: 'text.primary',
-                    textDecoration: 'none',
-                    '&:hover': { textDecoration: 'underline' },
-                  }}
+                  disabled={loading || otp.length !== 6}
+                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={20} />}
+                  sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
                 >
-                  Forgot password?
-                </Typography>
-              </Box>
+                  {loading ? 'Verifying...' : 'Verify & sign in'}
+                </Button>
 
-              <Button
-                type="submit"
-                variant="contained"
-                fullWidth
-                disabled={loading}
-                endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={20} />}
-                sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
-              >
-                Sign in
-              </Button>
-            </Stack>
-          </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Button
+                    onClick={handleResendOtp}
+                    disabled={resendCooldown > 0}
+                    variant="text"
+                    size="small"
+                    sx={{ color: 'text.secondary', textTransform: 'none' }}
+                  >
+                    {resendCooldown > 0
+                      ? `Resend code in ${resendCooldown}s`
+                      : "Didn't get the code? Resend"}
+                  </Button>
+                </Box>
+              </Stack>
+            </Box>
+          )}
 
           <Box sx={{ mt: 4, textAlign: 'center' }}>
             <Typography variant="body2" color="text.secondary">

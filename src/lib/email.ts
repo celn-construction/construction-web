@@ -12,6 +12,78 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#x27;");
 }
 
+export async function sendVerificationOTPEmail(
+  email: string,
+  otp: string,
+  type: string
+): Promise<void> {
+  const subjectMap: Record<string, string> = {
+    "sign-in": "Your sign-in code",
+    "email-verification": "Verify your email address",
+    "forget-password": "Your password reset code",
+  };
+  const subject = subjectMap[type] ?? "Your verification code";
+
+  if (!resend) {
+    console.log("========================================");
+    console.log(`OTP EMAIL (Development Mode) — ${type}`);
+    console.log("========================================");
+    console.log(`To: ${email}`);
+    console.log(`Code: ${otp}`);
+    console.log("========================================");
+    return;
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: "BuildTrack Pro <noreply@rentnotify.com>",
+      to: email,
+      subject,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f9; margin: 0; padding: 40px 20px;">
+          <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <div style="width: 48px; height: 48px; background: #1f2937; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
+                <div style="width: 32px; height: 32px; border: 2px solid white; border-radius: 50%;"></div>
+              </div>
+              <h2 style="color: #1f2937; margin: 16px 0 0 0; font-size: 18px; font-weight: 500;">BuildTrack Pro</h2>
+            </div>
+
+            <h1 style="color: #1f2937; font-size: 24px; font-weight: 600; margin: 0 0 16px 0; text-align: center;">${subject}</h1>
+
+            <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
+              Enter this code to continue:
+            </p>
+
+            <div style="text-align: center; margin-bottom: 24px;">
+              <div style="display: inline-block; background: #f3f4f6; padding: 16px 32px; border-radius: 12px; letter-spacing: 8px; font-size: 32px; font-weight: 700; color: #1f2937; font-family: monospace;">
+                ${otp}
+              </div>
+            </div>
+
+            <p style="color: #9ca3af; font-size: 14px; line-height: 1.6; margin: 0; text-align: center;">
+              This code expires in 10 minutes. If you didn't request this, you can safely ignore this email.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+
+    if (error) {
+      console.error("Failed to send OTP email:", error);
+    }
+  } catch (error) {
+    console.error("Failed to send OTP email:", error);
+  }
+}
+
 export async function sendPasswordResetEmail(
   email: string,
   resetUrl: string

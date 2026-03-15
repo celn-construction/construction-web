@@ -29,11 +29,13 @@ jobs:
       - name: Run tests
         run: npm run test
         env:
-          DATABASE_URL: file:./test.db
+          construction_POSTGRES_PRISMA_URL: file:./test.db
+          construction_POSTGRES_URL_NON_POOLING: file:./test.db
 
       - name: Build
         run: npx prisma generate && npx next build
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          construction_POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/test
+          construction_POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/test
           NODE_ENV: production
           SKIP_ENV_VALIDATION: true
