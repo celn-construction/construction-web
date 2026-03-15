@@ -1,6 +1,8 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { emailOTP } from "better-auth/plugins";
 import { db } from "@/server/db";
+import { sendVerificationOTPEmail } from "@/lib/email";
 
 export const auth = betterAuth({
   basePath: "/api/auth",
@@ -14,6 +16,16 @@ export const auth = betterAuth({
   database: prismaAdapter(db, {
     provider: "postgresql",
   }),
+  plugins: [
+    emailOTP({
+      sendVerificationOnSignUp: true,
+      otpLength: 6,
+      expiresIn: 600,
+      async sendVerificationOTP({ email, otp, type }) {
+        await sendVerificationOTPEmail(email, otp, type);
+      },
+    }),
+  ],
   trustedOrigins: (request: Request) => {
     const origin = request.headers.get("origin") ?? "";
     // In development, trust any localhost port (Conductor uses dynamic ports)

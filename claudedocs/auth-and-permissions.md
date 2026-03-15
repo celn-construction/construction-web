@@ -3,7 +3,8 @@
 ## Auth System
 
 - **Provider**: Better Auth 1.4 with Prisma adapter (PostgreSQL)
-- **Auth method**: Email + password (min 8 chars, max 128, auto sign-in on register)
+- **Auth method**: Email + password (min 8 chars, max 128, auto sign-in on register) with email OTP verification on sign-up
+- **Email verification**: Better Auth `emailOTP` plugin — sends a 6-digit code on sign-up, must be verified before proceeding to onboarding
 - **Base path**: `/api/auth`
 - **Session**: Cookie-cached for 5 minutes (`cookieCache.maxAge = 300`)
 - **Cookie names**: `better-auth.session_token` (localhost) / `__Secure-better-auth.session_token` (production)
@@ -12,7 +13,7 @@
 
 ### Client Setup
 
-`authClient` is created via `createAuthClient` pointing at `{baseURL}/api/auth`. Exports: `signIn`, `signUp`, `signOut`, `useSession`.
+`authClient` is created via `createAuthClient` pointing at `{baseURL}/api/auth` with `emailOTPClient()` plugin. Exports: `signIn`, `signUp`, `signOut`, `useSession`. OTP methods: `authClient.emailOtp.sendVerificationOtp()`, `authClient.emailOtp.verifyEmail()`.
 
 ## Roles & Permissions Matrix
 
@@ -97,12 +98,14 @@ Header `x-playwright-test: true` skips all checks in non-production environments
 
 ## Key Auth Flows
 
-### Sign up -> onboarding -> first org
+### Sign up -> email verification -> onboarding -> first org
 
-1. User registers at `/sign-up` (email + password, auto sign-in)
-2. Middleware detects no `onboarding-complete` cookie, redirects to `/onboarding`
-3. User creates their first organization (sets `onboardingComplete` on user record)
-4. `active-org-slug` cookie is set; user lands at `/{orgSlug}`
+1. User registers at `/sign-up` (email + password + beta code, auto sign-in)
+2. Better Auth `emailOTP` plugin sends a 6-digit verification code to the user's email (console-logged in dev when `RESEND_API_KEY` is not set)
+3. Sign-up page shows OTP input step — user enters the code and verifies via `authClient.emailOtp.verifyEmail()`
+4. On successful verification, user is redirected to `/onboarding`
+5. User creates their first organization (sets `onboardingComplete` on user record)
+6. `active-org-slug` cookie is set; user lands at `/{orgSlug}`
 
 ### Sign in -> redirect to active org
 

@@ -5,10 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, User, KeyRound } from 'lucide-react';
-import { signUp } from '@/lib/auth-client';
+import { authClient, signUp } from '@/lib/auth-client';
 import { api } from '@/trpc/react';
 import { TRPCClientError } from '@trpc/client';
 import { LogoIcon } from '@/components/ui/Logo';
+import OtpInput from '@/components/ui/OtpInput';
 import {
   Box,
   TextField,
@@ -21,18 +22,23 @@ import {
   Button,
 } from '@mui/material';
 
+type Step = 'register' | 'verify-otp';
+
 export default function SignUpPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('invite');
 
+  const [step, setStep] = useState<Step>('register');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [betaCode, setBetaCode] = useState('');
+  const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const validateCode = api.beta.validateCode.useMutation();
 
@@ -53,11 +59,7 @@ export default function SignUpPage() {
       if (result.error) {
         setError(result.error.message || 'Sign up failed');
       } else {
-        if (inviteToken) {
-          router.push(`/invite/${inviteToken}`);
-        } else {
-          router.push('/onboarding');
-        }
+        setStep('verify-otp');
       }
     } catch (err) {
       if (err instanceof TRPCClientError) {
@@ -67,6 +69,58 @@ export default function SignUpPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const result = await authClient.emailOtp.verifyEmail({
+        email,
+        otp,
+      });
+
+      if (result.error) {
+        setError(result.error.message || 'Verification failed');
+      } else {
+        await fetch('/api/auth/set-email-verified', { method: 'POST' });
+        if (inviteToken) {
+          router.push(`/invite/${inviteToken}`);
+        } else {
+          router.push('/onboarding');
+        }
+      }
+    } catch {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setError('');
+
+    try {
+      await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: 'email-verification',
+      });
+      setResendCooldown(60);
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch {
+      setError('Failed to resend code');
     }
   };
 
@@ -138,183 +192,248 @@ export default function SignUpPage() {
               </Typography>
             </Stack>
             <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 500, mb: 1.5 }}>
-              Create account
+              {step === 'register' ? 'Create account' : 'Verify your email'}
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Get started with your project management
+              {step === 'register'
+                ? 'Get started with your project management'
+                : `We sent a 6-digit code to ${email}`}
             </Typography>
           </Box>
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={3}>
-              {error && (
-                <Alert severity="error" sx={{ borderRadius: 3 }}>
-                  {error}
-                </Alert>
-              )}
+          {step === 'register' ? (
+            <Box component="form" onSubmit={handleSubmit}>
+              <Stack spacing={3}>
+                {error && (
+                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                    {error}
+                  </Alert>
+                )}
 
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'text.secondary', mb: 1 }}
-                >
-                  Full name
-                </Typography>
-                <TextField
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
-                  fullWidth
-                  required
-                  inputProps={{ 'aria-label': 'Full name' }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <User size={20} />
-                      </InputAdornment>
-                    ),
-                  }}
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    Full name
+                  </Typography>
+                  <TextField
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                    fullWidth
+                    required
+                    inputProps={{ 'aria-label': 'Full name' }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <User size={20} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'input.background',
+                      },
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    Email address
+                  </Typography>
+                  <TextField
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your.email@company.com"
+                    fullWidth
+                    required
+                    inputProps={{ 'aria-label': 'Email address' }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Mail size={20} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'input.background',
+                      },
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    Password
+                  </Typography>
+                  <TextField
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min 8 characters"
+                    fullWidth
+                    required
+                    inputProps={{ minLength: 8, 'aria-label': 'Password' }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Lock size={20} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                          >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'input.background',
+                      },
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    Beta access code
+                  </Typography>
+                  <TextField
+                    id="betaCode"
+                    type="text"
+                    value={betaCode}
+                    onChange={(e) => setBetaCode(e.target.value)}
+                    placeholder="Enter your beta code"
+                    fullWidth
+                    required
+                    inputProps={{ 'aria-label': 'Beta access code' }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <KeyRound size={20} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'input.background',
+                      },
+                    }}
+                  />
+                </Box>
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  variant="contained"
+                  size="large"
+                  endIcon={<ArrowRight />}
                   sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'input.background',
+                    bgcolor: 'warm.main',
+                    color: 'white',
+                    py: 2,
+                    '&:hover': {
+                      bgcolor: 'warm.dark',
+                      '& .MuiSvgIcon-root': {
+                        transform: 'translateX(4px)',
+                      },
                     },
-                  }}
-                />
-              </Box>
-
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'text.secondary', mb: 1 }}
-                >
-                  Email address
-                </Typography>
-                <TextField
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@company.com"
-                  fullWidth
-                  required
-                  inputProps={{ 'aria-label': 'Email address' }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Mail size={20} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'input.background',
-                    },
-                  }}
-                />
-              </Box>
-
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'text.secondary', mb: 1 }}
-                >
-                  Password
-                </Typography>
-                <TextField
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 8 characters"
-                  fullWidth
-                  required
-                  inputProps={{ minLength: 8, 'aria-label': 'Password' }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Lock size={20} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
-                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'input.background',
-                    },
-                  }}
-                />
-              </Box>
-
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'text.secondary', mb: 1 }}
-                >
-                  Beta access code
-                </Typography>
-                <TextField
-                  id="betaCode"
-                  type="text"
-                  value={betaCode}
-                  onChange={(e) => setBetaCode(e.target.value)}
-                  placeholder="Enter your beta code"
-                  fullWidth
-                  required
-                  inputProps={{ 'aria-label': 'Beta access code' }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <KeyRound size={20} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'input.background',
-                    },
-                  }}
-                />
-              </Box>
-
-              <Button
-                type="submit"
-                disabled={loading}
-                variant="contained"
-                size="large"
-                endIcon={<ArrowRight />}
-                sx={{
-                  bgcolor: 'warm.main',
-                  color: 'white',
-                  py: 2,
-                  '&:hover': {
-                    bgcolor: 'warm.dark',
                     '& .MuiSvgIcon-root': {
-                      transform: 'translateX(4px)',
+                      transition: 'transform 0.2s',
                     },
-                  },
-                  '& .MuiSvgIcon-root': {
-                    transition: 'transform 0.2s',
-                  },
-                  '&.Mui-disabled': {
-                    opacity: 0.5,
-                  },
-                }}
-              >
-                {loading ? 'Creating account...' : 'Create account'}
-              </Button>
-            </Stack>
-          </Box>
+                    '&.Mui-disabled': {
+                      opacity: 0.5,
+                    },
+                  }}
+                >
+                  {loading ? 'Creating account...' : 'Create account'}
+                </Button>
+              </Stack>
+            </Box>
+          ) : (
+            <Box component="form" onSubmit={handleVerifyOtp}>
+              <Stack spacing={3}>
+                {error && (
+                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                    {error}
+                  </Alert>
+                )}
+
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    Verification code
+                  </Typography>
+                  <OtpInput value={otp} onChange={setOtp} autoFocus />
+                </Box>
+
+                <Button
+                  type="submit"
+                  disabled={loading || otp.length !== 6}
+                  variant="contained"
+                  size="large"
+                  endIcon={<ArrowRight />}
+                  sx={{
+                    bgcolor: 'warm.main',
+                    color: 'white',
+                    py: 2,
+                    '&:hover': {
+                      bgcolor: 'warm.dark',
+                      '& .MuiSvgIcon-root': {
+                        transform: 'translateX(4px)',
+                      },
+                    },
+                    '& .MuiSvgIcon-root': {
+                      transition: 'transform 0.2s',
+                    },
+                    '&.Mui-disabled': {
+                      opacity: 0.5,
+                    },
+                  }}
+                >
+                  {loading ? 'Verifying...' : 'Verify email'}
+                </Button>
+
+                <Box sx={{ textAlign: 'center' }}>
+                  <Button
+                    onClick={handleResendOtp}
+                    disabled={resendCooldown > 0}
+                    variant="text"
+                    size="small"
+                    sx={{ color: 'text.secondary', textTransform: 'none' }}
+                  >
+                    {resendCooldown > 0
+                      ? `Resend code in ${resendCooldown}s`
+                      : "Didn't get the code? Resend"}
+                  </Button>
+                </Box>
+              </Stack>
+            </Box>
+          )}
 
           <Box sx={{ mt: 4, textAlign: 'center' }}>
             <Typography variant="body2" color="text.secondary">

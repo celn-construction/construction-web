@@ -49,11 +49,17 @@ These must be set correctly per environment via Vercel CLI:
 
 ## Auto-Provisioned (do not manage manually)
 
-`DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, and all `POSTGRES_*` / `PG*` vars are managed by Vercel integrations. Do not overwrite these manually.
+`construction_POSTGRES_PRISMA_URL` and related `construction_POSTGRES_*` vars are managed by the Vercel-Neon integration for preview and production environments. `BLOB_READ_WRITE_TOKEN` and all `POSTGRES_*` / `PG*` vars are also managed by Vercel integrations. Do not overwrite these manually in Vercel.
 
-## Shared Resources
+**Local dev overrides**: The `conductor.json` setup script and manual setup both override `construction_POSTGRES_PRISMA_URL` and `construction_POSTGRES_URL_NON_POOLING` in `.env.local` to point to a local PostgreSQL instance (`postgresql://$USER@localhost:5432/construction`) for faster development.
 
-All environments currently share the same Neon database. Do not change without explicit discussion.
+## Database Branching
+
+Each environment uses an isolated Neon database branch via the Vercel-Neon integration:
+- **Production** → `main` Neon branch
+- **Preview deployments** → auto-created `preview/...` Neon branch (forked from `main` at deploy time)
+
+The integration injects the correct `construction_POSTGRES_PRISMA_URL` per deployment automatically — no manual configuration needed. On the free Neon plan branches are limited (10 max), so delete old preview branches from closed PRs as needed.
 
 ## Local Env Files
 
@@ -63,18 +69,13 @@ All environments currently share the same Neon database. Do not change without e
 | `.env.preview` | preview | gitignored |
 | `.env.production` | production | gitignored |
 
-## 1Password Secret Management
+## Getting Local Env Vars
 
-Local dev secrets are stored in the **`celn` 1Password vault** under the item `construction-local-dev` (tagged `local-dev`). This is the source of truth for all non-Vercel secrets.
-
-**Requires**: 1Password CLI (`brew install 1password-cli`) + CLI integration enabled in the 1Password app (Settings → Developer → Integrate with 1Password CLI).
+All secrets are managed in Vercel. Pull them locally with:
 
 ```bash
-# View all local dev secrets
-op item get construction-local-dev --vault celn
-
-# Generate .env.local from 1Password (then manually append APP_URL)
-op inject -i .env.template -o .env.local
+# Pull dev env vars
+vercel env pull .env.local --environment development --scope celn --yes
 
 # Pull Vercel preview env vars
 vercel env pull .env.preview --environment preview --scope celn --yes
@@ -85,13 +86,5 @@ vercel env pull .env.production --environment production --scope celn --yes
 
 **Adding a new secret:**
 ```bash
-# Add a field to the existing item
-op item edit construction-local-dev --vault celn "NEW_KEY=value"
-
-# Then update .env.template with the op:// reference
-# NEW_KEY=op://celn/construction-local-dev/NEW_KEY
+printf 'value' | vercel env add KEY_NAME development --scope celn --force
 ```
-
-**Secret references** use the format `op://vault/item/field`, e.g.:
-- `op://celn/construction-local-dev/DATABASE_URL`
-- `op://celn/construction-local-dev/OPENAI_API_KEY`

@@ -19,6 +19,9 @@ export function middleware(request: NextRequest) {
     : null;
   const pathname = request.nextUrl.pathname;
 
+  const emailVerified = request.cookies.get("email-verified");
+  const isVerifyEmailPage = pathname.startsWith("/verify-email");
+
   const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up") || pathname.startsWith("/forgot-password") || pathname.startsWith("/reset-password");
   const isApiRoute = pathname.startsWith("/api");
   const isLandingPage = pathname === "/";
@@ -64,11 +67,25 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/sign-in?callbackUrl=" + pathname, request.url));
   }
 
-  // Redirect to org home if user already completed onboarding
-  if (isOnboardingPage) {
-    if (onboardingComplete && activeOrgSlug) {
-      return NextResponse.redirect(new URL(`/${activeOrgSlug}`, request.url));
+  // Allow verify-email page for authenticated but unverified users
+  if (isVerifyEmailPage) {
+    if (emailVerified) {
+      // Already verified — redirect to org or onboarding
+      if (onboardingComplete && activeOrgSlug) {
+        return NextResponse.redirect(new URL(`/${activeOrgSlug}`, request.url));
+      }
+      return NextResponse.redirect(new URL("/onboarding", request.url));
     }
+    return NextResponse.next();
+  }
+
+  // Redirect unverified users to verify-email page
+  if (!emailVerified) {
+    return NextResponse.redirect(new URL("/verify-email", request.url));
+  }
+
+  // Let the onboarding page handle its own redirect logic (it checks DB for existing orgs)
+  if (isOnboardingPage) {
     return NextResponse.next();
   }
 
@@ -83,7 +100,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Update active-org-slug cookie from URL for any org-scoped route
-  const staticPrefixes = ['api', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'onboarding', 'invite', 'dashboard', '_next'];
+  const staticPrefixes = ['api', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'verify-email', 'onboarding', 'invite', 'dashboard', '_next', 'bryntum'];
   const segments = pathname.split('/');
   const firstSegment = segments[1];
   if (firstSegment && !staticPrefixes.includes(firstSegment) && /^[a-z0-9-]+$/.test(firstSegment)) {
