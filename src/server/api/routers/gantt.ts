@@ -62,6 +62,7 @@ export const ganttRouter = createTRPCRouter({
           duration: true,
           durationUnit: true,
           coverImageUrl: true,
+          csiCode: true,
           parentId: true,
           parent: {
             select: { name: true },
@@ -82,6 +83,7 @@ export const ganttRouter = createTRPCRouter({
         duration: task.duration,
         durationUnit: task.durationUnit,
         coverImageUrl: task.coverImageUrl,
+        csiCode: task.csiCode,
         group: task.parent?.name ?? null,
       };
     }),
@@ -131,6 +133,7 @@ export const ganttRouter = createTRPCRouter({
             cls: true,
             iconCls: true,
             note: true,
+            csiCode: true,
             baselines: true,
             orderIndex: true,
             version: true,

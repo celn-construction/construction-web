@@ -257,6 +257,7 @@ model GanttTask {
     cls                String?
     iconCls            String?
     note               String?
+    csiCode            String?
     baselines          Json?
     coverImageUrl      String?
     version            Int       @default(1)

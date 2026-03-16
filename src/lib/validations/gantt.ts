@@ -29,6 +29,7 @@ const taskRecordSchema = z.object({
   cls: z.string().nullable().optional(),
   iconCls: z.string().nullable().optional(),
   note: z.string().nullable().optional(),
+  csiCode: z.string().nullable().optional(),
   baselines: z.any().optional(),
 });
 

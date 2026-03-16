@@ -115,6 +115,7 @@ export async function syncTasks(
           cls: task.cls ?? null,
           iconCls: task.iconCls ?? null,
           note: task.note ?? null,
+          csiCode: task.csiCode ?? null,
           baselines: task.baselines ?? null,
         },
       });
@@ -149,6 +150,7 @@ export async function syncTasks(
       if (task.cls !== undefined) updateData.cls = task.cls;
       if (task.iconCls !== undefined) updateData.iconCls = task.iconCls;
       if (task.note !== undefined) updateData.note = task.note;
+      if (task.csiCode !== undefined) updateData.csiCode = task.csiCode;
       if (task.baselines !== undefined) updateData.baselines = task.baselines;
 
       // Resolve parent phantom ID if needed (any phantom format, not just "$"-prefixed)
