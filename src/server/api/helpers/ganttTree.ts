@@ -20,6 +20,7 @@ type GanttTaskSelect = {
   cls: string | null;
   iconCls: string | null;
   note: string | null;
+  csiCode: string | null;
   baselines: unknown;
   orderIndex: number;
   version: number;
@@ -46,6 +47,7 @@ export function mapTaskToGantt(task: GanttTaskSelect): Record<string, unknown> {
     cls: task.cls,
     iconCls: task.iconCls,
     note: task.note,
+    csiCode: task.csiCode,
     baselines: task.baselines,
     version: task.version,
   };
