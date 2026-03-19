@@ -113,6 +113,8 @@ export function createGanttConfig(
       },
     ],
     features: {
+      columnLines: true,
+      stripe: true,
       cellTooltip: {
         tooltipRenderer: ({ record, column }) => formatTooltipText(record, column.field),
       },

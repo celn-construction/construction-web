@@ -20,14 +20,19 @@ export function useGanttControls() {
       startDate: new Date(),
       duration: 1,
     });
-    // Immediately scroll the timeline to today so the task bar area is visible
+    // Set the visible time span to center on today BEFORE the engine runs,
+    // so the time axis doesn't need a large virtual-scroll jump afterwards.
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 3, 1);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    gantt.scrollToDate(new Date(), { block: 'center', animate: true });
-    // After the scheduling engine processes, scroll to the specific task row + bar
+    gantt.setTimeSpan(start, end);
+    // Let the engine settle, then scroll the task row into view (no animation
+    // to avoid corrupting the virtual time axis rendering on large jumps).
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync().then(() => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      if (task) gantt.scrollTaskIntoView(task, { block: 'center', animate: { duration: 300 } });
+      if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
     });
   }, [getGanttInstance]);
 

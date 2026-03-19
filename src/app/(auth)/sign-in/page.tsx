@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { authClient, signIn } from '@/lib/auth-client';
+import { api } from '@/trpc/react';
 import OtpInput from '@/components/ui/OtpInput';
 import { LogoIcon } from '@/components/ui/Logo';
 import {
@@ -39,6 +40,7 @@ function SignInForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const setEmailVerified = api.user.setEmailVerified.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +53,7 @@ function SignInForm() {
         password,
         fetchOptions: {
           onSuccess: () => {
+            void setEmailVerified.mutateAsync();
             router.push(callbackUrl);
             router.refresh();
           },
@@ -94,7 +97,7 @@ function SignInForm() {
       if (result.error) {
         setError(result.error.message || 'Verification failed');
       } else {
-        await fetch('/api/auth/set-email-verified', { method: 'POST' });
+        await setEmailVerified.mutateAsync();
         // Re-attempt sign-in after verification
         await signIn.email({
           email,
