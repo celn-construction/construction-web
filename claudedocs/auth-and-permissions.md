@@ -76,25 +76,34 @@ if (canInviteMembers(currentMember.role)) { /* show button */ }
 
 **Source**: `src/middleware.ts`
 
-### Public routes (no session required)
+The middleware is a thin session-cookie guard. It does NOT read the database or manage any application cookies (`onboarding-complete`, `active-org-slug`, etc.). Email verification and onboarding gates are enforced in the `(app)` layout via DB queries (see below).
+
+### Pass-through routes (no session cookie required)
 
 - `/` (landing page)
-- `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password`
-- `/api/*` (all API routes bypass middleware auth)
+- `/api/*` (all API routes)
+- `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password` (auth pages)
+- `/verify-email` (email verification page)
+- `/onboarding` (onboarding page)
+- `/invite/*` (invitation acceptance — the page handles auth state inline)
 
-### Protected route logic (sequential checks)
+### Protected routes
 
-1. **Auth pages + session cookie** -- redirect to `/{activeOrgSlug}` (if onboarded) or `/onboarding`
-2. **Auth pages + no session** -- allow through
-3. **`/invite/*`** -- allow for all users (the invite page handles auth state inline)
-4. **No session cookie** -- redirect to `/sign-in?callbackUrl={pathname}`
-5. **`/onboarding`** -- allow if not onboarded; redirect to org home if already onboarded
-6. **Not onboarded** -- redirect to `/onboarding`
-7. **Org-scoped route** (first segment matches `[a-z0-9-]+` and is not a static prefix) -- set `active-org-slug` cookie (httpOnly, 1-year TTL)
+All other routes require a session cookie. If no session cookie is present, the middleware redirects to `/sign-in?callbackUrl={pathname}`.
+
+Auth pages always pass through — they handle already-signed-in users internally (e.g., redirecting to the dashboard).
+
+### Server-side gates (`src/app/(app)/layout.tsx`)
+
+The `(app)` layout performs DB-authoritative checks after the middleware passes:
+
+1. **No session** → redirect to `/sign-in`
+2. **Email not verified** (`user.emailVerified === false`) → redirect to `/verify-email`
+3. **Onboarding incomplete** (`user.onboardingComplete === false`) → redirect to `/onboarding`
 
 ### Test bypass
 
-Header `x-playwright-test: true` skips all checks in non-production environments.
+Header `x-playwright-test: true` skips all middleware checks in non-production environments.
 
 ## Key Auth Flows
 
@@ -105,13 +114,13 @@ Header `x-playwright-test: true` skips all checks in non-production environments
 3. Sign-up page shows OTP input step — user enters the code and verifies via `authClient.emailOtp.verifyEmail()`
 4. On successful verification, user is redirected to `/onboarding`
 5. User creates their first organization (sets `onboardingComplete` on user record)
-6. `active-org-slug` cookie is set; user lands at `/{orgSlug}`
+6. User lands at `/{orgSlug}`
 
 ### Sign in -> redirect to active org
 
 1. User signs in at `/sign-in`
-2. Middleware checks `onboarding-complete` + `active-org-slug` cookies
-3. Redirects to `/{activeOrgSlug}` or `/onboarding` if not yet completed
+2. Sign-in page redirects to `/dashboard` (or `callbackUrl` if present)
+3. The `(app)` layout checks email verification and onboarding status via DB, redirecting if needed
 
 ### Invite accept -> join existing org
 

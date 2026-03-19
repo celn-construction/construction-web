@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { env } from "@/env";
+import { EMAIL_FROM } from "@/lib/constants/email";
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
@@ -36,7 +37,7 @@ export async function sendVerificationOTPEmail(
 
   try {
     const { error } = await resend.emails.send({
-      from: "BuildTrack Pro <noreply@rentnotify.com>",
+      from: EMAIL_FROM,
       to: email,
       subject,
       html: `
@@ -101,7 +102,7 @@ export async function sendPasswordResetEmail(
 
   try {
     const { error } = await resend.emails.send({
-      from: "BuildTrack Pro <noreply@rentnotify.com>",
+      from: EMAIL_FROM,
       to: email,
       subject: "Reset your password",
       html: `
@@ -163,6 +164,69 @@ export async function sendPasswordResetEmail(
   }
 }
 
+export async function sendWaitlistConfirmationEmail(
+  email: string
+): Promise<void> {
+  if (!resend) {
+    console.log("========================================");
+    console.log("WAITLIST EMAIL (Development Mode)");
+    console.log("========================================");
+    console.log(`To: ${email}`);
+    console.log("Message: You're on the waitlist!");
+    console.log("========================================");
+    return;
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: "You're on the BuildTrack Pro waitlist!",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f9; margin: 0; padding: 40px 20px;">
+          <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <div style="width: 48px; height: 48px; background: #1f2937; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
+                <div style="width: 32px; height: 32px; border: 2px solid white; border-radius: 50%;"></div>
+              </div>
+              <h2 style="color: #1f2937; margin: 16px 0 0 0; font-size: 18px; font-weight: 500;">BuildTrack Pro</h2>
+            </div>
+
+            <h1 style="color: #1f2937; font-size: 24px; font-weight: 600; margin: 0 0 16px 0; text-align: center;">You're on the waitlist!</h1>
+
+            <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
+              Thanks for signing up. We're building something special for construction teams &mdash; Gantt scheduling, document control, and team coordination all in one place.
+            </p>
+
+            <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
+              We'll let you know as soon as early access is ready. You'll be among the first to try it out.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+
+            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+              You're receiving this because you signed up for the BuildTrack Pro waitlist.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+
+    if (error) {
+      console.error("Failed to send waitlist confirmation email:", error);
+    }
+  } catch (error) {
+    console.error("Failed to send waitlist confirmation email:", error);
+  }
+}
+
 export async function sendInvitationEmail(
   email: string,
   orgName: string,
@@ -194,7 +258,7 @@ export async function sendInvitationEmail(
 
   try {
     const { error } = await resend.emails.send({
-      from: "BuildTrack Pro <noreply@rentnotify.com>",
+      from: EMAIL_FROM,
       to: email,
       subject: safeProjectName
         ? `${inviterName} invited you to ${projectName} on ${orgName}`

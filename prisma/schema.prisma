@@ -77,6 +77,15 @@ model Verification {
     updatedAt  DateTime @updatedAt
 }
 
+// Waitlist
+model WaitlistEntry {
+    id        String   @id @default(cuid())
+    email     String   @unique
+    createdAt DateTime @default(now())
+
+    @@index([email])
+}
+
 // Application Tables
 model Organization {
     id            String   @id @default(cuid())

@@ -38,6 +38,26 @@
 
   --focus-ring: rgba(23, 23, 23, 0.3);
 
+  /* Landing page */
+  --lp-bg: #f8fafc;
+  --lp-fg: #0f172a;
+  --lp-muted: #64748b;
+  --lp-subtle: #475569;
+  --lp-placeholder: #94a3b8;
+  --lp-cta: #1e40af;
+  --lp-cta-hover: #1e3a8a;
+  --lp-dot: #3b82f6;
+  --lp-glass: rgba(255, 255, 255, 0.82);
+  --lp-glass-border: rgba(226, 232, 240, 0.8);
+  --lp-glass-card: rgba(255, 255, 255, 0.32);
+  --lp-glass-card-border: rgba(255, 255, 255, 0.5);
+  --lp-input-bg: rgba(255, 255, 255, 0.65);
+  --lp-input-border: rgba(203, 213, 225, 0.9);
+  --lp-badge-bg: rgba(255, 255, 255, 0.6);
+  --lp-badge-border: rgba(203, 213, 225, 0.8);
+  --lp-nav-btn: rgba(15, 23, 42, 0.06);
+  --lp-nav-btn-hover: rgba(15, 23, 42, 0.10);
+
   /* Gantt bar colors */
   --gantt-task-bg: rgba(37, 99, 235, 0.18);
   --gantt-task-fill: rgba(37, 99, 235, 0.45);
