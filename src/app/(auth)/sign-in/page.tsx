@@ -50,7 +50,10 @@ function SignInForm() {
         email,
         password,
         fetchOptions: {
-          onSuccess: () => {
+          onSuccess: async () => {
+            // Set email-verified cookie — the route validates server-side
+            // that the user's email is actually verified before setting it
+            void fetch('/api/auth/set-email-verified', { method: 'POST' });
             router.push(callbackUrl);
             router.refresh();
           },

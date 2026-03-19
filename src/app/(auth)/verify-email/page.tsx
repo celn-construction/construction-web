@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -29,6 +29,15 @@ export default function VerifyEmailPage() {
   const [sent, setSent] = useState(false);
 
   const email = session?.user?.email ?? '';
+
+  useEffect(() => {
+    if (!isPending && session?.user?.emailVerified) {
+      fetch('/api/auth/set-email-verified', { method: 'POST' }).then(() => {
+        router.push('/onboarding');
+        router.refresh();
+      });
+    }
+  }, [session, isPending, router]);
 
   const handleSendOtp = async () => {
     if (!email) return;

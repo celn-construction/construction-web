@@ -79,6 +79,8 @@ export type GanttConfig = {
   };
   columns: GanttColumnConfig[];
   features: {
+    columnLines?: boolean | { renderer?: (...args: unknown[]) => void };
+    stripe?: boolean;
     cellTooltip: {
       tooltipRenderer: (args: TooltipRendererArgs) => string;
     };
