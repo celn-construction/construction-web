@@ -12,9 +12,9 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    PORT: z.coerce.number().default(5050),
+    PORT: z.coerce.number().default(3000),
     RESEND_API_KEY: z.string().optional(),
-    APP_URL: z.string().url().default("http://localhost:5050"),
+    APP_URL: z.string().url().default("http://localhost:3000"),
     BLOB_READ_WRITE_TOKEN: z.string().optional(),
     OPENAI_API_KEY: z.string().optional(),
     ANTHROPIC_API_KEY: z.string().optional(),
