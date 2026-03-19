@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Box, CircularProgress } from '@mui/material';
 import FilesContent from '@/components/files/FilesContent';
+import AblyGate from '@/components/providers/AblyGate';
 
 const BryntumGanttWrapper = dynamic(
   () => import('@/components/bryntum/BryntumGanttWrapper'),
@@ -22,9 +23,13 @@ interface ProjectShellProps {
   children: ReactNode;
   projectId: string;
   projectName: string;
+  userId?: string;
+  userName?: string;
+  userImage?: string;
+  realtimeEnabled?: boolean;
 }
 
-export default function ProjectShell({ children, projectId, projectName }: ProjectShellProps) {
+export default function ProjectShell({ children, projectId, projectName, userId, userName, userImage, realtimeEnabled }: ProjectShellProps) {
   const pathname = usePathname();
   const isGanttRoute = pathname.endsWith('/gantt');
   const isFilesRoute = pathname.endsWith('/files');
@@ -57,7 +62,16 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
           }}
         >
           <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <BryntumGanttWrapper projectId={projectId} isVisible={isGanttRoute} />
+            <AblyGate enabled={!!realtimeEnabled}>
+              <BryntumGanttWrapper
+                projectId={projectId}
+                isVisible={isGanttRoute}
+                userId={userId}
+                userName={userName}
+                userAvatar={userImage}
+                realtimeEnabled={realtimeEnabled}
+              />
+            </AblyGate>
           </Box>
         </Box>
       )}

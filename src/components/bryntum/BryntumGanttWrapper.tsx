@@ -15,6 +15,13 @@ import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
 import { useTaskPopover } from './hooks/useTaskPopover';
 import { useGanttControls } from './hooks/useGanttControls';
 import { validateParentDuration } from './utils/ganttValidation';
+import { useGanttRealtime } from './hooks/useGanttRealtime';
+import GanttPresence from './components/GanttPresence';
+
+type PresenceData = Array<{
+  clientId: string;
+  data?: { name?: string; avatar?: string; joinedAt?: number };
+}>;
 
 const WRAPPER_STYLE: CSSProperties = {
   display: 'flex',
@@ -41,9 +48,76 @@ const AUTO_SAVE_STORAGE_KEY = 'gantt-autosave-enabled';
 interface BryntumGanttWrapperProps {
   projectId?: string;
   isVisible?: boolean;
+  userId?: string;
+  userName?: string;
+  userAvatar?: string;
+  realtimeEnabled?: boolean;
 }
 
-export default function BryntumGanttWrapper({ projectId, isVisible = true }: BryntumGanttWrapperProps) {
+interface BryntumGanttCoreProps extends BryntumGanttWrapperProps {
+  ganttControls: ReturnType<typeof useGanttControls>;
+  isApplyingRemoteRef: React.MutableRefObject<boolean>;
+  presenceData: PresenceData;
+}
+
+// ─── Realtime wrapper — only mounted inside AblyProvider ────────────────────
+
+function BryntumGanttRealtimeWrapper({
+  ganttControls,
+  ...props
+}: BryntumGanttWrapperProps & { ganttControls: ReturnType<typeof useGanttControls> }) {
+  const { isApplyingRemoteRef, presenceData } = useGanttRealtime({
+    projectId: props.projectId,
+    userId: props.userId ?? '',
+    userName: props.userName ?? '',
+    userAvatar: props.userAvatar,
+    getGanttInstance: ganttControls.getGanttInstance,
+    enabled: !!props.projectId,
+  });
+  return (
+    <BryntumGanttCore
+      {...props}
+      ganttControls={ganttControls}
+      isApplyingRemoteRef={isApplyingRemoteRef}
+      presenceData={presenceData}
+    />
+  );
+}
+
+// ─── Exported router — calls hooks unconditionally, routes rendering ─────────
+
+export default function BryntumGanttWrapper(props: BryntumGanttWrapperProps) {
+  const ganttControls = useGanttControls();
+  const noopRef = useRef(false);
+
+  if (props.realtimeEnabled) {
+    return <BryntumGanttRealtimeWrapper {...props} ganttControls={ganttControls} />;
+  }
+  return (
+    <BryntumGanttCore
+      {...props}
+      ganttControls={ganttControls}
+      isApplyingRemoteRef={noopRef}
+      presenceData={[]}
+    />
+  );
+}
+
+// ─── Core — all Gantt state/logic, no Ably hooks ─────────────────────────────
+
+function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userAvatar, realtimeEnabled = false, ganttControls, isApplyingRemoteRef, presenceData }: BryntumGanttCoreProps) {
+  const {
+    ganttRef,
+    getGanttInstance,
+    handleAddTask,
+    handleZoomIn,
+    handleZoomOut,
+    handleZoomToFit,
+    handleShiftPrevious,
+    handleShiftNext,
+    handlePresetChange,
+  } = ganttControls;
+
   const theme = useThemeStore((state) => state.theme);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -78,18 +152,6 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     useTaskPopover();
 
   useBryntumThemeAssets(theme);
-
-  const {
-    ganttRef,
-    getGanttInstance,
-    handleAddTask,
-    handleZoomIn,
-    handleZoomOut,
-    handleZoomToFit,
-    handleShiftPrevious,
-    handleShiftNext,
-    handlePresetChange,
-  } = useGanttControls();
 
   // After data loads, finalize the project so the scheduling engine and layout are
   // fully ready before the user can interact.  delayCalculation defers the initial
@@ -260,10 +322,11 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     ];
 
     const onStoreChange = () => {
-      // Skip store changes triggered by a conflict reload or by Bryntum writing
-      // server response data back into its stores after a successful sync.
-      if (isReloadingRef.current || isSyncingRef.current) {
-        console.log('[Gantt:onStoreChange] Suppressed (reloading:', isReloadingRef.current, 'syncing:', isSyncingRef.current, ')');
+      // Skip store changes triggered by a conflict reload, by Bryntum writing
+      // server response data back into its stores after a successful sync,
+      // or by remote changes applied via Ably real-time.
+      if (isReloadingRef.current || isSyncingRef.current || isApplyingRemoteRef.current) {
+        console.log('[Gantt:onStoreChange] Suppressed (reloading:', isReloadingRef.current, 'syncing:', isSyncingRef.current, 'remote:', isApplyingRemoteRef.current, ')');
         return;
       }
       console.log('[Gantt:onStoreChange] Change detected, autoSave:', autoSaveEnabledRef.current, 'isSaving:', isSavingRef.current);
@@ -440,6 +503,11 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
         justSaved={justSaved}
         autoSaveEnabled={autoSaveEnabled}
         onToggleAutoSave={handleToggleAutoSave}
+        presenceSlot={
+          realtimeEnabled && userId ? (
+            <GanttPresence currentUserId={userId} presenceData={presenceData} />
+          ) : undefined
+        }
       />
 
       {/* Bryntum must always render in a visible container so its internal layout
