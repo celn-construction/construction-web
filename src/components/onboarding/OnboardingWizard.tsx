@@ -4,7 +4,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
 import { LogoIcon } from "@/components/ui/Logo";
 import { OnboardingProgress } from "./OnboardingProgress";
 import { StepIdentity } from "./steps/StepIdentity";
@@ -57,7 +56,6 @@ export function OnboardingWizard() {
 
   const completeMutation = api.onboarding.createOrganization.useMutation({
     onSuccess: (data) => {
-      Cookies.set("onboarding-complete", "true", { expires: 365 });
       setShowSuccess(true);
       showSnackbar("Welcome to BuildTrack Pro!", "success");
       setTimeout(() => {

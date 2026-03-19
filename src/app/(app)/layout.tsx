@@ -11,6 +11,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/sign-in");
   }
 
+  // Email verification gate (DB-authoritative via session)
+  if (!session.user.emailVerified) {
+    redirect("/verify-email");
+  }
+
   const user = await db.user.findUnique({
     where: { id: session.user.id },
     select: { onboardingComplete: true },

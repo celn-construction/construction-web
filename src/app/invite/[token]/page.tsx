@@ -38,7 +38,6 @@ export default function InvitePage() {
 
   const acceptInvitation = api.invitation.accept.useMutation({
     onSuccess: (data) => {
-      document.cookie = "onboarding-complete=true; path=/; max-age=31536000";
       setShowSuccess(true);
       setTimeout(() => {
         if (data.projectSlug) {

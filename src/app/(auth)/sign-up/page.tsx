@@ -86,7 +86,6 @@ export default function SignUpPage() {
       if (result.error) {
         setError(result.error.message || 'Verification failed');
       } else {
-        await fetch('/api/auth/set-email-verified', { method: 'POST' });
         if (inviteToken) {
           router.push(`/invite/${inviteToken}`);
         } else {

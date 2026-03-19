@@ -12,18 +12,6 @@ vi.mock("@/lib/auth-client", () => ({
   },
 }));
 
-vi.mock("@/trpc/react", () => ({
-  api: {
-    user: {
-      setEmailVerified: {
-        useMutation: vi.fn(() => ({
-          mutateAsync: vi.fn().mockResolvedValue({ success: true }),
-        })),
-      },
-    },
-    useUtils: vi.fn(() => ({})),
-  },
-}));
 
 describe("SignInPage", () => {
   const mockPush = vi.fn();
