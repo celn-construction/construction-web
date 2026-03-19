@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import { authClient, useSession } from '@/lib/auth-client';
+import { api } from '@/trpc/react';
 import { LogoIcon } from '@/components/ui/Logo';
 import OtpInput from '@/components/ui/OtpInput';
 import {
@@ -27,16 +28,18 @@ export default function VerifyEmailPage() {
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [sent, setSent] = useState(false);
+  const setEmailVerified = api.user.setEmailVerified.useMutation();
 
   const email = session?.user?.email ?? '';
 
   useEffect(() => {
     if (!isPending && session?.user?.emailVerified) {
-      fetch('/api/auth/set-email-verified', { method: 'POST' }).then(() => {
+      void setEmailVerified.mutateAsync().then(() => {
         router.push('/onboarding');
         router.refresh();
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, isPending, router]);
 
   const handleSendOtp = async () => {
@@ -78,8 +81,7 @@ export default function VerifyEmailPage() {
       if (result.error) {
         setError(result.error.message || 'Verification failed');
       } else {
-        // Set email-verified cookie via API route
-        await fetch('/api/auth/set-email-verified', { method: 'POST' });
+        await setEmailVerified.mutateAsync();
         router.push('/onboarding');
         router.refresh();
       }
