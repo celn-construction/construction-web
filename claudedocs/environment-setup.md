@@ -9,15 +9,15 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 | `construction_POSTGRES_PRISMA_URL` | PostgreSQL connection string (local in dev, Neon on Vercel) | Yes | `postgresql://USER@localhost:5432/construction` |
 | `construction_POSTGRES_URL_NON_POOLING` | Direct (non-pooled) PostgreSQL connection for Prisma migrations | Yes | `postgresql://USER@localhost:5432/construction` |
 | `BETTER_AUTH_SECRET` | Signing secret for Better Auth sessions | Yes | Any strong random string |
-| `APP_URL` | Base URL for Better Auth callbacks, trusted origins, invite links, and password reset links. Must be set per-environment — see `claudedocs/vercel.md`. | Yes (defaults to `http://localhost:5050`) | `https://celn.app` |
+| `APP_URL` | Base URL for Better Auth callbacks, trusted origins, invite links, and password reset links. Must be set per-environment — see `claudedocs/vercel.md`. | Yes (defaults to `http://localhost:3000`) | `https://celn.app` |
 | `RESEND_API_KEY` | Resend transactional email API key | Optional | `re_...` (omit for dev console logging) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token for file uploads | Optional | Provided by Vercel integration |
 | `OPENAI_API_KEY` | OpenAI API key for semantic search embeddings | Optional | `sk-proj-...` (get from platform.openai.com) |
 | `ANTHROPIC_API_KEY` | Anthropic API key for AI document analysis (image + PDF descriptions) | Optional | `sk-ant-...` (get from console.anthropic.com) |
 | `BETA_ACCESS_CODE` | Beta access code required on sign-up form. Omit to disable the gate. | Optional | `buildtrack-beta-2026` |
-| `NEXT_PUBLIC_APP_URL` | Client-side base URL | Optional | `http://localhost:5050` |
+| `NEXT_PUBLIC_APP_URL` | Client-side base URL | Optional | `http://localhost:3000` |
 | `NODE_ENV` | Runtime environment | Auto | `development` / `production` / `test` |
-| `PORT` | Dev server port | Auto (defaults to `5050`) | `5050` |
+| `PORT` | Dev server port | Auto (defaults to `3000`) | `3000` |
 | `SKIP_ENV_VALIDATION` | Skip T3 env validation (useful for Docker) | No | `1` |
 
 Validation is defined in `src/env.js` using `@t3-oss/env-nextjs` and Zod. The build will fail if required variables are missing or malformed.
@@ -51,13 +51,13 @@ sed -i '' "s|^construction_POSTGRES_PRISMA_URL=.*|construction_POSTGRES_PRISMA_U
 sed -i '' "s|^construction_POSTGRES_URL_NON_POOLING=.*|construction_POSTGRES_URL_NON_POOLING=\"postgresql://$USER@localhost:5432/construction\"|" .env.local
 
 # APP_URL must be set manually since it depends on your local port:
-echo 'APP_URL="http://localhost:5050"' >> .env.local
+echo 'APP_URL="http://localhost:3000"' >> .env.local
 
 # 5. Apply database migrations
 npx prisma db push
 
 # 6. Start dev server (Turbopack)
-npm run dev          # http://localhost:5050
+npm run dev          # http://localhost:3000
 ```
 
 **Notes**

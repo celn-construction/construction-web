@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -29,18 +29,19 @@ export default function VerifyEmailPage() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [sent, setSent] = useState(false);
   const setEmailVerified = api.user.setEmailVerified.useMutation();
+  const redirected = useRef(false);
 
   const email = session?.user?.email ?? '';
 
   useEffect(() => {
-    if (!isPending && session?.user?.emailVerified) {
+    if (!isPending && session?.user?.emailVerified && !redirected.current) {
+      redirected.current = true;
       void setEmailVerified.mutateAsync().then(() => {
         router.push('/onboarding');
-        router.refresh();
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, isPending, router]);
+  }, [session, isPending]);
 
   const handleSendOtp = async () => {
     if (!email) return;
