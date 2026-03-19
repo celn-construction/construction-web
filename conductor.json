@@ -1,7 +1,7 @@
 {
   "scripts": {
     "setup": "[[ \"$CONDUCTOR_PORT\" =~ ^[0-9]+$ ]] || exit 1 && vercel link --project construction-web --scope celn --yes && vercel env pull .env.local --environment development --scope celn --yes && (grep -q '^APP_URL=' .env.local && sed -i '' \"s|^APP_URL=.*|APP_URL=\\\"http://localhost:$CONDUCTOR_PORT\\\"|\" .env.local || echo \"APP_URL=\\\"http://localhost:$CONDUCTOR_PORT\\\"\" >> .env.local) && sed -i '' \"s|^construction_POSTGRES_PRISMA_URL=.*|construction_POSTGRES_PRISMA_URL=\\\"postgresql://$USER@localhost:5432/construction\\\"|\" .env.local && sed -i '' \"s|^construction_POSTGRES_URL_NON_POOLING=.*|construction_POSTGRES_URL_NON_POOLING=\\\"postgresql://$USER@localhost:5432/construction\\\"|\" .env.local && sed -i '' 's|\\\\n\"|\"| ' .env.local && (grep -q '^NODE_OPTIONS=' .env.local || echo 'NODE_OPTIONS=\"--max-old-space-size=8192\"' >> .env.local) && npm install",
-    "run": "PORT=$CONDUCTOR_PORT npm run dev",
+    "run": "(grep -q '^APP_URL=' .env.local && sed -i '' \"s|^APP_URL=.*|APP_URL=\\\"http://localhost:$CONDUCTOR_PORT\\\"|\" .env.local || echo \"APP_URL=\\\"http://localhost:$CONDUCTOR_PORT\\\"\" >> .env.local) && PORT=$CONDUCTOR_PORT npm run dev",
     "archive": "rm -f .env.local && rm -rf .vercel && rm -rf node_modules && rm -rf .next"
   }
 }
