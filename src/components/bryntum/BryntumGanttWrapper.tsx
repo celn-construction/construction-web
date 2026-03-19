@@ -23,6 +23,8 @@ const WRAPPER_STYLE: CSSProperties = {
   borderRadius: '8px',
   border: '1px solid var(--border-color)',
   backgroundColor: 'var(--bg-card)',
+  boxShadow: 'var(--gantt-container-shadow)',
+  overflow: 'hidden',
 };
 
 const GANTT_CONTENT_STYLE: CSSProperties = {
@@ -447,13 +449,12 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
       <style>{`
         .bryntum-gantt-container .b-tree-cell { cursor: pointer; }
         .bryntum-gantt-container .b-gantt-task.b-highlight {
-          animation: gantt-bar-glow 1s ease-out !important;
+          animation: gantt-bar-glow 0.8s ease-out !important;
           outline: none !important;
         }
         @keyframes gantt-bar-glow {
-          0% { box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.6); }
-          50% { box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.3); }
-          100% { box-shadow: none; }
+          0% { box-shadow: 0 0 0 3px rgba(43, 45, 66, 0.2), var(--gantt-task-shadow); }
+          100% { box-shadow: var(--gantt-task-shadow); }
         }
       `}</style>
 
