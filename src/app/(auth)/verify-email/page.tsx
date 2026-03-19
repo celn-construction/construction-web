@@ -77,8 +77,7 @@ export default function VerifyEmailPage() {
       if (result.error) {
         setError(result.error.message || 'Verification failed');
       } else {
-        router.push('/onboarding');
-        router.refresh();
+        router.replace('/onboarding');
       }
     } catch {
       setError('An unexpected error occurred');

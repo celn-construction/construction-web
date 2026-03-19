@@ -62,12 +62,11 @@ describe("Middleware", () => {
     expect((response as NextResponse).status).not.toBe(307);
   });
 
-  it("redirects authenticated users from auth pages to /dashboard", () => {
+  it("allows authenticated users through auth pages (page handles redirect)", () => {
     const response = middleware(
       createRequest("/sign-in", { [SESSION_COOKIE]: "valid-token" })
-    ) as NextResponse;
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:5050/dashboard");
+    );
+    expect((response as NextResponse).status).not.toBe(307);
   });
 
   // --- Flow pages (verify-email, onboarding) ---

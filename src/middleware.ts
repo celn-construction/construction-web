@@ -29,17 +29,14 @@ export function middleware(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
   const isAuthPage = AUTH_PATHS.some((p) => pathname.startsWith(p));
 
-  // Authenticated users → redirect away from auth pages to dashboard
-  if (isAuthPage && sessionCookie) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Allow unauthenticated access to auth pages, verify-email, and onboarding
+  // Auth pages, verify-email, onboarding — always allow through
+  // (middleware can't validate session, only check cookie existence —
+  //  auth pages handle their own redirect if user is already signed in)
   if (isAuthPage || pathname.startsWith("/verify-email") || pathname.startsWith("/onboarding")) {
     return NextResponse.next();
   }
 
-  // Everything else requires a session
+  // Everything else requires a session cookie
   if (!sessionCookie) {
     return NextResponse.redirect(
       new URL(`/sign-in?callbackUrl=${pathname}`, request.url),

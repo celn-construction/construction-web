@@ -1,3 +1,4 @@
+import "server-only";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -11,15 +12,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/sign-in");
   }
 
-  // Email verification gate (DB-authoritative via session)
-  if (!session.user.emailVerified) {
-    redirect("/verify-email");
-  }
-
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { onboardingComplete: true },
+    select: { emailVerified: true, onboardingComplete: true },
   });
+
+  // Email verification gate (DB-authoritative, avoids stale session cookie cache)
+  if (!user?.emailVerified) {
+    redirect("/verify-email");
+  }
 
   if (!user?.onboardingComplete) {
     redirect("/onboarding");

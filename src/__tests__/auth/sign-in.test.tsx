@@ -14,15 +14,15 @@ vi.mock("@/lib/auth-client", () => ({
 
 
 describe("SignInPage", () => {
-  const mockPush = vi.fn();
-  const mockRefresh = vi.fn();
+  const mockReplace = vi.fn();
   const mockSignInEmail = signIn.email as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({
-      push: mockPush,
-      refresh: mockRefresh,
+      push: vi.fn(),
+      replace: mockReplace,
+      refresh: vi.fn(),
     });
     (useSearchParams as ReturnType<typeof vi.fn>).mockReturnValue({
       get: vi.fn().mockReturnValue(null),
@@ -78,8 +78,7 @@ describe("SignInPage", () => {
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
-      expect(mockRefresh).toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith("/dashboard");
     });
   });
 
@@ -102,7 +101,7 @@ describe("SignInPage", () => {
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/projects");
+      expect(mockReplace).toHaveBeenCalledWith("/projects");
     });
   });
 
@@ -125,7 +124,7 @@ describe("SignInPage", () => {
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/invite/test-token-123");
+      expect(mockReplace).toHaveBeenCalledWith("/invite/test-token-123");
     });
   });
 
@@ -201,7 +200,7 @@ describe("SignInPage", () => {
 
     resolveSignIn!();
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalled();
     });
   });
 });

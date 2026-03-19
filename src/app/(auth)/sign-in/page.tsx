@@ -3,8 +3,8 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ChevronLeft } from 'lucide-react';
 import { authClient, signIn } from '@/lib/auth-client';
 import OtpInput from '@/components/ui/OtpInput';
 import { LogoIcon } from '@/components/ui/Logo';
@@ -13,15 +13,64 @@ import {
   TextField,
   Typography,
   Alert,
-  Checkbox,
-  FormControlLabel,
   InputAdornment,
   IconButton,
   Stack,
-  Paper,
   CircularProgress,
   Button,
 } from '@mui/material';
+
+function FloatingPaths({ position }: { position: number }) {
+  const paths = Array.from({ length: 36 }, (_, i) => ({
+    id: i,
+    d: `M-${380 - i * 5 * position} -${189 + i * 6}C-${
+      380 - i * 5 * position
+    } -${189 + i * 6} -${312 - i * 5 * position} ${216 - i * 6} ${
+      152 - i * 5 * position
+    } ${343 - i * 6}C${616 - i * 5 * position} ${470 - i * 6} ${
+      684 - i * 5 * position
+    } ${875 - i * 6} ${684 - i * 5 * position} ${875 - i * 6}`,
+    width: 0.5 + i * 0.03,
+  }));
+
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+      }}
+    >
+      <svg
+        style={{ width: '100%', height: '100%', color: 'rgba(255,255,255,0.15)' }}
+        viewBox="0 0 696 316"
+        fill="none"
+      >
+        <title>Background Paths</title>
+        {paths.map((path) => (
+          <motion.path
+            key={path.id}
+            d={path.d}
+            stroke="currentColor"
+            strokeWidth={path.width}
+            strokeOpacity={0.1 + path.id * 0.03}
+            initial={{ pathLength: 0.3, opacity: 0.6 }}
+            animate={{
+              pathLength: 1,
+              opacity: [0.3, 0.6, 0.3],
+              pathOffset: [0, 1, 0],
+            }}
+            transition={{
+              duration: 20 + Math.random() * 10,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          />
+        ))}
+      </svg>
+    </Box>
+  );
+}
 
 function SignInForm() {
   const router = useRouter();
@@ -51,8 +100,7 @@ function SignInForm() {
         password,
         fetchOptions: {
           onSuccess: () => {
-            router.push(callbackUrl);
-            router.refresh();
+            router.replace(callbackUrl);
           },
           onError: async (ctx) => {
             const msg = ctx.error.message || '';
@@ -100,8 +148,7 @@ function SignInForm() {
           password,
           fetchOptions: {
             onSuccess: () => {
-              router.push(callbackUrl);
-              router.refresh();
+              router.replace(callbackUrl);
             },
             onError: (ctx) => {
               setError(ctx.error.message || 'Sign in failed');
@@ -143,95 +190,194 @@ function SignInForm() {
 
   return (
     <Box
+      component="main"
       sx={{
+        position: 'relative',
         minHeight: '100vh',
-        bgcolor: 'background.default',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 3,
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
       }}
     >
-      <Paper
-        elevation={1}
+      {/* Left panel — brand + animated paths (desktop only) */}
+      <Box
         sx={{
-          width: '100%',
-          maxWidth: 1200,
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-          borderRadius: 2,
+          display: { xs: 'none', lg: 'flex' },
+          flexDirection: 'column',
+          position: 'relative',
+          height: '100vh',
+          bgcolor: 'primary.main',
+          borderRight: 1,
+          borderColor: 'divider',
+          p: 5,
           overflow: 'hidden',
         }}
       >
-        {/* Left side - Form */}
+        {/* Gradient overlay */}
         <Box
           sx={{
-            p: { xs: 6, lg: 8 },
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
+            position: 'absolute',
+            inset: 0,
+            zIndex: 1,
+            background: 'linear-gradient(to top, rgba(26,28,43,0.9), transparent)',
+          }}
+        />
+
+        {/* Logo */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          gap={1.5}
+          sx={{ zIndex: 2 }}
+        >
+          <Box sx={{ color: 'white' }}>
+            <LogoIcon size={28} />
+          </Box>
+          <Typography
+            variant="h6"
+            sx={{ color: 'white', fontWeight: 600 }}
+          >
+            BuildTrack Pro
+          </Typography>
+        </Stack>
+
+        {/* Testimonial */}
+        <Box sx={{ zIndex: 2, mt: 'auto' }}>
+          <Typography
+            variant="h5"
+            sx={{ color: 'white', mb: 1, lineHeight: 1.4 }}
+          >
+            &ldquo;The real-time scheduling and team coordination features
+            have cut our project delays by 40%.&rdquo;
+          </Typography>
+          <Typography
+            sx={{
+              color: 'rgba(255,255,255,0.7)',
+              fontFamily: 'monospace',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+            }}
+          >
+            ~ Marcus Rivera, General Contractor
+          </Typography>
+        </Box>
+
+        {/* Animated paths */}
+        <Box sx={{ position: 'absolute', inset: 0 }}>
+          <FloatingPaths position={1} />
+          <FloatingPaths position={-1} />
+        </Box>
+      </Box>
+
+      {/* Right panel — form */}
+      <Box
+        sx={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          p: { xs: 3, sm: 4 },
+        }}
+      >
+        {/* Subtle radial gradient decoration */}
+        <Box
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 0,
+            opacity: 0.6,
+            overflow: 'hidden',
+            pointerEvents: 'none',
           }}
         >
-          <Box sx={{ mb: 6 }}>
-            <Stack
-              component={Link}
-              href="/"
-              direction="row"
-              alignItems="center"
-              gap={1.5}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: 560,
+              height: 1280,
+              transform: 'translateY(-350px)',
+              borderRadius: '50%',
+              background: 'radial-gradient(68.54% 68.72% at 55.02% 31.46%, rgba(43,45,66,0.06) 0%, rgba(140,140,140,0.02) 50%, rgba(43,45,66,0.01) 80%)',
+            }}
+          />
+        </Box>
+
+        {/* Back to home */}
+        <Button
+          component={Link}
+          href="/"
+          variant="text"
+          startIcon={<ChevronLeft size={16} />}
+          sx={{
+            position: 'absolute',
+            top: 28,
+            left: 20,
+            color: 'text.secondary',
+            zIndex: 1,
+            textTransform: 'none',
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        >
+          Home
+        </Button>
+
+        {/* Form content */}
+        <Box sx={{ mx: 'auto', width: '100%', maxWidth: 400, zIndex: 1 }}>
+          {/* Mobile logo */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            gap={1.5}
+            sx={{ display: { xs: 'flex', lg: 'none' }, mb: 3 }}
+          >
+            <Box
               sx={{
-                mb: 4,
-                width: 'fit-content',
-                textDecoration: 'none',
-                '&:hover': { opacity: 0.8 },
-                transition: 'opacity 0.2s',
+                width: 40,
+                height: 40,
+                bgcolor: 'warm.main',
+                borderRadius: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
               }}
             >
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  bgcolor: 'warm.main',
-                  borderRadius: 1.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                }}
-              >
-                <LogoIcon size={28} />
-              </Box>
-              <Typography
-                variant="h6"
-                sx={{ color: 'text.primary', fontWeight: 500 }}
-              >
-                BuildTrack Pro
-              </Typography>
-            </Stack>
-            <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 500, mb: 1.5 }}>
+              <LogoIcon size={24} />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              BuildTrack Pro
+            </Typography>
+          </Stack>
+
+          {/* Heading */}
+          <Box sx={{ mb: 3 }}>
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: 700, letterSpacing: '0.02em', mb: 0.5 }}
+            >
               {step === 'login' ? 'Welcome back' : 'Verify your email'}
             </Typography>
             <Typography variant="body1" color="text.secondary">
               {step === 'login'
-                ? 'Sign in to continue to your dashboard'
+                ? 'Sign in to your BuildTrack Pro account'
                 : `We sent a 6-digit code to ${email}`}
             </Typography>
           </Box>
 
           {step === 'login' ? (
             <Box component="form" onSubmit={handleSubmit}>
-              <Stack spacing={3}>
+              <Stack spacing={2.5}>
                 {error && (
-                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                  <Alert severity="error" sx={{ borderRadius: 1 }}>
                     {error}
                   </Alert>
                 )}
 
                 <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: 'text.secondary', mb: 1 }}
-                  >
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.75 }}>
                     Email address
                   </Typography>
                   <TextField
@@ -246,23 +392,18 @@ function SignInForm() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Mail size={20} />
+                          <Mail size={18} />
                         </InputAdornment>
                       ),
                     }}
                     sx={{
-                      '& .MuiOutlinedInput-root': {
-                        bgcolor: 'input.background',
-                      },
+                      '& .MuiOutlinedInput-root': { bgcolor: 'input.background' },
                     }}
                   />
                 </Box>
 
                 <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: 'text.secondary', mb: 1 }}
-                  >
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.75 }}>
                     Password
                   </Typography>
                   <TextField
@@ -277,7 +418,7 @@ function SignInForm() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Lock size={20} />
+                          <Lock size={18} />
                         </InputAdornment>
                       ),
                       endAdornment: (
@@ -285,41 +426,27 @@ function SignInForm() {
                           <IconButton
                             onClick={() => setShowPassword(!showPassword)}
                             edge="end"
+                            size="small"
                           >
-                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </IconButton>
                         </InputAdornment>
                       ),
                     }}
                     sx={{
-                      '& .MuiOutlinedInput-root': {
-                        bgcolor: 'input.background',
-                      },
+                      '& .MuiOutlinedInput-root': { bgcolor: 'input.background' },
                     }}
                   />
                 </Box>
 
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <FormControlLabel
-                    control={<Checkbox size="small" />}
-                    label={
-                      <Typography variant="body2" color="text.secondary">
-                        Remember me
-                      </Typography>
-                    }
-                  />
+                <Box sx={{ textAlign: 'right' }}>
                   <Typography
                     component={Link}
                     href="/forgot-password"
                     variant="body2"
                     sx={{
                       color: 'text.primary',
+                      fontWeight: 500,
                       textDecoration: 'none',
                       '&:hover': { textDecoration: 'underline' },
                     }}
@@ -333,8 +460,20 @@ function SignInForm() {
                   variant="contained"
                   fullWidth
                   disabled={loading}
-                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={20} />}
-                  sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
+                  size="large"
+                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={18} />}
+                  sx={{
+                    bgcolor: 'warm.main',
+                    color: 'white',
+                    height: 48,
+                    fontSize: '0.95rem',
+                    '&:hover': {
+                      bgcolor: 'warm.dark',
+                    },
+                    '&.Mui-disabled': {
+                      opacity: 0.5,
+                    },
+                  }}
                 >
                   Sign in
                 </Button>
@@ -342,18 +481,15 @@ function SignInForm() {
             </Box>
           ) : (
             <Box component="form" onSubmit={handleVerifyOtp}>
-              <Stack spacing={3}>
+              <Stack spacing={2.5}>
                 {error && (
-                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                  <Alert severity="error" sx={{ borderRadius: 1 }}>
                     {error}
                   </Alert>
                 )}
 
                 <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: 'text.secondary', mb: 1 }}
-                  >
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.75 }}>
                     Verification code
                   </Typography>
                   <OtpInput value={otp} onChange={setOtp} autoFocus />
@@ -364,8 +500,20 @@ function SignInForm() {
                   variant="contained"
                   fullWidth
                   disabled={loading || otp.length !== 6}
-                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={20} />}
-                  sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
+                  size="large"
+                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={18} />}
+                  sx={{
+                    bgcolor: 'warm.main',
+                    color: 'white',
+                    height: 48,
+                    fontSize: '0.95rem',
+                    '&:hover': {
+                      bgcolor: 'warm.dark',
+                    },
+                    '&.Mui-disabled': {
+                      opacity: 0.5,
+                    },
+                  }}
                 >
                   {loading ? 'Verifying...' : 'Verify & sign in'}
                 </Button>
@@ -387,7 +535,8 @@ function SignInForm() {
             </Box>
           )}
 
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
+          {/* Footer links */}
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
             <Typography variant="body2" color="text.secondary">
               Don&apos;t have an account?{' '}
               <Typography
@@ -396,6 +545,7 @@ function SignInForm() {
                 variant="body2"
                 sx={{
                   color: 'text.primary',
+                  fontWeight: 500,
                   textDecoration: 'none',
                   '&:hover': { textDecoration: 'underline' },
                 }}
@@ -404,46 +554,44 @@ function SignInForm() {
               </Typography>
             </Typography>
           </Box>
-        </Box>
 
-        {/* Right side - Image */}
-        <Box
-          sx={{
-            position: 'relative',
-            display: { xs: 'none', lg: 'block' },
-          }}
-        >
-          <Image
-            src="/images/auth-construction.jpg"
-            alt="Construction site"
-            fill
-            style={{ objectFit: 'cover' }}
-            priority
-          />
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              p: 4,
-            }}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', mt: 3, textAlign: 'center', lineHeight: 1.5 }}
           >
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{ color: 'white', fontWeight: 500, mb: 1 }}
-              >
-                Manage Your Projects
-              </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                Track construction schedules, monitor progress, and collaborate with your team in real-time.
-              </Typography>
-            </Box>
-          </Box>
+            By signing in, you agree to our{' '}
+            <Typography
+              component="a"
+              href="#"
+              variant="caption"
+              sx={{
+                color: 'text.secondary',
+                textDecoration: 'underline',
+                textUnderlineOffset: 3,
+                '&:hover': { color: 'text.primary' },
+              }}
+            >
+              Terms of Service
+            </Typography>{' '}
+            and{' '}
+            <Typography
+              component="a"
+              href="#"
+              variant="caption"
+              sx={{
+                color: 'text.secondary',
+                textDecoration: 'underline',
+                textUnderlineOffset: 3,
+                '&:hover': { color: 'text.primary' },
+              }}
+            >
+              Privacy Policy
+            </Typography>
+            .
+          </Typography>
         </Box>
-      </Paper>
+      </Box>
     </Box>
   );
 }
