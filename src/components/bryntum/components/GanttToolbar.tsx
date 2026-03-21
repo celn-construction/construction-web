@@ -4,7 +4,6 @@ import { useState } from 'react';
 import {
   Box,
   Stack,
-  Button,
   IconButton,
   ToggleButtonGroup,
   ToggleButton,
@@ -13,6 +12,7 @@ import {
   Divider,
   CircularProgress,
 } from '@mui/material';
+import { Button } from '@/components/ui/button';
 import {
   ChevronsLeft,
   ChevronsRight,
@@ -271,7 +271,7 @@ export default function GanttToolbar({
         <Button
           variant="outlined"
           size="small"
-          disabled={!hasPendingChanges || isSaving || justSaved}
+          disabled={!hasPendingChanges || justSaved}
           onClick={hasPendingChanges && !isSaving && !justSaved ? onSave : undefined}
           title={
             isSaving ? 'Saving…' :
@@ -279,7 +279,8 @@ export default function GanttToolbar({
             hasPendingChanges ? 'Save changes' :
             'No unsaved changes'
           }
-          startIcon={isSaving ? <CircularProgress size={12} color="inherit" /> : undefined}
+          loading={isSaving}
+          loadingPosition="start"
           sx={{
             ...toolBtnSx,
             borderRadius: '8px',

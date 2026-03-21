@@ -2,7 +2,8 @@
 
 import { Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Box, Typography, Stack, Skeleton, Button, CircularProgress } from '@mui/material';
+import { Box, Typography, Stack, Skeleton } from '@mui/material';
+import { Button } from '@/components/ui/button';
 import { useInvitationActions } from '@/hooks/useInvitationActions';
 import { formatRole } from '@/lib/utils/formatting';
 
@@ -140,8 +141,8 @@ export default function PendingInvitesList({
               <Button
                 variant="text"
                 size="small"
-                disabled={isResending}
-                startIcon={isResending ? <CircularProgress size={14} /> : undefined}
+                loading={isResending}
+                loadingPosition="start"
                 onClick={() =>
                   resendInvitation.mutate({
                     projectId,
@@ -154,8 +155,8 @@ export default function PendingInvitesList({
               <Button
                 variant="text"
                 size="small"
-                disabled={isRevoking}
-                startIcon={isRevoking ? <CircularProgress size={14} /> : undefined}
+                loading={isRevoking}
+                loadingPosition="start"
                 onClick={() =>
                   revokeInvitation.mutate({
                     projectId,

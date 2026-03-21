@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadSimple, X, ChatCircle } from '@phosphor-icons/react';
 import { Box, Dialog, Typography, Divider } from '@mui/material';
+import { Button } from '@/components/ui/button';
 import { alpha } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import UploadOverlay from '@/components/ui/UploadOverlay';
@@ -349,28 +350,34 @@ export default function UploadDialog({
         >
           <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>Cancel</Typography>
         </Box>
-        <Box
-          onClick={file && !isUploading ? handleUpload : undefined}
+        <Button
+          onClick={handleUpload}
+          loading={isUploading}
+          loadingPosition="start"
+          disabled={!file}
+          startIcon={<UploadSimple size={15} />}
           sx={{
             borderRadius: 999,
             bgcolor: file && !isUploading ? 'text.primary' : 'background.default',
+            color: file && !isUploading ? 'background.paper' : 'text.secondary',
             px: 3,
             py: 1.25,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            cursor: file && !isUploading ? 'pointer' : 'default',
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: 0.3,
             opacity: file && !isUploading ? 1 : 0.5,
             boxShadow: file && !isUploading ? '0 1px 4px rgba(0,0,0,0.13)' : 'none',
             transition: 'all 0.2s',
-            '&:hover': file && !isUploading ? { opacity: 0.88 } : {},
+            '&:hover': file && !isUploading ? { opacity: 0.88, bgcolor: 'text.primary' } : {},
+            '&.Mui-disabled': {
+              bgcolor: file ? 'text.primary' : 'background.default',
+              color: file ? 'background.paper' : 'text.secondary',
+              opacity: isUploading ? 0.8 : 0.5,
+            },
           }}
         >
-          <UploadSimple size={15} color={file && !isUploading ? 'var(--mui-palette-background-paper)' : 'var(--mui-palette-text-secondary)'} />
-          <Typography sx={{ fontSize: 13, fontWeight: 600, letterSpacing: 0.3, color: file && !isUploading ? 'background.paper' : 'text.secondary' }}>
-            {isUploading ? 'Uploading...' : 'Upload Document'}
-          </Typography>
-        </Box>
+          {isUploading ? 'Uploading...' : 'Upload Document'}
+        </Button>
       </Box>
     </Dialog>
   );

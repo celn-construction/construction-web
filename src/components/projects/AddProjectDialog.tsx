@@ -12,12 +12,11 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button,
-  CircularProgress,
   Typography,
   alpha,
   useTheme,
 } from '@mui/material';
+import { Button } from '@/components/ui/button';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import {
   createProjectSchema,
@@ -237,15 +236,9 @@ export default function AddProjectDialog({
           type="submit"
           form="add-project-form"
           variant="contained"
-          disabled={createProject.isPending}
+          loading={createProject.isPending}
           onClick={handleSubmit(onSubmit)}
-          endIcon={
-            createProject.isPending ? (
-              <CircularProgress size={14} sx={{ color: 'inherit' }} />
-            ) : (
-              <ArrowRight size={16} />
-            )
-          }
+          endIcon={<ArrowRight size={16} />}
           sx={{
             borderRadius: '8px',
             fontWeight: 600,
