@@ -35,6 +35,10 @@ type GanttColumnConfig = {
   minWidth?: number;
   width?: number;
   resizable?: boolean;
+  sortable?: boolean;
+  filterable?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  widgets?: Record<string, unknown>[];
 };
 
 type TooltipRendererArgs = {
@@ -44,9 +48,34 @@ type TooltipRendererArgs = {
   };
 };
 
+/** Minimal interface for Bryntum task record methods used in row actions. */
+export interface BryntumTaskRecord {
+  id: string | number;
+  name?: string;
+  isExpanded: boolean;
+  predecessors: unknown[];
+  successors: unknown[];
+  appendChild(data: Record<string, unknown>): void;
+  remove(): void;
+}
+
+/** Minimal interface for Gantt instance methods used in row action handlers. */
+export interface BryntumGanttInstance {
+  expand(record: BryntumTaskRecord): void;
+  indent(records: BryntumTaskRecord[]): void;
+  outdent(records: BryntumTaskRecord[]): void;
+  selectedRecords: BryntumTaskRecord[];
+  dependencyStore: {
+    remove(records: unknown[]): void;
+  };
+}
+
 export type GanttConfig = {
   height?: string;
   autoHeight?: boolean;
+  autoAdjustTimeAxis?: boolean;
+  infiniteScroll?: boolean;
+  bufferCoef?: number;
   detectCSSCompatibilityIssues: boolean;
   rowHeight?: number;
   animateTreeNodeToggle?: boolean;

@@ -20,20 +20,34 @@ export function useGanttControls() {
       startDate: new Date(),
       duration: 1,
     });
-    // Set the visible time span to center on today BEFORE the engine runs,
-    // so the time axis doesn't need a large virtual-scroll jump afterwards.
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-    const end = new Date(now.getFullYear(), now.getMonth() + 3, 1);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    gantt.setTimeSpan(start, end);
-    // Let the engine settle, then scroll the task row into view (no animation
-    // to avoid corrupting the virtual time axis rendering on large jumps).
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync().then(() => {
+      // Refresh contents so the time axis header re-renders cells for
+      // the scrolled position (Bryntum's virtual renderer doesn't always
+      // pick up programmatic scroll changes).
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.renderContents();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
     });
+  }, [getGanttInstance]);
+
+  const handleIndent = useCallback(() => {
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const selected = gantt.selectedRecords as unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    if (selected?.length) gantt.indent(selected);
+  }, [getGanttInstance]);
+
+  const handleOutdent = useCallback(() => {
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const selected = gantt.selectedRecords as unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    if (selected?.length) gantt.outdent(selected);
   }, [getGanttInstance]);
 
   const handleZoomIn = useCallback(() => getGanttInstance()?.zoomIn(), [getGanttInstance]);
@@ -54,26 +68,16 @@ export function useGanttControls() {
       const gantt = getGanttInstance();
       if (!gantt) return;
 
-      // Narrow the visible date range for finer presets to avoid
-      // "too long time axis" errors from Bryntum's tick generation.
+      // Capture the current center date so the viewport stays on the same
+      // point after the preset change.  infiniteScroll handles the range.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const center = gantt.viewportCenterDate as Date | undefined;
       const anchor = center ?? new Date();
 
-      const rangeMonths: Record<string, number> = {
-        hourAndDay: 1,
-        weekAndDayLetter: 6,
-        weekAndMonth: 12,
-        monthAndYear: 36,
-      };
-      const half = (rangeMonths[preset] ?? 12) / 2;
-      const start = new Date(anchor.getFullYear(), anchor.getMonth() - half, 1);
-      const end   = new Date(anchor.getFullYear(), anchor.getMonth() + half, 1);
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.setTimeSpan(start, end);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       gantt.viewPreset = preset;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.scrollToDate(anchor, { block: 'center' });
     },
     [getGanttInstance]
   );
@@ -82,6 +86,8 @@ export function useGanttControls() {
     ganttRef,
     getGanttInstance,
     handleAddTask,
+    handleIndent,
+    handleOutdent,
     handleZoomIn,
     handleZoomOut,
     handleZoomToFit,

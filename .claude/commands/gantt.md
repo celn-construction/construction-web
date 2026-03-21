@@ -102,6 +102,10 @@ After implementing, cross-check with docs for:
 ### Common Bryntum Pitfalls
 | Pitfall | Details |
 |---------|---------|
+| **`delayCalculation: true` + React double-mount** | **NEVER use `delayCalculation: true`** in the project config. React (Strict Mode, HMR, Suspense) can double-mount the `BryntumGantt` component — creating two widget instances. The first gets `commitAsync()` (triggering the deferred engine calculation) but is then destroyed. The second (visible) instance never gets its calculation, so: no task bars render, time axis headers break on scroll, and scroll sync between header and body fails. Removing `delayCalculation` makes the engine calculate immediately on data load, so both instances work regardless of which one React keeps. |
+| `scrollTaskIntoView` breaks header rendering | After programmatic scrolling, call `gantt.renderContents()` to force the time axis header virtual renderer to regenerate cells for the new scroll position. Without this, the header cells stay at the old position while the body scrolls away. |
+| Ghost Bryntum widgets from double-mount | React double-mount can leave a zero-sized ghost `.b-gantt` element in the DOM. The wrapper includes cleanup code that removes ghost widgets (0×0 elements) 200ms after mount. If you see rendering issues, check `document.querySelectorAll('.b-gantt').length` — it should be 1. |
+| `overflow: clip` on Bryntum containers | Never use `overflow: clip` on elements containing Bryntum widgets. Unlike `overflow: hidden`, `clip` does not create a scroll container, which can break Bryntum's internal scroll synchronization. Use `overflow: hidden` instead. |
 | Parent duration is read-only | Bryntum auto-calculates parent duration from children. Must set `manuallyScheduled: true` before editing. |
 | Custom fields silently dropped | Must extend `TaskModel` with custom fields (see `VersionedTaskModel`). |
 | `cellDblClick` fires before `beforeCellEditStart` | Use `cellDblClick` to modify record state before editor opens. |
