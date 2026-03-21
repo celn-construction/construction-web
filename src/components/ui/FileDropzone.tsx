@@ -71,7 +71,6 @@ export default function FileDropzone({
           fontSize: isStandalone ? 14 : '0.7rem',
           fontWeight: isStandalone ? 600 : 400,
           color: 'text.primary',
-          fontFamily: 'Inter, sans-serif',
         }}
       >
         {primaryText}
