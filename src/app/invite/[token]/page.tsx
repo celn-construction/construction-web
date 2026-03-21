@@ -17,7 +17,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import Button from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import CheckIcon from "@mui/icons-material/Check";
 
 const WRONG_EMAIL_MSG = "This invitation was sent to a different email address";

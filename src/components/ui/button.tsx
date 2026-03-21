@@ -13,7 +13,7 @@ const spinnerSizeMap = {
   large: 18,
 } as const;
 
-interface ButtonProps extends MuiButtonProps {
+export interface ButtonProps extends MuiButtonProps {
   loading?: boolean;
   loadingPosition?: 'start' | 'end';
   component?: React.ElementType;
@@ -54,4 +54,4 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 Button.displayName = 'Button';
-export default Button;
+export { Button };

@@ -11,7 +11,7 @@ import { StepContact } from "./steps/StepContact";
 import { StepReview } from "./steps/StepReview";
 import { api } from "@/trpc/react";
 import { Box, Typography, Paper } from "@mui/material";
-import Button from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import { useSnackbar } from "@/hooks/useSnackbar";
 
 const steps = [

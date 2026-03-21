@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { usePathname, useParams } from 'next/navigation';
 import { Search, Bell, Undo2, UserPlus, Moon, Sun } from 'lucide-react';
 import { Box, Typography, IconButton, Divider } from '@mui/material';
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { useThemeStore } from '@/store/useThemeStore';
 import {
   DropdownMenu,

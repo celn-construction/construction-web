@@ -166,11 +166,11 @@ const { control, handleSubmit, reset, formState: { errors } } = useForm<InputTyp
 
 ## UI Primitives (`ui/`)
 
-`ui/` components wrap MUI with a Shadcn-compatible API. Prefer them over bare MUI when available.
+`ui/` components wrap MUI with project-specific conveniences. Prefer them over bare MUI when available.
 
 | Component | MUI base | Notes |
 |-----------|----------|-------|
-| `Button` | `MuiButton` / `IconButton` | Variants: `default`, `outline`, `ghost`, `destructive`; sizes: `default`, `sm`, `lg`, `icon`; `loading` prop |
+| `Button` | `MuiButton` | Wraps MUI Button; adds `loading` and `loadingPosition` (`'start'` \| `'end'`) props with auto-sized spinner per MUI size (`small`=14px, `medium`=16px, `large`=18px). Uses MUI's native `variant` and `size` props. |
 | `DropdownMenu` | Radix primitive via Shadcn | Use for action menus; compatible with `asChild` |
 | `sheet.tsx` | Radix Sheet | Slide-in panels |
 | `Label` | MUI | Accessible form labels |

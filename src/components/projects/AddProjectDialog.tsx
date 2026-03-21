@@ -16,7 +16,7 @@ import {
   alpha,
   useTheme,
 } from '@mui/material';
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import {
   createProjectSchema,

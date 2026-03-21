@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadSimple, X, ChatCircle } from '@phosphor-icons/react';
 import { Box, Dialog, Typography, Divider } from '@mui/material';
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { alpha } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import UploadOverlay from '@/components/ui/UploadOverlay';

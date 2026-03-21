@@ -16,7 +16,7 @@ import {
   Paper,
   CircularProgress,
 } from '@mui/material';
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 export default function VerifyEmailPage() {
   const router = useRouter();

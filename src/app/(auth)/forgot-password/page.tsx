@@ -14,7 +14,7 @@ import {
   Stack,
   Paper,
 } from '@mui/material';
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');

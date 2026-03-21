@@ -3,7 +3,7 @@
 import { Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Box, Typography, Stack, Skeleton } from '@mui/material';
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { useInvitationActions } from '@/hooks/useInvitationActions';
 import { formatRole } from '@/lib/utils/formatting';
 

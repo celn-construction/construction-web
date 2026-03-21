@@ -13,7 +13,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import RoleSelect from './RoleSelect';
 import {

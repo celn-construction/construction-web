@@ -12,7 +12,7 @@ import {
   Divider,
   CircularProgress,
 } from '@mui/material';
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   ChevronsLeft,
   ChevronsRight,
