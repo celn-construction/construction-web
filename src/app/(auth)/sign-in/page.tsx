@@ -17,8 +17,8 @@ import {
   IconButton,
   Stack,
   CircularProgress,
-  Button,
 } from '@mui/material';
+import Button from '@/components/ui/button';
 
 function FloatingPaths({ position }: { position: number }) {
   const paths = Array.from({ length: 36 }, (_, i) => ({
@@ -459,9 +459,9 @@ function SignInForm() {
                   type="submit"
                   variant="contained"
                   fullWidth
-                  disabled={loading}
+                  loading={loading}
                   size="large"
-                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={18} />}
+                  endIcon={<ArrowRight size={18} />}
                   sx={{
                     bgcolor: 'warm.main',
                     color: 'white',
@@ -499,9 +499,10 @@ function SignInForm() {
                   type="submit"
                   variant="contained"
                   fullWidth
-                  disabled={loading || otp.length !== 6}
+                  loading={loading}
+                  disabled={otp.length !== 6}
                   size="large"
-                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={18} />}
+                  endIcon={<ArrowRight size={18} />}
                   sx={{
                     bgcolor: 'warm.main',
                     color: 'white',

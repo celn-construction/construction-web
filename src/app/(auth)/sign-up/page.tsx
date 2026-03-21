@@ -18,8 +18,8 @@ import {
   InputAdornment,
   IconButton,
   Stack,
-  Button,
 } from '@mui/material';
+import Button from '@/components/ui/button';
 
 function FloatingPaths({ position }: { position: number }) {
   const paths = Array.from({ length: 36 }, (_, i) => ({
@@ -479,7 +479,7 @@ export default function SignUpPage() {
 
                 <Button
                   type="submit"
-                  disabled={loading}
+                  loading={loading}
                   variant="contained"
                   size="large"
                   fullWidth
@@ -519,7 +519,8 @@ export default function SignUpPage() {
 
                 <Button
                   type="submit"
-                  disabled={loading || otp.length !== 6}
+                  loading={loading}
+                  disabled={otp.length !== 6}
                   variant="contained"
                   size="large"
                   fullWidth

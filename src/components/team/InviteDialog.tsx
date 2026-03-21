@@ -11,10 +11,9 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button,
-  CircularProgress,
   Typography,
 } from '@mui/material';
+import Button from '@/components/ui/button';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import RoleSelect from './RoleSelect';
 import {
@@ -146,8 +145,8 @@ export default function InviteDialog({
           <Button
             variant="contained"
             onClick={handleSubmit(onSubmit)}
-            disabled={createInvitation.isPending}
-            startIcon={createInvitation.isPending ? <CircularProgress size={16} /> : null}
+            loading={createInvitation.isPending}
+            loadingPosition="start"
           >
             Send Invitation
           </Button>

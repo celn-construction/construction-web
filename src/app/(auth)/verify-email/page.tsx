@@ -14,9 +14,9 @@ import {
   Alert,
   Stack,
   Paper,
-  Button,
   CircularProgress,
 } from '@mui/material';
+import Button from '@/components/ui/button';
 
 export default function VerifyEmailPage() {
   const router = useRouter();
@@ -221,10 +221,11 @@ export default function VerifyEmailPage() {
 
                 <Button
                   type="submit"
-                  disabled={loading || otp.length !== 6}
+                  loading={loading}
+                  disabled={otp.length !== 6}
                   variant="contained"
                   size="large"
-                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight />}
+                  endIcon={<ArrowRight />}
                   sx={{
                     bgcolor: 'warm.main',
                     color: 'white',

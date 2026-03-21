@@ -10,7 +10,8 @@ import { StepIdentity } from "./steps/StepIdentity";
 import { StepContact } from "./steps/StepContact";
 import { StepReview } from "./steps/StepReview";
 import { api } from "@/trpc/react";
-import { Box, CircularProgress, Typography, Paper, Button } from "@mui/material";
+import { Box, Typography, Paper } from "@mui/material";
+import Button from "@/components/ui/button";
 import { useSnackbar } from "@/hooks/useSnackbar";
 
 const steps = [
@@ -297,15 +298,9 @@ export function OnboardingWizard() {
                   ) : (
                     <Button
                       variant="contained"
-                      onClick={completeMutation.isPending ? undefined : handleSubmit}
-                      disabled={completeMutation.isPending}
-                      endIcon={
-                        completeMutation.isPending ? (
-                          <CircularProgress size={16} sx={{ color: 'primary.contrastText' }} />
-                        ) : (
-                          <ArrowRight size={16} />
-                        )
-                      }
+                      onClick={handleSubmit}
+                      loading={completeMutation.isPending}
+                      endIcon={<ArrowRight size={16} />}
                       sx={{
                         height: 48,
                         borderRadius: 2,

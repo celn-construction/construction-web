@@ -15,9 +15,8 @@ import {
   IconButton,
   Stack,
   Paper,
-  Button,
-  CircularProgress,
 } from '@mui/material';
+import Button from '@/components/ui/button';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -340,8 +339,8 @@ function ResetPasswordForm() {
                   type="submit"
                   variant="contained"
                   fullWidth
-                  disabled={loading}
-                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={20} />}
+                  loading={loading}
+                  endIcon={<ArrowRight size={18} />}
                   sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
                 >
                   Reset password

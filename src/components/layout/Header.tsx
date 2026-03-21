@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { usePathname, useParams } from 'next/navigation';
 import { Search, Bell, Undo2, UserPlus, Moon, Sun } from 'lucide-react';
-import { Box, Typography, IconButton, Divider, Button } from '@mui/material';
+import { Box, Typography, IconButton, Divider } from '@mui/material';
+import Button from '@/components/ui/button';
 import { useThemeStore } from '@/store/useThemeStore';
 import {
   DropdownMenu,
@@ -112,26 +113,35 @@ export default function Header() {
         <DropdownMenuTrigger asChild>
           <IconButton
             aria-label="Notifications"
-            sx={{ width: 32, height: 32, borderRadius: 1, position: 'relative', color: 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              position: 'relative',
+              color: 'text.secondary',
+              bgcolor: 'action.hover',
+              '&:hover': { bgcolor: 'divider' },
+            }}
           >
             <Bell style={{ width: 18, height: 18, color: 'inherit' }} />
             {unreadCount > 0 && (
               <Box
                 sx={{
                   position: 'absolute',
-                  top: 4,
-                  right: 4,
-                  minWidth: 14,
-                  height: 14,
-                  bgcolor: 'error.main',
+                  top: -2,
+                  right: -2,
+                  minWidth: 18,
+                  height: 18,
+                  bgcolor: 'primary.main',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 9,
-                  fontWeight: 600,
+                  fontSize: 10,
+                  fontWeight: 700,
                   color: 'white',
-                  px: 0.25,
+                  px: 0.375,
+                  lineHeight: 1,
                 }}
               >
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -148,7 +158,8 @@ export default function Header() {
                 variant="text"
                 size="small"
                 onClick={() => markAllAsRead.mutate({ organizationId: activeOrganizationId })}
-                disabled={markAllAsRead.isPending}
+                loading={markAllAsRead.isPending}
+                loadingPosition="start"
                 sx={{ fontSize: 12 }}
               >
                 Mark all read

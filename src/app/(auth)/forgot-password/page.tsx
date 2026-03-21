@@ -13,9 +13,8 @@ import {
   InputAdornment,
   Stack,
   Paper,
-  Button,
-  CircularProgress,
 } from '@mui/material';
+import Button from '@/components/ui/button';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -231,8 +230,8 @@ export default function ForgotPasswordPage() {
                   type="submit"
                   variant="contained"
                   fullWidth
-                  disabled={loading}
-                  endIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <ArrowRight size={20} />}
+                  loading={loading}
+                  endIcon={<ArrowRight size={18} />}
                   sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
                 >
                   Send reset link
