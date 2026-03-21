@@ -7,6 +7,7 @@ import { FileDropzone } from '@/components/documents/FileDropzone';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { api } from '@/trpc/react';
 import { Box, Typography, IconButton, LinearProgress, Paper, Chip } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { type Selection, deriveStatus } from '@/lib/utils/gantt';
 
 export type { Selection };
@@ -67,12 +68,12 @@ function GanttIllustration() {
       <rect x="48" y="8" width="52" height="12" rx="4" fill="var(--accent-primary)" fillOpacity="0.45" />
 
       {/* Gantt bars — row 2 */}
-      <rect x="68" y="32" width="60" height="12" rx="4" fill="#2563eb" fillOpacity="0.22" />
-      <rect x="68" y="32" width="36" height="12" rx="4" fill="#2563eb" fillOpacity="0.45" />
+      <rect x="68" y="32" width="60" height="12" rx="4" fill="var(--accent-primary)" fillOpacity="0.22" />
+      <rect x="68" y="32" width="36" height="12" rx="4" fill="var(--accent-primary)" fillOpacity="0.45" />
 
       {/* Gantt bars — row 3 (amber) */}
-      <rect x="96" y="56" width="72" height="12" rx="4" fill="#d97706" fillOpacity="0.22" />
-      <rect x="96" y="56" width="40" height="12" rx="4" fill="#d97706" fillOpacity="0.45" />
+      <rect x="96" y="56" width="72" height="12" rx="4" fill="var(--accent-warm)" fillOpacity="0.22" />
+      <rect x="96" y="56" width="40" height="12" rx="4" fill="var(--accent-warm)" fillOpacity="0.45" />
 
       {/* Milestone diamond — row 4 */}
       <rect
@@ -81,7 +82,7 @@ function GanttIllustration() {
         width="10"
         height="10"
         rx="1"
-        fill="#d97706"
+        fill="var(--accent-warm)"
         fillOpacity="0.75"
         style={{ transform: 'rotate(45deg)', transformOrigin: '155px 84px' }}
       />
@@ -90,6 +91,7 @@ function GanttIllustration() {
 }
 
 export function ProjectDetailPanel({ selection, projectId, organizationId }: ProjectDetailPanelProps) {
+  const theme = useTheme();
   const utils = api.useUtils();
 
   const { data: taskData } = api.gantt.taskDetail.useQuery(
@@ -451,7 +453,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
   if (selection.type === 'document' && selectedDocument) {
     const isPdf = selectedDocument.mimeType === 'application/pdf';
     const isImage = selectedDocument.mimeType.startsWith('image/');
-    const iconColor = isPdf ? '#dc2626' : isImage ? '#2563eb' : 'var(--accent-primary)';
+    const iconColor = isPdf ? theme.palette.error.main : isImage ? theme.palette.status.completed : theme.palette.primary.main;
 
     return (
       <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

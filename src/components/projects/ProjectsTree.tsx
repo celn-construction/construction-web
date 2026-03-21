@@ -19,6 +19,7 @@ import {
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { Box, Chip, IconButton, Skeleton, Typography } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { api } from '@/trpc/react';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { folderData } from '@/lib/folders';
@@ -63,6 +64,7 @@ interface FolderNodeProps {
 }
 
 function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }: FolderNodeProps) {
+  const theme = useTheme();
   const folderId = `${taskId}-${folder.id}`;
   const isExpanded = expandedItems.includes(folderId);
   const utils = api.useUtils();
@@ -211,7 +213,7 @@ function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }
                   itemId={`${taskId}-doc-${doc.id}`}
                   label={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.2 }}>
-                      <FileText size={12} color="#3b82f6" />
+                      <FileText size={12} color={theme.palette.status.completed} />
                       <Box sx={{
                         flexGrow: 1,
                         fontSize: '0.75rem',
@@ -235,7 +237,7 @@ function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }
           itemId={`${taskId}-doc-${doc.id}`}
           label={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.25 }}>
-              <FileText size={12} style={{ color: '#3b82f6' }} />
+              <FileText size={12} style={{ color: theme.palette.status.completed }} />
               <Box sx={{
                 flexGrow: 1,
                 fontSize: '0.8rem',
@@ -266,13 +268,14 @@ function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }
   );
 }
 
-function deriveStatus(percentDone: number) {
-  if (percentDone >= 100) return { name: 'Completed', color: '#10b981' };
-  if (percentDone > 0) return { name: 'In Progress', color: '#3b82f6' };
-  return { name: 'Planned', color: '#6b7280' };
+function deriveStatus(percentDone: number, theme: import('@mui/material/styles').Theme) {
+  if (percentDone >= 100) return { name: 'Completed', color: theme.palette.success.main };
+  if (percentDone > 0) return { name: 'In Progress', color: theme.palette.status.completed };
+  return { name: 'Planned', color: theme.palette.text.disabled };
 }
 
 export default function ProjectsTree({ selectedNodeId, onSelect, projectId, organizationId }: ProjectsTreeProps) {
+  const theme = useTheme();
   const utils = api.useUtils();
   const { data: tasks = [], isLoading, isFetching } = api.gantt.tasks.useQuery(
     { organizationId: organizationId!, projectId: projectId! },
@@ -296,7 +299,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
       groupedMap[parent.id] = children.map((c) => ({
         id: c.id,
         name: c.name,
-        status: deriveStatus(c.percentDone),
+        status: deriveStatus(c.percentDone, theme),
         progress: Math.round(c.percentDone),
       }));
     }

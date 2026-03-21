@@ -265,10 +265,10 @@ gap: 1.25    // 10px — sidebar nav items
 | Context | Library | Size | Notes |
 |---|---|---|---|
 | Sidebar nav | Phosphor | `size={17}` | `weight={isActive ? 'fill' : 'regular'}` |
-| Tree folders / tasks | Lucide | `size={14}` | |
-| Tree documents | Lucide | `size={12}` | |
-| Utility (refresh, add) | Lucide | `size={14}` | |
-| Chevrons / small indicators | Lucide | `style={{ width: 13, height: 13 }}` | |
+| Tree folders / tasks | Phosphor | `size={14}` | |
+| Tree documents | Phosphor | `size={12}` | |
+| Utility (refresh, add) | Phosphor | `size={14}` | `weight="bold"` for action buttons |
+| Chevrons / small indicators | Phosphor | `style={{ width: 13, height: 13 }}` | |
 
 ### Active-state indicator (left bar)
 
