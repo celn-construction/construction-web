@@ -34,7 +34,7 @@ const GANTT_CONTENT_STYLE: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   position: 'relative',
-  overflow: 'clip',
+  overflow: 'hidden',
 };
 
 const STALE_THRESHOLD_MS = 60_000; // 60 seconds

@@ -44,11 +44,9 @@ export function createGanttConfig(
     // Disable Bryntum's built-in loading mask — we use our own overlay in BryntumGanttWrapper
     loadMask: null,
 
-    // Infinite scroll extends the time axis automatically as the user
-    // scrolls near the edges.  bufferCoef controls the invisible buffer
-    // size (5 = 5× viewport width on each side).
-    infiniteScroll: true,
-    bufferCoef: 5,
+    // infiniteScroll removed — it requires both startDate and endDate to
+    // define a valid initial time axis range.  Without endDate the time
+    // axis config is invalid and Bryntum throws at mount time.
 
 
     // Performance optimizations
@@ -192,7 +190,6 @@ export function createGanttConfig(
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     viewPreset: 'weekAndDayLetter',
     startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
-    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
     barMargin: 10,
     listeners: {
       // Bryntum blocks the duration cell editor for parent tasks before
