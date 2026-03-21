@@ -41,6 +41,12 @@ export function createGanttConfig(
   return {
     detectCSSCompatibilityIssues: false,
 
+    // Infinite scroll extends the time axis automatically as the user
+    // scrolls near the edges.  bufferCoef controls the invisible buffer
+    // size (5 = 5× viewport width on each side).
+    infiniteScroll: true,
+    bufferCoef: 5,
+
     // Performance optimizations
     autoHeight: false,
     rowHeight: 45, // Consistent row height for better performance
@@ -123,12 +129,10 @@ export function createGanttConfig(
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     viewPreset: 'weekAndDayLetter',
-    // Time span must be narrow enough for the active viewPreset's tick granularity.
-    // weekAndDayLetter renders day-level ticks — a 27-month span generates ~810 ticks
-    // which breaks the time axis rendering when the first task is added.
-    // Use 6 months to match handlePresetChange's safe range for this preset.
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
-    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 3, 1),
+    // Initial window just needs to fill the viewport on load.
+    // infiniteScroll extends the range automatically as the user scrolls.
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1),
+    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 6, 1),
     barMargin: 10,
     listeners: {
       // Bryntum blocks the duration cell editor for parent tasks before
