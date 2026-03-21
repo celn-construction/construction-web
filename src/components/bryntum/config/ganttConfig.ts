@@ -52,8 +52,10 @@ export function createGanttConfig(
       autoSync: false,
       taskModelClass: VersionedTaskModel,
 
-      // Enable delay calculation for better initial load performance
-      delayCalculation: true,
+      // delayCalculation removed — it prevents the scheduling engine from
+      // initializing properly when React double-mounts the widget (the first
+      // commitAsync runs on a destroyed instance, leaving the visible instance
+      // with an uncalculated engine and no task bar rendering).
 
       transport: projectId
         ? {
@@ -121,8 +123,12 @@ export function createGanttConfig(
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     viewPreset: 'weekAndDayLetter',
+    // Time span must be narrow enough for the active viewPreset's tick granularity.
+    // weekAndDayLetter renders day-level ticks — a 27-month span generates ~810 ticks
+    // which breaks the time axis rendering when the first task is added.
+    // Use 6 months to match handlePresetChange's safe range for this preset.
     startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
-    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
+    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 3, 1),
     barMargin: 10,
     listeners: {
       // Bryntum blocks the duration cell editor for parent tasks before
