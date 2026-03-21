@@ -41,6 +41,12 @@ export function createGanttConfig(
   return {
     detectCSSCompatibilityIssues: false,
 
+    // Infinite scroll extends the time axis automatically as the user
+    // scrolls near the edges.  bufferCoef controls the invisible buffer
+    // size (5 = 5× viewport width on each side).
+    infiniteScroll: true,
+    bufferCoef: 5,
+
     // Performance optimizations
     autoHeight: false,
     rowHeight: 45, // Consistent row height for better performance
@@ -52,8 +58,10 @@ export function createGanttConfig(
       autoSync: false,
       taskModelClass: VersionedTaskModel,
 
-      // Enable delay calculation for better initial load performance
-      delayCalculation: true,
+      // delayCalculation removed — it prevents the scheduling engine from
+      // initializing properly when React double-mounts the widget (the first
+      // commitAsync runs on a destroyed instance, leaving the visible instance
+      // with an uncalculated engine and no task bar rendering).
 
       transport: projectId
         ? {
@@ -172,8 +180,10 @@ export function createGanttConfig(
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     viewPreset: 'weekAndDayLetter',
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
-    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
+    // Initial window just needs to fill the viewport on load.
+    // infiniteScroll extends the range automatically as the user scrolls.
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1),
+    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 6, 1),
     barMargin: 10,
     listeners: {
       // Bryntum blocks the duration cell editor for parent tasks before

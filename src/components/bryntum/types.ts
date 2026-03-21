@@ -73,6 +73,9 @@ export interface BryntumGanttInstance {
 export type GanttConfig = {
   height?: string;
   autoHeight?: boolean;
+  autoAdjustTimeAxis?: boolean;
+  infiniteScroll?: boolean;
+  bufferCoef?: number;
   detectCSSCompatibilityIssues: boolean;
   rowHeight?: number;
   animateTreeNodeToggle?: boolean;
