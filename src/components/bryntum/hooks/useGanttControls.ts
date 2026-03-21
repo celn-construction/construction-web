@@ -36,6 +36,24 @@ export function useGanttControls() {
     });
   }, [getGanttInstance]);
 
+  const handleIndent = useCallback(() => {
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const selected = gantt.selectedRecords as unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    if (selected?.length) gantt.indent(selected);
+  }, [getGanttInstance]);
+
+  const handleOutdent = useCallback(() => {
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const selected = gantt.selectedRecords as unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    if (selected?.length) gantt.outdent(selected);
+  }, [getGanttInstance]);
+
   const handleZoomIn = useCallback(() => getGanttInstance()?.zoomIn(), [getGanttInstance]);
   const handleZoomOut = useCallback(() => getGanttInstance()?.zoomOut(), [getGanttInstance]);
   const handleZoomToFit = useCallback(() => {
@@ -82,6 +100,8 @@ export function useGanttControls() {
     ganttRef,
     getGanttInstance,
     handleAddTask,
+    handleIndent,
+    handleOutdent,
     handleZoomIn,
     handleZoomOut,
     handleZoomToFit,

@@ -111,6 +111,57 @@ export function createGanttConfig(
         width: 100,
         resizable: true,
       },
+      {
+        type: 'widget',
+        width: 40,
+        resizable: false,
+        sortable: false,
+        filterable: false,
+        text: '',
+        widgets: [
+          {
+            type: 'button',
+            menuIcon: false,
+            icon: 'b-icon b-icon-menu-vertical',
+            cls: 'gantt-row-actions-btn',
+            menu: {
+              items: {
+                addSubtask: {
+                  text: 'Add Subtask',
+                  icon: 'b-icon b-icon-add',
+                  weight: 100,
+                  onItem: 'up.onRowActionClick',
+                },
+                indent: {
+                  text: 'Indent',
+                  icon: 'b-icon b-icon-indent',
+                  weight: 200,
+                  onItem: 'up.onRowActionClick',
+                },
+                outdent: {
+                  text: 'Outdent',
+                  icon: 'b-icon b-icon-outdent',
+                  weight: 300,
+                  onItem: 'up.onRowActionClick',
+                },
+                unlinkTask: {
+                  text: 'Unlink',
+                  icon: 'b-icon b-icon-unlink',
+                  weight: 500,
+                  onItem: 'up.onRowActionClick',
+                },
+                deleteTask: {
+                  text: 'Delete',
+                  icon: 'b-icon b-icon-trash',
+                  cls: 'gantt-action-danger',
+                  weight: 600,
+                  onItem: 'up.onRowActionClick',
+                },
+              },
+            },
+          },
+        ],
+      },
     ],
     features: {
       columnLines: true,
