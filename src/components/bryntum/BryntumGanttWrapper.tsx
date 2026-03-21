@@ -10,6 +10,7 @@ import { createGanttConfig } from './config/ganttConfig';
 import GanttToolbar from './components/GanttToolbar';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
 import ConflictDialog from './components/ConflictDialog';
+import TaskInfoDialog from './components/TaskInfoDialog';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
 import { useTaskPopover } from './hooks/useTaskPopover';
@@ -59,6 +60,7 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     return localStorage.getItem(AUTO_SAVE_STORAGE_KEY) !== 'false';
   });
   const [conflictOpen, setConflictOpen] = useState(false);
+  const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
   const justSavedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -430,6 +432,19 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     return () => { detach?.(); };
   }, [isLoading, getGanttInstance, handleTaskClick]);
 
+  // Open task info dialog on double-click of a task bar (replaces Bryntum's built-in task editor)
+  useEffect(() => {
+    if (isLoading) return;
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const detach = gantt.on('taskDblClick', ({ taskRecord }: { taskRecord: unknown }) => {
+      closeTaskPopover();
+      setTaskInfoRecord(taskRecord as BryntumTaskRecord);
+    }) as (() => void) | undefined;
+    return () => { detach?.(); };
+  }, [isLoading, getGanttInstance, closeTaskPopover]);
+
   // Attach the row action menu handler on the Gantt instance.
   // The WidgetColumn menu items use `onItem: 'up.onRowActionClick'` which
   // resolves to this method on the Gantt widget.
@@ -448,6 +463,10 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
       const g = gantt as unknown as BryntumGanttInstance;
 
       switch (source.ref) {
+        case 'taskDetails':
+          closeTaskPopover();
+          setTaskInfoRecord(record);
+          break;
         case 'addSubtask':
           record.appendChild({ name: 'New Subtask', duration: 1, startDate: new Date() });
           // Expand the parent so the new subtask is visible
@@ -626,6 +645,17 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
         open={conflictOpen}
         onProceed={handleConflictProceed}
         onRefresh={handleConflictRefresh}
+      />
+
+      <TaskInfoDialog
+        open={!!taskInfoRecord}
+        taskRecord={taskInfoRecord}
+        ganttInstance={getGanttInstance() as unknown as import('./types').BryntumGanttInstance | null}
+        onClose={() => setTaskInfoRecord(null)}
+        onDelete={() => {
+          if (taskInfoRecord) taskInfoRecord.remove();
+          setTaskInfoRecord(null);
+        }}
       />
     </div>
   );

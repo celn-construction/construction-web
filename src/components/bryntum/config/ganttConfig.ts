@@ -126,6 +126,12 @@ export function createGanttConfig(
             cls: 'gantt-row-actions-btn',
             menu: {
               items: {
+                taskDetails: {
+                  text: 'Task Details',
+                  icon: 'b-icon b-icon-edit',
+                  weight: 50,
+                  onItem: 'up.onRowActionClick',
+                },
                 addSubtask: {
                   text: 'Add Subtask',
                   icon: 'b-icon b-icon-add',
@@ -164,6 +170,7 @@ export function createGanttConfig(
       },
     ],
     features: {
+      taskEdit: false,
       columnLines: true,
       stripe: true,
       cellTooltip: {
