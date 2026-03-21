@@ -41,6 +41,9 @@ export function createGanttConfig(
   return {
     detectCSSCompatibilityIssues: false,
 
+    // Disable Bryntum's built-in loading mask — we use our own overlay in BryntumGanttWrapper
+    loadMask: null,
+
     // Performance optimizations
     autoHeight: false,
     rowHeight: 45, // Consistent row height for better performance

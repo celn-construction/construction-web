@@ -68,6 +68,7 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
           sx={{
             flex: 1,
             minHeight: 0,
+            width: '100%',
             overflow: 'hidden',
             display: isFilesRoute ? 'flex' : 'none',
           }}
