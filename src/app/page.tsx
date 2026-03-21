@@ -202,7 +202,7 @@ export default function Home() {
         {session ? (
           <Button
             component={Link}
-            href="/dashboard"
+            href="/api/resolve-redirect?redirect=true"
             sx={{
               fontFamily: bodyFont,
               fontSize: 13,
