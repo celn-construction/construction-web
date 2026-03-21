@@ -258,4 +258,31 @@ export const ganttRouter = createTRPCRouter({
         throw error;
       }
     }),
+
+  /**
+   * Update a task's CSI code from the detail popover
+   */
+  updateCsiCode: orgProcedure
+    .input(z.object({
+      projectId: z.string(),
+      taskId: z.string(),
+      csiCode: z.string().nullable(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { projectId, taskId, csiCode } = input;
+
+      const project = await ctx.db.project.findFirst({
+        where: { id: projectId, organizationId: ctx.organization.id },
+      });
+
+      if (!project) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
+      }
+
+      return ctx.db.ganttTask.update({
+        where: { id: taskId, projectId },
+        data: { csiCode },
+        select: { id: true, csiCode: true },
+      });
+    }),
 });
