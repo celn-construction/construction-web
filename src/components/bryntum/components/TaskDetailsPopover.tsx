@@ -18,13 +18,15 @@ import {
   TreeStructure,
   CalendarBlank,
   Timer,
+  Tag,
   SquaresFour,
   List,
   ImageSquare,
   DownloadSimple,
   ArrowsOut,
+  MagnifyingGlass,
 } from '@phosphor-icons/react';
-import { Box, Popover, IconButton, Typography, CircularProgress, Divider } from '@mui/material';
+import { Box, Popover, IconButton, Typography, CircularProgress, Divider, Menu, MenuItem, TextField, InputAdornment } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import UploadOverlay from '@/components/ui/UploadOverlay';
@@ -37,6 +39,7 @@ import { useProjectContext } from '@/components/providers/ProjectProvider';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
+import { formatCsiCode, CSI_DIVISIONS } from '@/lib/constants/csiCodes';
 
 function getStatusInfo(percentDone: number, palette: Theme['palette']) {
   if (percentDone >= 100) {
@@ -95,7 +98,25 @@ export function TaskDetailsPopover({
     uploadedBy: { name: string | null } | null;
   } | null>(null);
 
+  const [csiAnchorEl, setCsiAnchorEl] = useState<HTMLElement | null>(null);
+  const [csiSearch, setCsiSearch] = useState('');
+
   const utils = api.useUtils();
+
+  const updateCsiCode = api.gantt.updateCsiCode.useMutation({
+    onSuccess: () => {
+      void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId: taskId! });
+    },
+    onError: (error) => {
+      showSnackbar(error.message || 'Failed to update CSI code', 'error');
+    },
+  });
+
+  const filteredCsiDivisions = CSI_DIVISIONS.filter((d) => {
+    if (!csiSearch) return true;
+    const q = csiSearch.toLowerCase();
+    return d.code.includes(q) || d.name.toLowerCase().includes(q);
+  });
 
   const { data: taskDetail } = api.gantt.taskDetail.useQuery(
     { organizationId, projectId, taskId: taskId! },
@@ -536,6 +557,43 @@ export function TaskDetailsPopover({
                         </Typography>
                       </Box>
                     )}
+                    <Box
+                      component="button"
+                      onClick={(e) => {
+                        setCsiAnchorEl(e.currentTarget as HTMLElement);
+                        setCsiSearch('');
+                      }}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        border: 'none',
+                        bgcolor: 'transparent',
+                        cursor: 'pointer',
+                        p: 0,
+                        borderRadius: 1,
+                        '&:hover': { bgcolor: 'action.hover' },
+                        px: 0.5,
+                        mx: -0.5,
+                        transition: 'background-color 0.15s',
+                      }}
+                    >
+                      <Tag
+                        size={12}
+                        color="var(--mui-palette-text-secondary)"
+                        style={{ flexShrink: 0 }}
+                      />
+                      <Typography
+                        sx={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: taskDetail?.csiCode ? 'text.secondary' : 'text.disabled',
+                          fontFamily: 'Inter, sans-serif',
+                        }}
+                      >
+                        {taskDetail?.csiCode ? formatCsiCode(taskDetail.csiCode) : 'Add CSI Code'}
+                      </Typography>
+                    </Box>
                   </Box>
                 )}
               </Box>
@@ -1408,6 +1466,107 @@ export function TaskDetailsPopover({
           onUploadComplete={handleUploadComplete}
         />
       )}
+
+      {/* CSI Code selector menu */}
+      <Menu
+        anchorEl={csiAnchorEl}
+        open={Boolean(csiAnchorEl)}
+        onClose={() => setCsiAnchorEl(null)}
+        slotProps={{
+          paper: {
+            sx: {
+              maxHeight: 320,
+              width: 340,
+              borderRadius: 2,
+              mt: 0.5,
+            },
+          },
+        }}
+      >
+        <Box sx={{ px: 1.5, py: 1, position: 'sticky', top: 0, bgcolor: 'background.paper', zIndex: 1 }}>
+          <TextField
+            size="small"
+            placeholder="Search divisions…"
+            value={csiSearch}
+            onChange={(e) => setCsiSearch(e.target.value)}
+            autoFocus
+            fullWidth
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <MagnifyingGlass size={14} />
+                  </InputAdornment>
+                ),
+                sx: { fontSize: 13, fontFamily: 'Inter, sans-serif' },
+              },
+            }}
+            onKeyDown={(e) => e.stopPropagation()}
+          />
+        </Box>
+        {taskDetail?.csiCode && (
+          <MenuItem
+            onClick={() => {
+              updateCsiCode.mutate({
+                organizationId,
+                projectId,
+                taskId: taskId!,
+                csiCode: null,
+              });
+              setCsiAnchorEl(null);
+            }}
+            sx={{
+              fontSize: 12,
+              fontFamily: 'Inter, sans-serif',
+              color: 'error.main',
+              fontStyle: 'italic',
+            }}
+          >
+            Remove CSI Code
+          </MenuItem>
+        )}
+        {filteredCsiDivisions.map((d) => (
+          <MenuItem
+            key={d.code}
+            selected={taskDetail?.csiCode === d.code}
+            onClick={() => {
+              updateCsiCode.mutate({
+                organizationId,
+                projectId,
+                taskId: taskId!,
+                csiCode: d.code,
+              });
+              setCsiAnchorEl(null);
+            }}
+            sx={{
+              fontSize: 12,
+              fontFamily: 'Inter, sans-serif',
+              gap: 1,
+            }}
+          >
+            <Typography
+              component="span"
+              sx={{
+                fontSize: 12,
+                fontWeight: 600,
+                fontFamily: 'Inter, sans-serif',
+                color: 'text.secondary',
+                minWidth: 24,
+              }}
+            >
+              {d.code}
+            </Typography>
+            {d.name}
+          </MenuItem>
+        ))}
+        {filteredCsiDivisions.length === 0 && (
+          <Box sx={{ px: 2, py: 1.5 }}>
+            <Typography sx={{ fontSize: 12, color: 'text.disabled', fontFamily: 'Inter, sans-serif' }}>
+              No divisions match &ldquo;{csiSearch}&rdquo;
+            </Typography>
+          </Box>
+        )}
+      </Menu>
     </>
   );
 }

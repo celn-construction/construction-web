@@ -50,6 +50,7 @@ export function createGanttConfig(
     infiniteScroll: true,
     bufferCoef: 5,
 
+
     // Performance optimizations
     autoHeight: false,
     rowHeight: 45, // Consistent row height for better performance
@@ -190,10 +191,8 @@ export function createGanttConfig(
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     viewPreset: 'weekAndDayLetter',
-    // Initial window just needs to fill the viewport on load.
-    // infiniteScroll extends the range automatically as the user scrolls.
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1),
-    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 6, 1),
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
+    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
     barMargin: 10,
     listeners: {
       // Bryntum blocks the duration cell editor for parent tasks before
