@@ -50,7 +50,7 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
             flex: 1,
             flexDirection: 'column',
             minHeight: 0,
-            overflow: 'clip',
+            overflow: 'hidden',
             width: '100%',
             p: 3,
             display: isGanttRoute ? 'flex' : 'none',
