@@ -77,6 +77,7 @@ export type GanttConfig = {
   infiniteScroll?: boolean;
   bufferCoef?: number;
   detectCSSCompatibilityIssues: boolean;
+  loadMask?: string | null | Record<string, unknown>;
   rowHeight?: number;
   animateTreeNodeToggle?: boolean;
   toggleParentTasksOnClick?: boolean;

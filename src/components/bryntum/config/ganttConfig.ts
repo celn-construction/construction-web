@@ -41,6 +41,9 @@ export function createGanttConfig(
   return {
     detectCSSCompatibilityIssues: false,
 
+    // Disable Bryntum's built-in loading mask — we use our own overlay in BryntumGanttWrapper
+    loadMask: null,
+
     // Infinite scroll extends the time axis automatically as the user
     // scrolls near the edges.  bufferCoef controls the invisible buffer
     // size (5 = 5× viewport width on each side).
