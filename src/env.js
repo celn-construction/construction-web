@@ -19,6 +19,7 @@ export const env = createEnv({
     OPENAI_API_KEY: z.string().optional(),
     ANTHROPIC_API_KEY: z.string().optional(),
     BETA_ACCESS_CODE: z.string().optional(),
+    ABLY_API_KEY: z.string().optional(),
   },
 
   /**
@@ -45,6 +46,7 @@ export const env = createEnv({
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     BETA_ACCESS_CODE: process.env.BETA_ACCESS_CODE,
+    ABLY_API_KEY: process.env.ABLY_API_KEY,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

@@ -15,6 +15,7 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 | `OPENAI_API_KEY` | OpenAI API key for semantic search embeddings | Optional | `sk-proj-...` (get from platform.openai.com) |
 | `ANTHROPIC_API_KEY` | Anthropic API key for AI document analysis (image + PDF descriptions) | Optional | `sk-ant-...` (get from console.anthropic.com) |
 | `BETA_ACCESS_CODE` | Beta access code required on sign-up form. Omit to disable the gate. | Optional | `buildtrack-beta-2026` |
+| `ABLY_API_KEY` | Ably API key for real-time Gantt collaboration (presence + live sync). Omit to disable real-time features. | Optional | Get from ably.com dashboard |
 | `NEXT_PUBLIC_APP_URL` | Client-side base URL | Optional | `http://localhost:3000` |
 | `NODE_ENV` | Runtime environment | Auto | `development` / `production` / `test` |
 | `PORT` | Dev server port | Auto (defaults to `3000`) | `3000` |
