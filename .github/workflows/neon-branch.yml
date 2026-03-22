@@ -2,7 +2,7 @@ name: Neon Branch
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, closed]
+    types: [opened, reopened, closed]
 
 concurrency:
   group: neon-${{ github.event.number }}
