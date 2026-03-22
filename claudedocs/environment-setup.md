@@ -15,6 +15,11 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 | `OPENAI_API_KEY` | OpenAI API key for semantic search embeddings | Optional | `sk-proj-...` (get from platform.openai.com) |
 | `ANTHROPIC_API_KEY` | Anthropic API key for AI document analysis (image + PDF descriptions) | Optional | `sk-ant-...` (get from console.anthropic.com) |
 | `BETA_ACCESS_CODE` | Beta access code required on sign-up form. Omit to disable the gate. | Optional | `buildtrack-beta-2026` |
+| `SENTRY_DSN` | Sentry DSN for server-side error tracking | Optional | `https://xxx@sentry.io/xxx` (auto-provisioned by Vercel-Sentry integration) |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN for client-side error tracking | Optional | Same as `SENTRY_DSN` (auto-provisioned by Vercel-Sentry integration) |
+| `SENTRY_ORG` | Sentry organization slug for source map uploads | Optional | `celn-construction` |
+| `SENTRY_PROJECT` | Sentry project slug for source map uploads | Optional | `sentry-cinnabar-clock` |
+| `SENTRY_AUTH_TOKEN` | Sentry auth token for source map uploads | Optional | Auto-provisioned by Vercel-Sentry integration |
 | `NEXT_PUBLIC_APP_URL` | Client-side base URL | Optional | `http://localhost:3000` |
 | `NODE_ENV` | Runtime environment | Auto | `development` / `production` / `test` |
 | `PORT` | Dev server port | Auto (defaults to `3000`) | `3000` |

@@ -7,6 +7,7 @@
  * need to use are documented accordingly near the end.
  */
 import { initTRPC, TRPCError } from "@trpc/server";
+import * as Sentry from "@sentry/nextjs";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { z } from "zod";
@@ -84,6 +85,34 @@ export const createTRPCRouter = t.router;
  * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
  * network latency that would occur in production but not in local development.
  */
+/**
+ * Sentry middleware — captures unexpected server errors with user context.
+ * Intentional TRPCErrors (NOT_FOUND, FORBIDDEN, etc.) are not reported;
+ * only INTERNAL_SERVER_ERROR and unhandled exceptions are sent to Sentry.
+ */
+const sentryMiddleware = t.middleware(async ({ next, path, ctx }) => {
+  try {
+    return await next();
+  } catch (error) {
+    Sentry.withScope((scope) => {
+      scope.setTag("tRPC.path", path);
+      if (ctx.session?.user) {
+        scope.setUser({
+          id: ctx.session.user.id,
+          email: ctx.session.user.email,
+        });
+      }
+      if (
+        !(error instanceof TRPCError) ||
+        error.code === "INTERNAL_SERVER_ERROR"
+      ) {
+        Sentry.captureException(error);
+      }
+    });
+    throw error;
+  }
+});
+
 const timingMiddleware = t.middleware(async ({ next, path }) => {
   const start = Date.now();
 
@@ -110,7 +139,9 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+export const publicProcedure = t.procedure
+  .use(sentryMiddleware)
+  .use(timingMiddleware);
 
 /**
  * Protected (authenticated) procedure
