@@ -503,8 +503,6 @@ export default function BryntumGanttWrapper({ projectId, isVisible = true }: Bry
     <div style={WRAPPER_STYLE}>
       <GanttToolbar
         onAddTask={handleAddTask}
-        onIndent={handleIndent}
-        onOutdent={handleOutdent}
         onPresetChange={handlePresetChange}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}

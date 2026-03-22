@@ -13,7 +13,7 @@ export const projectNavItems: NavItem[] = [
   { id: 'gantt', label: 'Gantt', icon: 'ChartBar', segment: 'gantt' },
   { id: 'files', label: 'File Tree', icon: 'FolderSimple', segment: 'files' },
   { id: 'document-explorer', label: 'Document Explorer', icon: 'FileMagnifyingGlass', segment: 'document-explorer' },
-  { id: 'team', label: 'Team', icon: 'Users', segment: 'team' },
+  { id: 'manage', label: 'Manage', icon: 'GearSix', segment: 'manage' },
 ];
 
 // Helper to build org-level URLs
