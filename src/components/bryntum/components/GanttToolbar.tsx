@@ -20,8 +20,6 @@ import {
   MoreVertical,
   Plus,
   CheckCircle,
-  IndentIncrease,
-  IndentDecrease,
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -98,8 +96,6 @@ const switchSx = {
 // ─── Props ────────────────────────────────────────────────────────────────────
 type GanttToolbarProps = {
   onAddTask?: () => void;
-  onIndent?: () => void;
-  onOutdent?: () => void;
   onPresetChange?: (preset: string) => void;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
@@ -120,8 +116,6 @@ type GanttToolbarProps = {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function GanttToolbar({
   onAddTask,
-  onIndent,
-  onOutdent,
   onPresetChange,
   onZoomIn,
   onZoomOut,
@@ -245,14 +239,6 @@ export default function GanttToolbar({
           <ChevronsRight style={{ width: ICON_SIZE, height: ICON_SIZE }} />
         </IconButton>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 'auto', height: 18, alignSelf: 'center' }} />
-
-        <IconButton size="small" sx={iconBtnSx} onClick={onOutdent} title="Outdent selected task">
-          <IndentDecrease style={{ width: ICON_SIZE, height: ICON_SIZE }} />
-        </IconButton>
-        <IconButton size="small" sx={iconBtnSx} onClick={onIndent} title="Indent selected task">
-          <IndentIncrease style={{ width: ICON_SIZE, height: ICON_SIZE }} />
-        </IconButton>
       </Stack>
 
       {/* ── Spacer ─────────────────────────────────────────────────────── */}
