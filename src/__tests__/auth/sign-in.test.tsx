@@ -35,6 +35,7 @@ describe("SignInPage", () => {
     });
     // Mock resolve-redirect API
     globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
       json: async () => ({ url: "/test-org/projects/test-project/gantt" }),
     });
   });
