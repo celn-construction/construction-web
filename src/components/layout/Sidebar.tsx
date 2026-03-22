@@ -4,9 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { User, Settings, CreditCard, LifeBuoy, LogOut, ChevronRight } from 'lucide-react';
+import { ChevronsUpDown, User, Settings, CreditCard, LifeBuoy, LogOut } from 'lucide-react';
 import { ChartBar, FolderSimple, FileMagnifyingGlass, Users, type Icon } from '@phosphor-icons/react';
-import { Box, Typography } from '@mui/material';
+import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,18 +68,18 @@ export default function Sidebar() {
       component="aside"
       sx={{
         height: '100vh',
-        width: 240,
+        width: 220,
         bgcolor: 'sidebar.background',
         display: 'flex',
         flexDirection: 'column',
         position: 'sticky',
         top: 0,
-        transition: 'background-color 0.2s ease',
+        transition: 'background-color 0.15s',
         borderRight: '1px solid',
         borderColor: 'sidebar.border',
       }}
     >
-      {/* Org + Project Header */}
+      {/* Org Header */}
       <Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
         <OrgSwitcher />
         <ProjectSwitcher />
@@ -92,118 +92,67 @@ export default function Sidebar() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          pt: 2,
           px: 1.5,
+          py: 1,
           overflow: 'hidden',
         }}
       >
-        {/* Section Label */}
-        <Typography
-          sx={{
-            fontSize: '0.5625rem',
-            fontWeight: 600,
-            color: 'text.disabled',
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            px: 1,
-            pb: 1,
-            userSelect: 'none',
-          }}
-        >
-          Navigation
-        </Typography>
-
-        {/* Nav Items */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+        <List sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {projectNavItems.map((item) => {
-            const NavIcon = iconMap[item.icon] ?? ChartBar;
+            const Icon = iconMap[item.icon] ?? ChartBar;
             const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
             const isActive = !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
-            const isDisabled = !projectSlug;
 
-            const content = (
-              <Box
+            return (
+              <ListItemButton
+                key={item.id}
+                component={Link}
+                href={href}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1.25,
-                  px: 1.25,
-                  py: 0.875,
-                  borderRadius: '8px',
-                  position: 'relative',
-                  transition: 'all 0.15s ease',
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 1,
+                  transition: 'all 0.15s',
+                  border: '1px solid',
+                  borderColor: isActive ? 'sidebar.border' : 'transparent',
                   bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
                   color: isActive ? 'text.primary' : 'text.secondary',
-                  opacity: isDisabled ? 0.35 : 1,
-                  cursor: isDisabled ? 'default' : 'pointer',
-                  overflow: 'hidden',
-                  '&:hover': isDisabled ? {} : {
+                  '&:hover': {
                     bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
                     color: 'text.primary',
+                    borderColor: isActive ? 'sidebar.border' : 'transparent',
+                  },
+                  '&.MuiListItemButton-root:hover': {
+                    bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
                   },
                 }}
               >
-                {/* Active Indicator — thin left accent */}
                 {isActive && (
                   <Box
-                    sx={{
-                      position: 'absolute',
-                      left: 0,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '2.5px',
-                      height: 16,
-                      borderRadius: '0 2px 2px 0',
-                      bgcolor: 'sidebar.indicator',
-                    }}
+                    sx={{ width: 3, height: 18, borderRadius: '2px', bgcolor: 'sidebar.indicator', flexShrink: 0 }}
                     aria-hidden="true"
                   />
                 )}
-
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
-                  <NavIcon size={17} weight={isActive ? 'fill' : 'regular'} />
-                </Box>
-
-                <Typography
-                  sx={{
-                    fontSize: '0.8125rem',
-                    fontWeight: isActive ? 550 : 400,
-                    letterSpacing: isActive ? '-0.005em' : '0',
-                    lineHeight: 1,
-                    flex: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                <ListItemIcon sx={{ minWidth: 18, color: 'inherit' }}>
+                  <Icon size={18} />
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    fontWeight: isActive ? 500 : 400,
                   }}
-                >
-                  {item.label}
-                </Typography>
-
-                {/* Subtle arrow for active item */}
-                {isActive && (
-                  <ChevronRight style={{ width: 13, height: 13, opacity: 0.4, flexShrink: 0 }} />
-                )}
-              </Box>
-            );
-
-            if (isDisabled) {
-              return <Box key={item.id}>{content}</Box>;
-            }
-
-            return (
-              <Link
-                key={item.id}
-                href={href}
-                style={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                {content}
-              </Link>
+                />
+              </ListItemButton>
             );
           })}
-        </Box>
+        </List>
       </Box>
 
-      {/* User Profile */}
+      {/* User Row with Profile Dropdown */}
       <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
         <DropdownMenuTrigger asChild>
           <Box
@@ -221,38 +170,33 @@ export default function Sidebar() {
               border: 'none',
               cursor: 'pointer',
               color: 'text.secondary',
-              transition: 'background-color 0.15s ease',
-              '&:hover': {
-                bgcolor: 'sidebar.hoverBg',
-              },
+              transition: 'background-color 0.15s',
+              '&:hover': { bgcolor: 'action.hover' },
             }}
           >
-            {/* Avatar with gradient */}
             <Box
               sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '10px',
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
+                width: 30,
+                height: 30,
+                borderRadius: '999px',
+                bgcolor: 'secondary.main',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
                 fontSize: '0.6875rem',
                 fontWeight: 600,
-                color: 'common.white',
-                letterSpacing: '0.02em',
+                color: 'text.primary',
               }}
             >
               {getInitials(user?.name)}
             </Box>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '2px' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '1px' }}>
               <Typography
                 sx={{
                   fontSize: '0.8125rem',
-                  fontWeight: 550,
+                  fontWeight: 500,
                   color: 'text.primary',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -266,7 +210,7 @@ export default function Sidebar() {
               <Typography
                 sx={{
                   fontSize: '0.6875rem',
-                  color: 'text.disabled',
+                  color: 'text.secondary',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -277,6 +221,8 @@ export default function Sidebar() {
                 {user?.email ?? ''}
               </Typography>
             </Box>
+
+            <ChevronsUpDown style={{ width: 14, height: 14, flexShrink: 0, color: 'inherit' }} />
           </Box>
         </DropdownMenuTrigger>
 
@@ -288,21 +234,20 @@ export default function Sidebar() {
           style={{ width: 240, padding: 0, overflow: 'hidden', borderRadius: 12 }}
         >
           {/* Profile Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: '14px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', p: '14px' }}>
             <Box
               sx={{
-                width: 36,
-                height: 36,
-                borderRadius: '10px',
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
+                width: 34,
+                height: 34,
+                borderRadius: '999px',
+                bgcolor: 'secondary.main',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                color: 'common.white',
+                color: 'text.primary',
               }}
             >
               {getInitials(user?.name)}
@@ -337,6 +282,7 @@ export default function Sidebar() {
             </Box>
           </Box>
 
+          {/* Divider */}
           <Box sx={{ height: '1px', bgcolor: 'divider' }} />
 
           {/* Menu Items */}
@@ -369,6 +315,7 @@ export default function Sidebar() {
             ))}
           </Box>
 
+          {/* Divider */}
           <Box sx={{ height: '1px', bgcolor: 'divider' }} />
 
           {/* Log Out */}

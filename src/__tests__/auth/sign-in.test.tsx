@@ -10,6 +10,12 @@ vi.mock("@/lib/auth-client", () => ({
   signIn: {
     email: vi.fn(),
   },
+  authClient: {
+    emailOtp: {
+      sendVerificationOtp: vi.fn(),
+      verifyEmail: vi.fn(),
+    },
+  },
 }));
 
 
@@ -26,6 +32,11 @@ describe("SignInPage", () => {
     });
     (useSearchParams as ReturnType<typeof vi.fn>).mockReturnValue({
       get: vi.fn().mockReturnValue(null),
+    });
+    // Mock resolve-redirect API
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: "/test-org/projects/test-project/gantt" }),
     });
   });
 
@@ -65,7 +76,7 @@ describe("SignInPage", () => {
     });
   });
 
-  it("redirects to /dashboard on successful sign-in", async () => {
+  it("resolves redirect URL and navigates on successful sign-in", async () => {
     const user = userEvent.setup();
     mockSignInEmail.mockImplementation(async ({ fetchOptions }) => {
       fetchOptions?.onSuccess?.();
@@ -78,7 +89,8 @@ describe("SignInPage", () => {
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/dashboard");
+      expect(globalThis.fetch).toHaveBeenCalledWith("/api/resolve-redirect");
+      expect(mockReplace).toHaveBeenCalledWith("/test-org/projects/test-project/gantt");
     });
   });
 

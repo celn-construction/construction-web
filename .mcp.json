@@ -3,6 +3,10 @@
     "neon": {
       "command": "npx",
       "args": ["-y", "mcp-remote", "https://mcp.neon.tech/sse?project_id=spring-firefly-05767381"]
+    },
+    "sentry": {
+      "type": "http",
+      "url": "https://mcp.sentry.dev/mcp"
     }
   }
 }

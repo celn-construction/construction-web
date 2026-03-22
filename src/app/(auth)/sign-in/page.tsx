@@ -76,9 +76,9 @@ function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('invite');
-  const callbackUrl = inviteToken
+  const explicitCallback = inviteToken
     ? `/invite/${inviteToken}`
-    : (searchParams.get('callbackUrl') || '/dashboard');
+    : searchParams.get('callbackUrl');
 
   const [step, setStep] = useState<'login' | 'verify-otp'>('login');
   const [email, setEmail] = useState('');
@@ -88,6 +88,21 @@ function SignInForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  const navigateAfterAuth = async () => {
+    if (explicitCallback) {
+      router.replace(explicitCallback);
+      return;
+    }
+    try {
+      const res = await fetch('/api/resolve-redirect');
+      if (!res.ok) throw new Error('resolve-redirect failed');
+      const { url } = (await res.json()) as { url: string };
+      router.replace(url);
+    } catch {
+      router.replace('/onboarding');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +115,7 @@ function SignInForm() {
         password,
         fetchOptions: {
           onSuccess: () => {
-            router.replace(callbackUrl);
+            void navigateAfterAuth();
           },
           onError: async (ctx) => {
             const msg = ctx.error.message || '';
@@ -148,7 +163,7 @@ function SignInForm() {
           password,
           fetchOptions: {
             onSuccess: () => {
-              router.replace(callbackUrl);
+              void navigateAfterAuth();
             },
             onError: (ctx) => {
               setError(ctx.error.message || 'Sign in failed');
