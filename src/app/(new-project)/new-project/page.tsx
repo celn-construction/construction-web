@@ -15,6 +15,19 @@ export default async function NewProjectPage({
     redirect("/sign-in");
   }
 
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerified: true, onboardingComplete: true },
+  });
+
+  if (!user?.emailVerified) {
+    redirect("/verify-email");
+  }
+
+  if (!user?.onboardingComplete) {
+    redirect("/onboarding");
+  }
+
   const { org: orgSlug } = await searchParams;
 
   if (!orgSlug) {
@@ -31,8 +44,8 @@ export default async function NewProjectPage({
     redirect("/onboarding");
   }
 
-  const membership = await db.membership.findFirst({
-    where: { userId: session.user.id, organizationId: org.id },
+  const membership = await db.membership.findUnique({
+    where: { userId_organizationId: { userId: session.user.id, organizationId: org.id } },
     select: { id: true },
   });
 

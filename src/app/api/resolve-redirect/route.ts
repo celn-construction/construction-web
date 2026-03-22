@@ -42,8 +42,8 @@ async function resolveUrl(): Promise<string> {
   let orgId = user?.activeOrganizationId ?? null;
 
   if (orgId) {
-    const membership = await db.membership.findFirst({
-      where: { userId, organizationId: orgId },
+    const membership = await db.membership.findUnique({
+      where: { userId_organizationId: { userId, organizationId: orgId } },
       select: { id: true },
     });
     if (!membership) orgId = null;

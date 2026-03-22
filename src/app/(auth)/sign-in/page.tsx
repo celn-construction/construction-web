@@ -96,6 +96,7 @@ function SignInForm() {
     }
     try {
       const res = await fetch('/api/resolve-redirect');
+      if (!res.ok) throw new Error('resolve-redirect failed');
       const { url } = (await res.json()) as { url: string };
       router.replace(url);
     } catch {
