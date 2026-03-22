@@ -110,12 +110,12 @@ export function OnboardingProgress({
       </Box>
 
       {/* Progress bar */}
-      <Box sx={{ position: 'relative', height: 4, width: '100%', overflow: 'hidden', borderRadius: 1, bgcolor: 'var(--bg-input)' }}>
+      <Box sx={{ position: 'relative', height: 4, width: '100%', overflow: 'hidden', borderRadius: '6px', bgcolor: 'var(--bg-input)' }}>
         <Box
           component={motion.div}
           sx={{
             height: '100%',
-            borderRadius: 1,
+            borderRadius: '6px',
             bgcolor: 'var(--accent-primary)',
           }}
           initial={{ width: 0 }}

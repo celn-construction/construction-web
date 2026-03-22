@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { useDrag } from '@use-gesture/react';
 import { useDropzone } from 'react-dropzone';
 import {
   X,
@@ -18,19 +19,15 @@ import {
   Trash,
   CaretDown,
   CaretRight,
-
-
   CalendarBlank,
   Timer,
-  Tag,
   SquaresFour,
   List,
   ImageSquare,
   DownloadSimple,
   ArrowsOut,
-  MagnifyingGlass,
 } from '@phosphor-icons/react';
-import { Box, Popover, IconButton, Typography, CircularProgress, Divider, Menu, MenuItem, TextField, InputAdornment } from '@mui/material';
+import { Box, Popover, IconButton, Typography, CircularProgress, Divider, Skeleton } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import UploadOverlay from '@/components/ui/UploadOverlay';
@@ -43,7 +40,7 @@ import { useProjectContext } from '@/components/providers/ProjectProvider';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import { formatCsiCode, CSI_DIVISIONS } from '@/lib/constants/csiCodes';
+import CsiCodeSelector from '@/components/bryntum/components/CsiCodeSelector';
 
 const folderIconMap: Record<string, PhosphorIcon> = {
   rfi: Question,
@@ -110,27 +107,29 @@ export function TaskDetailsPopover({
     uploadedBy: { name: string | null } | null;
   } | null>(null);
 
-  const [csiAnchorEl, setCsiAnchorEl] = useState<HTMLElement | null>(null);
-  const [csiSearch, setCsiSearch] = useState('');
+  // ── Drag state ──
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (open) setDragOffset({ x: 0, y: 0 });
+  }, [open]);
+
+  const bindDrag = useDrag(
+    ({ offset: [x, y], dragging }) => {
+      setDragOffset({ x, y });
+      setIsDragging(!!dragging);
+    },
+    {
+      from: () => [dragOffset.x, dragOffset.y],
+      filterTaps: true,
+      pointer: { capture: false },
+    },
+  );
 
   const utils = api.useUtils();
 
-  const updateCsiCode = api.gantt.updateCsiCode.useMutation({
-    onSuccess: () => {
-      void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId: taskId! });
-    },
-    onError: (error) => {
-      showSnackbar(error.message || 'Failed to update CSI code', 'error');
-    },
-  });
-
-  const filteredCsiDivisions = CSI_DIVISIONS.filter((d) => {
-    if (!csiSearch) return true;
-    const q = csiSearch.toLowerCase();
-    return d.code.includes(q) || d.name.toLowerCase().includes(q);
-  });
-
-  const { data: taskDetail } = api.gantt.taskDetail.useQuery(
+  const { data: taskDetail, isLoading: taskDetailLoading } = api.gantt.taskDetail.useQuery(
     { organizationId, projectId, taskId: taskId! },
     { enabled: !!organizationId && !!projectId && !!taskId }
   );
@@ -282,16 +281,15 @@ export function TaskDetailsPopover({
           paper: {
             sx: {
               m: popoverPlacement?.paperMargin ?? '0 0 0 8px',
-              borderRadius: '14px',
+              borderRadius: '12px',
               overflow: 'hidden',
               border: '1px solid',
               borderColor: 'divider',
-              boxShadow: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? '0 24px 64px -12px rgba(0,0,0,0.55), 0 8px 20px -8px rgba(0,0,0,0.3)'
-                  : '0 24px 64px -12px rgba(0,0,0,0.12), 0 8px 20px -8px rgba(0,0,0,0.04)',
+              boxShadow: '0 24px 64px -12px rgba(0,0,0,0.12), 0 8px 20px -8px rgba(0,0,0,0.04)',
               width: previewDoc ? POPOVER_EXPANDED_WIDTH : POPOVER_WIDTH,
-              transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: isDragging ? 'none' : 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              marginLeft: `${dragOffset.x}px`,
+              marginTop: `${dragOffset.y}px`,
             },
           },
         }}
@@ -300,8 +298,42 @@ export function TaskDetailsPopover({
         {/* ── LEFT PANEL ── */}
         <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
 
+          {/* ── DRAG HANDLE BAR ── */}
+          <Box
+            {...bindDrag()}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              py: '5px',
+              cursor: isDragging ? 'grabbing' : 'grab',
+              touchAction: 'none',
+              userSelect: 'none',
+              '&:hover .drag-pill': { opacity: 0.5 },
+            }}
+          >
+            <Box
+              className="drag-pill"
+              sx={{
+                width: 32,
+                height: 3.5,
+                borderRadius: '999px',
+                bgcolor: 'text.primary',
+                opacity: 0.15,
+                transition: 'opacity 0.15s',
+              }}
+            />
+          </Box>
+
           {/* ── HEADER ── */}
-          <Box sx={{ p: '12px 14px', display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          <Box
+            sx={{
+              p: '4px 14px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.25,
+            }}
+          >
             {/* Top row: thumbnail + title + close */}
             <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
               {/* Cover image thumbnail */}
@@ -310,7 +342,7 @@ export function TaskDetailsPopover({
                 sx={{
                   width: 64,
                   height: 64,
-                  borderRadius: '10px',
+                  borderRadius: '12px',
                   overflow: 'hidden',
                   flexShrink: 0,
                   outline: 'none',
@@ -448,69 +480,45 @@ export function TaskDetailsPopover({
                 >
                   {taskName}
                 </Typography>
-                {(metaDateRange || durationLabel) && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                    {metaDateRange && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <CalendarBlank size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
-                          {metaDateRange}
-                        </Typography>
-                      </Box>
-                    )}
-                    {metaDateRange && durationLabel && (
-                      <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled', flexShrink: 0 }} />
-                    )}
-                    {durationLabel && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Timer size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
-                          {durationLabel}
-                        </Typography>
-                      </Box>
-                    )}
+                {taskDetailLoading ? (
+                  <>
+                    <Skeleton variant="text" width={140} height={14} sx={{ borderRadius: '4px' }} />
+                    <Skeleton variant="rounded" width={110} height={20} sx={{ borderRadius: '6px' }} />
+                  </>
+                ) : (
+                  <>
                     {(metaDateRange || durationLabel) && (
-                      <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled', flexShrink: 0 }} />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                        {metaDateRange && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <CalendarBlank size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
+                              {metaDateRange}
+                            </Typography>
+                          </Box>
+                        )}
+                        {metaDateRange && durationLabel && (
+                          <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled', flexShrink: 0 }} />
+                        )}
+                        {durationLabel && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Timer size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
+                              {durationLabel}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
                     )}
-                    <Box
-                      component="button"
-                      onClick={(e) => {
-                        setCsiAnchorEl(e.currentTarget as HTMLElement);
-                        setCsiSearch('');
-                      }}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        border: 'none',
-                        bgcolor: 'transparent',
-                        cursor: 'pointer',
-                        p: 0,
-                        borderRadius: 1,
-                        '&:hover': { bgcolor: 'action.hover' },
-                        px: 0.5,
-                        mx: -0.5,
-                        transition: 'background-color 0.15s',
-                      }}
-                    >
-                      <Tag size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
-                      <Typography
-                        sx={{
-                          fontSize: '0.6875rem',
-                          fontWeight: 500,
-                          color: taskDetail?.csiCode ? 'text.secondary' : 'text.disabled',
-                          lineHeight: 1,
-                          ...(!taskDetail?.csiCode && {
-                            textDecoration: 'underline dashed',
-                            textDecorationColor: 'var(--mui-palette-text-disabled)',
-                            textUnderlineOffset: '2px',
-                          }),
-                        }}
-                      >
-                        {taskDetail?.csiCode ? formatCsiCode(taskDetail.csiCode) : 'Add CSI Code'}
-                      </Typography>
-                    </Box>
-                  </Box>
+                    {taskId && (
+                      <CsiCodeSelector
+                        csiCode={taskDetail?.csiCode}
+                        organizationId={organizationId}
+                        projectId={projectId}
+                        taskId={taskId}
+                      />
+                    )}
+                  </>
                 )}
               </Box>
 
@@ -554,40 +562,45 @@ export function TaskDetailsPopover({
                 >
                   Progress
                 </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '0.625rem',
-                    fontWeight: 700,
-                    color: 'text.primary',
-                    lineHeight: 1,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {Math.round(percentDone)}%
-                </Typography>
+                {taskDetailLoading ? (
+                  <Skeleton variant="text" width={24} height={12} sx={{ borderRadius: '3px' }} />
+                ) : (
+                  <Typography
+                    sx={{
+                      fontSize: '0.625rem',
+                      fontWeight: 700,
+                      color: 'text.primary',
+                      lineHeight: 1,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {Math.round(percentDone)}%
+                  </Typography>
+                )}
               </Box>
+              {taskDetailLoading ? (
+                <Skeleton variant="rounded" width="100%" height={4} sx={{ borderRadius: '999px' }} />
+              ) : (
               <Box
                 sx={{
                   width: '100%',
                   height: 4,
-                  borderRadius: 999,
-                  bgcolor: (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(255,255,255,0.06)'
-                      : 'rgba(0,0,0,0.05)',
+                  borderRadius: '999px',
+                  bgcolor: 'rgba(0,0,0,0.05)',
                   overflow: 'hidden',
                 }}
               >
                 <Box
                   sx={{
                     height: '100%',
-                    borderRadius: 999,
+                    borderRadius: '999px',
                     bgcolor: statusInfo.dotColor,
                     width: `${Math.min(percentDone, 100)}%`,
                     transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                   }}
                 />
               </Box>
+              )}
             </Box>
           </Box>
 
@@ -648,7 +661,6 @@ export function TaskDetailsPopover({
                         userSelect: 'none',
                         '&:hover': {
                           bgcolor: 'action.hover',
-                          '& .folder-upload-btn': { opacity: 1 },
                         },
                         transition: 'background-color 0.15s',
                       }}
@@ -690,11 +702,8 @@ export function TaskDetailsPopover({
                             justifyContent: 'center',
                             minWidth: 18,
                             height: 18,
-                            borderRadius: 999,
-                            bgcolor: (theme) =>
-                              theme.palette.mode === 'dark'
-                                ? 'rgba(255,255,255,0.08)'
-                                : 'rgba(0,0,0,0.05)',
+                            borderRadius: '999px',
+                            bgcolor: 'rgba(0,0,0,0.05)',
                             px: 0.75,
                           }}
                         >
@@ -712,7 +721,6 @@ export function TaskDetailsPopover({
                         </Box>
                       )}
                       <IconButton
-                        className="folder-upload-btn"
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -723,9 +731,8 @@ export function TaskDetailsPopover({
                           width: 22,
                           height: 22,
                           color: 'text.disabled',
-                          opacity: 0,
                           '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
-                          transition: 'opacity 0.15s, color 0.15s',
+                          transition: 'color 0.15s',
                         }}
                         aria-label={`Upload to ${folder.name}`}
                       >
@@ -752,7 +759,7 @@ export function TaskDetailsPopover({
                               alignItems: 'center',
                               gap: '2px',
                               bgcolor: 'action.selected',
-                              borderRadius: 1.5,
+                              borderRadius: '12px',
                               p: '2px',
                             }}
                           >
@@ -765,7 +772,7 @@ export function TaskDetailsPopover({
                                 justifyContent: 'center',
                                 px: 1,
                                 py: 0.5,
-                                borderRadius: 1,
+                                borderRadius: '6px',
                                 border: 'none',
                                 cursor: 'pointer',
                                 bgcolor: photosViewMode === 'grid' ? 'background.paper' : 'transparent',
@@ -786,7 +793,7 @@ export function TaskDetailsPopover({
                                 justifyContent: 'center',
                                 px: 1,
                                 py: 0.5,
-                                borderRadius: 1,
+                                borderRadius: '6px',
                                 border: 'none',
                                 cursor: 'pointer',
                                 bgcolor: photosViewMode === 'list' ? 'background.paper' : 'transparent',
@@ -906,7 +913,7 @@ export function TaskDetailsPopover({
                                   py: '5px',
                                   pr: 1,
                                   pl: '18px',
-                                  borderRadius: 1.5,
+                                  borderRadius: '12px',
                                   cursor: 'pointer',
                                   bgcolor: previewDoc?.id === doc.id ? 'action.selected' : 'transparent',
                                   '&:hover': { bgcolor: 'action.hover' },
@@ -981,7 +988,7 @@ export function TaskDetailsPopover({
                               pb: '5px',
                               pr: 1,
                               pl: '18px',
-                              borderRadius: 1.5,
+                              borderRadius: '12px',
                               cursor: 'pointer',
                               bgcolor: previewDoc?.id === doc.id ? 'action.selected' : 'transparent',
                               '&:hover': { bgcolor: previewDoc?.id === doc.id ? 'action.selected' : 'action.hover' },
@@ -1027,15 +1034,36 @@ export function TaskDetailsPopover({
                       </Box>
                     )}
                     {isOpen && folderDocs.length === 0 && (
-                      <Box sx={{ pl: '36px', py: 0.75 }}>
+                      <Box
+                        onClick={() => setUploadFolder({ id: folder.id, name: folder.name })}
+                        sx={{
+                          ml: '36px',
+                          mr: 0.75,
+                          my: 0.75,
+                          py: 1.5,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 0.5,
+                          border: '1.5px dashed',
+                          borderColor: 'divider',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          transition: 'border-color 0.15s, background-color 0.15s',
+                          '&:hover': {
+                            borderColor: 'primary.main',
+                            bgcolor: 'rgba(0,0,0,0.02)',
+                          },
+                        }}
+                      >
+                        <Plus size={16} color="var(--mui-palette-text-disabled)" />
                         <Typography
                           sx={{
                             fontSize: 11,
                             color: 'text.disabled',
-                                                        fontStyle: 'italic',
                           }}
                         >
-                          No files yet
+                          Drop files or click to upload
                         </Typography>
                       </Box>
                     )}
@@ -1248,103 +1276,6 @@ export function TaskDetailsPopover({
         />
       )}
 
-      {/* CSI Code selector menu */}
-      <Menu
-        anchorEl={csiAnchorEl}
-        open={Boolean(csiAnchorEl)}
-        onClose={() => setCsiAnchorEl(null)}
-        slotProps={{
-          paper: {
-            sx: {
-              maxHeight: 320,
-              width: 340,
-              borderRadius: 2,
-              mt: 0.5,
-            },
-          },
-        }}
-      >
-        <Box sx={{ px: 1.5, py: 1, position: 'sticky', top: 0, bgcolor: 'background.paper', zIndex: 1 }}>
-          <TextField
-            size="small"
-            placeholder="Search divisions…"
-            value={csiSearch}
-            onChange={(e) => setCsiSearch(e.target.value)}
-            autoFocus
-            fullWidth
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <MagnifyingGlass size={14} />
-                  </InputAdornment>
-                ),
-                sx: { fontSize: 13 },
-              },
-            }}
-            onKeyDown={(e) => e.stopPropagation()}
-          />
-        </Box>
-        {taskDetail?.csiCode && (
-          <MenuItem
-            onClick={() => {
-              updateCsiCode.mutate({
-                organizationId,
-                projectId,
-                taskId: taskId!,
-                csiCode: null,
-              });
-              setCsiAnchorEl(null);
-            }}
-            sx={{
-              fontSize: 12,
-                            color: 'error.main',
-              fontStyle: 'italic',
-            }}
-          >
-            Remove CSI Code
-          </MenuItem>
-        )}
-        {filteredCsiDivisions.map((d) => (
-          <MenuItem
-            key={d.code}
-            selected={taskDetail?.csiCode === d.code}
-            onClick={() => {
-              updateCsiCode.mutate({
-                organizationId,
-                projectId,
-                taskId: taskId!,
-                csiCode: d.code,
-              });
-              setCsiAnchorEl(null);
-            }}
-            sx={{
-              fontSize: 12,
-                            gap: 1,
-            }}
-          >
-            <Typography
-              component="span"
-              sx={{
-                fontSize: 12,
-                fontWeight: 600,
-                                color: 'text.secondary',
-                minWidth: 24,
-              }}
-            >
-              {d.code}
-            </Typography>
-            {d.name}
-          </MenuItem>
-        ))}
-        {filteredCsiDivisions.length === 0 && (
-          <Box sx={{ px: 2, py: 1.5 }}>
-            <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
-              No divisions match &ldquo;{csiSearch}&rdquo;
-            </Typography>
-          </Box>
-        )}
-      </Menu>
     </>
   );
 }

@@ -82,7 +82,7 @@ export function StepReview({ formData, updateField }: StepReviewProps) {
             elevation={0}
             sx={{
               overflow: 'hidden',
-              borderRadius: 2,
+              borderRadius: '12px',
               bgcolor: 'var(--bg-input)',
             }}
           >

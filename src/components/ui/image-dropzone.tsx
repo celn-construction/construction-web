@@ -76,7 +76,7 @@ export function ImageDropzone({
             width: '100%',
             height: 128,
             objectFit: 'cover',
-            borderRadius: 2,
+            borderRadius: '12px',
           }}
         />
         <IconButton
@@ -114,7 +114,7 @@ export function ImageDropzone({
         border: 2,
         borderStyle: 'dashed',
         borderColor: isDragActive ? 'primary.main' : 'divider',
-        borderRadius: 2,
+        borderRadius: '12px',
         cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
         bgcolor: isDragActive ? 'action.hover' : 'transparent',
         opacity: disabled || isLoading ? 0.5 : 1,
@@ -144,7 +144,7 @@ export function ImageDropzone({
             alignItems: 'center',
             justifyContent: 'center',
             bgcolor: 'rgba(255, 255, 255, 0.5)',
-            borderRadius: 2,
+            borderRadius: '12px',
           }}
         >
           <CircularProgress size={24} />

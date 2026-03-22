@@ -78,7 +78,7 @@ export default function InviteDialog({
               width: 40,
               height: 40,
               bgcolor: 'action.hover',
-              borderRadius: 2,
+              borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

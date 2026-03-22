@@ -93,7 +93,7 @@ export function FileDropzone({
         p: 3,
         border: 2,
         borderStyle: 'dashed',
-        borderRadius: 2,
+        borderRadius: '12px',
         borderColor: isDragActive ? 'text.secondary' : 'divider',
         cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
         transition: 'all 0.2s',

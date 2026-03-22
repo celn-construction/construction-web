@@ -118,7 +118,7 @@ export default function ProjectTeamPage() {
             sx={{
               border: 1,
               borderColor: 'divider',
-              borderRadius: 2,
+              borderRadius: '12px',
               p: 2,
             }}
           >
@@ -136,7 +136,7 @@ export default function ProjectTeamPage() {
             sx={{
               border: 1,
               borderColor: 'divider',
-              borderRadius: 2,
+              borderRadius: '12px',
               p: 2,
             }}
           >

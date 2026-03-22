@@ -254,7 +254,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               sx={{
                 width: 32,
                 height: 32,
-                borderRadius: '10px',
+                borderRadius: '8px',
                 background: (theme) =>
                   `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
                 display: 'flex',
@@ -315,7 +315,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               sx={{
                 width: 36,
                 height: 36,
-                borderRadius: '10px',
+                borderRadius: '8px',
                 background: (theme) =>
                   `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
                 display: 'flex',

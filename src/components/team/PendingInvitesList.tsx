@@ -55,7 +55,7 @@ export default function PendingInvitesList({
               alignItems: 'center',
               gap: 1.5,
               p: 1.75,
-              borderRadius: 2,
+              borderRadius: '12px',
             }}
           >
             <Skeleton variant="circular" width={44} height={44} />
@@ -97,7 +97,7 @@ export default function PendingInvitesList({
             alignItems: 'center',
             gap: 1.5,
             p: 1.75,
-            borderRadius: 2,
+            borderRadius: '12px',
             transition: 'background-color 0.2s',
             '&:hover': {
               bgcolor: 'action.hover',

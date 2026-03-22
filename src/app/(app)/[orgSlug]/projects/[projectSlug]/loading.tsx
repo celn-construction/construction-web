@@ -11,7 +11,7 @@ export default function ProjectLoading() {
         <Skeleton width={120} height={36} variant="rounded" />
       </Box>
       {/* Main content area */}
-      <Skeleton variant="rectangular" sx={{ flex: 1, borderRadius: 2 }} />
+      <Skeleton variant="rectangular" sx={{ flex: 1, borderRadius: '12px' }} />
     </Box>
   );
 }

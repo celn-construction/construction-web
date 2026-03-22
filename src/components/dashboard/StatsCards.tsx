@@ -10,7 +10,7 @@ export default function StatsCards() {
         elevation={0}
         sx={{
           bgcolor: 'card.background',
-          borderRadius: 6,
+          borderRadius: '12px',
           px: 3,
           py: 2,
           display: 'flex',
@@ -35,7 +35,7 @@ export default function StatsCards() {
         elevation={0}
         sx={{
           bgcolor: 'card.background',
-          borderRadius: 6,
+          borderRadius: '12px',
           px: 3,
           py: 2,
           display: 'flex',
@@ -60,7 +60,7 @@ export default function StatsCards() {
         elevation={0}
         sx={{
           bgcolor: 'card.background',
-          borderRadius: 6,
+          borderRadius: '12px',
           px: 3,
           py: 2,
           display: 'flex',

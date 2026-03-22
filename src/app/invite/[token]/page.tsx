@@ -104,7 +104,7 @@ export default function InvitePage() {
 
   if (error) {
     return pageWrapper(
-      <Paper elevation={1} sx={{ borderRadius: 3, p: 4, textAlign: "center" }}>
+      <Paper elevation={1} sx={{ borderRadius: '16px', p: 4, textAlign: "center" }}>
         <Box
           sx={{
             width: 64,
@@ -131,7 +131,7 @@ export default function InvitePage() {
           component={Link}
           href="/sign-in"
           variant="contained"
-          sx={{ borderRadius: 2 }}
+          sx={{ borderRadius: '12px' }}
         >
           Go to Sign In
         </Button>
@@ -143,7 +143,7 @@ export default function InvitePage() {
 
   if (showSuccess) {
     return pageWrapper(
-      <Paper elevation={1} sx={{ borderRadius: 3, p: 4, textAlign: "center" }}>
+      <Paper elevation={1} sx={{ borderRadius: '16px', p: 4, textAlign: "center" }}>
         <Box
           sx={{
             width: 56,
@@ -170,7 +170,7 @@ export default function InvitePage() {
   }
 
   return pageWrapper(
-    <Paper elevation={1} sx={{ borderRadius: 3, p: 4 }}>
+    <Paper elevation={1} sx={{ borderRadius: '16px', p: 4 }}>
       {/* Header */}
       <Box sx={{ textAlign: "center", mb: 4 }}>
         <Box
@@ -185,7 +185,7 @@ export default function InvitePage() {
               width: 56,
               height: 56,
               bgcolor: "text.primary",
-              borderRadius: 2,
+              borderRadius: '12px',
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -210,7 +210,7 @@ export default function InvitePage() {
         transition={{ duration: 0.4, delay: 0.25 }}
         sx={{
           bgcolor: "action.hover",
-          borderRadius: 2,
+          borderRadius: '12px',
           p: 2.5,
           mb: 3,
           display: "flex",
@@ -223,7 +223,7 @@ export default function InvitePage() {
             width: 48,
             height: 48,
             bgcolor: "text.primary",
-            borderRadius: 1.5,
+            borderRadius: '12px',
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -268,7 +268,7 @@ export default function InvitePage() {
             {acceptError && (
               <Alert
                 severity="error"
-                sx={{ borderRadius: 2, alignItems: "flex-start" }}
+                sx={{ borderRadius: '12px', alignItems: "flex-start" }}
                 action={
                   acceptError === WRONG_EMAIL_MSG ? (
                     <Button
@@ -293,7 +293,7 @@ export default function InvitePage() {
               onClick={handleAccept}
               loading={accepting}
               endIcon={<ArrowRight size={18} />}
-              sx={{ borderRadius: 2, py: 1.5 }}
+              sx={{ borderRadius: '12px', py: 1.5 }}
             >
               {accepting ? "Accepting..." : "Accept Invitation"}
             </Button>
@@ -307,7 +307,7 @@ export default function InvitePage() {
               size="large"
               fullWidth
               endIcon={<ArrowRight size={18} />}
-              sx={{ borderRadius: 2, py: 1.5 }}
+              sx={{ borderRadius: '12px', py: 1.5 }}
             >
               Sign up to join
             </Button>
@@ -317,7 +317,7 @@ export default function InvitePage() {
               variant="outlined"
               size="large"
               fullWidth
-              sx={{ borderRadius: 2, py: 1.5 }}
+              sx={{ borderRadius: '12px', py: 1.5 }}
             >
               Sign in
             </Button>

@@ -33,7 +33,7 @@ export default function ConflictDialog({ open, onProceed, onRefresh }: ConflictD
           sx={{
             width: 40,
             height: 40,
-            borderRadius: '10px',
+            borderRadius: '12px',
             bgcolor: 'warning.light',
             display: 'flex',
             alignItems: 'center',

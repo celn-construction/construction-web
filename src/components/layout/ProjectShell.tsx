@@ -3,16 +3,17 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Box, CircularProgress } from '@mui/material';
+import { Box } from '@mui/material';
 import FilesContent from '@/components/files/FilesContent';
+import GanttLoadingSpinner from '@/components/bryntum/components/GanttLoadingSpinner';
 
 const BryntumGanttWrapper = dynamic(
   () => import('@/components/bryntum/BryntumGanttWrapper'),
   {
     ssr: false,
     loading: () => (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 2 }}>
-        <CircularProgress size={24} />
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <GanttLoadingSpinner />
       </Box>
     ),
   }

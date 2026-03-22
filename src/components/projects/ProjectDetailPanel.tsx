@@ -151,7 +151,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
             sx={{
               mb: 3,
               p: 3,
-              borderRadius: 3,
+              borderRadius: '12px',
               bgcolor: 'background.paper',
               border: '1px solid',
               borderColor: 'divider',
@@ -242,7 +242,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                 alignItems: 'center',
                 px: 1.25,
                 py: 0.25,
-                borderRadius: 1,
+                borderRadius: '6px',
                 bgcolor: 'action.hover',
                 fontSize: '10px',
                 fontWeight: 600,
@@ -279,7 +279,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                 p: 2.5,
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 2,
+                borderRadius: '12px',
                 bgcolor: 'background.paper',
               }}
             >
@@ -307,11 +307,11 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                 value={task.progress}
                 sx={{
                   height: 6,
-                  borderRadius: '3px',
+                  borderRadius: '6px',
                   bgcolor: 'action.hover',
                   '& .MuiLinearProgress-bar': {
                     bgcolor: task.status.color,
-                    borderRadius: '3px',
+                    borderRadius: '6px',
                   },
                 }}
               />
@@ -331,7 +331,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                   p: 2,
                   border: '1px solid',
                   borderColor: 'divider',
-                  borderRadius: 2,
+                  borderRadius: '12px',
                   bgcolor: 'background.paper',
                 }}
               >
@@ -376,7 +376,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                 justifyContent: 'center',
                 width: 44,
                 height: 44,
-                borderRadius: 2,
+                borderRadius: '12px',
                 background: 'linear-gradient(135deg, rgba(245,158,11,0.2) 0%, rgba(245,158,11,0.08) 100%)',
                 border: '1px solid rgba(245,158,11,0.25)',
                 flexShrink: 0,
@@ -406,7 +406,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                 gap: 0.5,
                 px: 1.25,
                 py: 0.4,
-                borderRadius: 1,
+                borderRadius: '6px',
                 bgcolor: 'action.hover',
               }}
             >
@@ -476,7 +476,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                 justifyContent: 'center',
                 width: 38,
                 height: 38,
-                borderRadius: 1.5,
+                borderRadius: '12px',
                 bgcolor: `${iconColor}18`,
                 border: `1px solid ${iconColor}30`,
                 flexShrink: 0,
@@ -560,7 +560,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                   textAlign: 'center',
                   border: '1px solid',
                   borderColor: 'divider',
-                  borderRadius: 2,
+                  borderRadius: '12px',
                   maxWidth: 300,
                   bgcolor: 'background.paper',
                 }}
@@ -569,7 +569,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                   sx={{
                     width: 56,
                     height: 56,
-                    borderRadius: 2,
+                    borderRadius: '12px',
                     bgcolor: `${iconColor}12`,
                     border: `1px solid ${iconColor}25`,
                     display: 'flex',

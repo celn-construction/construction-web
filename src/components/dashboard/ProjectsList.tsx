@@ -33,7 +33,7 @@ export default function ProjectsList() {
       elevation={0}
       sx={{
         bgcolor: 'card.background',
-        borderRadius: 6,
+        borderRadius: '12px',
         p: 3,
       }}
     >
@@ -58,7 +58,7 @@ export default function ProjectsList() {
             width: 40,
             height: 40,
             bgcolor: 'action.hover',
-            borderRadius: 4,
+            borderRadius: '8px',
             '&:hover': {
               bgcolor: 'action.selected',
             },

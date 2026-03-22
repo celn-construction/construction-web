@@ -127,7 +127,7 @@ export function HeroImage({
   ...props
 }: HeroImageProps) {
   return (
-    <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: 2, ...sx }} className={className}>
+    <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: '12px', ...sx }} className={className}>
       <OptimizedImage {...props} fill sx={{ width: '100%', height: '100%' }} />
       {overlay && (
         <Box

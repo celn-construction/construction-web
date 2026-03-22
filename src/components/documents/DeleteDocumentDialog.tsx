@@ -55,7 +55,7 @@ export default function DeleteDocumentDialog({
           sx={{
             width: 40,
             height: 40,
-            borderRadius: '10px',
+            borderRadius: '12px',
             bgcolor: 'docExplorer.destructiveLight',
             display: 'flex',
             alignItems: 'center',
