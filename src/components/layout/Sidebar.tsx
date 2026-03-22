@@ -102,14 +102,12 @@ export default function Sidebar() {
             const Icon = iconMap[item.icon] ?? ChartBar;
             const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
             const isActive = !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
-            const isDisabled = !projectSlug;
 
             return (
               <ListItemButton
                 key={item.id}
-                component={isDisabled ? 'div' : Link}
+                component={Link}
                 href={href}
-                disabled={isDisabled}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -122,15 +120,13 @@ export default function Sidebar() {
                   borderColor: isActive ? 'sidebar.border' : 'transparent',
                   bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
                   color: isActive ? 'text.primary' : 'text.secondary',
-                  opacity: isDisabled ? 0.4 : 1,
-                  cursor: isDisabled ? 'default' : 'pointer',
                   '&:hover': {
-                    bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg'),
-                    color: isDisabled ? 'text.secondary' : 'text.primary',
+                    bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
+                    color: 'text.primary',
                     borderColor: isActive ? 'sidebar.border' : 'transparent',
                   },
                   '&.MuiListItemButton-root:hover': {
-                    bgcolor: isDisabled ? 'transparent' : (isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg'),
+                    bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
                   },
                 }}
               >

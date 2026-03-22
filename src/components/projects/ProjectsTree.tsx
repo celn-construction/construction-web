@@ -1,15 +1,38 @@
 'use client';
 
 import { useState, Fragment, useMemo, useEffect } from 'react';
-import { Folder, FileText, Plus, Calendar } from 'lucide-react';
+import {
+  FolderSimple,
+  FolderOpen,
+  FileText,
+  Plus,
+  CalendarBlank,
+  ArrowsClockwise,
+  Question,
+  PaperPlaneTilt,
+  PencilSimpleLine,
+  Camera,
+  ClipboardText,
+  Hammer,
+  type Icon as PhosphorIcon,
+} from '@phosphor-icons/react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
-import { Box, Chip, IconButton, Typography } from '@mui/material';
+import { Box, Chip, IconButton, Skeleton, Typography } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { api } from '@/trpc/react';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { folderData } from '@/lib/folders';
 
 export { folderData };
+
+const folderIconMap: Record<string, PhosphorIcon> = {
+  rfi: Question,
+  submittals: PaperPlaneTilt,
+  'change-orders': PencilSimpleLine,
+  photos: Camera,
+  inspections: ClipboardText,
+};
 
 export interface Selection {
   type: 'task' | 'folder' | 'document';
@@ -37,10 +60,13 @@ interface FolderNodeProps {
   taskId: string;
   projectId: string | null;
   organizationId: string | undefined;
+  expandedItems: string[];
 }
 
-function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodeProps) {
+function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }: FolderNodeProps) {
+  const theme = useTheme();
   const folderId = `${taskId}-${folder.id}`;
+  const isExpanded = expandedItems.includes(folderId);
   const utils = api.useUtils();
   const [uploadOpen, setUploadOpen] = useState(false);
 
@@ -98,9 +124,12 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
       key={folderId}
       itemId={folderId}
       label={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-          <Folder size={14} style={{ color: '#f59e0b' }} />
-          <Box sx={{ fontWeight: 500, flexGrow: 1 }}>{folder.name}</Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.375 }}>
+          {(() => {
+            const FolderIcon = folderIconMap[folder.id] ?? (isExpanded ? FolderOpen : FolderSimple);
+            return <FolderIcon size={14} color={folder.color} />;
+          })()}
+          <Box sx={{ fontWeight: 500, flexGrow: 1, fontSize: '0.8125rem' }}>{folder.name}</Box>
           {documentCount > 0 && (
             <Chip
               label={documentCount}
@@ -127,7 +156,7 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
               '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
             }}
           >
-            <Plus size={14} />
+            <Plus size={14} weight="bold" />
           </IconButton>
         </Box>
       }
@@ -144,9 +173,9 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
               key={childId}
               itemId={childId}
               label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-                  <FileText size={14} style={{ color: 'inherit', opacity: 0.6 }} />
-                  <Box sx={{ flexGrow: 1 }}>{child.name}</Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.375 }}>
+                  <FileText size={14} style={{ opacity: 0.6 }} />
+                  <Box sx={{ flexGrow: 1, fontSize: '0.8125rem' }}>{child.name}</Box>
                   {childDocCount > 0 && (
                     <Chip
                       label={childDocCount}
@@ -173,7 +202,7 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
                       '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
                     }}
                   >
-                    <Plus size={14} />
+                    <Plus size={14} weight="bold" />
                   </IconButton>
                 </Box>
               }
@@ -183,11 +212,11 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
                   key={`${taskId}-doc-${doc.id}`}
                   itemId={`${taskId}-doc-${doc.id}`}
                   label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.25 }}>
-                      <FileText size={12} style={{ color: '#3b82f6' }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.2 }}>
+                      <FileText size={12} color={theme.palette.status.completed} />
                       <Box sx={{
                         flexGrow: 1,
-                        fontSize: '0.8rem',
+                        fontSize: '0.75rem',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -208,7 +237,7 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
           itemId={`${taskId}-doc-${doc.id}`}
           label={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.25 }}>
-              <FileText size={12} style={{ color: '#3b82f6' }} />
+              <FileText size={12} style={{ color: theme.palette.status.completed }} />
               <Box sx={{
                 flexGrow: 1,
                 fontSize: '0.8rem',
@@ -239,17 +268,25 @@ function FolderNode({ folder, taskId, projectId, organizationId }: FolderNodePro
   );
 }
 
-function deriveStatus(percentDone: number) {
-  if (percentDone >= 100) return { name: 'Completed', color: '#10b981' };
-  if (percentDone > 0) return { name: 'In Progress', color: '#3b82f6' };
-  return { name: 'Planned', color: '#6b7280' };
+function deriveStatus(percentDone: number, theme: import('@mui/material/styles').Theme) {
+  if (percentDone >= 100) return { name: 'Completed', color: theme.palette.success.main };
+  if (percentDone > 0) return { name: 'In Progress', color: theme.palette.status.completed };
+  return { name: 'Planned', color: theme.palette.text.disabled };
 }
 
 export default function ProjectsTree({ selectedNodeId, onSelect, projectId, organizationId }: ProjectsTreeProps) {
-  const { data: tasks = [] } = api.gantt.tasks.useQuery(
+  const theme = useTheme();
+  const utils = api.useUtils();
+  const { data: tasks = [], isLoading, isFetching } = api.gantt.tasks.useQuery(
     { organizationId: organizationId!, projectId: projectId! },
     { enabled: !!projectId && !!organizationId }
   );
+
+  const handleRefresh = () => {
+    if (organizationId && projectId) {
+      void utils.gantt.tasks.invalidate({ organizationId, projectId });
+    }
+  };
 
   // Build grouped structure from database tasks:
   // Top-level tasks (no parentId) = groups, their children = tasks
@@ -262,7 +299,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
       groupedMap[parent.id] = children.map((c) => ({
         id: c.id,
         name: c.name,
-        status: deriveStatus(c.percentDone),
+        status: deriveStatus(c.percentDone, theme),
         progress: Math.round(c.percentDone),
       }));
     }
@@ -364,20 +401,131 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
     onSelect(null);
   };
 
+  const headerBar = (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        px: 2,
+        py: 1,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: '0.8125rem',
+          fontWeight: 600,
+          color: 'text.primary',
+          letterSpacing: '-0.01em',
+        }}
+      >
+        File Tree
+      </Typography>
+      <IconButton
+        size="small"
+        onClick={handleRefresh}
+        disabled={isFetching}
+        aria-label="Refresh file tree"
+        sx={{
+          p: 0.5,
+          color: 'text.secondary',
+          '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
+          ...(isFetching && {
+            '@keyframes spin': {
+              from: { transform: 'rotate(0deg)' },
+              to: { transform: 'rotate(360deg)' },
+            },
+            '& svg': {
+              animation: 'spin 1s linear infinite',
+            },
+          }),
+        }}
+      >
+        <ArrowsClockwise size={14} />
+      </IconButton>
+    </Box>
+  );
+
+  // Skeleton loading state
+  if (isLoading) {
+    // Mimics: 2 groups, first with 2 tasks (first task has 3 folders), second with 2 tasks
+    const rows: Array<{ level: 0 | 1 | 2; width: number; hasCount?: boolean; hasStatus?: boolean }> = [
+      // Group 1
+      { level: 0, width: 140, hasCount: true },
+        // Task 1
+        { level: 1, width: 160, hasStatus: true },
+          // Folders under task 1
+          { level: 2, width: 50 },
+          { level: 2, width: 80 },
+          { level: 2, width: 110 },
+        // Task 2
+        { level: 1, width: 120, hasStatus: true },
+      // Group 2
+      { level: 0, width: 180, hasCount: true },
+        { level: 1, width: 100, hasStatus: true },
+        { level: 1, width: 140, hasStatus: true },
+    ];
+
+    return (
+      <Box sx={{ width: '100%' }}>
+        {headerBar}
+        <Box sx={{ py: 0.5 }}>
+          {rows.map((row, i) => (
+            <Box
+              key={i}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                py: 0.375,
+                px: 1.5,
+                ml: row.level * 2.5,
+              }}
+            >
+              {/* Chevron placeholder */}
+              {row.level < 2 && (
+                <Skeleton variant="circular" width={14} height={14} sx={{ flexShrink: 0 }} />
+              )}
+              {/* Icon placeholder */}
+              <Skeleton variant="rounded" width={14} height={14} sx={{ flexShrink: 0 }} />
+              {/* Name */}
+              <Skeleton variant="rounded" width={row.width} height={12} sx={{ flexShrink: 0 }} />
+              <Box sx={{ flexGrow: 1 }} />
+              {/* Count badge or status */}
+              {row.hasCount && (
+                <Skeleton variant="rounded" width={32} height={12} />
+              )}
+              {row.hasStatus && (
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Skeleton variant="rounded" width={22} height={12} />
+                  <Skeleton variant="rounded" width={44} height={12} />
+                </Box>
+              )}
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    );
+  }
+
   // Empty state when no tasks exist
   if (groups.length === 0) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          p: 4,
-          textAlign: 'center',
-        }}
-      >
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {headerBar}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flex: 1,
+            p: 4,
+            textAlign: 'center',
+          }}
+        >
         <Box
           sx={{
             width: 64,
@@ -390,7 +538,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
             mb: 2,
           }}
         >
-          <Calendar size={32} style={{ color: 'var(--text-disabled)' }} />
+          <CalendarBlank size={32} color="var(--text-disabled)" />
         </Box>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>
           No Tasks Yet
@@ -401,12 +549,14 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
         <Typography variant="caption" sx={{ color: 'text.disabled', maxWidth: 300 }}>
           💡 Tasks you create in the Gantt chart will automatically appear here with folders for documents, photos, and submittals
         </Typography>
+        </Box>
       </Box>
     );
   }
 
   return (
     <Box sx={{ width: '100%' }}>
+      {headerBar}
       <SimpleTreeView
         expandedItems={expandedItems}
         onExpandedItemsChange={(_, items) => setExpandedItems(items)}
@@ -422,10 +572,14 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
               key={groupId}
               itemId={groupId}
               label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-                  <Folder size={16} />
-                  <Box sx={{ fontWeight: 500, flexGrow: 1 }}>{group.name}</Box>
-                  <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.375 }}>
+                  {expandedItems.includes(groupId) && tasks.length > 0 ? (
+                    <FolderOpen size={16} />
+                  ) : (
+                    <FolderSimple size={16} />
+                  )}
+                  <Box sx={{ fontWeight: 500, flexGrow: 1, fontSize: '0.8125rem' }}>{group.name}</Box>
+                  <Box sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
                     {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
                   </Box>
                 </Box>
@@ -439,16 +593,8 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
                     key={taskId}
                     itemId={taskId}
                     label={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5, minWidth: 0 }}>
-                        <Box
-                          sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            bgcolor: task.status.color,
-                            flexShrink: 0,
-                          }}
-                        />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.375, minWidth: 0 }}>
+                        <Hammer size={14} color={task.status.color} style={{ flexShrink: 0 }} />
                         <Box
                           sx={{
                             flexGrow: 1,
@@ -456,6 +602,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
+                            fontSize: '0.8125rem',
                           }}
                         >
                           {task.name}
@@ -465,7 +612,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
                             display: 'flex',
                             alignItems: 'center',
                             gap: 1.5,
-                            fontSize: '0.75rem',
+                            fontSize: '0.6875rem',
                             flexShrink: 0,
                           }}
                         >
@@ -486,6 +633,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
                         taskId={taskId}
                         projectId={activeProjectId}
                         organizationId={activeOrganizationId}
+                        expandedItems={expandedItems}
                       />
                     ))}
                   </TreeItem>

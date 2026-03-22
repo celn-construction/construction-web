@@ -69,6 +69,21 @@
   --gantt-summary-font: #166534;
   --gantt-milestone-bg: rgba(217, 119, 6, 0.70);
   --gantt-milestone-border: rgba(217, 119, 6, 0.40);
+
+  /* Gantt sleek theme tokens */
+  --gantt-header-bg: #f8f8fb;
+  --gantt-header-border: rgba(0, 0, 0, 0.06);
+  --gantt-header-font-color: #8D99AE;
+  --gantt-row-hover-bg: rgba(43, 45, 66, 0.03);
+  --gantt-stripe-bg: rgba(43, 45, 66, 0.015);
+  --gantt-row-border-color: rgba(0, 0, 0, 0.05);
+  --gantt-column-line-color: rgba(0, 0, 0, 0.04);
+  --gantt-task-radius: 6px;
+  --gantt-task-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --gantt-task-backdrop: rgba(255, 255, 255, 0.4);
+  --gantt-splitter-color: rgba(0, 0, 0, 0.06);
+  --gantt-splitter-hover: rgba(43, 45, 66, 0.12);
+  --gantt-container-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .dark {
@@ -120,6 +135,21 @@
   --gantt-summary-font: #bbf7d0;
   --gantt-milestone-bg: rgba(251, 191, 36, 0.75);
   --gantt-milestone-border: rgba(251, 191, 36, 0.40);
+
+  /* Gantt sleek theme tokens */
+  --gantt-header-bg: #1a1a1a;
+  --gantt-header-border: rgba(255, 255, 255, 0.06);
+  --gantt-header-font-color: #B8B9B6;
+  --gantt-row-hover-bg: rgba(255, 255, 255, 0.03);
+  --gantt-stripe-bg: rgba(255, 255, 255, 0.015);
+  --gantt-row-border-color: rgba(255, 255, 255, 0.04);
+  --gantt-column-line-color: rgba(255, 255, 255, 0.03);
+  --gantt-task-radius: 6px;
+  --gantt-task-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --gantt-task-backdrop: rgba(255, 255, 255, 0.06);
+  --gantt-splitter-color: rgba(255, 255, 255, 0.06);
+  --gantt-splitter-hover: rgba(255, 255, 255, 0.12);
+  --gantt-container-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 body {
@@ -194,4 +224,212 @@ body {
 /* Bryntum widget fills its React container */
 .bryntum-gantt-container .b-gantt {
   border: none;
+}
+
+/* ============================================
+   Bryntum Gantt — Sleek Theme Overrides
+   Scoped to .bryntum-gantt-container for specificity
+   ============================================ */
+
+/* Override Bryntum Stockholm theme variables at the container level */
+.bryntum-gantt-container {
+  --b-grid-cell-border-color: var(--gantt-row-border-color);
+  --b-stripe-odd-color: var(--gantt-stripe-bg);
+}
+
+/* ── Grid Lines ──────────────────────────────────────────────── */
+
+/* Horizontal row borders — subtle dashed lines */
+.bryntum-gantt-container .b-grid-row {
+  border-bottom-style: dashed !important;
+  border-bottom-color: var(--gantt-row-border-color) !important;
+}
+
+/* Vertical column lines in timeline — dotted and very faint */
+.bryntum-gantt-container .b-column-line {
+  border-left-style: dotted !important;
+  border-left-color: var(--gantt-column-line-color) !important;
+}
+
+/* Grid cell borders — match the subtle row lines */
+.bryntum-gantt-container .b-grid-cell {
+  border-color: var(--gantt-row-border-color) !important;
+}
+
+/* ── Header Styling ──────────────────────────────────────────── */
+
+/* Timeline header — sleek flat appearance */
+.bryntum-gantt-container .b-grid-header-container {
+  background: var(--gantt-header-bg) !important;
+  border-bottom: 1px solid var(--gantt-header-border) !important;
+}
+
+.bryntum-gantt-container .b-grid-header {
+  background: transparent !important;
+  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--gantt-header-font-color) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+/* Timeline axis header cells */
+.bryntum-gantt-container .b-sch-header-timeaxis-cell {
+  background: transparent !important;
+  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--gantt-header-font-color) !important;
+  letter-spacing: 0.02em !important;
+  border-color: var(--gantt-header-border) !important;
+}
+
+/* Bottom-level time axis headers (day letters, etc.) */
+.bryntum-gantt-container .b-lowest .b-sch-header-timeaxis-cell {
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  color: var(--text-muted) !important;
+}
+
+/* ── Row Styling ─────────────────────────────────────────────── */
+
+/* Alternating stripe — extremely subtle */
+.bryntum-gantt-container .b-grid-row.b-odd {
+  background-color: var(--gantt-stripe-bg) !important;
+}
+
+/* Row hover — subtle highlight */
+.bryntum-gantt-container .b-grid-row:hover,
+.bryntum-gantt-container .b-grid-row.b-hover {
+  background-color: var(--gantt-row-hover-bg) !important;
+}
+
+/* Selected row */
+.bryntum-gantt-container .b-grid-row.b-selected .b-grid-cell {
+  background-color: rgba(43, 45, 66, 0.05) !important;
+}
+.dark .bryntum-gantt-container .b-grid-row.b-selected .b-grid-cell {
+  background-color: rgba(74, 144, 217, 0.08) !important;
+}
+
+/* ── Task Bars ───────────────────────────────────────────────── */
+
+/* Refined with subtle shadow and rounded corners */
+.bryntum-gantt-container .b-gantt-task {
+  border-radius: var(--gantt-task-radius) !important;
+  box-shadow: var(--gantt-task-shadow) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  transition: box-shadow 0.15s ease, transform 0.1s ease !important;
+}
+
+/* Frosted glass gradient overlay */
+.bryntum-gantt-container .b-gantt-task::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: inherit !important;
+  background: linear-gradient(
+    180deg,
+    var(--gantt-task-backdrop) 0%,
+    transparent 60%
+  ) !important;
+  pointer-events: none !important;
+}
+
+/* Task bar hover — slight lift */
+.bryntum-gantt-container .b-gantt-task:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-0.5px) !important;
+}
+
+/* Task bar text — clean font */
+.bryntum-gantt-container .b-gantt-task-content {
+  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Progress bar inside task */
+.bryntum-gantt-container .b-gantt-task-percent {
+  border-radius: var(--gantt-task-radius) 0 0 var(--gantt-task-radius) !important;
+  opacity: 0.85 !important;
+}
+
+/* Parent/summary tasks — slightly tighter radius */
+.bryntum-gantt-container .b-gantt-task.b-gantt-task-parent {
+  border-radius: 4px !important;
+}
+
+/* ── Splitter ────────────────────────────────────────────────── */
+
+.bryntum-gantt-container .b-grid-splitter {
+  background: var(--gantt-splitter-color) !important;
+  width: 1px !important;
+}
+
+.bryntum-gantt-container .b-grid-splitter:hover {
+  background: var(--gantt-splitter-hover) !important;
+  width: 3px !important;
+  cursor: col-resize !important;
+}
+
+/* ── Tree Cells (Left Panel) ─────────────────────────────────── */
+
+.bryntum-gantt-container .b-tree-cell .b-tree-cell-value {
+  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--text-primary) !important;
+}
+
+.bryntum-gantt-container .b-tree-expander {
+  color: var(--text-muted) !important;
+  transition: color 0.15s ease !important;
+}
+
+.bryntum-gantt-container .b-tree-expander:hover {
+  color: var(--text-secondary) !important;
+}
+
+.bryntum-gantt-container .b-grid-cell {
+  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 13px !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── Dependency Lines ────────────────────────────────────────── */
+
+.bryntum-gantt-container .b-sch-dependency {
+  stroke: var(--text-muted) !important;
+  stroke-width: 1px !important;
+  opacity: 0.5 !important;
+  transition: opacity 0.15s ease !important;
+}
+
+.bryntum-gantt-container .b-sch-dependency:hover {
+  opacity: 1 !important;
+  stroke: var(--accent-primary) !important;
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────── */
+
+.bryntum-gantt-container .b-virtual-scroller::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.bryntum-gantt-container .b-virtual-scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bryntum-gantt-container .b-virtual-scroller::-webkit-scrollbar-thumb {
+  background: var(--gantt-row-border-color);
+  border-radius: 3px;
+}
+
+.bryntum-gantt-container .b-virtual-scroller::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }

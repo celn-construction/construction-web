@@ -5,31 +5,37 @@ import { useDropzone } from 'react-dropzone';
 import {
   X,
   FolderSimple,
+  FolderOpen,
+  Question,
+  PaperPlaneTilt,
+  PencilSimpleLine,
+  Camera,
+  ClipboardText,
+  type Icon as PhosphorIcon,
   FileText,
   Plus,
   Image,
   Trash,
-  PencilSimple,
-  DotsThree,
-  ArrowRight,
   CaretDown,
   CaretRight,
-  UploadSimple,
-  TreeStructure,
+
+
   CalendarBlank,
   Timer,
+  Tag,
   SquaresFour,
   List,
   ImageSquare,
   DownloadSimple,
   ArrowsOut,
+  MagnifyingGlass,
 } from '@phosphor-icons/react';
-import { Box, Popover, IconButton, Typography, CircularProgress, Divider } from '@mui/material';
+import { Box, Popover, IconButton, Typography, CircularProgress, Divider, Menu, MenuItem, TextField, InputAdornment } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import UploadOverlay from '@/components/ui/UploadOverlay';
-import FileDropzone from '@/components/ui/FileDropzone';
-import { POPOVER_WIDTH, POPOVER_EXPANDED_WIDTH, ESTIMATED_POPOVER_HEIGHT } from '../constants';
+
+import { POPOVER_WIDTH, POPOVER_EXPANDED_WIDTH } from '../constants';
 import { formatFileSize } from '@/lib/utils/formatting';
 import type { PopoverPlacement } from '../types';
 import { folderData } from '@/lib/folders';
@@ -37,6 +43,15 @@ import { useProjectContext } from '@/components/providers/ProjectProvider';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
+import { formatCsiCode, CSI_DIVISIONS } from '@/lib/constants/csiCodes';
+
+const folderIconMap: Record<string, PhosphorIcon> = {
+  rfi: Question,
+  submittals: PaperPlaneTilt,
+  'change-orders': PencilSimpleLine,
+  photos: Camera,
+  inspections: ClipboardText,
+};
 
 function getStatusInfo(percentDone: number, palette: Theme['palette']) {
   if (percentDone >= 100) {
@@ -95,7 +110,25 @@ export function TaskDetailsPopover({
     uploadedBy: { name: string | null } | null;
   } | null>(null);
 
+  const [csiAnchorEl, setCsiAnchorEl] = useState<HTMLElement | null>(null);
+  const [csiSearch, setCsiSearch] = useState('');
+
   const utils = api.useUtils();
+
+  const updateCsiCode = api.gantt.updateCsiCode.useMutation({
+    onSuccess: () => {
+      void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId: taskId! });
+    },
+    onError: (error) => {
+      showSnackbar(error.message || 'Failed to update CSI code', 'error');
+    },
+  });
+
+  const filteredCsiDivisions = CSI_DIVISIONS.filter((d) => {
+    if (!csiSearch) return true;
+    const q = csiSearch.toLowerCase();
+    return d.code.includes(q) || d.name.toLowerCase().includes(q);
+  });
 
   const { data: taskDetail } = api.gantt.taskDetail.useQuery(
     { organizationId, projectId, taskId: taskId! },
@@ -223,9 +256,6 @@ export function TaskDetailsPopover({
     disabled: coverUploading,
   });
 
-  const badgeText = taskDetail?.group ?? taskName.split(' ')[0] ?? 'Task';
-  const badgeColor = theme.palette.status.badge;
-
   const metaDateRange = [
     taskDetail?.startDate ? formatDate(taskDetail.startDate) : null,
     taskDetail?.endDate ? formatDate(taskDetail.endDate) : null,
@@ -252,242 +282,166 @@ export function TaskDetailsPopover({
           paper: {
             sx: {
               m: popoverPlacement?.paperMargin ?? '0 0 0 8px',
-              borderRadius: 4,
+              borderRadius: '14px',
               overflow: 'hidden',
               border: '1px solid',
               borderColor: 'divider',
-              boxShadow:
-                '0 16px 48px -8px rgba(0,0,0,0.18), 0 4px 12px -4px rgba(0,0,0,0.05)',
+              boxShadow: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? '0 24px 64px -12px rgba(0,0,0,0.55), 0 8px 20px -8px rgba(0,0,0,0.3)'
+                  : '0 24px 64px -12px rgba(0,0,0,0.12), 0 8px 20px -8px rgba(0,0,0,0.04)',
               width: previewDoc ? POPOVER_EXPANDED_WIDTH : POPOVER_WIDTH,
-              minHeight: ESTIMATED_POPOVER_HEIGHT,
-              transition: 'width 0.25s ease',
+              transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             },
           },
         }}
       >
-        <Box sx={{ display: 'flex', minHeight: ESTIMATED_POPOVER_HEIGHT }}>
+        <Box sx={{ display: 'flex' }}>
         {/* ── LEFT PANEL ── */}
-        <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, minHeight: ESTIMATED_POPOVER_HEIGHT, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
 
           {/* ── HEADER ── */}
-          {/* position: relative + explicit height gives all absolutely-positioned
-              children a definite containing block — avoids flex-stretch ambiguity */}
-          <Box sx={{ position: 'relative', height: 180, flexShrink: 0 }}>
-
-            {/* Cover image column (160px) — absolutely positioned, full header height */}
-            <Box
-              {...getRootProps()}
-              sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                bottom: 0,
-                width: 160,
-                overflow: 'hidden',
-                outline: 'none',
-                ...(!coverImageUrl && {
-                  bgcolor: isDragActive ? 'action.selected' : 'action.hover',
+          <Box sx={{ p: '12px 14px', display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+            {/* Top row: thumbnail + title + close */}
+            <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
+              {/* Cover image thumbnail */}
+              <Box
+                {...getRootProps()}
+                sx={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  outline: 'none',
+                  position: 'relative',
+                  bgcolor: isDragActive ? 'action.selected' : 'background.default',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   transition: 'background-color 0.2s',
-                }),
-                '&:hover .cover-actions': { opacity: 1 },
-              }}
-            >
-              <input {...getInputProps()} />
+                  '&:hover .cover-actions': { opacity: 1 },
+                  cursor: coverImageUrl ? 'default' : 'pointer',
+                }}
+              >
+                <input {...getInputProps()} />
 
-              {/* State 1 & 2: Uploading (with or without preview) */}
-              {coverUploading ? (
-                <Box sx={{ position: 'absolute', inset: 0 }}>
+                {coverUploading ? (
                   <UploadOverlay
                     previewUrl={previewUrl}
                     variant={coverDeleting ? 'dark' : previewUrl ? 'dark' : 'light'}
-                    text={coverDeleting ? 'Removing\u2026' : 'Uploading\u2026'}
+                    text={coverDeleting ? 'Removing…' : 'Uploading…'}
                   />
-                </Box>
-              ) : coverImageUrl ? (
-                /* State 3: Existing cover image */
-                <>
-                  {/* Shimmer skeleton shown until image is decoded */}
-                  {!coverImageLoaded && (
+                ) : coverImageUrl ? (
+                  <>
+                    {!coverImageLoaded && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          '@keyframes shimmer': {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                          },
+                          background: 'linear-gradient(90deg, var(--mui-palette-background-default) 25%, var(--mui-palette-divider) 50%, var(--mui-palette-background-default) 75%)',
+                          backgroundSize: '200% 100%',
+                          animation: 'shimmer 1.8s ease-in-out infinite',
+                        }}
+                      >
+                        <ImageSquare size={18} color="var(--mui-palette-text-disabled)" />
+                      </Box>
+                    )}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={coverImageUrl}
+                      alt="Task cover"
+                      onLoad={() => setCoverImageLoaded(true)}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
                     <Box
+                      className="cover-actions"
                       sx={{
                         position: 'absolute',
                         inset: 0,
+                        bgcolor: 'rgba(0,0,0,0.45)',
+                        backdropFilter: 'blur(2px)',
                         display: 'flex',
-                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: 0.5,
-                        '@keyframes shimmer': {
-                          '0%': { backgroundPosition: '-200% 0' },
-                          '100%': { backgroundPosition: '200% 0' },
-                        },
-                        background: 'linear-gradient(90deg, var(--mui-palette-background-default) 25%, var(--mui-palette-divider) 50%, var(--mui-palette-background-default) 75%)',
-                        backgroundSize: '200% 100%',
-                        animation: 'shimmer 1.8s ease-in-out infinite',
-                        zIndex: 1,
+                        opacity: 0,
+                        transition: 'opacity 0.2s',
                       }}
                     >
-                      <ImageSquare size={24} color="var(--mui-palette-text-disabled)" />
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openFilePicker();
+                        }}
+                        sx={{
+                          color: 'white',
+                          width: 24,
+                          height: 24,
+                          bgcolor: 'rgba(255,255,255,0.12)',
+                          borderRadius: '6px',
+                          '&:hover': { bgcolor: 'rgba(255,255,255,0.22)' },
+                        }}
+                        aria-label="Change cover image"
+                      >
+                        <Image size={12} />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleCoverRemove();
+                        }}
+                        sx={{
+                          color: 'white',
+                          width: 24,
+                          height: 24,
+                          bgcolor: 'rgba(255,255,255,0.12)',
+                          borderRadius: '6px',
+                          '&:hover': { bgcolor: 'rgba(220,38,38,0.5)' },
+                        }}
+                        aria-label="Remove cover image"
+                      >
+                        <Trash size={12} />
+                      </IconButton>
                     </Box>
-                  )}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={coverImageUrl}
-                    alt="Task cover"
-                    onLoad={() => setCoverImageLoaded(true)}
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
+                  </>
+                ) : (
+                  <Box
+                    sx={{
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover',
-                      objectPosition: 'center',
-                      display: 'block',
-                    }}
-                  />
-                  <Box
-                    className="cover-actions"
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      bgcolor: 'rgba(0,0,0,0.4)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 1,
-                      opacity: 0,
-                      transition: 'opacity 0.2s',
+                      color: isDragActive ? 'text.secondary' : 'text.disabled',
                     }}
                   >
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openFilePicker();
-                      }}
-                      sx={{
-                        color: 'white',
-                        bgcolor: 'rgba(255,255,255,0.15)',
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
-                      }}
-                      aria-label="Change cover image"
-                    >
-                      <Image size={14} />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handleCoverRemove();
-                      }}
-                      sx={{
-                        color: 'white',
-                        bgcolor: 'rgba(255,255,255,0.15)',
-                        '&:hover': { bgcolor: 'rgba(220,38,38,0.6)' },
-                      }}
-                      aria-label="Remove cover image"
-                    >
-                      <Trash size={14} />
-                    </IconButton>
+                    <Image size={18} />
                   </Box>
-                </>
-              ) : (
-                /* State 4: Empty — dropzone with drag-active feedback */
-                <FileDropzone
-                  isDragActive={isDragActive}
-                  icon={<Image size={20} />}
-                  primaryText={isDragActive ? 'Drop image' : 'Add cover'}
-                  sx={{
-                    cursor: 'pointer',
-                    color: isDragActive ? 'text.secondary' : 'text.disabled',
-                    transition: 'color 0.2s',
-                    border: isDragActive ? '2px dashed' : '2px dashed transparent',
-                    borderColor: isDragActive ? 'text.disabled' : 'transparent',
-                  }}
-                />
-              )}
-            </Box>
-
-            {/* Right content column — absolutely positioned right of the cover image */}
-            <Box
-              sx={{
-                position: 'absolute',
-                top: 0,
-                left: 160,
-                right: 0,
-                bottom: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                p: '14px 20px 14px 16px',
-                gap: 1,
-                overflow: 'hidden',
-              }}
-            >
-              {/* Top row: badge + close */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 1,
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-                  <Box
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      bgcolor: badgeColor,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <Typography
-                    noWrap
-                    sx={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: badgeColor,
-                      fontFamily: 'Inter, sans-serif',
-                    }}
-                  >
-                    {badgeText}
-                  </Typography>
-                </Box>
-                <Box
-                  component="button"
-                  onClick={handleClose}
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '8px',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    bgcolor: 'transparent',
-                    cursor: 'pointer',
-                    color: 'text.secondary',
-                    flexShrink: 0,
-                    '&:hover': { bgcolor: 'action.hover' },
-                    transition: 'background-color 0.15s',
-                  }}
-                  aria-label="Close"
-                >
-                  <X size={14} />
-                </Box>
+                )}
               </Box>
 
-              {/* Title section */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {/* Title + metadata */}
+              <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 <Typography
                   sx={{
-                    fontWeight: 700,
-                    fontSize: '1.125rem',
-                    lineHeight: 1.3,
-                    fontFamily: 'Inter, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '0.9375rem',
+                    lineHeight: 1.2,
+                    letterSpacing: '-0.01em',
                     color: 'text.primary',
                     wordBreak: 'break-word',
                   }}
@@ -495,153 +449,158 @@ export function TaskDetailsPopover({
                   {taskName}
                 </Typography>
                 {(metaDateRange || durationLabel) && (
-                  <Box
-                    sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}
-                  >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                     {metaDateRange && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <CalendarBlank
-                          size={12}
-                          color="var(--mui-palette-text-secondary)"
-                          style={{ flexShrink: 0 }}
-                        />
-                        <Typography
-                          sx={{
-                            fontSize: 11,
-                            fontWeight: 500,
-                            color: 'text.secondary',
-                            fontFamily: 'Inter, sans-serif',
-                          }}
-                        >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CalendarBlank size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
                           {metaDateRange}
                         </Typography>
                       </Box>
                     )}
+                    {metaDateRange && durationLabel && (
+                      <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled', flexShrink: 0 }} />
+                    )}
                     {durationLabel && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <Timer
-                          size={12}
-                          color="var(--mui-palette-text-secondary)"
-                          style={{ flexShrink: 0 }}
-                        />
-                        <Typography
-                          sx={{
-                            fontSize: 11,
-                            fontWeight: 500,
-                            color: 'text.secondary',
-                            fontFamily: 'Inter, sans-serif',
-                          }}
-                        >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Timer size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
                           {durationLabel}
                         </Typography>
                       </Box>
                     )}
+                    {(metaDateRange || durationLabel) && (
+                      <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled', flexShrink: 0 }} />
+                    )}
+                    <Box
+                      component="button"
+                      onClick={(e) => {
+                        setCsiAnchorEl(e.currentTarget as HTMLElement);
+                        setCsiSearch('');
+                      }}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        border: 'none',
+                        bgcolor: 'transparent',
+                        cursor: 'pointer',
+                        p: 0,
+                        borderRadius: 1,
+                        '&:hover': { bgcolor: 'action.hover' },
+                        px: 0.5,
+                        mx: -0.5,
+                        transition: 'background-color 0.15s',
+                      }}
+                    >
+                      <Tag size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                      <Typography
+                        sx={{
+                          fontSize: '0.6875rem',
+                          fontWeight: 500,
+                          color: taskDetail?.csiCode ? 'text.secondary' : 'text.disabled',
+                          lineHeight: 1,
+                          ...(!taskDetail?.csiCode && {
+                            textDecoration: 'underline dashed',
+                            textDecorationColor: 'var(--mui-palette-text-disabled)',
+                            textUnderlineOffset: '2px',
+                          }),
+                        }}
+                      >
+                        {taskDetail?.csiCode ? formatCsiCode(taskDetail.csiCode) : 'Add CSI Code'}
+                      </Typography>
+                    </Box>
                   </Box>
                 )}
               </Box>
 
-              {/* Status chip + progress */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {/* Status chip */}
-                <Box
+              {/* Close button */}
+              <Box
+                component="button"
+                onClick={handleClose}
+                sx={{
+                  width: 26,
+                  height: 26,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  border: 'none',
+                  bgcolor: 'transparent',
+                  cursor: 'pointer',
+                  color: 'text.secondary',
+                  flexShrink: 0,
+                  '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                  transition: 'background-color 0.15s, color 0.15s',
+                }}
+                aria-label="Close"
+              >
+                <X size={13} />
+              </Box>
+            </Box>
+
+            {/* Progress bar */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography
                   sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    px: 1.25,
-                    py: 0.5,
-                    borderRadius: 999,
-                    bgcolor: statusInfo.chipBg,
-                    width: 'fit-content',
+                    fontSize: '0.5625rem',
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    lineHeight: 1,
                   }}
                 >
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      bgcolor: statusInfo.dotColor,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <Typography
-                    sx={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: statusInfo.chipColor,
-                      fontFamily: 'Inter, sans-serif',
-                      lineHeight: 1,
-                    }}
-                  >
-                    {statusInfo.label}
-                  </Typography>
-                </Box>
-
-                {/* Progress bar */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontSize: 11,
-                        color: 'text.secondary',
-                        fontFamily: 'Inter, sans-serif',
-                      }}
-                    >
-                      Progress
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: 'text.primary',
-                        fontFamily: 'Inter, sans-serif',
-                      }}
-                    >
-                      {Math.round(percentDone)}%
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: 5,
-                      borderRadius: 999,
-                      bgcolor: 'action.selected',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        height: '100%',
-                        borderRadius: 999,
-                        bgcolor: statusInfo.dotColor,
-                        width: `${Math.min(percentDone, 100)}%`,
-                        transition: 'width 0.3s ease',
-                      }}
-                    />
-                  </Box>
-                </Box>
+                  Progress
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    color: 'text.primary',
+                    lineHeight: 1,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {Math.round(percentDone)}%
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: '100%',
+                  height: 4,
+                  borderRadius: 999,
+                  bgcolor: (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(255,255,255,0.06)'
+                      : 'rgba(0,0,0,0.05)',
+                  overflow: 'hidden',
+                }}
+              >
+                <Box
+                  sx={{
+                    height: '100%',
+                    borderRadius: 999,
+                    bgcolor: statusInfo.dotColor,
+                    width: `${Math.min(percentDone, 100)}%`,
+                    transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                />
               </Box>
             </Box>
           </Box>
 
           {/* ── DIVIDER ── */}
-          <Divider />
+          <Divider sx={{ mx: 2 }} />
 
           {/* ── DOCUMENTS SECTION ── */}
           <Box
             sx={{
-              p: '16px 24px 20px 24px',
+              p: '12px 16px 14px 16px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 1.25,
-              flex: 1,
-              minHeight: 200,
+              gap: 1,
             }}
           >
             {/* Section header */}
@@ -652,54 +611,19 @@ export function TaskDetailsPopover({
                 justifyContent: 'space-between',
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TreeStructure size={16} color="var(--mui-palette-text-secondary)" />
-                <Typography
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: 'text.primary',
-                    fontFamily: 'Inter, sans-serif',
-                  }}
-                >
-                  Files
-                </Typography>
-              </Box>
-              <Box
-                component="button"
-                onClick={() => {
-                  const first = folderData[0];
-                  if (first) setUploadFolder({ id: first.id, name: first.name });
-                }}
+              <Typography
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  border: 'none',
-                  bgcolor: 'text.primary',
-                  color: 'background.paper',
-                  cursor: 'pointer',
-                  borderRadius: 999,
-                  px: 1.5,
-                  py: '5px',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
-                  '&:hover': { opacity: 0.85 },
-                  transition: 'opacity 0.15s',
+                  fontSize: '0.5625rem',
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  userSelect: 'none',
+                  lineHeight: 1,
                 }}
               >
-                <UploadSimple size={12} />
-                <Typography
-                  sx={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: 'inherit',
-                    fontFamily: 'Inter, sans-serif',
-                    letterSpacing: 0.3,
-                  }}
-                >
-                  Upload
-                </Typography>
-              </Box>
+                Files
+              </Typography>
             </Box>
 
             {/* Folder tree */}
@@ -716,13 +640,16 @@ export function TaskDetailsPopover({
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 1,
-                        px: 1,
-                        py: 1,
-                        borderRadius: 2,
+                        gap: 0.75,
+                        px: 0.75,
+                        py: 0.625,
+                        borderRadius: '8px',
                         cursor: 'pointer',
                         userSelect: 'none',
-                        '&:hover': { bgcolor: 'action.hover' },
+                        '&:hover': {
+                          bgcolor: 'action.hover',
+                          '& .folder-upload-btn': { opacity: 1 },
+                        },
                         transition: 'background-color 0.15s',
                       }}
                       onClick={() => toggleFolder(folder.id)}
@@ -740,18 +667,17 @@ export function TaskDetailsPopover({
                           style={{ flexShrink: 0 }}
                         />
                       )}
-                      <FolderSimple
-                        size={16}
-                        color={folder.color}
-                        style={{ flexShrink: 0 }}
-                      />
+                      {(() => {
+                        const FolderIcon = folderIconMap[folder.id] ?? (isOpen ? FolderOpen : FolderSimple);
+                        return <FolderIcon size={14} color={folder.color} style={{ flexShrink: 0 }} />;
+                      })()}
                       <Typography
                         sx={{
-                          fontSize: 13,
-                          fontWeight: isOpen ? 600 : 500,
+                          fontSize: '0.8125rem',
+                          fontWeight: isOpen ? 600 : 450,
                           flex: 1,
                           color: 'text.primary',
-                          fontFamily: 'Inter, sans-serif',
+                          lineHeight: 1,
                         }}
                       >
                         {folder.name}
@@ -762,20 +688,23 @@ export function TaskDetailsPopover({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            minWidth: 20,
-                            height: 20,
+                            minWidth: 18,
+                            height: 18,
                             borderRadius: 999,
-                            bgcolor: 'action.selected',
-                            px: 1,
+                            bgcolor: (theme) =>
+                              theme.palette.mode === 'dark'
+                                ? 'rgba(255,255,255,0.08)'
+                                : 'rgba(0,0,0,0.05)',
+                            px: 0.75,
                           }}
                         >
                           <Typography
                             sx={{
-                              fontSize: 11,
+                              fontSize: '0.625rem',
                               fontWeight: 600,
                               color: 'text.secondary',
-                              fontFamily: 'Inter, sans-serif',
                               lineHeight: 1,
+                              fontVariantNumeric: 'tabular-nums',
                             }}
                           >
                             {count}
@@ -783,6 +712,7 @@ export function TaskDetailsPopover({
                         </Box>
                       )}
                       <IconButton
+                        className="folder-upload-btn"
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -790,10 +720,12 @@ export function TaskDetailsPopover({
                         }}
                         sx={{
                           p: 0.5,
-                          width: 24,
-                          height: 24,
+                          width: 22,
+                          height: 22,
                           color: 'text.disabled',
+                          opacity: 0,
                           '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
+                          transition: 'opacity 0.15s, color 0.15s',
                         }}
                         aria-label={`Upload to ${folder.name}`}
                       >
@@ -874,8 +806,7 @@ export function TaskDetailsPopover({
                                 fontSize: 11,
                                 fontWeight: 500,
                                 color: 'text.secondary',
-                                fontFamily: 'Inter, sans-serif',
-                              }}
+                                                              }}
                             >
                               {new Date(folderDocs[0].createdAt as string | Date).toLocaleDateString(
                                 'en-US',
@@ -910,15 +841,18 @@ export function TaskDetailsPopover({
                                   })
                                 }
                                 sx={{
-                                  height: 85,
-                                  borderRadius: 1.5,
+                                  height: 70,
+                                  borderRadius: '8px',
                                   overflow: 'hidden',
                                   cursor: 'pointer',
                                   bgcolor: 'action.hover',
-                                  border: previewDoc?.id === doc.id ? '2px solid' : '2px solid transparent',
+                                  border: '2px solid',
                                   borderColor: previewDoc?.id === doc.id ? 'primary.main' : 'transparent',
-                                  transition: 'border-color 0.15s',
-                                  '&:hover': { opacity: 0.85 },
+                                  transition: 'border-color 0.15s, transform 0.15s',
+                                  '&:hover': {
+                                    transform: 'scale(1.02)',
+                                    borderColor: previewDoc?.id === doc.id ? 'primary.main' : 'divider',
+                                  },
                                 }}
                               >
                                 {doc.mimeType.startsWith('image/') ? (
@@ -969,7 +903,7 @@ export function TaskDetailsPopover({
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 1,
-                                  py: '7px',
+                                  py: '5px',
                                   pr: 1,
                                   pl: '18px',
                                   borderRadius: 1.5,
@@ -991,8 +925,7 @@ export function TaskDetailsPopover({
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
-                                    fontFamily: 'Inter, sans-serif',
-                                  }}
+                                                                      }}
                                 >
                                   {doc.name}
                                 </Typography>
@@ -1001,8 +934,7 @@ export function TaskDetailsPopover({
                                     sx={{
                                       fontSize: 11,
                                       color: 'text.secondary',
-                                      fontFamily: 'Inter, sans-serif',
-                                      flexShrink: 0,
+                                                                            flexShrink: 0,
                                       opacity: 0.7,
                                     }}
                                   >
@@ -1045,8 +977,8 @@ export function TaskDetailsPopover({
                               display: 'flex',
                               alignItems: 'center',
                               gap: 1,
-                              pt: '7px',
-                              pb: '7px',
+                              pt: '5px',
+                              pb: '5px',
                               pr: 1,
                               pl: '18px',
                               borderRadius: 1.5,
@@ -1071,8 +1003,7 @@ export function TaskDetailsPopover({
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
-                                fontFamily: 'Inter, sans-serif',
-                              }}
+                                                              }}
                             >
                               {doc.name}
                             </Typography>
@@ -1081,8 +1012,7 @@ export function TaskDetailsPopover({
                                 sx={{
                                   fontSize: 11,
                                   color: 'text.secondary',
-                                  fontFamily: 'Inter, sans-serif',
-                                  flexShrink: 0,
+                                                                    flexShrink: 0,
                                   opacity: 0.7,
                                 }}
                               >
@@ -1102,8 +1032,7 @@ export function TaskDetailsPopover({
                           sx={{
                             fontSize: 11,
                             color: 'text.disabled',
-                            fontFamily: 'Inter, sans-serif',
-                            fontStyle: 'italic',
+                                                        fontStyle: 'italic',
                           }}
                         >
                           No files yet
@@ -1116,93 +1045,6 @@ export function TaskDetailsPopover({
             </Box>
           </Box>
 
-          {/* ── DIVIDER ── */}
-          <Divider />
-
-          {/* ── FOOTER ── */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              px: 3,
-              py: 1.75,
-            }}
-          >
-            {/* Left: Edit Task + More */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <Box
-                component="button"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.75,
-                  px: 1.75,
-                  height: 34,
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'text.primary',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: 12,
-                  fontWeight: 500,
-                  '&:hover': { bgcolor: 'action.hover' },
-                  transition: 'background-color 0.15s',
-                }}
-              >
-                <PencilSimple size={13} />
-                Edit Task
-              </Box>
-              <Box
-                component="button"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 34,
-                  height: 34,
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'text.secondary',
-                  '&:hover': { bgcolor: 'action.hover' },
-                  transition: 'background-color 0.15s',
-                }}
-                aria-label="More options"
-              >
-                <DotsThree size={14} />
-              </Box>
-            </Box>
-
-            {/* Right: Open Details */}
-            <Box
-              component="button"
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.75,
-                px: 2.25,
-                height: 34,
-                borderRadius: 2,
-                border: 'none',
-                bgcolor: 'text.primary',
-                cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'background.paper',
-                '&:hover': { opacity: 0.88 },
-                transition: 'opacity 0.15s',
-              }}
-            >
-              Open Details
-              <ArrowRight size={13} />
-            </Box>
-          </Box>
         </Box>
         {/* ── END LEFT PANEL ── */}
 
@@ -1217,9 +1059,9 @@ export function TaskDetailsPopover({
                 flexDirection: 'column',
                 bgcolor: 'background.paper',
                 minWidth: 0,
-                animation: 'slideInRight 0.22s ease',
+                animation: 'slideInRight 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 '@keyframes slideInRight': {
-                  from: { opacity: 0, transform: 'translateX(16px)' },
+                  from: { opacity: 0, transform: 'translateX(12px)' },
                   to: { opacity: 1, transform: 'translateX(0)' },
                 },
               }}
@@ -1254,8 +1096,7 @@ export function TaskDetailsPopover({
                       fontSize: 13,
                       fontWeight: 600,
                       color: 'text.primary',
-                      fontFamily: 'Inter, sans-serif',
-                    }}
+                                          }}
                   >
                     {previewDoc.name}
                   </Typography>
@@ -1265,19 +1106,18 @@ export function TaskDetailsPopover({
                     component="button"
                     onClick={() => window.open(previewDoc.blobUrl, '_blank')}
                     sx={{
-                      width: 30,
-                      height: 30,
+                      width: 28,
+                      height: 28,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderRadius: 1.5,
-                      border: '1px solid',
-                      borderColor: 'divider',
+                      borderRadius: '6px',
+                      border: 'none',
                       bgcolor: 'transparent',
                       cursor: 'pointer',
-                      color: 'text.secondary',
-                      '&:hover': { bgcolor: 'action.hover' },
-                      transition: 'background-color 0.15s',
+                      color: 'text.disabled',
+                      '&:hover': { bgcolor: 'action.hover', color: 'text.secondary' },
+                      transition: 'background-color 0.15s, color 0.15s',
                     }}
                     aria-label="Download"
                   >
@@ -1287,19 +1127,18 @@ export function TaskDetailsPopover({
                     component="button"
                     onClick={() => window.open(previewDoc.blobUrl, '_blank')}
                     sx={{
-                      width: 30,
-                      height: 30,
+                      width: 28,
+                      height: 28,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderRadius: 1.5,
-                      border: '1px solid',
-                      borderColor: 'divider',
+                      borderRadius: '6px',
+                      border: 'none',
                       bgcolor: 'transparent',
                       cursor: 'pointer',
-                      color: 'text.secondary',
-                      '&:hover': { bgcolor: 'action.hover' },
-                      transition: 'background-color 0.15s',
+                      color: 'text.disabled',
+                      '&:hover': { bgcolor: 'action.hover', color: 'text.secondary' },
+                      transition: 'background-color 0.15s, color 0.15s',
                     }}
                     aria-label="Expand"
                   >
@@ -1315,7 +1154,7 @@ export function TaskDetailsPopover({
                 sx={{
                   flex: 1,
                   overflow: 'hidden',
-                  bgcolor: 'action.hover',
+                  bgcolor: 'background.default',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1348,42 +1187,42 @@ export function TaskDetailsPopover({
                 sx={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '10px',
+                  gap: 0,
                   px: '20px',
-                  py: '14px',
+                  py: '12px',
                 }}
               >
                 {previewDoc.uploadedBy?.name && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: '8px', borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+                    <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1 }}>
                       Uploaded by
                     </Typography>
-                    <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                    <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1 }}>
                       {previewDoc.uploadedBy.name}
                     </Typography>
                   </Box>
                 )}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: '8px', borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+                  <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1 }}>
                     Date
                   </Typography>
-                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                  <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1 }}>
                     {new Date(previewDoc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: '8px', borderBottom: '1px solid', borderBottomColor: 'divider' }}>
+                  <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1 }}>
                     Size
                   </Typography>
-                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                  <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1 }}>
                     {formatFileSize(previewDoc.size)}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: '8px' }}>
+                  <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1 }}>
                     Type
                   </Typography>
-                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.primary', fontFamily: 'Inter, sans-serif' }}>
+                  <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1 }}>
                     {previewDoc.mimeType.split('/')[1]?.toUpperCase() ?? previewDoc.mimeType}
                   </Typography>
                 </Box>
@@ -1408,6 +1247,104 @@ export function TaskDetailsPopover({
           onUploadComplete={handleUploadComplete}
         />
       )}
+
+      {/* CSI Code selector menu */}
+      <Menu
+        anchorEl={csiAnchorEl}
+        open={Boolean(csiAnchorEl)}
+        onClose={() => setCsiAnchorEl(null)}
+        slotProps={{
+          paper: {
+            sx: {
+              maxHeight: 320,
+              width: 340,
+              borderRadius: 2,
+              mt: 0.5,
+            },
+          },
+        }}
+      >
+        <Box sx={{ px: 1.5, py: 1, position: 'sticky', top: 0, bgcolor: 'background.paper', zIndex: 1 }}>
+          <TextField
+            size="small"
+            placeholder="Search divisions…"
+            value={csiSearch}
+            onChange={(e) => setCsiSearch(e.target.value)}
+            autoFocus
+            fullWidth
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <MagnifyingGlass size={14} />
+                  </InputAdornment>
+                ),
+                sx: { fontSize: 13 },
+              },
+            }}
+            onKeyDown={(e) => e.stopPropagation()}
+          />
+        </Box>
+        {taskDetail?.csiCode && (
+          <MenuItem
+            onClick={() => {
+              updateCsiCode.mutate({
+                organizationId,
+                projectId,
+                taskId: taskId!,
+                csiCode: null,
+              });
+              setCsiAnchorEl(null);
+            }}
+            sx={{
+              fontSize: 12,
+                            color: 'error.main',
+              fontStyle: 'italic',
+            }}
+          >
+            Remove CSI Code
+          </MenuItem>
+        )}
+        {filteredCsiDivisions.map((d) => (
+          <MenuItem
+            key={d.code}
+            selected={taskDetail?.csiCode === d.code}
+            onClick={() => {
+              updateCsiCode.mutate({
+                organizationId,
+                projectId,
+                taskId: taskId!,
+                csiCode: d.code,
+              });
+              setCsiAnchorEl(null);
+            }}
+            sx={{
+              fontSize: 12,
+                            gap: 1,
+            }}
+          >
+            <Typography
+              component="span"
+              sx={{
+                fontSize: 12,
+                fontWeight: 600,
+                                color: 'text.secondary',
+                minWidth: 24,
+              }}
+            >
+              {d.code}
+            </Typography>
+            {d.name}
+          </MenuItem>
+        ))}
+        {filteredCsiDivisions.length === 0 && (
+          <Box sx={{ px: 2, py: 1.5 }}>
+            <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
+              No divisions match &ldquo;{csiSearch}&rdquo;
+            </Typography>
+          </Box>
+        )}
+      </Menu>
     </>
   );
 }

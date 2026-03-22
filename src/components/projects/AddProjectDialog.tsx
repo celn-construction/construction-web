@@ -2,21 +2,21 @@
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus } from 'lucide-react';
+import { Building2, ArrowRight } from 'lucide-react';
 import { api } from '@/trpc/react';
 import { useRouter } from 'next/navigation';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import {
   Box,
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  Button,
-  CircularProgress,
   Typography,
+  alpha,
+  useTheme,
 } from '@mui/material';
+import { Button } from '@/components/ui/button';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import {
   createProjectSchema,
@@ -34,11 +34,11 @@ export default function AddProjectDialog({
 }: AddProjectDialogProps) {
   const utils = api.useUtils();
   const router = useRouter();
+  const theme = useTheme();
   const { showSnackbar } = useSnackbar();
 
   const { orgSlug, activeOrganizationId } = useOrgFromUrl();
 
-  // Initialize form with react-hook-form + zod
   const {
     control,
     handleSubmit,
@@ -59,7 +59,6 @@ export default function AddProjectDialog({
       void utils.project.getActive.invalidate();
       reset();
       onOpenChange(false);
-      // Navigate to the new project's Gantt page
       router.push(`/${orgSlug}/projects/${newProject.slug}/gantt`);
     },
     onError: (error) => {
@@ -75,75 +74,187 @@ export default function AddProjectDialog({
   };
 
   return (
-    <Dialog open={open} onClose={() => onOpenChange(false)} maxWidth="sm" fullWidth>
-      <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+    <Dialog
+      open={open}
+      onClose={() => onOpenChange(false)}
+      maxWidth={false}
+      PaperProps={{
+        sx: {
+          width: 440,
+          borderRadius: '16px',
+          overflow: 'hidden',
+          boxShadow: `0 24px 64px -16px ${alpha('#000', 0.2)}, 0 8px 20px -8px ${alpha('#000', 0.08)}`,
+        },
+      }}
+    >
+      {/* Header accent bar */}
+      <Box
+        sx={{
+          height: 3,
+          background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${alpha(theme.palette.primary.main, 0.3)})`,
+        }}
+      />
+
+      <Box sx={{ p: 3.5, pb: 0 }}>
+        {/* Icon + Title block */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.5 }}>
           <Box
             sx={{
-              width: 40,
-              height: 40,
-              bgcolor: 'primary.main',
-              opacity: 0.1,
-              borderRadius: 2,
+              width: 44,
+              height: 44,
+              borderRadius: '12px',
+              bgcolor: alpha(theme.palette.primary.main, 0.08),
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              position: 'relative',
+              flexShrink: 0,
             }}
           >
-            <Plus
-              size={20}
-              style={{
-                color: 'var(--accent-primary)',
-                position: 'absolute',
-                zIndex: 1,
-              }}
+            <Building2
+              size={22}
+              style={{ color: theme.palette.primary.main }}
             />
           </Box>
-          <DialogTitle sx={{ p: 0 }}>Add Project</DialogTitle>
+          <Box sx={{ pt: 0.25 }}>
+            <Typography
+              sx={{
+                fontSize: '1.125rem',
+                fontWeight: 700,
+                color: 'text.primary',
+                letterSpacing: '-0.01em',
+                lineHeight: 1.3,
+              }}
+            >
+              New Project
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: '0.8125rem',
+                color: 'text.secondary',
+                mt: 0.25,
+                lineHeight: 1.4,
+              }}
+            >
+              Set up a new construction project
+            </Typography>
+          </Box>
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Create a new project for your organization
-        </Typography>
-
-        <DialogContent sx={{ p: 0 }}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-              <Controller
-                name="name"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Project Name"
-                    placeholder="Downtown Tower Construction"
-                    error={!!errors.name}
-                    helperText={errors.name?.message}
-                    fullWidth
-                  />
-                )}
-              />
-            </Box>
-          </form>
-        </DialogContent>
-
-        <DialogActions sx={{ px: 0, pt: 3, gap: 1 }}>
-          <Button
-            variant="outlined"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSubmit(onSubmit)}
-            disabled={createProject.isPending}
-            startIcon={createProject.isPending ? <CircularProgress size={16} /> : null}
-          >
-            Create Project
-          </Button>
-        </DialogActions>
       </Box>
+
+      <DialogContent sx={{ px: 3.5, pt: 2.5, pb: 1 }}>
+        <form onSubmit={handleSubmit(onSubmit)} id="add-project-form">
+          <Typography
+            component="label"
+            htmlFor="project-name-input"
+            sx={{
+              display: 'block',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: 'text.secondary',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              mb: 0.75,
+            }}
+          >
+            Project Name
+          </Typography>
+          <Controller
+            name="name"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                id="project-name-input"
+                placeholder="e.g. Downtown Tower Construction"
+                error={!!errors.name}
+                helperText={errors.name?.message}
+                fullWidth
+                autoFocus
+                autoComplete="off"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '10px',
+                    fontSize: '0.9375rem',
+                    bgcolor: alpha(theme.palette.divider, 0.08),
+                    transition: 'all 0.15s ease',
+                    '& fieldset': {
+                      borderColor: 'transparent',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: alpha(theme.palette.primary.main, 0.3),
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: theme.palette.primary.main,
+                      borderWidth: '1.5px',
+                    },
+                    '&.Mui-focused': {
+                      bgcolor: 'background.paper',
+                      boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.08)}`,
+                    },
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    py: 1.5,
+                    px: 1.75,
+                    '&::placeholder': {
+                      color: alpha(theme.palette.text.secondary, 0.5),
+                      opacity: 1,
+                    },
+                  },
+                }}
+              />
+            )}
+          />
+        </form>
+      </DialogContent>
+
+      <DialogActions
+        sx={{
+          px: 3.5,
+          py: 2.5,
+          gap: 1,
+        }}
+      >
+        <Button
+          variant="text"
+          onClick={() => onOpenChange(false)}
+          sx={{
+            color: 'text.secondary',
+            fontWeight: 500,
+            fontSize: '0.8125rem',
+            px: 2,
+            borderRadius: '8px',
+            '&:hover': {
+              bgcolor: alpha(theme.palette.divider, 0.12),
+              color: 'text.primary',
+            },
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          form="add-project-form"
+          variant="contained"
+          loading={createProject.isPending}
+          onClick={handleSubmit(onSubmit)}
+          endIcon={<ArrowRight size={16} />}
+          sx={{
+            borderRadius: '8px',
+            fontWeight: 600,
+            fontSize: '0.8125rem',
+            px: 2.5,
+            py: 1,
+            textTransform: 'none',
+            boxShadow: `0 1px 3px ${alpha(theme.palette.primary.main, 0.3)}`,
+            '&:hover': {
+              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.35)}`,
+            },
+          }}
+        >
+          Create Project
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

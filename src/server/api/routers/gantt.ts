@@ -162,16 +162,22 @@ export const ganttRouter = createTRPCRouter({
       const ganttAssignments = assignments.map(mapAssignmentToGantt);
       const ganttTimeRanges = timeRanges.map(mapTimeRangeToGantt);
 
+      // Build project config — only include startDate when it has a value.
+      // Sending undefined/null for startDate or endDate can confuse the
+      // scheduling engine and trigger degenerate time-axis recalculations.
+      const projectData: Record<string, unknown> = {
+        calendar: project.calendarId,
+        hoursPerDay: project.hoursPerDay,
+        daysPerWeek: project.daysPerWeek,
+        daysPerMonth: project.daysPerMonth,
+      };
+      if (project.startDate) {
+        projectData.startDate = project.startDate.toISOString();
+      }
+
       return {
         success: true,
-        project: {
-          calendar: project.calendarId,
-          startDate: project.startDate?.toISOString(),
-          endDate: project.endDate?.toISOString(),
-          hoursPerDay: project.hoursPerDay,
-          daysPerWeek: project.daysPerWeek,
-          daysPerMonth: project.daysPerMonth,
-        },
+        project: projectData,
         calendars: project.calendars ?? null,
         tasks: { rows: taskTree },
         dependencies: { rows: ganttDependencies },
@@ -251,5 +257,32 @@ export const ganttRouter = createTRPCRouter({
         }
         throw error;
       }
+    }),
+
+  /**
+   * Update a task's CSI code from the detail popover
+   */
+  updateCsiCode: orgProcedure
+    .input(z.object({
+      projectId: z.string(),
+      taskId: z.string(),
+      csiCode: z.string().nullable(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { projectId, taskId, csiCode } = input;
+
+      const project = await ctx.db.project.findFirst({
+        where: { id: projectId, organizationId: ctx.organization.id },
+      });
+
+      if (!project) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
+      }
+
+      return ctx.db.ganttTask.update({
+        where: { id: taskId, projectId },
+        data: { csiCode },
+        select: { id: true, csiCode: true },
+      });
     }),
 });

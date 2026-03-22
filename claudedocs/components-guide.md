@@ -166,11 +166,11 @@ const { control, handleSubmit, reset, formState: { errors } } = useForm<InputTyp
 
 ## UI Primitives (`ui/`)
 
-`ui/` components wrap MUI with a Shadcn-compatible API. Prefer them over bare MUI when available.
+`ui/` components wrap MUI with project-specific conveniences. Prefer them over bare MUI when available.
 
 | Component | MUI base | Notes |
 |-----------|----------|-------|
-| `Button` | `MuiButton` / `IconButton` | Variants: `default`, `outline`, `ghost`, `destructive`; sizes: `default`, `sm`, `lg`, `icon`; `loading` prop |
+| `Button` | `MuiButton` | Wraps MUI Button; adds `loading` and `loadingPosition` (`'start'` \| `'end'`) props with auto-sized spinner per MUI size (`small`=14px, `medium`=16px, `large`=18px). Uses MUI's native `variant` and `size` props. |
 | `DropdownMenu` | Radix primitive via Shadcn | Use for action menus; compatible with `asChild` |
 | `sheet.tsx` | Radix Sheet | Slide-in panels |
 | `Label` | MUI | Accessible form labels |
@@ -223,6 +223,81 @@ Follow this sub-structure if adding more Gantt-related code. Do not add Gantt lo
 - API docs: https://bryntum.com/products/gantt/docs/api/
 - Forum: https://forum.bryntum.com/
 - Support issues: https://github.com/bryntum/support/issues
+
+---
+
+## Tight Typography & Spacing (Sidebar Density Pattern)
+
+The sidebar, mobile drawer, and project tree use a deliberate **compact density** that differs from MUI's loose defaults. Apply these exact values whenever building sidebar-style navigation, trees, or any panel that needs to show a lot of content without scrolling.
+
+### Typography scale
+
+| Role | `fontSize` | `fontWeight` | Notes |
+|---|---|---|---|
+| Section label (ALL CAPS) | `0.5625rem` (9px) | 600 | `letterSpacing: '0.12em'`, `textTransform: 'uppercase'`, `userSelect: 'none'` |
+| Nav item / tree item | `0.8125rem` (13px) | 400–500 | Active items: `fontWeight: 550`, `letterSpacing: '-0.005em'` |
+| Secondary / meta text | `0.6875rem` (11px) | 400–500 | Task counts, email, status labels |
+| Document filename | `0.75rem`–`0.8rem` | 400 | Always truncate — see text overflow rule below |
+
+Always set `lineHeight` explicitly — MUI's default (1.5) is too loose:
+- Single-line rows: `lineHeight: 1`
+- Stacked name + secondary (e.g. user profile): `lineHeight: 1.2`
+
+### Spacing
+
+```tsx
+// Nav item row
+sx={{ px: 1.25, py: 0.875, borderRadius: '8px' }}  // 10px / 7px
+
+// Tree item label Box (the inner label wrapper)
+sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.375 }}  // 3px vertical
+
+// Gap between sibling nav rows
+gap: '1px'
+
+// Icon-to-label gap
+gap: 1       // 8px — tree items
+gap: 1.25    // 10px — sidebar nav items
+```
+
+### Icons
+
+| Context | Library | Size | Notes |
+|---|---|---|---|
+| Sidebar nav | Phosphor | `size={17}` | `weight={isActive ? 'fill' : 'regular'}` |
+| Tree folders / tasks | Phosphor | `size={14}` | |
+| Tree documents | Phosphor | `size={12}` | |
+| Utility (refresh, add) | Phosphor | `size={14}` | `weight="bold"` for action buttons |
+| Chevrons / small indicators | Phosphor | `style={{ width: 13, height: 13 }}` | |
+
+### Active-state indicator (left bar)
+
+```tsx
+<Box sx={{
+  position: 'absolute',
+  left: 0,
+  top: '50%',
+  transform: 'translateY(-50%)',
+  width: '2.5px',
+  height: 16,
+  borderRadius: '0 2px 2px 0',
+  bgcolor: 'sidebar.indicator',
+}} />
+```
+
+### Key rules
+
+- **Never rely on MUI's default `minHeight`** on `ListItem` / `MenuItem` — it adds ~48px. Override explicitly or avoid those components in favour of plain `Box` rows.
+- **Set `lineHeight` every time.** Omitting it inherits 1.5 from the theme and breaks compact rows.
+- **Truncate long text** — always add `overflow: 'hidden'`, `textOverflow: 'ellipsis'`, `whiteSpace: 'nowrap'` on the text `Box`, and `minWidth: 0` on its flex parent so it can actually shrink.
+- **`borderRadius: '8px'`** on all interactive row backgrounds for consistency (avatars use `10px`).
+- **`userSelect: 'none'`** on non-interactive labels (section headers, group names).
+
+### Reference implementations
+
+- `src/components/layout/Sidebar.tsx` — nav items, section labels, user profile footer
+- `src/components/layout/MobileDrawer.tsx` — identical density at 300px width
+- `src/components/projects/ProjectsTree.tsx` — MUI `SimpleTreeView` with compact `TreeItem` labels
 
 ---
 

@@ -10,10 +10,12 @@ import { createGanttConfig } from './config/ganttConfig';
 import GanttToolbar from './components/GanttToolbar';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
 import ConflictDialog from './components/ConflictDialog';
+import TaskInfoDialog from './components/TaskInfoDialog';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
 import { useTaskPopover } from './hooks/useTaskPopover';
 import { useGanttControls } from './hooks/useGanttControls';
+import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
 import { validateParentDuration } from './utils/ganttValidation';
 import { useGanttRealtime } from './hooks/useGanttRealtime';
 import GanttPresence from './components/GanttPresence';
@@ -30,6 +32,8 @@ const WRAPPER_STYLE: CSSProperties = {
   borderRadius: '8px',
   border: '1px solid var(--border-color)',
   backgroundColor: 'var(--bg-card)',
+  boxShadow: 'var(--gantt-container-shadow)',
+  overflow: 'hidden',
 };
 
 const GANTT_CONTENT_STYLE: CSSProperties = {
@@ -37,7 +41,7 @@ const GANTT_CONTENT_STYLE: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   position: 'relative',
-  overflow: 'clip',
+  overflow: 'hidden',
 };
 
 const STALE_THRESHOLD_MS = 60_000; // 60 seconds
@@ -110,6 +114,8 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     ganttRef,
     getGanttInstance,
     handleAddTask,
+    handleIndent,
+    handleOutdent,
     handleZoomIn,
     handleZoomOut,
     handleZoomToFit,
@@ -119,6 +125,7 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   } = ganttControls;
 
   const theme = useThemeStore((state) => state.theme);
+  const errorColor = theme === 'dark' ? '#FF5C33' : '#D93C15';
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -129,6 +136,7 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     return localStorage.getItem(AUTO_SAVE_STORAGE_KEY) !== 'false';
   });
   const [conflictOpen, setConflictOpen] = useState(false);
+  const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
   const justSavedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -153,18 +161,15 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
   useBryntumThemeAssets(theme);
 
-  // After data loads, finalize the project so the scheduling engine and layout are
-  // fully ready before the user can interact.  delayCalculation defers the initial
-  // engine run until commitAsync — calling it here ensures the project is calculated
-  // before "Add Task" or any other interaction.
+  // After data loads, disable parent task click toggle.
+  // delayCalculation was removed from the project config so the engine
+  // calculates immediately — no commitAsync needed here.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    void gantt.project.commitAsync();
   }, [isLoading, getGanttInstance]);
 
   const handleSave = useCallback(async () => {
@@ -487,10 +492,82 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     return () => { detach?.(); };
   }, [isLoading, getGanttInstance, handleTaskClick]);
 
+  // Open task info dialog on double-click of a task bar (replaces Bryntum's built-in task editor)
+  useEffect(() => {
+    if (isLoading) return;
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const detach = gantt.on('taskDblClick', ({ taskRecord }: { taskRecord: unknown }) => {
+      closeTaskPopover();
+      setTaskInfoRecord(taskRecord as BryntumTaskRecord);
+    }) as (() => void) | undefined;
+    return () => { detach?.(); };
+  }, [isLoading, getGanttInstance, closeTaskPopover]);
+
+  // Attach the row action menu handler on the Gantt instance.
+  // The WidgetColumn menu items use `onItem: 'up.onRowActionClick'` which
+  // resolves to this method on the Gantt widget.
+  useEffect(() => {
+    if (isLoading) return;
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (gantt as any).onRowActionClick = ({ source }: { source: { ref: string; up: (type: string) => { cellInfo: { record: unknown } } | null } }) => {
+      // Walk up to the button widget to get the cellInfo injected by WidgetColumn
+      const button = source.up('button');
+      if (!button) return;
+      const record = button.cellInfo?.record as BryntumTaskRecord | undefined;
+      if (!record) return;
+      const g = gantt as unknown as BryntumGanttInstance;
+
+      switch (source.ref) {
+        case 'taskDetails':
+          closeTaskPopover();
+          setTaskInfoRecord(record);
+          break;
+        case 'addSubtask':
+          record.appendChild({ name: 'New Subtask', duration: 1, startDate: new Date() });
+          // Expand the parent so the new subtask is visible
+          if (!record.isExpanded) {
+            g.expand(record);
+          }
+          break;
+        case 'indent':
+          g.indent([record]);
+          break;
+        case 'outdent':
+          g.outdent([record]);
+          break;
+        case 'unlinkTask': {
+          // Remove all dependencies (both incoming and outgoing) for this task
+          const deps = [
+            ...(record.predecessors ?? []),
+            ...(record.successors ?? []),
+          ];
+          if (deps.length > 0) g.dependencyStore.remove(deps);
+          break;
+        }
+        case 'deleteTask':
+          record.remove();
+          break;
+      }
+    };
+
+    return () => {
+      const g = getGanttInstance();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      if (g) delete (g as any).onRowActionClick;
+    };
+  }, [isLoading, getGanttInstance]);
+
   return (
     <div style={WRAPPER_STYLE}>
       <GanttToolbar
         onAddTask={handleAddTask}
+        onIndent={handleIndent}
+        onOutdent={handleOutdent}
         onPresetChange={handlePresetChange}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
@@ -515,13 +592,64 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
       <style>{`
         .bryntum-gantt-container .b-tree-cell { cursor: pointer; }
         .bryntum-gantt-container .b-gantt-task.b-highlight {
-          animation: gantt-bar-glow 1s ease-out !important;
+          animation: gantt-bar-glow 0.8s ease-out !important;
           outline: none !important;
         }
         @keyframes gantt-bar-glow {
-          0% { box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.6); }
-          50% { box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.3); }
-          100% { box-shadow: none; }
+          0% { box-shadow: 0 0 0 3px rgba(43, 45, 66, 0.2), var(--gantt-task-shadow); }
+          100% { box-shadow: var(--gantt-task-shadow); }
+        }
+        /* Row actions ⋮ button */
+        .gantt-row-actions-btn {
+          opacity: 0.4;
+          transition: opacity 0.15s;
+          background: none !important;
+          border: none !important;
+          box-shadow: none !important;
+          min-width: 0 !important;
+        }
+        .b-grid-row:hover .gantt-row-actions-btn,
+        .gantt-row-actions-btn:focus,
+        .gantt-row-actions-btn[aria-expanded="true"] {
+          opacity: 1;
+        }
+        /* Row actions dropdown menu — clean card style */
+        .gantt-row-actions-btn + .b-menu,
+        .b-menu:has(.gantt-action-danger) {
+          border-radius: 10px !important;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+          border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08)) !important;
+          padding: 4px 0 !important;
+          overflow: hidden;
+        }
+        .gantt-row-actions-btn + .b-menu .b-menuitem,
+        .b-menu:has(.gantt-action-danger) .b-menuitem {
+          padding: 8px 16px !important;
+          font-size: 13px !important;
+          font-weight: 500 !important;
+          border-radius: 0 !important;
+          gap: 10px !important;
+        }
+        .gantt-row-actions-btn + .b-menu .b-menuitem:hover,
+        .b-menu:has(.gantt-action-danger) .b-menuitem:hover {
+          background: var(--hover-bg, rgba(0, 0, 0, 0.04)) !important;
+        }
+        .gantt-row-actions-btn + .b-menu .b-menuitem .b-icon,
+        .b-menu:has(.gantt-action-danger) .b-menuitem .b-icon {
+          font-size: 14px !important;
+          width: 18px !important;
+          text-align: center;
+        }
+        .gantt-row-actions-btn + .b-menu .b-menu-separator,
+        .b-menu:has(.gantt-action-danger) .b-menu-separator {
+          margin: 4px 0 !important;
+        }
+        /* Delete action red text */
+        .gantt-action-danger {
+          color: ${errorColor} !important;
+        }
+        .gantt-action-danger .b-icon {
+          color: ${errorColor} !important;
         }
       `}</style>
 
@@ -582,6 +710,17 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
         open={conflictOpen}
         onProceed={handleConflictProceed}
         onRefresh={handleConflictRefresh}
+      />
+
+      <TaskInfoDialog
+        open={!!taskInfoRecord}
+        taskRecord={taskInfoRecord}
+        ganttInstance={getGanttInstance() as unknown as import('./types').BryntumGanttInstance | null}
+        onClose={() => setTaskInfoRecord(null)}
+        onDelete={() => {
+          if (taskInfoRecord) taskInfoRecord.remove();
+          setTaskInfoRecord(null);
+        }}
       />
     </div>
   );

@@ -58,7 +58,6 @@ export default function UploadOverlay({
             sx={{
               fontSize: 12,
               color: isDark ? 'white' : 'text.secondary',
-              fontFamily: 'Inter, sans-serif',
               fontWeight: 500,
             }}
           >

@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/server/db";
-import CreateFirstProject from "./CreateFirstProject";
 
 export default async function OrgHomePage({
   params,
@@ -64,6 +63,6 @@ export default async function OrgHomePage({
     redirect(`/${orgSlug}/projects/${project.slug}/gantt`);
   }
 
-  // No projects — show create first project page
-  return <CreateFirstProject />;
+  // No projects — redirect to create project page
+  redirect(`/new-project?org=${orgSlug}`);
 }

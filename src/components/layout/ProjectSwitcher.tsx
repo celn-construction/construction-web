@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { ChevronsUpDown, Search, Check, Plus } from 'lucide-react';
 import { Buildings } from '@phosphor-icons/react';
 import { Box, Typography } from '@mui/material';
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
+import AddProjectDialog from '@/components/projects/AddProjectDialog';
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'status.active',
@@ -33,7 +34,7 @@ function formatStatus(status: string | null | undefined): string {
 export default function ProjectSwitcher() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const router = useRouter();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const params = useParams<{ projectSlug?: string }>();
   const { projectSlug } = params;
 
@@ -56,6 +57,7 @@ export default function ProjectSwitcher() {
   };
 
   return (
+    <>
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       {/* Section wrapper with "PROJECT" label */}
       <Box sx={{ px: 1.5, pt: 1, pb: 1.5, display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -245,7 +247,7 @@ export default function ProjectSwitcher() {
         {/* Create new project */}
         <Box
           component="button"
-          onClick={() => { router.push(`/${orgSlug}`); setOpen(false); }}
+          onClick={() => { setOpen(false); setCreateDialogOpen(true); }}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -267,5 +269,8 @@ export default function ProjectSwitcher() {
         </Box>
       </DropdownMenuContent>
     </DropdownMenu>
+
+    <AddProjectDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+    </>
   );
 }

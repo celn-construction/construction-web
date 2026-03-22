@@ -41,6 +41,14 @@ export function createGanttConfig(
   return {
     detectCSSCompatibilityIssues: false,
 
+    // Disable Bryntum's built-in loading mask — we use our own overlay in BryntumGanttWrapper
+    loadMask: null,
+
+    // infiniteScroll removed — it requires both startDate and endDate to
+    // define a valid initial time axis range.  Without endDate the time
+    // axis config is invalid and Bryntum throws at mount time.
+
+
     // Performance optimizations
     autoHeight: false,
     rowHeight: 45, // Consistent row height for better performance
@@ -52,8 +60,10 @@ export function createGanttConfig(
       autoSync: false,
       taskModelClass: VersionedTaskModel,
 
-      // Enable delay calculation for better initial load performance
-      delayCalculation: true,
+      // delayCalculation removed — it prevents the scheduling engine from
+      // initializing properly when React double-mounts the widget (the first
+      // commitAsync runs on a destroyed instance, leaving the visible instance
+      // with an uncalculated engine and no task bar rendering).
 
       transport: projectId
         ? {
@@ -111,8 +121,66 @@ export function createGanttConfig(
         width: 100,
         resizable: true,
       },
+      {
+        type: 'widget',
+        width: 40,
+        resizable: false,
+        sortable: false,
+        filterable: false,
+        text: '',
+        widgets: [
+          {
+            type: 'button',
+            menuIcon: false,
+            icon: 'b-icon b-icon-menu-vertical',
+            cls: 'gantt-row-actions-btn',
+            menu: {
+              items: {
+                taskDetails: {
+                  text: 'Task Details',
+                  icon: 'b-icon b-icon-edit',
+                  weight: 50,
+                  onItem: 'up.onRowActionClick',
+                },
+                addSubtask: {
+                  text: 'Add Subtask',
+                  icon: 'b-icon b-icon-add',
+                  weight: 100,
+                  onItem: 'up.onRowActionClick',
+                },
+                indent: {
+                  text: 'Indent',
+                  icon: 'b-icon b-icon-indent',
+                  weight: 200,
+                  onItem: 'up.onRowActionClick',
+                },
+                outdent: {
+                  text: 'Outdent',
+                  icon: 'b-icon b-icon-outdent',
+                  weight: 300,
+                  onItem: 'up.onRowActionClick',
+                },
+                unlinkTask: {
+                  text: 'Unlink',
+                  icon: 'b-icon b-icon-unlink',
+                  weight: 500,
+                  onItem: 'up.onRowActionClick',
+                },
+                deleteTask: {
+                  text: 'Delete',
+                  icon: 'b-icon b-icon-trash',
+                  cls: 'gantt-action-danger',
+                  weight: 600,
+                  onItem: 'up.onRowActionClick',
+                },
+              },
+            },
+          },
+        ],
+      },
     ],
     features: {
+      taskEdit: false,
       columnLines: true,
       stripe: true,
       cellTooltip: {
@@ -122,7 +190,6 @@ export function createGanttConfig(
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     viewPreset: 'weekAndDayLetter',
     startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
-    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
     barMargin: 10,
     listeners: {
       // Bryntum blocks the duration cell editor for parent tasks before

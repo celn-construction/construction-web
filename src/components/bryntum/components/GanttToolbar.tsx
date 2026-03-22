@@ -4,7 +4,6 @@ import { useState } from 'react';
 import {
   Box,
   Stack,
-  Button,
   IconButton,
   ToggleButtonGroup,
   ToggleButton,
@@ -13,6 +12,7 @@ import {
   Divider,
   CircularProgress,
 } from '@mui/material';
+import { Button } from '@/components/ui/button';
 import {
   ChevronsLeft,
   ChevronsRight,
@@ -21,6 +21,8 @@ import {
   MoreVertical,
   Plus,
   CheckCircle,
+  IndentIncrease,
+  IndentDecrease,
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -42,7 +44,7 @@ const toggleGroupSx = {
     py: '5px',
     fontSize: '12px',
     fontWeight: 500,
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
     textTransform: 'none',
     color: 'var(--text-secondary)',
     lineHeight: 1.5,
@@ -72,7 +74,7 @@ const toolBtnSx = {
   py: '4px',
   fontSize: '12px',
   fontWeight: 500,
-  fontFamily: 'Inter, sans-serif',
+  fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
   textTransform: 'none',
   color: 'var(--text-secondary)',
   borderColor: 'var(--border-color)',
@@ -127,6 +129,8 @@ const switchSx = {
 // ─── Props ────────────────────────────────────────────────────────────────────
 type GanttToolbarProps = {
   onAddTask?: () => void;
+  onIndent?: () => void;
+  onOutdent?: () => void;
   onPresetChange?: (preset: string) => void;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
@@ -147,6 +151,8 @@ type GanttToolbarProps = {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function GanttToolbar({
   onAddTask,
+  onIndent,
+  onOutdent,
   onPresetChange,
   onZoomIn,
   onZoomOut,
@@ -216,6 +222,15 @@ export default function GanttToolbar({
         <IconButton size="small" sx={iconBtnSx} onClick={onShiftNext} title="Next time span">
           <ChevronsRight style={{ width: ICON_SIZE, height: ICON_SIZE }} />
         </IconButton>
+
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 'auto', height: 18, alignSelf: 'center' }} />
+
+        <IconButton size="small" sx={iconBtnSx} onClick={onOutdent} title="Outdent selected task">
+          <IndentDecrease style={{ width: ICON_SIZE, height: ICON_SIZE }} />
+        </IconButton>
+        <IconButton size="small" sx={iconBtnSx} onClick={onIndent} title="Indent selected task">
+          <IndentIncrease style={{ width: ICON_SIZE, height: ICON_SIZE }} />
+        </IconButton>
       </Stack>
 
       {/* ── Spacer ─────────────────────────────────────────────────────── */}
@@ -256,7 +271,7 @@ export default function GanttToolbar({
         <Button
           variant="outlined"
           size="small"
-          disabled={!hasPendingChanges || isSaving || justSaved}
+          disabled={!hasPendingChanges || justSaved}
           onClick={hasPendingChanges && !isSaving && !justSaved ? onSave : undefined}
           title={
             isSaving ? 'Saving…' :
@@ -264,7 +279,8 @@ export default function GanttToolbar({
             hasPendingChanges ? 'Save changes' :
             'No unsaved changes'
           }
-          startIcon={isSaving ? <CircularProgress size={12} color="inherit" /> : undefined}
+          loading={isSaving}
+          loadingPosition="start"
           sx={{
             ...toolBtnSx,
             borderRadius: '8px',
@@ -318,7 +334,7 @@ export default function GanttToolbar({
             py: '6px',
             fontSize: '12px',
             fontWeight: 600,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
             textTransform: 'none',
             borderRadius: '8px',
             backgroundColor: 'var(--accent-primary, #2563eb)',

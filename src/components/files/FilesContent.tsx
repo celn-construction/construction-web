@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 import { Box } from '@mui/material';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import ProjectsTree, { type Selection } from '@/components/projects/ProjectsTree';
@@ -9,50 +9,22 @@ import { ProjectDetailPanel } from '@/components/projects/ProjectDetailPanel';
 export default function FilesContent() {
   const { projectId, organizationId } = useProjectContext();
   const [selection, setSelection] = useState<Selection | null>(null);
-  const [treeWidth, setTreeWidth] = useState(320);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const handleMouseDown = useCallback(() => {
-    setIsDragging(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.min(Math.max(e.clientX, 200), 500);
-      setTreeWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging]);
 
   return (
     <Box
       sx={{
         display: 'flex',
+        width: '100%',
         height: '100%',
         overflow: 'hidden',
-        userSelect: isDragging ? 'none' : 'auto',
       }}
     >
       {/* Left Panel - Tree */}
       <Box
         sx={{
-          width: { xs: selection ? 0 : '100%', lg: treeWidth },
+          width: { xs: 220, sm: 280, lg: 320 },
           flexShrink: 0,
           overflow: 'auto',
-          display: { xs: selection ? 'none' : 'block', lg: 'block' },
         }}
       >
         <ProjectsTree
@@ -63,19 +35,12 @@ export default function FilesContent() {
         />
       </Box>
 
-      {/* Draggable Divider */}
+      {/* Divider */}
       <Box
-        onMouseDown={handleMouseDown}
         sx={{
-          display: { xs: 'none', lg: 'block' },
-          width: 4,
+          width: '1px',
           flexShrink: 0,
-          cursor: 'col-resize',
-          bgcolor: isDragging ? 'primary.main' : 'divider',
-          transition: isDragging ? 'none' : 'background-color 0.2s',
-          '&:hover': {
-            bgcolor: 'primary.main',
-          },
+          bgcolor: 'divider',
         }}
       />
 
@@ -83,13 +48,13 @@ export default function FilesContent() {
       <Box
         sx={{
           flex: 1,
+          minWidth: 0,
+          height: '100%',
           overflow: 'auto',
-          display: { xs: selection ? 'block' : 'none', lg: 'block' },
         }}
       >
         <ProjectDetailPanel
           selection={selection}
-          onBack={() => setSelection(null)}
           projectId={projectId}
           organizationId={organizationId}
         />

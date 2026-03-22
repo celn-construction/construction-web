@@ -13,11 +13,11 @@ import {
   Box,
   Typography,
   Paper,
-  Button,
-  CircularProgress,
   Stack,
   Alert,
+  CircularProgress,
 } from "@mui/material";
+import { Button } from '@/components/ui/button';
 import CheckIcon from "@mui/icons-material/Check";
 
 const WRONG_EMAIL_MSG = "This invitation was sent to a different email address";
@@ -291,14 +291,8 @@ export default function InvitePage() {
               size="large"
               fullWidth
               onClick={handleAccept}
-              disabled={accepting}
-              endIcon={
-                accepting ? (
-                  <CircularProgress size={16} color="inherit" />
-                ) : (
-                  <ArrowRight size={18} />
-                )
-              }
+              loading={accepting}
+              endIcon={<ArrowRight size={18} />}
               sx={{ borderRadius: 2, py: 1.5 }}
             >
               {accepting ? "Accepting..." : "Accept Invitation"}
