@@ -90,7 +90,7 @@ function ResetPasswordForm() {
           sx={{
             width: '100%',
             maxWidth: 500,
-            borderRadius: 2,
+            borderRadius: '12px',
             p: 6,
             textAlign: 'center',
           }}
@@ -100,7 +100,7 @@ function ResetPasswordForm() {
               width: 64,
               height: 64,
               bgcolor: 'action.hover',
-              borderRadius: 1.5,
+              borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -122,7 +122,7 @@ function ResetPasswordForm() {
             variant="contained"
             fullWidth
             endIcon={<ArrowRight size={20} />}
-            sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
+            sx={{ height: 56, fontSize: '1rem', borderRadius: '8px' }}
           >
             Request new link
           </Button>
@@ -149,7 +149,7 @@ function ResetPasswordForm() {
           maxWidth: 1200,
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-          borderRadius: 2,
+          borderRadius: '12px',
           overflow: 'hidden',
         }}
       >
@@ -182,7 +182,7 @@ function ResetPasswordForm() {
                   width: 48,
                   height: 48,
                   bgcolor: 'warm.main',
-                  borderRadius: 1.5,
+                  borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -206,7 +206,7 @@ function ResetPasswordForm() {
                     width: 64,
                     height: 64,
                     bgcolor: 'action.hover',
-                    borderRadius: 1.5,
+                    borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -240,7 +240,7 @@ function ResetPasswordForm() {
               variant="contained"
               fullWidth
               endIcon={<ArrowRight size={20} />}
-              sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
+              sx={{ height: 56, fontSize: '1rem', borderRadius: '8px' }}
             >
               Continue to sign in
             </Button>
@@ -248,7 +248,7 @@ function ResetPasswordForm() {
             <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={3}>
                 {error && (
-                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                  <Alert severity="error" sx={{ borderRadius: '8px' }}>
                     {error}
                   </Alert>
                 )}
@@ -341,7 +341,7 @@ function ResetPasswordForm() {
                   fullWidth
                   loading={loading}
                   endIcon={<ArrowRight size={18} />}
-                  sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
+                  sx={{ height: 56, fontSize: '1rem', borderRadius: '8px' }}
                 >
                   Reset password
                 </Button>

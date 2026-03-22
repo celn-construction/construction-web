@@ -149,7 +149,7 @@ export default function CreateProjectForm({
               autoComplete="off"
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: '10px',
+                  borderRadius: '8px',
                   fontSize: '0.9375rem',
                   bgcolor: alpha(theme.palette.divider, 0.08),
                   transition: 'all 0.15s ease',
@@ -207,7 +207,7 @@ export default function CreateProjectForm({
           }
           sx={{
             mt: 3,
-            borderRadius: '10px',
+            borderRadius: '8px',
             fontWeight: 600,
             fontSize: '0.9375rem',
             py: 1.5,

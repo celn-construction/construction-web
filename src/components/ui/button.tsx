@@ -29,6 +29,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       endIcon,
       size = 'medium',
       children,
+      sx: sxProp,
       ...rest
     },
     ref,
@@ -43,6 +44,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         size={size}
         disabled={disabled || loading}
+        sx={{
+          ...(loading && !disabled && { pointerEvents: 'none' }),
+          ...sxProp,
+        }}
         startIcon={loadingPosition === 'start' && loading ? spinner : startIcon}
         endIcon={loadingPosition === 'end' && loading ? spinner : endIcon}
         {...rest}

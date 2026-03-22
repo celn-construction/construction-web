@@ -5,13 +5,12 @@ import {
   Box,
   Stack,
   IconButton,
-  ToggleButtonGroup,
-  ToggleButton,
   Switch,
   Typography,
   Divider,
   CircularProgress,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { Button } from '@/components/ui/button';
 import {
   ChevronsLeft,
@@ -21,8 +20,6 @@ import {
   MoreVertical,
   Plus,
   CheckCircle,
-  IndentIncrease,
-  IndentDecrease,
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -36,36 +33,6 @@ const VIEW_PRESETS = [
 const ICON_SIZE = 14;
 
 // ─── MUI sx overrides ─────────────────────────────────────────────────────────
-const toggleGroupSx = {
-  '& .MuiToggleButtonGroup-grouped': {
-    border: 0,
-    borderRadius: '8px !important',
-    px: '14px',
-    py: '5px',
-    fontSize: '12px',
-    fontWeight: 500,
-    fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
-    textTransform: 'none',
-    color: 'var(--text-secondary)',
-    lineHeight: 1.5,
-    '&:hover': {
-      backgroundColor: 'action.hover',
-    },
-    '&.Mui-selected': {
-      backgroundColor: 'var(--accent-primary, #2563eb)',
-      color: '#ffffff',
-      fontWeight: 600,
-      '&:hover': {
-        backgroundColor: 'var(--accent-primary, #2563eb)',
-        filter: 'brightness(0.92)',
-      },
-    },
-  },
-  border: '1px solid var(--border-color)',
-  borderRadius: '8px',
-  overflow: 'hidden',
-  height: '32px',
-} as const;
 
 /** Small outlined toolbar button (zoom –/+/Fit, nav) */
 const toolBtnSx = {
@@ -129,8 +96,6 @@ const switchSx = {
 // ─── Props ────────────────────────────────────────────────────────────────────
 type GanttToolbarProps = {
   onAddTask?: () => void;
-  onIndent?: () => void;
-  onOutdent?: () => void;
   onPresetChange?: (preset: string) => void;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
@@ -151,8 +116,6 @@ type GanttToolbarProps = {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function GanttToolbar({
   onAddTask,
-  onIndent,
-  onOutdent,
   onPresetChange,
   onZoomIn,
   onZoomOut,
@@ -170,11 +133,45 @@ export default function GanttToolbar({
   onMoreClick,
 }: GanttToolbarProps) {
   const [activePreset, setActivePreset] = useState('weekAndDayLetter');
+  const theme = useTheme();
 
   const handlePresetClick = (preset: string) => {
     setActivePreset(preset);
     onPresetChange?.(preset);
   };
+
+  const getSegmentSx = (isActive: boolean) => ({
+    position: 'relative' as const,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    px: '14px',
+    height: 26,
+    fontSize: '12px',
+    fontWeight: isActive ? 600 : 450,
+    fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
+    cursor: 'pointer',
+    userSelect: 'none' as const,
+    color: isActive
+      ? theme.palette.text.primary
+      : theme.palette.text.secondary,
+    bgcolor: isActive ? theme.palette.background.paper : 'transparent',
+    borderRadius: '6px',
+    transition: 'color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, font-weight 0.2s ease, transform 0.1s ease',
+    zIndex: 1,
+    lineHeight: 1,
+    letterSpacing: isActive ? '-0.01em' : '0',
+    boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.04)' : 'none',
+    ...(!isActive && {
+      '&:hover': {
+        color: theme.palette.text.primary,
+        bgcolor: 'rgba(43, 45, 66, 0.05)',
+      },
+    }),
+    '&:active': {
+      transform: 'scale(0.96)',
+    },
+  });
 
   const showSavedCheck = autoSaveEnabled && !isSaving && !hasPendingChanges && justSaved;
 
@@ -183,24 +180,43 @@ export default function GanttToolbar({
       direction="row"
       alignItems="center"
       spacing={1.5}
-      sx={{ px: 2, py: 1, borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}
+      sx={{
+        px: 2,
+        py: 1,
+        borderBottom: '1px solid var(--border-color)',
+        flexShrink: 0,
+        bgcolor: 'var(--gantt-toolbar-bg)',
+      }}
     >
       {/* ── View Preset Picker ──────────────────────────────────────────── */}
-      <ToggleButtonGroup
-        value={activePreset}
-        exclusive
-        onChange={(_e, value: string | null) => {
-          if (value) handlePresetClick(value);
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          height: 32,
+          bgcolor: 'rgba(43, 45, 66, 0.07)',
+          borderRadius: '8px',
+          p: '3px',
+          gap: '2px',
         }}
-        size="small"
-        sx={toggleGroupSx}
       >
-        {VIEW_PRESETS.map((preset) => (
-          <ToggleButton key={preset.value} value={preset.value} disableRipple>
-            {preset.label}
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
+        {VIEW_PRESETS.map((preset) => {
+          const isActive = activePreset === preset.value;
+          return (
+            <Box key={preset.value} component="label" sx={getSegmentSx(isActive)}>
+              <input
+                type="radio"
+                name="gantt-view-preset"
+                value={preset.value}
+                checked={isActive}
+                onChange={() => handlePresetClick(preset.value)}
+                style={{ display: 'none' }}
+              />
+              {preset.label}
+            </Box>
+          );
+        })}
+      </Box>
 
       {/* ── Zoom Controls ──────────────────────────────────────────────── */}
       <Stack direction="row" spacing={0.25} alignItems="center">
@@ -223,14 +239,6 @@ export default function GanttToolbar({
           <ChevronsRight style={{ width: ICON_SIZE, height: ICON_SIZE }} />
         </IconButton>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 'auto', height: 18, alignSelf: 'center' }} />
-
-        <IconButton size="small" sx={iconBtnSx} onClick={onOutdent} title="Outdent selected task">
-          <IndentDecrease style={{ width: ICON_SIZE, height: ICON_SIZE }} />
-        </IconButton>
-        <IconButton size="small" sx={iconBtnSx} onClick={onIndent} title="Indent selected task">
-          <IndentIncrease style={{ width: ICON_SIZE, height: ICON_SIZE }} />
-        </IconButton>
       </Stack>
 
       {/* ── Spacer ─────────────────────────────────────────────────────── */}

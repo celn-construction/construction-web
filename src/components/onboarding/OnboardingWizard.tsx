@@ -149,7 +149,7 @@ export function OnboardingWizard() {
         <Paper
           elevation={3}
           sx={{
-            borderRadius: 4,
+            borderRadius: '16px',
             border: '1px solid var(--border-light)',
             p: { xs: 2.5, sm: 3, lg: 4 },
           }}
@@ -176,7 +176,7 @@ export function OnboardingWizard() {
                     height: { xs: 64, sm: 72 },
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRadius: 3,
+                    borderRadius: '12px',
                     bgcolor: '#000',
                     color: 'white',
                   }}
@@ -291,7 +291,7 @@ export function OnboardingWizard() {
                     <Button
                       variant="contained"
                       onClick={goForward}
-                      sx={{ height: 48, borderRadius: 2, px: 3 }}
+                      sx={{ height: 48, borderRadius: '12px', px: 3 }}
                     >
                       Continue
                     </Button>
@@ -303,7 +303,7 @@ export function OnboardingWizard() {
                       endIcon={<ArrowRight size={16} />}
                       sx={{
                         height: 48,
-                        borderRadius: 2,
+                        borderRadius: '12px',
                         px: 3,
                         opacity: completeMutation.isPending ? 0.7 : 1,
                         cursor: completeMutation.isPending ? 'default' : 'pointer',

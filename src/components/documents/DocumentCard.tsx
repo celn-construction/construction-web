@@ -42,7 +42,7 @@ export default function DocumentCard({ doc, organizationId }: DocumentCardProps)
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: '14px',
+        borderRadius: '12px',
         border: '1px solid',
         borderColor: 'divider',
         overflow: 'hidden',
@@ -59,7 +59,7 @@ export default function DocumentCard({ doc, organizationId }: DocumentCardProps)
         sx={{
           height: 160,
           bgcolor: 'background.default',
-          borderRadius: '14px 14px 0 0',
+          borderRadius: '12px 12px 0 0',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',

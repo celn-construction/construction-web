@@ -174,7 +174,7 @@ export default function AddProjectDialog({
                 autoComplete="off"
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     fontSize: '0.9375rem',
                     bgcolor: alpha(theme.palette.divider, 0.08),
                     transition: 'all 0.15s ease',

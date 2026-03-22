@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
 import '@bryntum/gantt/gantt.css';
-import { CircularProgress, Box } from '@mui/material';
-import { useThemeStore } from '@/store/useThemeStore';
+import { Box } from '@mui/material';
 import { api } from '@/trpc/react';
 import { createGanttConfig } from './config/ganttConfig';
 import GanttToolbar from './components/GanttToolbar';
@@ -19,6 +18,7 @@ import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
 import { validateParentDuration } from './utils/ganttValidation';
 import { useGanttRealtime } from './hooks/useGanttRealtime';
 import GanttPresence from './components/GanttPresence';
+import GanttLoadingSpinner from './components/GanttLoadingSpinner';
 
 type PresenceData = Array<{
   clientId: string;
@@ -29,10 +29,10 @@ const WRAPPER_STYLE: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   height: '100%',
-  borderRadius: '8px',
+  borderRadius: '12px',
   border: '1px solid var(--border-color)',
   backgroundColor: 'var(--bg-card)',
-  boxShadow: 'var(--gantt-container-shadow)',
+  boxShadow: 'var(--gantt-container-ring), var(--gantt-container-shadow)',
   overflow: 'hidden',
 };
 
@@ -124,8 +124,7 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     handlePresetChange,
   } = ganttControls;
 
-  const theme = useThemeStore((state) => state.theme);
-  const errorColor = theme === 'dark' ? '#FF5C33' : '#D93C15';
+  const errorColor = '#D93C15';
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -159,7 +158,7 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   const { selectedTask, popoverPlacement, handleTaskClick, closeTaskPopover, isTaskPopoverOpen } =
     useTaskPopover();
 
-  useBryntumThemeAssets(theme);
+  useBryntumThemeAssets();
 
   // After data loads, disable parent task click toggle.
   // delayCalculation was removed from the project config so the engine
@@ -566,8 +565,6 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     <div style={WRAPPER_STYLE}>
       <GanttToolbar
         onAddTask={handleAddTask}
-        onIndent={handleIndent}
-        onOutdent={handleOutdent}
         onPresetChange={handlePresetChange}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
@@ -666,14 +663,11 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              flexDirection: 'column',
-              gap: 2,
               bgcolor: 'var(--bg-card)',
               zIndex: 1,
             }}
           >
-            <CircularProgress />
-            <div>Loading Gantt chart data...</div>
+            <GanttLoadingSpinner />
           </Box>
         )}
 

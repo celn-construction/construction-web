@@ -4,9 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { ChevronsUpDown, User, Settings, CreditCard, LifeBuoy, LogOut } from 'lucide-react';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, Users, type Icon } from '@phosphor-icons/react';
-import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material';
+import { User, Settings, CreditCard, LifeBuoy, LogOut } from 'lucide-react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, CaretRight, type Icon } from '@phosphor-icons/react';
+import { Box, Typography } from '@mui/material';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,12 +18,13 @@ import ProjectSwitcher from './ProjectSwitcher';
 import { authClient, signOut } from '@/lib/auth-client';
 import { getInitials } from '@/lib/utils/formatting';
 import LoadingSpinner from '@/components/ui/loading-spinner';
+import AccountSettingsModal from './AccountSettingsModal';
 
 const iconMap: Record<string, Icon> = {
   ChartBar,
   FolderSimple,
   FileMagnifyingGlass,
-  Users,
+  GearSix,
 };
 
 const profileMenuItems = [
@@ -44,6 +45,7 @@ export default function Sidebar() {
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -68,18 +70,18 @@ export default function Sidebar() {
       component="aside"
       sx={{
         height: '100vh',
-        width: 220,
+        width: 240,
         bgcolor: 'sidebar.background',
         display: 'flex',
         flexDirection: 'column',
         position: 'sticky',
         top: 0,
-        transition: 'background-color 0.15s',
+        transition: 'background-color 0.2s ease',
         borderRight: '1px solid',
         borderColor: 'sidebar.border',
       }}
     >
-      {/* Org Header */}
+      {/* Org + Project Header */}
       <Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
         <OrgSwitcher />
         <ProjectSwitcher />
@@ -92,67 +94,118 @@ export default function Sidebar() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
+          pt: 2,
           px: 1.5,
-          py: 1,
           overflow: 'hidden',
         }}
       >
-        <List sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        {/* Section Label */}
+        <Typography
+          sx={{
+            fontSize: '0.5625rem',
+            fontWeight: 600,
+            color: 'text.disabled',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            px: 1,
+            pb: 1,
+            userSelect: 'none',
+          }}
+        >
+          Navigation
+        </Typography>
+
+        {/* Nav Items */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
           {projectNavItems.map((item) => {
-            const Icon = iconMap[item.icon] ?? ChartBar;
+            const NavIcon = iconMap[item.icon] ?? ChartBar;
             const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
             const isActive = !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
+            const isDisabled = !projectSlug;
 
-            return (
-              <ListItemButton
-                key={item.id}
-                component={Link}
-                href={href}
+            const content = (
+              <Box
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1.25,
-                  px: 1.5,
-                  py: 1,
-                  borderRadius: 1,
-                  transition: 'all 0.15s',
-                  border: '1px solid',
-                  borderColor: isActive ? 'sidebar.border' : 'transparent',
+                  px: 1.25,
+                  py: 0.875,
+                  borderRadius: '8px',
+                  position: 'relative',
+                  transition: 'all 0.15s ease',
                   bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
                   color: isActive ? 'text.primary' : 'text.secondary',
-                  '&:hover': {
+                  opacity: isDisabled ? 0.35 : 1,
+                  cursor: isDisabled ? 'default' : 'pointer',
+                  overflow: 'hidden',
+                  '&:hover': isDisabled ? {} : {
                     bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
                     color: 'text.primary',
-                    borderColor: isActive ? 'sidebar.border' : 'transparent',
-                  },
-                  '&.MuiListItemButton-root:hover': {
-                    bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
                   },
                 }}
               >
+                {/* Active Indicator — thin left accent */}
                 {isActive && (
                   <Box
-                    sx={{ width: 3, height: 18, borderRadius: '2px', bgcolor: 'sidebar.indicator', flexShrink: 0 }}
+                    sx={{
+                      position: 'absolute',
+                      left: 0,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '2.5px',
+                      height: 16,
+                      borderRadius: '0 2px 2px 0',
+                      bgcolor: 'sidebar.indicator',
+                    }}
                     aria-hidden="true"
                   />
                 )}
-                <ListItemIcon sx={{ minWidth: 18, color: 'inherit' }}>
-                  <Icon size={18} />
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{
-                    fontSize: '0.875rem',
-                    fontWeight: isActive ? 500 : 400,
+
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+                  <NavIcon size={17} weight={isActive ? 'fill' : 'regular'} />
+                </Box>
+
+                <Typography
+                  sx={{
+                    fontSize: '0.8125rem',
+                    fontWeight: isActive ? 550 : 400,
+                    letterSpacing: isActive ? '-0.005em' : '0',
+                    lineHeight: 1,
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
-                />
-              </ListItemButton>
+                >
+                  {item.label}
+                </Typography>
+
+                {/* Subtle arrow for active item */}
+                {isActive && (
+                  <CaretRight style={{ width: 13, height: 13, opacity: 0.4, flexShrink: 0 }} />
+                )}
+              </Box>
+            );
+
+            if (isDisabled) {
+              return <Box key={item.id}>{content}</Box>;
+            }
+
+            return (
+              <Link
+                key={item.id}
+                href={href}
+                style={{ textDecoration: 'none', color: 'inherit' }}
+              >
+                {content}
+              </Link>
             );
           })}
-        </List>
+        </Box>
       </Box>
 
-      {/* User Row with Profile Dropdown */}
+      {/* User Profile */}
       <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
         <DropdownMenuTrigger asChild>
           <Box
@@ -170,33 +223,38 @@ export default function Sidebar() {
               border: 'none',
               cursor: 'pointer',
               color: 'text.secondary',
-              transition: 'background-color 0.15s',
-              '&:hover': { bgcolor: 'action.hover' },
+              transition: 'background-color 0.15s ease',
+              '&:hover': {
+                bgcolor: 'sidebar.hoverBg',
+              },
             }}
           >
+            {/* Avatar with gradient */}
             <Box
               sx={{
-                width: 30,
-                height: 30,
-                borderRadius: '999px',
-                bgcolor: 'secondary.main',
+                width: 32,
+                height: 32,
+                borderRadius: '8px',
+                background: (theme) =>
+                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
                 fontSize: '0.6875rem',
                 fontWeight: 600,
-                color: 'text.primary',
+                color: 'common.white',
+                letterSpacing: '0.02em',
               }}
             >
               {getInitials(user?.name)}
             </Box>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '1px' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '2px' }}>
               <Typography
                 sx={{
                   fontSize: '0.8125rem',
-                  fontWeight: 500,
+                  fontWeight: 550,
                   color: 'text.primary',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -210,7 +268,7 @@ export default function Sidebar() {
               <Typography
                 sx={{
                   fontSize: '0.6875rem',
-                  color: 'text.secondary',
+                  color: 'text.disabled',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -221,8 +279,6 @@ export default function Sidebar() {
                 {user?.email ?? ''}
               </Typography>
             </Box>
-
-            <ChevronsUpDown style={{ width: 14, height: 14, flexShrink: 0, color: 'inherit' }} />
           </Box>
         </DropdownMenuTrigger>
 
@@ -234,20 +290,21 @@ export default function Sidebar() {
           style={{ width: 240, padding: 0, overflow: 'hidden', borderRadius: 12 }}
         >
           {/* Profile Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', p: '14px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: '14px' }}>
             <Box
               sx={{
-                width: 34,
-                height: 34,
-                borderRadius: '999px',
-                bgcolor: 'secondary.main',
+                width: 36,
+                height: 36,
+                borderRadius: '8px',
+                background: (theme) =>
+                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                color: 'text.primary',
+                color: 'common.white',
               }}
             >
               {getInitials(user?.name)}
@@ -282,7 +339,6 @@ export default function Sidebar() {
             </Box>
           </Box>
 
-          {/* Divider */}
           <Box sx={{ height: '1px', bgcolor: 'divider' }} />
 
           {/* Menu Items */}
@@ -291,7 +347,12 @@ export default function Sidebar() {
               <Box
                 key={item.label}
                 component="button"
-                onClick={() => setProfileOpen(false)}
+                onClick={() => {
+                  setProfileOpen(false);
+                  if (item.label === 'Account Settings') {
+                    setSettingsOpen(true);
+                  }
+                }}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -315,7 +376,6 @@ export default function Sidebar() {
             ))}
           </Box>
 
-          {/* Divider */}
           <Box sx={{ height: '1px', bgcolor: 'divider' }} />
 
           {/* Log Out */}
@@ -348,6 +408,8 @@ export default function Sidebar() {
       </DropdownMenu>
 
       {isLoggingOut && <LoadingSpinner size="lg" fullScreen text="Logging out..." />}
+
+      <AccountSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </Box>
   );
 }

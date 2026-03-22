@@ -11,7 +11,7 @@ export default function OrgHomeLoading() {
       <Grid container spacing={3}>
         {[1, 2, 3, 4].map((i) => (
           <Grid item xs={12} sm={6} md={3} key={i}>
-            <Skeleton variant="rectangular" height={140} sx={{ borderRadius: 2 }} />
+            <Skeleton variant="rectangular" height={140} sx={{ borderRadius: '12px' }} />
           </Grid>
         ))}
       </Grid>

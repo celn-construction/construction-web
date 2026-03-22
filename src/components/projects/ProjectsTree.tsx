@@ -18,7 +18,7 @@ import {
 } from '@phosphor-icons/react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
-import { Box, Chip, IconButton, Skeleton, Typography } from '@mui/material';
+import { Box, IconButton, Skeleton, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { api } from '@/trpc/react';
 import UploadDialog from '@/components/documents/UploadDialog';
@@ -131,17 +131,26 @@ function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }
           })()}
           <Box sx={{ fontWeight: 500, flexGrow: 1, fontSize: '0.8125rem' }}>{folder.name}</Box>
           {documentCount > 0 && (
-            <Chip
-              label={documentCount}
-              size="small"
+            <Box
               sx={{
+                minWidth: 18,
                 height: 18,
-                fontSize: '0.65rem',
-                bgcolor: 'warning.light',
-                color: 'warning.dark',
-                '& .MuiChip-label': { px: 1 },
+                borderRadius: '9px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                px: 0.5,
+                fontSize: '0.625rem',
+                fontWeight: 600,
+                lineHeight: 1,
+                bgcolor: `${folder.color}18`,
+                color: folder.color,
+                border: '1px solid',
+                borderColor: `${folder.color}30`,
               }}
-            />
+            >
+              {documentCount}
+            </Box>
           )}
           <IconButton
             size="small"
@@ -177,17 +186,24 @@ function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }
                   <FileText size={14} style={{ opacity: 0.6 }} />
                   <Box sx={{ flexGrow: 1, fontSize: '0.8125rem' }}>{child.name}</Box>
                   {childDocCount > 0 && (
-                    <Chip
-                      label={childDocCount}
-                      size="small"
+                    <Box
                       sx={{
+                        minWidth: 18,
                         height: 18,
-                        fontSize: '0.65rem',
+                        borderRadius: '9px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        px: 0.5,
+                        fontSize: '0.625rem',
+                        fontWeight: 600,
+                        lineHeight: 1,
                         bgcolor: 'action.hover',
                         color: 'text.secondary',
-                        '& .MuiChip-label': { px: 1 },
                       }}
-                    />
+                    >
+                      {childDocCount}
+                    </Box>
                   )}
                   <IconButton
                     size="small"
@@ -450,60 +466,95 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
 
   // Skeleton loading state
   if (isLoading) {
-    // Mimics: 2 groups, first with 2 tasks (first task has 3 folders), second with 2 tasks
-    const rows: Array<{ level: 0 | 1 | 2; width: number; hasCount?: boolean; hasStatus?: boolean }> = [
-      // Group 1
-      { level: 0, width: 140, hasCount: true },
-        // Task 1
-        { level: 1, width: 160, hasStatus: true },
-          // Folders under task 1
-          { level: 2, width: 50 },
-          { level: 2, width: 80 },
-          { level: 2, width: 110 },
-        // Task 2
-        { level: 1, width: 120, hasStatus: true },
-      // Group 2
-      { level: 0, width: 180, hasCount: true },
-        { level: 1, width: 100, hasStatus: true },
-        { level: 1, width: 140, hasStatus: true },
+    // Mirrors real tree: Group → Tasks → Folder rows (RFI, Submittals, Change Orders, Photos, Inspections)
+    const skeletonGroups = [
+      { nameWidth: 140, tasks: [{ nameWidth: 160 }, { nameWidth: 120 }] },
+      { nameWidth: 180, tasks: [{ nameWidth: 100 }, { nameWidth: 140 }] },
     ];
+
+    const skeletonFolders = folderData.map((f) => ({
+      name: f.name,
+      color: f.color,
+      Icon: folderIconMap[f.id] ?? FolderSimple,
+    }));
 
     return (
       <Box sx={{ width: '100%' }}>
         {headerBar}
         <Box sx={{ py: 0.5 }}>
-          {rows.map((row, i) => (
-            <Box
-              key={i}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                py: 0.375,
-                px: 1.5,
-                ml: row.level * 2.5,
-              }}
-            >
-              {/* Chevron placeholder */}
-              {row.level < 2 && (
+          {skeletonGroups.map((group, gi) => (
+            <Fragment key={gi}>
+              {/* Group row */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  py: 0.375,
+                  px: 1.5,
+                }}
+              >
                 <Skeleton variant="circular" width={14} height={14} sx={{ flexShrink: 0 }} />
-              )}
-              {/* Icon placeholder */}
-              <Skeleton variant="rounded" width={14} height={14} sx={{ flexShrink: 0 }} />
-              {/* Name */}
-              <Skeleton variant="rounded" width={row.width} height={12} sx={{ flexShrink: 0 }} />
-              <Box sx={{ flexGrow: 1 }} />
-              {/* Count badge or status */}
-              {row.hasCount && (
+                <Skeleton variant="rounded" width={14} height={14} sx={{ flexShrink: 0 }} />
+                <Skeleton variant="rounded" width={group.nameWidth} height={12} sx={{ flexShrink: 0 }} />
+                <Box sx={{ flexGrow: 1 }} />
                 <Skeleton variant="rounded" width={32} height={12} />
-              )}
-              {row.hasStatus && (
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Skeleton variant="rounded" width={22} height={12} />
-                  <Skeleton variant="rounded" width={44} height={12} />
-                </Box>
-              )}
-            </Box>
+              </Box>
+
+              {/* Task rows under group */}
+              {group.tasks.map((task, ti) => (
+                <Fragment key={ti}>
+                  {/* Task row */}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      py: 0.375,
+                      px: 1.5,
+                      ml: 2.5,
+                    }}
+                  >
+                    <Skeleton variant="circular" width={14} height={14} sx={{ flexShrink: 0 }} />
+                    <Skeleton variant="rounded" width={14} height={14} sx={{ flexShrink: 0 }} />
+                    <Skeleton variant="rounded" width={task.nameWidth} height={12} sx={{ flexShrink: 0 }} />
+                    <Box sx={{ flexGrow: 1 }} />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Skeleton variant="rounded" width={22} height={12} />
+                      <Skeleton variant="rounded" width={44} height={12} />
+                    </Box>
+                  </Box>
+
+                  {/* Folder rows under task — use real folder names/icons/colors */}
+                  {skeletonFolders.map((folder, fi) => (
+                    <Box
+                      key={fi}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        py: 0.375,
+                        px: 1.5,
+                        ml: 5,
+                        opacity: 0.5,
+                      }}
+                    >
+                      <folder.Icon size={14} color={folder.color} style={{ flexShrink: 0 }} />
+                      <Typography
+                        sx={{
+                          fontSize: '0.8125rem',
+                          fontWeight: 500,
+                          color: 'text.disabled',
+                          flexGrow: 1,
+                        }}
+                      >
+                        {folder.name}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Fragment>
+              ))}
+            </Fragment>
           ))}
         </Box>
       </Box>
@@ -530,7 +581,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
           sx={{
             width: 64,
             height: 64,
-            borderRadius: 2,
+            borderRadius: '12px',
             bgcolor: 'action.hover',
             display: 'flex',
             alignItems: 'center',
@@ -562,6 +613,24 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
         onExpandedItemsChange={(_, items) => setExpandedItems(items)}
         selectedItems={selectedNodeId}
         onSelectedItemsChange={handleSelectedItemsChange}
+        sx={{
+          '& .MuiTreeItem-content': {
+            borderRadius: '8px',
+            transition: 'background-color 0.15s ease',
+            '&:hover': {
+              bgcolor: 'sidebar.hoverBg',
+            },
+            '&.Mui-selected': {
+              bgcolor: 'sidebar.activeItemBg',
+              '&:hover': {
+                bgcolor: 'sidebar.activeItemBg',
+              },
+            },
+            '&.Mui-focused': {
+              bgcolor: 'transparent',
+            },
+          },
+        }}
       >
         {groups.map((group) => {
           const tasks = grouped[group.id] || [];
@@ -585,6 +654,16 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
                 </Box>
               }
             >
+              {tasks.length === 0 && folderData.map((folder) => (
+                <FolderNode
+                  key={`task-${group.id}-${folder.id}`}
+                  folder={folder}
+                  taskId={`task-${group.id}`}
+                  projectId={activeProjectId}
+                  organizationId={activeOrganizationId}
+                  expandedItems={expandedItems}
+                />
+              ))}
               {tasks.map((task) => {
                 const taskId = `task-${task.id}`;
 

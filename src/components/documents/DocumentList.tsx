@@ -48,7 +48,7 @@ export function DocumentList({
     return (
       <Stack spacing={1}>
         {[1, 2, 3].map((i) => (
-          <Skeleton key={i} height={64} sx={{ borderRadius: 2 }} />
+          <Skeleton key={i} height={64} sx={{ borderRadius: '12px' }} />
         ))}
       </Stack>
     );
@@ -78,7 +78,7 @@ export function DocumentList({
             alignItems: 'center',
             gap: 1.5,
             p: 1.5,
-            borderRadius: 2,
+            borderRadius: '12px',
             border: 1,
             borderColor: 'divider',
             transition: 'background-color 0.2s',

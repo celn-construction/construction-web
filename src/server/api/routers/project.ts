@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { createProjectSchema } from "@/lib/validations/project";
+import { del } from "@vercel/blob";
+import { createTRPCRouter, protectedProcedure, projectProcedure } from "@/server/api/trpc";
+import { createProjectSchema, deleteProjectSchema } from "@/lib/validations/project";
+import { canDeleteProjects } from "@/lib/permissions";
 import { getActiveOrganizationId } from "@/server/api/helpers/getActiveOrganization";
 import { getActiveProjectId } from "@/server/api/helpers/getActiveProject";
 import { getTemplateData } from "@/server/gantt/templates";
@@ -321,5 +323,50 @@ export const projectRouter = createTRPCRouter({
       });
 
       return project;
+    }),
+
+  delete: projectProcedure
+    .input(deleteProjectSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!canDeleteProjects(ctx.projectMember.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions to delete projects" });
+      }
+
+      // Verify confirmation name matches
+      if (input.confirmName.trim().toLowerCase() !== ctx.project.name.trim().toLowerCase()) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Project name does not match" });
+      }
+
+      // Collect blob URLs for cleanup (documents + task cover images)
+      const [documents, tasksWithCovers] = await Promise.all([
+        ctx.db.document.findMany({
+          where: { projectId: ctx.project.id },
+          select: { blobUrl: true },
+        }),
+        ctx.db.ganttTask.findMany({
+          where: { projectId: ctx.project.id, coverImageUrl: { not: null } },
+          select: { coverImageUrl: true },
+        }),
+      ]);
+
+      const blobUrls = [
+        ...documents.map((d) => d.blobUrl),
+        ...tasksWithCovers.map((t) => t.coverImageUrl).filter((url): url is string => !!url),
+      ];
+
+      // Best-effort blob cleanup
+      if (blobUrls.length > 0) {
+        try {
+          await del(blobUrls);
+        } catch (e) {
+          console.error("Blob cleanup failed for project", ctx.project.id, e);
+        }
+      }
+
+      // Delete project — cascade handles all child records,
+      // onDelete: SetNull handles User.activeProjectId
+      await ctx.db.project.delete({ where: { id: ctx.project.id } });
+
+      return { success: true, organizationId: ctx.organization.id };
     }),
 });

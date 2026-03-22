@@ -1,9 +1,8 @@
 'use client';
 
-import { Search, Moon, Sun, Plus, Menu } from 'lucide-react';
+import { Search, Plus, Menu } from 'lucide-react';
 import { Box, IconButton, Typography } from '@mui/material';
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
-import { useThemeStore } from '@/store/useThemeStore';
 import { LogoIcon } from '@/components/ui/Logo';
 
 interface MobileHeaderProps {
@@ -11,8 +10,6 @@ interface MobileHeaderProps {
 }
 
 export default function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
-  const { theme, toggleTheme } = useThemeStore();
-
   return (
     <Box
       component="header"
@@ -54,22 +51,6 @@ export default function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <IconButton
-          onClick={toggleTheme}
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          sx={{
-            p: 0.5,
-            '&:hover': {
-              opacity: 0.7,
-            },
-          }}
-        >
-          {theme === 'dark' ? (
-            <Sun style={{ width: 16, height: 16, color: 'var(--text-secondary)' }} />
-          ) : (
-            <Moon style={{ width: 16, height: 16, color: 'var(--text-secondary)' }} />
-          )}
-        </IconButton>
-        <IconButton
           sx={{
             p: 0.5,
             '&:hover': {
@@ -103,7 +84,7 @@ export default function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
             bgcolor: 'warm.main',
             color: 'white',
             p: 1,
-            borderRadius: 1.5,
+            borderRadius: '8px',
             '&:hover': {
               bgcolor: 'warm.hover',
             },
