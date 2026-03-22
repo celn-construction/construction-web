@@ -353,7 +353,7 @@ function SignInForm() {
                 width: 40,
                 height: 40,
                 bgcolor: 'warm.main',
-                borderRadius: 1.5,
+                borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -386,7 +386,7 @@ function SignInForm() {
             <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={2.5}>
                 {error && (
-                  <Alert severity="error" sx={{ borderRadius: 1 }}>
+                  <Alert severity="error" sx={{ borderRadius: '8px' }}>
                     {error}
                   </Alert>
                 )}
@@ -485,9 +485,6 @@ function SignInForm() {
                     '&:hover': {
                       bgcolor: 'warm.dark',
                     },
-                    '&.Mui-disabled': {
-                      opacity: 0.5,
-                    },
                   }}
                 >
                   Sign in
@@ -498,7 +495,7 @@ function SignInForm() {
             <Box component="form" onSubmit={handleVerifyOtp}>
               <Stack spacing={2.5}>
                 {error && (
-                  <Alert severity="error" sx={{ borderRadius: 1 }}>
+                  <Alert severity="error" sx={{ borderRadius: '8px' }}>
                     {error}
                   </Alert>
                 )}
@@ -525,9 +522,6 @@ function SignInForm() {
                     fontSize: '0.95rem',
                     '&:hover': {
                       bgcolor: 'warm.dark',
-                    },
-                    '&.Mui-disabled': {
-                      opacity: 0.5,
                     },
                   }}
                 >

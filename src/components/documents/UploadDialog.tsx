@@ -121,7 +121,7 @@ export default function UploadDialog({
 
   const inputSx = {
     width: '100%',
-    borderRadius: '10px',
+    borderRadius: '8px',
     bgcolor: alpha(theme.palette.divider, 0.08),
     border: '1.5px solid transparent',
     p: '10px 14px',
@@ -236,7 +236,7 @@ export default function UploadDialog({
               gap: 1.25,
               p: 1.5,
               mb: 2.5,
-              borderRadius: '10px',
+              borderRadius: '12px',
               bgcolor: alpha(theme.palette.success.main, 0.06),
               border: `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
             }}

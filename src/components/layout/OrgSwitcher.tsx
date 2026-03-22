@@ -20,7 +20,7 @@ function OrgAvatar({ name, size = 34 }: { name: string; size?: number }) {
       sx={{
         width: size,
         height: size,
-        borderRadius: '9px',
+        borderRadius: '8px',
         background: (theme) => `linear-gradient(180deg, ${theme.palette.accent.dark} 0%, ${theme.palette.accent.gradientEnd} 100%)`,
         display: 'flex',
         alignItems: 'center',
@@ -66,7 +66,7 @@ export default function OrgSwitcher() {
   const triggerContent = (
     <>
       {isLoading ? (
-        <Skeleton variant="rectangular" width={34} height={34} sx={{ borderRadius: '9px', flexShrink: 0 }} />
+        <Skeleton variant="rectangular" width={34} height={34} sx={{ borderRadius: '8px', flexShrink: 0 }} />
       ) : (
         <OrgAvatar name={currentOrg?.name ?? 'O'} />
       )}
@@ -173,7 +173,7 @@ export default function OrgSwitcher() {
                   sx={{
                     width: 32,
                     height: 32,
-                    borderRadius: 1.5,
+                    borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

@@ -120,7 +120,7 @@ export default function VerifyEmailPage() {
           maxWidth: 1200,
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-          borderRadius: 2,
+          borderRadius: '12px',
           overflow: 'hidden',
         }}
       >
@@ -152,7 +152,7 @@ export default function VerifyEmailPage() {
                   width: 48,
                   height: 48,
                   bgcolor: 'warm.main',
-                  borderRadius: 1.5,
+                  borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -181,7 +181,7 @@ export default function VerifyEmailPage() {
           {!sent ? (
             <Stack spacing={3}>
               {error && (
-                <Alert severity="error" sx={{ borderRadius: 3 }}>
+                <Alert severity="error" sx={{ borderRadius: '8px' }}>
                   {error}
                 </Alert>
               )}
@@ -204,7 +204,7 @@ export default function VerifyEmailPage() {
             <Box component="form" onSubmit={handleVerifyOtp}>
               <Stack spacing={3}>
                 {error && (
-                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                  <Alert severity="error" sx={{ borderRadius: '8px' }}>
                     {error}
                   </Alert>
                 )}

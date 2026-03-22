@@ -242,7 +242,7 @@ export default function DocumentExplorerPage() {
           return viewMode === 'grid' ? (
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, 280px)', gap: 2, alignItems: 'start' }}>
               {Array.from({ length: 8 }).map((_, i) => (
-                <Box key={i} sx={{ borderRadius: '14px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', bgcolor: 'background.paper' }}>
+                <Box key={i} sx={{ borderRadius: '12px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', bgcolor: 'background.paper' }}>
                   {/* Image area — 160px, matches card image container */}
                   <Skeleton variant="rectangular" height={160} sx={{ display: 'block' }} />
 

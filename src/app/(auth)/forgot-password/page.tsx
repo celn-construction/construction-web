@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
           maxWidth: 1200,
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-          borderRadius: 2,
+          borderRadius: '12px',
           overflow: 'hidden',
         }}
       >
@@ -98,7 +98,7 @@ export default function ForgotPasswordPage() {
                   width: 48,
                   height: 48,
                   bgcolor: 'warm.main',
-                  borderRadius: 1.5,
+                  borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -122,7 +122,7 @@ export default function ForgotPasswordPage() {
                     width: 64,
                     height: 64,
                     bgcolor: 'action.hover',
-                    borderRadius: 1.5,
+                    borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -181,7 +181,7 @@ export default function ForgotPasswordPage() {
                 variant="contained"
                 fullWidth
                 startIcon={<ArrowLeft size={20} />}
-                sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
+                sx={{ height: 56, fontSize: '1rem', borderRadius: '8px' }}
               >
                 Back to sign in
               </Button>
@@ -190,7 +190,7 @@ export default function ForgotPasswordPage() {
             <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={3}>
                 {error && (
-                  <Alert severity="error" sx={{ borderRadius: 3 }}>
+                  <Alert severity="error" sx={{ borderRadius: '8px' }}>
                     {error}
                   </Alert>
                 )}
@@ -232,7 +232,7 @@ export default function ForgotPasswordPage() {
                   fullWidth
                   loading={loading}
                   endIcon={<ArrowRight size={18} />}
-                  sx={{ height: 56, fontSize: '1rem', borderRadius: 1 }}
+                  sx={{ height: 56, fontSize: '1rem', borderRadius: '8px' }}
                 >
                   Send reset link
                 </Button>

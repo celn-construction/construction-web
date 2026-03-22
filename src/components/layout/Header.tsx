@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { usePathname, useParams } from 'next/navigation';
-import { Search, Bell, Undo2, UserPlus, Moon, Sun } from 'lucide-react';
+import { Search, Bell, Undo2, UserPlus } from 'lucide-react';
 import { Box, Typography, IconButton, Divider } from '@mui/material';
 import { Button } from '@/components/ui/button';
-import { useThemeStore } from '@/store/useThemeStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +31,6 @@ export default function Header() {
 
   useNavigationLoading();
   const { activeOrganizationId } = useOrgFromUrl();
-  const { theme, toggleTheme } = useThemeStore();
   const params = useParams<{ projectSlug?: string }>();
 
   const { data: projects = [] } = api.project.list.useQuery(
@@ -87,7 +85,7 @@ export default function Header() {
           alignItems: 'center',
           gap: 1,
           bgcolor: 'accent.dark',
-          borderRadius: 999,
+          borderRadius: '999px',
           px: 2,
           py: 1,
           cursor: 'pointer',
@@ -103,7 +101,7 @@ export default function Header() {
       {/* Undo */}
       <IconButton
         aria-label="Undo"
-        sx={{ width: 32, height: 32, borderRadius: 1, color: 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}
+        sx={{ width: 32, height: 32, borderRadius: '8px', color: 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}
       >
         <Undo2 style={{ width: 18, height: 18, color: 'inherit' }} />
       </IconButton>
@@ -210,18 +208,6 @@ export default function Header() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Theme Toggle */}
-      <IconButton
-        aria-label="Toggle theme"
-        onClick={toggleTheme}
-        sx={{ width: 32, height: 32, borderRadius: 1, color: 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}
-      >
-        {theme === 'dark' ? (
-          <Sun style={{ width: 18, height: 18, color: 'inherit' }} />
-        ) : (
-          <Moon style={{ width: 18, height: 18, color: 'inherit' }} />
-        )}
-      </IconButton>
     </Box>
   );
 }

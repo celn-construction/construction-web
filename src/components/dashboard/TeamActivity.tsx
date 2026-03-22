@@ -37,7 +37,7 @@ export default function TeamActivity() {
       elevation={0}
       sx={{
         bgcolor: 'card.background',
-        borderRadius: 6,
+        borderRadius: '12px',
         p: 3,
       }}
     >
@@ -63,7 +63,7 @@ export default function TeamActivity() {
               width: 40,
               height: 40,
               bgcolor: 'action.hover',
-              borderRadius: 4,
+              borderRadius: '8px',
               '&:hover': {
                 bgcolor: 'action.selected',
               },
@@ -76,7 +76,7 @@ export default function TeamActivity() {
               width: 40,
               height: 40,
               bgcolor: 'action.hover',
-              borderRadius: 4,
+              borderRadius: '8px',
               '&:hover': {
                 bgcolor: 'action.selected',
               },

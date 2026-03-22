@@ -210,6 +210,8 @@ bryntum/
   components/
     TaskDetailsPopover.tsx
     BryntumPanelHeader.tsx
+    CsiCodeSelector.tsx
+    GanttLoadingSpinner.tsx
   hooks/
     useTaskPopover.ts
     useBryntumThemeAssets.ts

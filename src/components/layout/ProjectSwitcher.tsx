@@ -77,7 +77,7 @@ export default function ProjectSwitcher() {
               bgcolor: 'secondary.main',
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: '10px',
+              borderRadius: '12px',
               cursor: 'pointer',
               textAlign: 'left',
               transition: 'background-color 0.15s',
@@ -89,7 +89,7 @@ export default function ProjectSwitcher() {
               sx={{
                 width: 32,
                 height: 32,
-                borderRadius: '7px',
+                borderRadius: '8px',
                 bgcolor: 'accent.dark',
                 display: 'flex',
                 alignItems: 'center',
@@ -156,7 +156,7 @@ export default function ProjectSwitcher() {
               px: 1.25,
               py: 1,
               bgcolor: 'secondary.main',
-              borderRadius: 2,
+              borderRadius: '12px',
               color: 'text.secondary',
             }}
           >
@@ -197,7 +197,7 @@ export default function ProjectSwitcher() {
                   width: '100%',
                   px: 1.25,
                   py: 1,
-                  borderRadius: 2,
+                  borderRadius: '12px',
                   border: 'none',
                   cursor: 'pointer',
                   bgcolor: isActive ? 'secondary.main' : 'transparent',

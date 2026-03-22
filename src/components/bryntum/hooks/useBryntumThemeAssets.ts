@@ -27,14 +27,14 @@ function removeElementById(id: string) {
   }
 }
 
-export function useBryntumThemeAssets(theme: string) {
+export function useBryntumThemeAssets() {
   useEffect(() => {
     const fontAwesomeLink = ensureStylesheet(FONT_AWESOME_LINK_ID);
     fontAwesomeLink.href = FONT_AWESOME_URL;
 
     const themeLink = ensureStylesheet(BRYNTUM_THEME_LINK_ID);
-    themeLink.href = `/bryntum/stockholm-${theme}.css`;
-  }, [theme]);
+    themeLink.href = '/bryntum/stockholm-light.css';
+  }, []);
 
   useEffect(() => {
     return () => {

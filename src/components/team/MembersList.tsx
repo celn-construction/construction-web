@@ -32,7 +32,7 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
               alignItems: 'center',
               gap: 1.5,
               p: 1.75,
-              borderRadius: 2,
+              borderRadius: '12px',
             }}
           >
             <Skeleton variant="circular" width={44} height={44} />
@@ -86,7 +86,7 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
             alignItems: 'center',
             gap: 1.5,
             p: 1.75,
-            borderRadius: 2,
+            borderRadius: '12px',
             transition: 'background-color 0.2s',
             '&:hover': {
               bgcolor: 'action.hover',
@@ -137,7 +137,7 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
             sx={{
               px: 1.5,
               py: 0.5,
-              borderRadius: 10,
+              borderRadius: '999px',
               fontSize: '0.75rem',
               fontWeight: 500,
               bgcolor: 'action.hover',
