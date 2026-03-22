@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { ChevronsUpDown, User, Settings, CreditCard, LifeBuoy, LogOut } from 'lucide-react';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, Users, type Icon } from '@phosphor-icons/react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, type Icon } from '@phosphor-icons/react';
 import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material';
 import {
   DropdownMenu,
@@ -18,12 +18,13 @@ import ProjectSwitcher from './ProjectSwitcher';
 import { authClient, signOut } from '@/lib/auth-client';
 import { getInitials } from '@/lib/utils/formatting';
 import LoadingSpinner from '@/components/ui/loading-spinner';
+import AccountSettingsModal from './AccountSettingsModal';
 
 const iconMap: Record<string, Icon> = {
   ChartBar,
   FolderSimple,
   FileMagnifyingGlass,
-  Users,
+  GearSix,
 };
 
 const profileMenuItems = [
@@ -44,6 +45,7 @@ export default function Sidebar() {
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -291,7 +293,12 @@ export default function Sidebar() {
               <Box
                 key={item.label}
                 component="button"
-                onClick={() => setProfileOpen(false)}
+                onClick={() => {
+                  setProfileOpen(false);
+                  if (item.label === 'Account Settings') {
+                    setSettingsOpen(true);
+                  }
+                }}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -348,6 +355,8 @@ export default function Sidebar() {
       </DropdownMenu>
 
       {isLoggingOut && <LoadingSpinner size="lg" fullScreen text="Logging out..." />}
+
+      <AccountSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </Box>
   );
 }

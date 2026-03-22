@@ -6,3 +6,9 @@ export const createProjectSchema = z.object({
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+
+export const deleteProjectSchema = z.object({
+  confirmName: z.string().min(1, "Please type the project name to confirm"),
+});
+
+export type DeleteProjectInput = z.infer<typeof deleteProjectSchema>;
