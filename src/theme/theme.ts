@@ -53,7 +53,7 @@ export const lightTheme: Theme = createTheme({
     },
   },
   typography: {
-    fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
+    fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
   },
   shape: {
     borderRadius: 8,

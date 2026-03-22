@@ -212,7 +212,7 @@ body {
 
 .bryntum-gantt-container .b-grid-header {
   background: transparent !important;
-  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace !important;
   font-size: 11px !important;
   font-weight: 500 !important;
   color: var(--gantt-header-font-color) !important;
@@ -223,7 +223,7 @@ body {
 /* Timeline axis header cells */
 .bryntum-gantt-container .b-sch-header-timeaxis-cell {
   background: transparent !important;
-  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace !important;
   font-size: 11px !important;
   font-weight: 500 !important;
   color: var(--gantt-header-font-color) !important;
@@ -289,7 +289,7 @@ body {
 
 /* Task bar text — clean font */
 .bryntum-gantt-container .b-gantt-task-content {
-  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace !important;
   font-size: 11px !important;
   font-weight: 500 !important;
   letter-spacing: 0.01em !important;
@@ -322,7 +322,7 @@ body {
 /* ── Tree Cells (Left Panel) ─────────────────────────────────── */
 
 .bryntum-gantt-container .b-tree-cell .b-tree-cell-value {
-  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace !important;
   font-size: 13px !important;
   font-weight: 400 !important;
   color: var(--text-primary) !important;
@@ -338,7 +338,7 @@ body {
 }
 
 .bryntum-gantt-container .b-grid-cell {
-  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace !important;
   font-size: 13px !important;
   color: var(--text-primary) !important;
 }

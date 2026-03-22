@@ -455,6 +455,22 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
     const isImage = selectedDocument.mimeType.startsWith('image/');
     const iconColor = isPdf ? theme.palette.error.main : isImage ? theme.palette.status.completed : theme.palette.primary.main;
 
+    const handleDownload = async () => {
+      try {
+        const response = await fetch(selectedDocument.blobUrl);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = selectedDocument.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch {
+        // fall back to opening in new tab
+        window.open(selectedDocument.blobUrl, '_blank');
+      }
+    };
+
     return (
       <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Header */}
@@ -515,11 +531,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
             </Box>
 
             <IconButton
-              component="a"
-              href={selectedDocument.blobUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              download={selectedDocument.name}
+              onClick={handleDownload}
               size="small"
               sx={{
                 color: 'text.disabled',

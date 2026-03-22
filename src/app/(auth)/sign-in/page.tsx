@@ -42,7 +42,7 @@ function FloatingPaths({ position }: { position: number }) {
       }}
     >
       <svg
-        style={{ width: '100%', height: '100%', color: 'rgba(255,255,255,0.15)' }}
+        style={{ width: '100%', height: '100%', color: 'rgba(255,255,255,0.4)' }}
         viewBox="0 0 696 316"
         fill="none"
       >
@@ -53,11 +53,11 @@ function FloatingPaths({ position }: { position: number }) {
             d={path.d}
             stroke="currentColor"
             strokeWidth={path.width}
-            strokeOpacity={0.1 + path.id * 0.03}
-            initial={{ pathLength: 0.3, opacity: 0.6 }}
+            strokeOpacity={0.15 + path.id * 0.04}
+            initial={{ pathLength: 0.3, opacity: 0.7 }}
             animate={{
               pathLength: 1,
-              opacity: [0.3, 0.6, 0.3],
+              opacity: [0.4, 0.8, 0.4],
               pathOffset: [0, 1, 0],
             }}
             transition={{
@@ -233,7 +233,7 @@ function SignInForm() {
             position: 'absolute',
             inset: 0,
             zIndex: 1,
-            background: 'linear-gradient(to top, rgba(26,28,43,0.9), transparent)',
+            background: 'linear-gradient(to top, rgba(26,28,43,0.6), transparent)',
           }}
         />
 
