@@ -20,6 +20,9 @@ export const env = createEnv({
     ANTHROPIC_API_KEY: z.string().optional(),
     BETA_ACCESS_CODE: z.string().optional(),
     ABLY_API_KEY: z.string().optional(),
+    SENTRY_DSN: z.string().url().optional(),
+    SENTRY_ORG: z.string().optional(),
+    SENTRY_PROJECT: z.string().optional(),
   },
 
   /**
@@ -28,7 +31,7 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
   },
 
   /**
@@ -47,7 +50,10 @@ export const env = createEnv({
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     BETA_ACCESS_CODE: process.env.BETA_ACCESS_CODE,
     ABLY_API_KEY: process.env.ABLY_API_KEY,
-    // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+    SENTRY_DSN: process.env.SENTRY_DSN,
+    SENTRY_ORG: process.env.SENTRY_ORG,
+    SENTRY_PROJECT: process.env.SENTRY_PROJECT,
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

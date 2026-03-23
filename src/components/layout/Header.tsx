@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { usePathname, useParams } from 'next/navigation';
-import { Search, Bell, Undo2, UserPlus } from 'lucide-react';
+import { Bell, UserPlus } from 'lucide-react';
 import { Box, Typography, IconButton, Divider } from '@mui/material';
 import { Button } from '@/components/ui/button';
 import {
@@ -78,34 +78,6 @@ export default function Header() {
 
       {/* Spacer */}
       <Box sx={{ flex: 1 }} />
-      {/* Dark Search Bar */}
-      <Box
-        sx={{
-          display: { xs: 'none', md: 'flex' },
-          alignItems: 'center',
-          gap: 1,
-          bgcolor: 'accent.dark',
-          borderRadius: '999px',
-          px: 2,
-          py: 1,
-          cursor: 'pointer',
-          minWidth: 180,
-        }}
-      >
-        <Search style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.5)' }} />
-        <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-          Search...
-        </Typography>
-      </Box>
-
-      {/* Undo */}
-      <IconButton
-        aria-label="Undo"
-        sx={{ width: 32, height: 32, borderRadius: '8px', color: 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}
-      >
-        <Undo2 style={{ width: 18, height: 18, color: 'inherit' }} />
-      </IconButton>
-
       {/* Notifications Bell */}
       <DropdownMenu open={notifMenuOpen} onOpenChange={setNotifMenuOpen}>
         <DropdownMenuTrigger asChild>
