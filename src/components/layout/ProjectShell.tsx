@@ -63,7 +63,7 @@ export default function ProjectShell({ children, projectId, projectName, userId,
           }}
         >
           <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <AblyGate enabled={!!realtimeEnabled}>
+            <AblyGate enabled={!!realtimeEnabled} projectId={projectId}>
               <BryntumGanttWrapper
                 projectId={projectId}
                 isVisible={isGanttRoute}

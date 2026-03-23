@@ -1,6 +1,7 @@
 'use client';
 
 import { Avatar, AvatarGroup, Tooltip, Stack, Typography } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 interface PresenceUser {
   clientId: string;
@@ -21,6 +22,7 @@ interface GanttPresenceProps {
  * Renders in the toolbar area between the spacer and auto-save controls.
  */
 export default function GanttPresence({ currentUserId, presenceData }: GanttPresenceProps) {
+  const theme = useTheme();
   const otherUsers = presenceData.filter(p => p.clientId !== currentUserId);
 
   if (otherUsers.length === 0) return null;
@@ -47,7 +49,7 @@ export default function GanttPresence({ currentUserId, presenceData }: GanttPres
                 width: 24,
                 height: 24,
                 fontSize: 11,
-                bgcolor: 'var(--accent-primary, #2563eb)',
+                bgcolor: theme.palette.primary.main,
               }}
             >
               {(user.data?.name ?? '?')[0]?.toUpperCase()}

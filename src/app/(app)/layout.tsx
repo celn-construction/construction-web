@@ -3,9 +3,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/server/db";
-import { env } from "@/env";
 import AppShell from "@/components/layout/AppShell";
-import AblyGate from "@/components/providers/AblyGate";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -28,9 +26,5 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/onboarding");
   }
 
-  return (
-    <AblyGate enabled={!!env.ABLY_API_KEY}>
-      <AppShell>{children}</AppShell>
-    </AblyGate>
-  );
+  return <AppShell>{children}</AppShell>;
 }

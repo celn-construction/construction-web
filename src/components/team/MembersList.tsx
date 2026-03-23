@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Box, Typography, Avatar, Skeleton, Stack } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import { formatRole } from '@/lib/utils/formatting';
 
 interface Member {
@@ -21,6 +22,31 @@ interface MembersListProps {
 }
 
 export default function MembersList({ members, isLoading }: MembersListProps) {
+  const theme = useTheme();
+
+  const getRoleBadgeStyle = (role: string) => {
+    switch (role) {
+      case 'owner':
+        return {
+          bgcolor: alpha(theme.palette.primary.main, 0.1),
+          color: theme.palette.primary.main,
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+        };
+      case 'admin':
+        return {
+          bgcolor: alpha(theme.palette.primary.main, 0.07),
+          color: theme.palette.primary.main,
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+        };
+      default:
+        return {
+          bgcolor: 'action.hover',
+          color: 'text.secondary',
+          border: `1px solid ${theme.palette.divider}`,
+        };
+    }
+  };
+
   if (isLoading) {
     return (
       <Stack spacing={1.5}>
@@ -35,7 +61,7 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
               borderRadius: '12px',
             }}
           >
-            <Skeleton variant="circular" width={44} height={44} />
+            <Skeleton variant="rounded" width={38} height={38} sx={{ borderRadius: '10px' }} />
             <Box sx={{ flex: 1 }}>
               <Skeleton width="33%" height={16} sx={{ mb: 0.5 }} />
               <Skeleton width="50%" height={12} />
@@ -97,12 +123,13 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
             src={member.user.image || undefined}
             alt={member.user.name || member.user.email}
             sx={{
-              width: 44,
-              height: 44,
-              bgcolor: 'text.primary',
-              color: 'background.paper',
-              fontWeight: 500,
-              fontSize: '0.875rem',
+              width: 38,
+              height: 38,
+              borderRadius: '10px',
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              color: theme.palette.primary.contrastText,
+              fontWeight: 600,
+              fontSize: '0.8125rem',
             }}
           >
             {!member.user.image && getInitials(member.user.name, member.user.email)}
@@ -140,11 +167,8 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
               borderRadius: '999px',
               fontSize: '0.75rem',
               fontWeight: 500,
-              bgcolor: 'action.hover',
-              color: 'text.secondary',
               whiteSpace: 'nowrap',
-              borderLeft: 2,
-              borderColor: 'divider',
+              ...getRoleBadgeStyle(member.role),
             }}
           >
             {formatRole(member.role)}
