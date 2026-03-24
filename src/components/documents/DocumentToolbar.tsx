@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, InputBase, Typography, Tooltip, CircularProgress, keyframes, useTheme } from '@mui/material';
+import { Box, InputBase, Typography, Tooltip, keyframes, useTheme } from '@mui/material';
 import { Sparkles, Search, Upload } from 'lucide-react';
 
 interface DocumentToolbarProps {
@@ -32,73 +32,89 @@ export default function DocumentToolbar({
     100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
   `;
 
+  const spinSlow = keyframes`
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  `;
+
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-      {/* Search input */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          flex: 1,
-          borderRadius: '8px',
-          bgcolor: 'background.paper',
-          px: 2,
-          py: 1.5,
-          border: '1.5px solid transparent',
-          backgroundImage: aiEnabled
-            ? `linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}), linear-gradient(90deg, ${primary}, ${primaryDark})`
-            : `linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}), linear-gradient(90deg, ${primary}66, ${primaryDark}66)`,
-          backgroundOrigin: 'border-box',
-          backgroundClip: 'padding-box, border-box',
-          transition: 'background-image 0.4s, background-color 0.4s, box-shadow 0.4s',
-          animation: aiEnabled ? `${glowPulse} 0.6s ease-out` : 'none',
-          '&:focus-within': {
-            backgroundImage: `linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}), linear-gradient(90deg, ${primary}, ${primaryDark})`,
-          },
-        }}
-      >
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        {/* Search input */}
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            width: 16,
-            height: 16,
-            flexShrink: 0,
-            transition: 'transform 0.3s ease',
-            transform: aiEnabled ? 'rotate(72deg) scale(1.1)' : 'rotate(0deg) scale(1)',
-          }}
-        >
-          {isAiSearching ? (
-            <CircularProgress size={16} sx={{ color: 'primary.main' }} />
-          ) : aiEnabled ? (
-            <Sparkles size={16} style={{ color: primary }} />
-          ) : (
-            <Search size={16} style={{ color: theme.palette.text.secondary }} />
-          )}
-        </Box>
-        <InputBase
-          placeholder={aiEnabled ? 'Ask AI to find a document...' : 'Search documents...'}
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          onKeyDown={onKeyDown}
-          fullWidth
-          sx={{
-            fontSize: 14,
-            '& .MuiInputBase-input': {
-              p: 0,
-              '&::placeholder': {
-                color: aiEnabled ? 'primary.main' : 'text.secondary',
-                opacity: aiEnabled ? 0.7 : 1,
-                transition: 'color 0.3s, opacity 0.3s',
-              },
+            gap: '10px',
+            flex: 1,
+            borderRadius: '8px',
+            bgcolor: 'background.paper',
+            px: 2,
+            py: 1.5,
+            border: '1.5px solid transparent',
+            backgroundImage: aiEnabled
+              ? `linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}), linear-gradient(90deg, ${primary}, ${primaryDark})`
+              : `linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}), linear-gradient(90deg, ${primary}66, ${primaryDark}66)`,
+            backgroundOrigin: 'border-box',
+            backgroundClip: 'padding-box, border-box',
+            transition: 'background-image 0.4s, background-color 0.4s, box-shadow 0.4s',
+            animation: aiEnabled ? `${glowPulse} 0.6s ease-out` : 'none',
+            '&:focus-within': {
+              backgroundImage: `linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}), linear-gradient(90deg, ${primary}, ${primaryDark})`,
             },
           }}
-        />
-      </Box>
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 16,
+              height: 16,
+              flexShrink: 0,
+              transition: 'transform 0.3s ease',
+              transform: aiEnabled ? 'rotate(72deg) scale(1.1)' : 'rotate(0deg) scale(1)',
+            }}
+          >
+            {aiEnabled ? (
+              <Sparkles size={16} style={{ color: primary }} />
+            ) : (
+              <Search size={16} style={{ color: theme.palette.text.secondary }} />
+            )}
+          </Box>
+          <InputBase
+            placeholder={aiEnabled ? 'Ask AI to find a document...' : 'Search documents...'}
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            onKeyDown={onKeyDown}
+            fullWidth
+            sx={{
+              fontSize: 14,
+              '& .MuiInputBase-input': {
+                p: 0,
+                '&::placeholder': {
+                  color: aiEnabled ? 'primary.main' : 'text.secondary',
+                  opacity: aiEnabled ? 0.7 : 1,
+                  transition: 'color 0.3s, opacity 0.3s',
+                },
+              },
+            }}
+          />
+          {isAiSearching && (
+            <Box
+              sx={{
+                width: 14,
+                height: 14,
+                borderRadius: '3px',
+                bgcolor: 'primary.main',
+                flexShrink: 0,
+                animation: `${spinSlow} 3s linear infinite`,
+              }}
+            />
+          )}
+        </Box>
 
-      {/* AI toggle */}
+        {/* AI toggle */}
       <Tooltip title={aiEnabled ? 'AI search on' : 'AI search off'}>
         <Box
           component="button"
@@ -176,6 +192,12 @@ export default function DocumentToolbar({
           Upload
         </Typography>
       </Box>
+      </Box>
+      {isAiSearching && (
+        <Typography sx={{ fontSize: 12, color: 'text.secondary', pl: 2 }}>
+          AI is thinking...
+        </Typography>
+      )}
     </Box>
   );
 }

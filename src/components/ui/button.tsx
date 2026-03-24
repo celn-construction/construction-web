@@ -43,8 +43,13 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <MuiButton
         ref={ref}
         size={size}
-        disabled={disabled || loading}
+        disabled={disabled}
+        aria-disabled={disabled || loading || undefined}
         sx={{
+          ...(loading && !disabled && {
+            pointerEvents: 'none',
+            opacity: 0.85,
+          }),
           ...sxProp,
         }}
         startIcon={loadingPosition === 'start' && loading ? spinner : startIcon}

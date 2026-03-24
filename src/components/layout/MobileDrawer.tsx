@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { projectNavItems, getProjectNavHref } from './navItems';
 import OrgSwitcher from './OrgSwitcher';
-import ProjectSwitcher from './ProjectSwitcher';
+
 import { authClient, signOut } from '@/lib/auth-client';
 import { getInitials } from '@/lib/utils/formatting';
 import LoadingSpinner from '@/components/ui/loading-spinner';
@@ -105,8 +105,6 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         </Box>
 
         <OrgSwitcher />
-        <Box sx={{ height: '1px', bgcolor: 'divider' }} />
-        <ProjectSwitcher />
       </Box>
 
       {/* Navigation */}

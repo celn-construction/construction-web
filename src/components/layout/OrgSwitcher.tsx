@@ -36,7 +36,7 @@ function OrgAvatar({ name, size = 34 }: { name: string; size?: number }) {
   );
 }
 
-export default function OrgSwitcher() {
+export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   const [orgMenuOpen, setOrgMenuOpen] = useState(false);
   const router = useRouter();
   const params = useParams<{ orgSlug?: string }>();
@@ -62,6 +62,14 @@ export default function OrgSwitcher() {
   };
 
   const isLoading = orgsLoading;
+
+  if (collapsed) {
+    return isLoading ? (
+      <Skeleton variant="rectangular" width={34} height={34} sx={{ borderRadius: '8px', flexShrink: 0 }} />
+    ) : (
+      <OrgAvatar name={currentOrg?.name ?? 'O'} />
+    );
+  }
 
   const triggerContent = (
     <>
