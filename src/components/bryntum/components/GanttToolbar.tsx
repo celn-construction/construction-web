@@ -13,14 +13,14 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { Button } from '@/components/ui/button';
 import {
-  ChevronsLeft,
-  ChevronsRight,
-  Download,
-  Columns3,
-  MoreVertical,
+  CaretDoubleLeft,
+  CaretDoubleRight,
+  DownloadSimple,
+  Columns,
+  DotsThreeVertical,
   Plus,
   CheckCircle,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const VIEW_PRESETS = [
@@ -111,6 +111,7 @@ type GanttToolbarProps = {
   onExport?: () => void;
   onColumnsClick?: () => void;
   onMoreClick?: () => void;
+  presenceSlot?: React.ReactNode;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -131,6 +132,7 @@ export default function GanttToolbar({
   onExport,
   onColumnsClick,
   onMoreClick,
+  presenceSlot,
 }: GanttToolbarProps) {
   const [activePreset, setActivePreset] = useState('weekAndDayLetter');
   const theme = useTheme();
@@ -233,16 +235,19 @@ export default function GanttToolbar({
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 'auto', height: 18, alignSelf: 'center' }} />
 
         <IconButton size="small" sx={iconBtnSx} onClick={onShiftPrevious} title="Previous time span">
-          <ChevronsLeft style={{ width: ICON_SIZE, height: ICON_SIZE }} />
+          <CaretDoubleLeft size={ICON_SIZE} />
         </IconButton>
         <IconButton size="small" sx={iconBtnSx} onClick={onShiftNext} title="Next time span">
-          <ChevronsRight style={{ width: ICON_SIZE, height: ICON_SIZE }} />
+          <CaretDoubleRight size={ICON_SIZE} />
         </IconButton>
 
       </Stack>
 
       {/* ── Spacer ─────────────────────────────────────────────────────── */}
       <Box sx={{ flex: 1 }} />
+
+      {/* ── Presence Indicators ──────────────────────────────────────── */}
+      {presenceSlot}
 
       {/* ── Auto-save ──────────────────────────────────────────────────── */}
       {onToggleAutoSave && (
@@ -267,7 +272,8 @@ export default function GanttToolbar({
           </Typography>
           {showSavedCheck && (
             <CheckCircle
-              style={{ width: ICON_SIZE, height: ICON_SIZE, color: 'var(--success, #16a34a)' }}
+              size={ICON_SIZE}
+              color="var(--success, #16a34a)"
             />
           )}
           {isSaving && <CircularProgress size={14} sx={{ color: 'var(--text-secondary)' }} />}
@@ -307,14 +313,14 @@ export default function GanttToolbar({
       <Stack direction="row" spacing={0.5} alignItems="center">
         {onExport && (
           <IconButton size="small" sx={iconBtnSx} onClick={onExport} title="Export">
-            <Download style={{ width: ICON_SIZE, height: ICON_SIZE }} />
+            <DownloadSimple size={ICON_SIZE} />
           </IconButton>
         )}
         {onColumnsClick && (
           <Button
             variant="outlined"
             size="small"
-            startIcon={<Columns3 style={{ width: ICON_SIZE, height: ICON_SIZE }} />}
+            startIcon={<Columns size={ICON_SIZE} />}
             onClick={onColumnsClick}
             title="Configure columns"
             sx={{ ...toolBtnSx, borderRadius: '8px', gap: '6px' }}
@@ -324,7 +330,7 @@ export default function GanttToolbar({
         )}
         {onMoreClick && (
           <IconButton size="small" sx={iconBtnSx} onClick={onMoreClick} title="More options">
-            <MoreVertical style={{ width: ICON_SIZE, height: ICON_SIZE }} />
+            <DotsThreeVertical size={ICON_SIZE} />
           </IconButton>
         )}
       </Stack>
@@ -335,7 +341,7 @@ export default function GanttToolbar({
           variant="contained"
           size="small"
           disableElevation
-          startIcon={<Plus style={{ width: 12, height: 12 }} />}
+          startIcon={<Plus size={12} />}
           onClick={onAddTask}
           sx={{
             px: '14px',

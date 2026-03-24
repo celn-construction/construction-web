@@ -1,8 +1,9 @@
 'use client';
 
-import { Mail } from 'lucide-react';
+import { EnvelopeSimple } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import { Box, Typography, Stack, Skeleton } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import { Button } from '@/components/ui/button';
 import { useInvitationActions } from '@/hooks/useInvitationActions';
 import { formatRole } from '@/lib/utils/formatting';
@@ -28,6 +29,7 @@ export default function PendingInvitesList({
   projectId,
   canManage,
 }: PendingInvitesListProps) {
+  const theme = useTheme();
   const { revokeInvitation, resendInvitation, isRevoking, isResending } = useInvitationActions();
 
   const pendingInvitations = invitations.filter((inv) => inv.status === 'pending');
@@ -58,7 +60,7 @@ export default function PendingInvitesList({
               borderRadius: '12px',
             }}
           >
-            <Skeleton variant="circular" width={44} height={44} />
+            <Skeleton variant="rounded" width={38} height={38} sx={{ borderRadius: '10px' }} />
             <Box sx={{ flex: 1 }}>
               <Skeleton width="33%" height={16} sx={{ mb: 0.5 }} />
               <Skeleton width="25%" height={12} />
@@ -106,17 +108,17 @@ export default function PendingInvitesList({
         >
           <Box
             sx={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              bgcolor: 'action.hover',
+              width: 38,
+              height: 38,
+              borderRadius: '10px',
+              bgcolor: alpha(theme.palette.primary.main, 0.08),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <Mail size={20} style={{ color: 'var(--text-disabled)' }} />
+            <EnvelopeSimple size={16} color={theme.palette.primary.main} />
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
