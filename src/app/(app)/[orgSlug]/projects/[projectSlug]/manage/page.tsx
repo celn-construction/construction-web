@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { UserPlus, Trash2, AlertTriangle } from 'lucide-react';
+import { UserPlus, Trash, Warning } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Box, Typography, Tabs, Tab, Paper, Button } from '@mui/material';
+import { Box, Typography, Tabs, Tab, Paper } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { api } from '@/trpc/react';
 import { canInviteMembers, canDeleteProjects } from '@/lib/permissions';
@@ -11,7 +11,7 @@ import InviteDialog from '@/components/team/InviteDialog';
 import MembersList from '@/components/team/MembersList';
 import PendingInvitesList from '@/components/team/PendingInvitesList';
 import DeleteProjectDialog from '@/components/projects/DeleteProjectDialog';
-import { Button as LoadingButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { useOrgContext } from '@/components/providers/OrgProvider';
 
@@ -79,11 +79,14 @@ export default function ManagePage() {
             {projectName}
           </Typography>
         </Box>
-        {canManage && activeTab !== 'settings' && (
+        {canManage && (
           <Button
             variant="contained"
             onClick={() => setInviteDialogOpen(true)}
             startIcon={<UserPlus size={16} />}
+            sx={{
+              visibility: activeTab === 'settings' ? 'hidden' : 'visible',
+            }}
           >
             Invite
           </Button>
@@ -113,168 +116,159 @@ export default function ManagePage() {
         </Tabs>
       </Box>
 
-      {/* Tab Content */}
-      <AnimatePresence mode="wait">
-        {activeTab === 'members' && (
-          <Paper
-            component={motion.div}
-            key="members"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            elevation={0}
-            sx={{
-              border: 1,
-              borderColor: 'divider',
-              borderRadius: '12px',
-              p: 2,
-            }}
-          >
-            <MembersList members={members} isLoading={membersLoading} />
-          </Paper>
-        )}
+      {/* Tab Content — shared wrapper prevents layout shift */}
+      <Paper
+        elevation={0}
+        sx={{
+          border: 1,
+          borderColor: activeTab === 'settings' ? alpha(theme.palette.error.main, 0.3) : 'divider',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          transition: 'border-color 0.2s ease',
+        }}
+      >
+        <AnimatePresence mode="wait">
+          {activeTab === 'members' && (
+            <Box
+              component={motion.div}
+              key="members"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              sx={{ p: 2 }}
+            >
+              <MembersList members={members} isLoading={membersLoading} />
+            </Box>
+          )}
 
-        {activeTab === 'pending' && (
-          <Paper
-            component={motion.div}
-            key="pending"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            elevation={0}
-            sx={{
-              border: 1,
-              borderColor: 'divider',
-              borderRadius: '12px',
-              p: 2,
-            }}
-          >
-            {pendingCount > 0 ? (
-              <PendingInvitesList
-                invitations={invitations}
-                isLoading={invitationsLoading}
-                projectId={projectId}
-                canManage={canManage}
-              />
-            ) : (
-              <Typography
-                sx={{
-                  textAlign: 'center',
-                  color: 'text.disabled',
-                  py: 4,
-                }}
-              >
-                No pending invitations
-              </Typography>
-            )}
-          </Paper>
-        )}
-
-        {activeTab === 'settings' && (
-          <Box
-            component={motion.div}
-            key="settings"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-          >
-            {canDelete ? (
-              <Paper
-                elevation={0}
-                sx={{
-                  border: '1px solid',
-                  borderColor: alpha(theme.palette.error.main, 0.3),
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Danger Zone header */}
-                <Box
+          {activeTab === 'pending' && (
+            <Box
+              component={motion.div}
+              key="pending"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              sx={{ p: 2 }}
+            >
+              {pendingCount > 0 ? (
+                <PendingInvitesList
+                  invitations={invitations}
+                  isLoading={invitationsLoading}
+                  projectId={projectId}
+                  canManage={canManage}
+                />
+              ) : (
+                <Typography
                   sx={{
-                    px: 3,
-                    py: 1.5,
-                    bgcolor: alpha(theme.palette.error.main, 0.04),
-                    borderBottom: '1px solid',
-                    borderColor: alpha(theme.palette.error.main, 0.15),
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
+                    textAlign: 'center',
+                    color: 'text.disabled',
+                    py: 4,
                   }}
                 >
-                  <AlertTriangle size={14} style={{ color: theme.palette.error.main }} />
-                  <Typography
+                  No pending invitations
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {activeTab === 'settings' && (
+            <Box
+              component={motion.div}
+              key="settings"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {canDelete ? (
+                <>
+                  {/* Danger Zone header */}
+                  <Box
                     sx={{
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      color: 'error.main',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                      px: 3,
+                      py: 1.5,
+                      bgcolor: alpha(theme.palette.error.main, 0.04),
+                      borderBottom: '1px solid',
+                      borderColor: alpha(theme.palette.error.main, 0.15),
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
                     }}
                   >
-                    Danger Zone
-                  </Typography>
-                </Box>
-
-                {/* Delete project row */}
-                <Box
-                  sx={{
-                    px: 3,
-                    py: 2.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 2,
-                  }}
-                >
-                  <Box>
+                    <Warning size={14} color={theme.palette.error.main} />
                     <Typography
                       sx={{
-                        fontSize: '0.875rem',
+                        fontSize: '0.75rem',
                         fontWeight: 600,
-                        color: 'text.primary',
-                        mb: 0.25,
+                        color: 'error.main',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
                       }}
                     >
-                      Delete this project
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontSize: '0.8125rem',
-                        color: 'text.secondary',
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      Permanently delete this project and all its data. This cannot be undone.
+                      Danger Zone
                     </Typography>
                   </Box>
-                  <LoadingButton
-                    variant="outlined"
-                    color="error"
-                    onClick={() => setDeleteDialogOpen(true)}
-                    startIcon={<Trash2 size={14} />}
+
+                  {/* Delete project row */}
+                  <Box
                     sx={{
-                      flexShrink: 0,
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      fontSize: '0.8125rem',
-                      textTransform: 'none',
+                      px: 3,
+                      py: 2.5,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 2,
                     }}
                   >
-                    Delete
-                  </LoadingButton>
-                </Box>
-              </Paper>
-            ) : (
-              <Typography sx={{ color: 'text.disabled', fontSize: '0.875rem' }}>
-                Only project owners and admins can manage project settings.
-              </Typography>
-            )}
-          </Box>
-        )}
-      </AnimatePresence>
+                    <Box>
+                      <Typography
+                        sx={{
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          color: 'text.primary',
+                          mb: 0.25,
+                        }}
+                      >
+                        Delete this project
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: '0.8125rem',
+                          color: 'text.secondary',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        Permanently delete this project and all its data. This cannot be undone.
+                      </Typography>
+                    </Box>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => setDeleteDialogOpen(true)}
+                      startIcon={<Trash size={14} />}
+                      sx={{
+                        flexShrink: 0,
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        fontSize: '0.8125rem',
+                        textTransform: 'none',
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </Box>
+                </>
+              ) : (
+                <Typography sx={{ color: 'text.disabled', fontSize: '0.875rem', p: 2 }}>
+                  Only project owners and admins can manage project settings.
+                </Typography>
+              )}
+            </Box>
+          )}
+        </AnimatePresence>
+      </Paper>
 
       {/* Invite Dialog */}
       {canManage && (

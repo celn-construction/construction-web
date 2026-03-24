@@ -15,6 +15,7 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 | `OPENAI_API_KEY` | OpenAI API key for semantic search embeddings | Optional | `sk-proj-...` (get from platform.openai.com) |
 | `ANTHROPIC_API_KEY` | Anthropic API key for AI document analysis (image + PDF descriptions) | Optional | `sk-ant-...` (get from console.anthropic.com) |
 | `BETA_ACCESS_CODE` | Beta access code required on sign-up form. Omit to disable the gate. | Optional | `buildtrack-beta-2026` |
+| `ABLY_API_KEY` | Ably API key for real-time Gantt collaboration (presence + live sync). Omit to disable real-time features. | Optional | Get from ably.com dashboard |
 | `SENTRY_DSN` | Sentry DSN for server-side error tracking | Optional | `https://xxx@sentry.io/xxx` (auto-provisioned by Vercel-Sentry integration) |
 | `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN for client-side error tracking | Optional | Same as `SENTRY_DSN` (auto-provisioned by Vercel-Sentry integration) |
 | `SENTRY_ORG` | Sentry organization slug for source map uploads | Optional | `celn-construction` |
