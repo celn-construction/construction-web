@@ -206,9 +206,9 @@ describe("SignInPage", () => {
     await user.type(screen.getByLabelText(/password/i), "password123");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
-    // Button should be disabled during loading
+    // Button should be aria-disabled during loading (pointer events blocked via sx, not disabled attr)
     const button = screen.getByRole("button", { name: /sign in/i });
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
 
     resolveSignIn!();
     await waitFor(() => {
