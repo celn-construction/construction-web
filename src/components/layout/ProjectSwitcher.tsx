@@ -1,15 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { ChevronsUpDown, Search, Check, Plus } from 'lucide-react';
 import { Buildings } from '@phosphor-icons/react';
-import { Box, Typography } from '@mui/material';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Box, Typography, Menu, ButtonBase } from '@mui/material';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import AddProjectDialog from '@/components/projects/AddProjectDialog';
@@ -26,13 +21,8 @@ function getStatusColor(status: string | null | undefined): string {
   return status ? (STATUS_COLORS[status] ?? 'status.onHold') : 'status.onHold';
 }
 
-function formatStatus(status: string | null | undefined): string {
-  if (!status) return 'Active';
-  return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
-}
-
 export default function ProjectSwitcher() {
-  const [open, setOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [search, setSearch] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const params = useParams<{ projectSlug?: string }>();
@@ -41,95 +31,56 @@ export default function ProjectSwitcher() {
   const { orgSlug, activeOrganizationId } = useOrgFromUrl();
   const { projects, currentProject, switchProject } = useProjectSwitcher(activeOrganizationId, orgSlug);
 
+  const open = Boolean(anchorEl);
+
   const filtered = projects.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleSwitch = (slug: string) => {
     switchProject(slug);
-    setOpen(false);
+    setAnchorEl(null);
     setSearch('');
   };
 
-  const handleOpenChange = (next: boolean) => {
-    setOpen(next);
-    if (!next) setSearch('');
+  const handleClose = () => {
+    setAnchorEl(null);
+    setSearch('');
   };
 
   return (
     <>
-    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-      {/* Section wrapper with "PROJECT" label */}
-      <Box sx={{ px: 1.5, pt: 1, pb: 1.5, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <Typography sx={{ fontSize: 9, fontWeight: 700, color: 'text.secondary', letterSpacing: 1.2, textTransform: 'uppercase', lineHeight: 1 }}>
-          Project
+      <ButtonBase
+        onClick={(e) => setAnchorEl(e.currentTarget)}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          px: 1,
+          py: 0.5,
+          borderRadius: '8px',
+          transition: 'background-color 0.15s',
+          '&:hover': { bgcolor: 'action.selected' },
+        }}
+      >
+        <Buildings size={15} style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }} />
+        <Typography sx={{ fontSize: 14, fontWeight: 500, color: 'text.secondary', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
+          {projectSlug && currentProject ? currentProject.name : 'Select project'}
         </Typography>
+        <ChevronsUpDown style={{ width: 12, height: 12, flexShrink: 0, color: 'var(--mui-palette-text-disabled)' }} />
+      </ButtonBase>
 
-        <DropdownMenuTrigger asChild>
-          <Box
-            component="button"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '7px',
-              pt: '8px', pr: '8px', pb: '8px', pl: '10px',
-              width: '100%',
-              bgcolor: 'secondary.main',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              textAlign: 'left',
-              transition: 'background-color 0.15s',
-              '&:hover': { bgcolor: 'action.hover' },
-            }}
-          >
-            {/* Project Icon */}
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
-                bgcolor: 'accent.dark',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Buildings size={16} color="white" />
-            </Box>
-
-            {/* Project Info */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '2px' }}>
-              {projectSlug && currentProject ? (
-                <>
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
-                    {currentProject.name}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: getStatusColor(currentProject.status), flexShrink: 0 }} />
-                    <Typography sx={{ fontSize: 9, fontWeight: 500, color: 'text.secondary', lineHeight: 1.2 }}>
-                      {formatStatus(currentProject.status)}
-                    </Typography>
-                  </Box>
-                </>
-              ) : (
-                <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.2 }}>
-                  No project selected
-                </Typography>
-              )}
-            </Box>
-
-            <ChevronsUpDown style={{ width: 14, height: 14, flexShrink: 0, color: 'inherit' }} />
-          </Box>
-        </DropdownMenuTrigger>
-      </Box>
-
-      <DropdownMenuContent
-        align="start"
-        sideOffset={4}
-        style={{ width: 240, padding: 0, overflow: 'hidden' }}
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        slotProps={{
+          paper: {
+            sx: { width: 240, p: 0, overflow: 'hidden', mt: 0.5 },
+          },
+        }}
       >
         {/* Header */}
         <Box sx={{ px: 1.75, pt: 1.5, pb: 0.75 }}>
@@ -165,6 +116,7 @@ export default function ProjectSwitcher() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search projects..."
+              onClick={(e) => e.stopPropagation()}
               style={{
                 background: 'none',
                 border: 'none',
@@ -213,23 +165,44 @@ export default function ProjectSwitcher() {
                     borderRadius: '50%',
                     flexShrink: 0,
                     bgcolor: getStatusColor(project.status),
+                    mt: 0.25,
+                    alignSelf: 'flex-start',
                   }}
                 />
-                <Typography
-                  sx={{
-                    fontSize: '0.8125rem',
-                    fontWeight: isActive ? 500 : 400,
-                    color: 'text.primary',
-                    flex: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {project.name}
-                </Typography>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.8125rem',
+                        fontWeight: isActive ? 500 : 400,
+                        color: 'text.primary',
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {project.name}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', flexShrink: 0 }}>
+                      {project.completionPercent}%
+                    </Typography>
+                  </Box>
+                  {/* Progress bar */}
+                  <Box sx={{ mt: 0.5, height: 3, borderRadius: 2, bgcolor: 'action.hover', overflow: 'hidden' }}>
+                    <Box
+                      sx={{
+                        height: '100%',
+                        width: `${project.completionPercent}%`,
+                        borderRadius: 2,
+                        bgcolor: 'primary.main',
+                        transition: 'width 0.3s ease',
+                      }}
+                    />
+                  </Box>
+                </Box>
                 {isActive && (
-                  <Check style={{ width: 14, height: 14, flexShrink: 0, color: 'inherit' }} />
+                  <Check style={{ width: 14, height: 14, flexShrink: 0, color: 'inherit', alignSelf: 'flex-start', marginTop: 2 }} />
                 )}
               </Box>
             );
@@ -247,7 +220,7 @@ export default function ProjectSwitcher() {
         {/* Create new project */}
         <Box
           component="button"
-          onClick={() => { setOpen(false); setCreateDialogOpen(true); }}
+          onClick={() => { setAnchorEl(null); setCreateDialogOpen(true); }}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -267,10 +240,9 @@ export default function ProjectSwitcher() {
             Create new project
           </Typography>
         </Box>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </Menu>
 
-    <AddProjectDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      <AddProjectDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
     </>
   );
 }

@@ -50,7 +50,29 @@ export const projectRouter = createTRPCRouter({
         orderBy: { createdAt: "asc" },
       });
 
-      return projects;
+      // Get task completion stats per project
+      const projectIds = projects.map((p) => p.id);
+      const taskStats = projectIds.length > 0
+        ? await ctx.db.ganttTask.groupBy({
+            by: ["projectId"],
+            where: { projectId: { in: projectIds } },
+            _avg: { percentDone: true },
+            _count: { id: true },
+          })
+        : [];
+
+      const statsMap = new Map(
+        taskStats.map((s) => [
+          s.projectId,
+          { taskCount: s._count.id, completionPercent: Math.round(s._avg.percentDone ?? 0) },
+        ])
+      );
+
+      return projects.map((p) => ({
+        ...p,
+        taskCount: statsMap.get(p.id)?.taskCount ?? 0,
+        completionPercent: statsMap.get(p.id)?.completionPercent ?? 0,
+      }));
     }),
 
   create: protectedProcedure
