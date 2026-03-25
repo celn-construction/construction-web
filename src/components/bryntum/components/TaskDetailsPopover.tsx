@@ -286,6 +286,7 @@ export function TaskDetailsPopover({
               border: '1px solid',
               borderColor: 'divider',
               boxShadow: '0 24px 64px -12px rgba(0,0,0,0.12), 0 8px 20px -8px rgba(0,0,0,0.04)',
+              maxHeight: '85vh',
               width: previewDoc ? POPOVER_EXPANDED_WIDTH : POPOVER_WIDTH,
               transition: isDragging ? 'none' : 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
               marginLeft: `${dragOffset.x}px`,
@@ -296,7 +297,7 @@ export function TaskDetailsPopover({
       >
         <Box sx={{ display: 'flex' }}>
         {/* ── LEFT PANEL ── */}
-        <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', maxHeight: '85vh', overflowY: 'auto' }}>
 
           {/* ── DRAG HANDLE BAR ── */}
           <Box
@@ -325,13 +326,163 @@ export function TaskDetailsPopover({
             />
           </Box>
 
+          {/* ── HEADER ── */}
+          <Box
+            sx={{
+              p: '8px 14px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.25,
+            }}
+          >
+            {/* Title row: title + close */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+            {/* Title + metadata */}
+            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Typography
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: '0.9375rem',
+                    lineHeight: 1.2,
+                    letterSpacing: '-0.01em',
+                    color: 'text.primary',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {taskName}
+                </Typography>
+                {taskDetailLoading ? (
+                  <>
+                    <Skeleton variant="text" width={140} height={14} sx={{ borderRadius: '4px' }} />
+                    <Skeleton variant="rounded" width={110} height={20} sx={{ borderRadius: '6px' }} />
+                  </>
+                ) : (
+                  <>
+                    {(metaDateRange || durationLabel) && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                        {metaDateRange && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <CalendarBlank size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
+                              {metaDateRange}
+                            </Typography>
+                          </Box>
+                        )}
+                        {metaDateRange && durationLabel && (
+                          <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled', flexShrink: 0 }} />
+                        )}
+                        {durationLabel && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Timer size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
+                              {durationLabel}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                    {taskId && (
+                      <CsiCodeSelector
+                        csiCode={taskDetail?.csiCode}
+                        organizationId={organizationId}
+                        projectId={projectId}
+                        taskId={taskId}
+                      />
+                    )}
+                  </>
+                )}
+              </Box>
+
+              {/* Close button */}
+              <Box
+                component="button"
+                onClick={handleClose}
+                sx={{
+                  width: 26,
+                  height: 26,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  border: 'none',
+                  bgcolor: 'transparent',
+                  cursor: 'pointer',
+                  color: 'text.secondary',
+                  flexShrink: 0,
+                  mt: '1px',
+                  '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                  transition: 'background-color 0.15s, color 0.15s',
+                }}
+                aria-label="Close"
+              >
+                <X size={13} />
+              </Box>
+            </Box>
+
+            {/* Progress bar */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.5625rem',
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    lineHeight: 1,
+                  }}
+                >
+                  Progress
+                </Typography>
+                {taskDetailLoading ? (
+                  <Skeleton variant="text" width={24} height={12} sx={{ borderRadius: '3px' }} />
+                ) : (
+                  <Typography
+                    sx={{
+                      fontSize: '0.625rem',
+                      fontWeight: 700,
+                      color: 'text.primary',
+                      lineHeight: 1,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {Math.round(percentDone)}%
+                  </Typography>
+                )}
+              </Box>
+              {taskDetailLoading ? (
+                <Skeleton variant="rounded" width="100%" height={4} sx={{ borderRadius: '999px' }} />
+              ) : (
+              <Box
+                sx={{
+                  width: '100%',
+                  height: 4,
+                  borderRadius: '999px',
+                  bgcolor: 'rgba(0,0,0,0.05)',
+                  overflow: 'hidden',
+                }}
+              >
+                <Box
+                  sx={{
+                    height: '100%',
+                    borderRadius: '999px',
+                    bgcolor: statusInfo.dotColor,
+                    width: `${Math.min(percentDone, 100)}%`,
+                    transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                />
+              </Box>
+              )}
+            </Box>
+          </Box>
+
           {/* ── COVER IMAGE BANNER ── */}
           <Box
             {...getRootProps()}
             sx={{
               mx: '14px',
-              mt: '4px',
-              height: coverImageUrl || coverUploading ? 280 : 52,
+              mb: '4px',
+              height: 200,
               overflow: 'hidden',
               outline: 'none',
               position: 'relative',
@@ -503,157 +654,6 @@ export function TaskDetailsPopover({
                 </Typography>
               </Box>
             )}
-          </Box>
-
-          {/* ── HEADER ── */}
-          <Box
-            sx={{
-              p: '8px 14px 12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1.25,
-              position: 'relative',
-            }}
-          >
-            {/* Close button — pinned top-right */}
-            <Box
-              component="button"
-              onClick={handleClose}
-              sx={{
-                position: 'absolute',
-                top: 8,
-                right: 14,
-                width: 26,
-                height: 26,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '6px',
-                border: 'none',
-                bgcolor: 'transparent',
-                cursor: 'pointer',
-                color: 'text.secondary',
-                flexShrink: 0,
-                zIndex: 1,
-                '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
-                transition: 'background-color 0.15s, color 0.15s',
-              }}
-              aria-label="Close"
-            >
-              <X size={13} />
-            </Box>
-
-            {/* Title + metadata */}
-            <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.5, pr: 4 }}>
-                <Typography
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: '0.9375rem',
-                    lineHeight: 1.2,
-                    letterSpacing: '-0.01em',
-                    color: 'text.primary',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {taskName}
-                </Typography>
-                {taskDetailLoading ? (
-                  <>
-                    <Skeleton variant="text" width={140} height={14} sx={{ borderRadius: '4px' }} />
-                    <Skeleton variant="rounded" width={110} height={20} sx={{ borderRadius: '6px' }} />
-                  </>
-                ) : (
-                  <>
-                    {(metaDateRange || durationLabel) && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                        {metaDateRange && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <CalendarBlank size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
-                            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
-                              {metaDateRange}
-                            </Typography>
-                          </Box>
-                        )}
-                        {metaDateRange && durationLabel && (
-                          <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled', flexShrink: 0 }} />
-                        )}
-                        {durationLabel && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Timer size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
-                            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
-                              {durationLabel}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    )}
-                    {taskId && (
-                      <CsiCodeSelector
-                        csiCode={taskDetail?.csiCode}
-                        organizationId={organizationId}
-                        projectId={projectId}
-                        taskId={taskId}
-                      />
-                    )}
-                  </>
-                )}
-              </Box>
-
-            {/* Progress bar */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography
-                  sx={{
-                    fontSize: '0.5625rem',
-                    fontWeight: 600,
-                    color: 'text.secondary',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    lineHeight: 1,
-                  }}
-                >
-                  Progress
-                </Typography>
-                {taskDetailLoading ? (
-                  <Skeleton variant="text" width={24} height={12} sx={{ borderRadius: '3px' }} />
-                ) : (
-                  <Typography
-                    sx={{
-                      fontSize: '0.625rem',
-                      fontWeight: 700,
-                      color: 'text.primary',
-                      lineHeight: 1,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    {Math.round(percentDone)}%
-                  </Typography>
-                )}
-              </Box>
-              {taskDetailLoading ? (
-                <Skeleton variant="rounded" width="100%" height={4} sx={{ borderRadius: '999px' }} />
-              ) : (
-              <Box
-                sx={{
-                  width: '100%',
-                  height: 4,
-                  borderRadius: '999px',
-                  bgcolor: 'rgba(0,0,0,0.05)',
-                  overflow: 'hidden',
-                }}
-              >
-                <Box
-                  sx={{
-                    height: '100%',
-                    borderRadius: '999px',
-                    bgcolor: statusInfo.dotColor,
-                    width: `${Math.min(percentDone, 100)}%`,
-                    transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }}
-                />
-              </Box>
-              )}
-            </Box>
           </Box>
 
           {/* ── DIVIDER ── */}
