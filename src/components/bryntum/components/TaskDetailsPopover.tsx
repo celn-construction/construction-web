@@ -325,149 +325,226 @@ export function TaskDetailsPopover({
             />
           </Box>
 
-          {/* ── HEADER ── */}
+          {/* ── COVER IMAGE BANNER ── */}
           <Box
+            {...getRootProps()}
             sx={{
-              p: '4px 14px 12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1.25,
+              mx: '14px',
+              mt: '4px',
+              height: coverImageUrl || coverUploading ? 280 : 52,
+              overflow: 'hidden',
+              outline: 'none',
+              position: 'relative',
+              borderRadius: '10px',
+              bgcolor: isDragActive
+                ? 'action.selected'
+                : coverImageUrl
+                  ? 'transparent'
+                  : 'background.default',
+              border: coverImageUrl ? 'none' : '1px solid',
+              borderColor: 'divider',
+              transition: 'background-color 0.2s',
+              '&:hover .cover-actions': { opacity: 1 },
+              '&:hover .empty-cover': { borderColor: 'text.secondary', color: 'text.secondary' },
+              cursor: coverImageUrl ? 'default' : 'pointer',
             }}
           >
-            {/* Top row: thumbnail + title + close */}
-            <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
-              {/* Cover image thumbnail */}
-              <Box
-                {...getRootProps()}
-                sx={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                  outline: 'none',
-                  position: 'relative',
-                  bgcolor: isDragActive ? 'action.selected' : 'background.default',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  transition: 'background-color 0.2s',
-                  '&:hover .cover-actions': { opacity: 1 },
-                  cursor: coverImageUrl ? 'default' : 'pointer',
-                }}
-              >
-                <input {...getInputProps()} />
+            <input {...getInputProps()} />
 
-                {coverUploading ? (
-                  <UploadOverlay
-                    previewUrl={previewUrl}
-                    variant={coverDeleting ? 'dark' : previewUrl ? 'dark' : 'light'}
-                    text={coverDeleting ? 'Removing…' : 'Uploading…'}
-                  />
-                ) : coverImageUrl ? (
-                  <>
-                    {!coverImageLoaded && (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          inset: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          '@keyframes shimmer': {
-                            '0%': { backgroundPosition: '-200% 0' },
-                            '100%': { backgroundPosition: '200% 0' },
-                          },
-                          background: 'linear-gradient(90deg, var(--mui-palette-background-default) 25%, var(--mui-palette-divider) 50%, var(--mui-palette-background-default) 75%)',
-                          backgroundSize: '200% 100%',
-                          animation: 'shimmer 1.8s ease-in-out infinite',
-                        }}
-                      >
-                        <ImageSquare size={18} color="var(--mui-palette-text-disabled)" />
-                      </Box>
-                    )}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={coverImageUrl}
-                      alt="Task cover"
-                      onLoad={() => setCoverImageLoaded(true)}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
-                    <Box
-                      className="cover-actions"
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        bgcolor: 'rgba(0,0,0,0.45)',
-                        backdropFilter: 'blur(2px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 0.5,
-                        opacity: 0,
-                        transition: 'opacity 0.2s',
-                      }}
-                    >
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openFilePicker();
-                        }}
-                        sx={{
-                          color: 'white',
-                          width: 24,
-                          height: 24,
-                          bgcolor: 'rgba(255,255,255,0.12)',
-                          borderRadius: '6px',
-                          '&:hover': { bgcolor: 'rgba(255,255,255,0.22)' },
-                        }}
-                        aria-label="Change cover image"
-                      >
-                        <Image size={12} />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleCoverRemove();
-                        }}
-                        sx={{
-                          color: 'white',
-                          width: 24,
-                          height: 24,
-                          bgcolor: 'rgba(255,255,255,0.12)',
-                          borderRadius: '6px',
-                          '&:hover': { bgcolor: 'rgba(220,38,38,0.5)' },
-                        }}
-                        aria-label="Remove cover image"
-                      >
-                        <Trash size={12} />
-                      </IconButton>
-                    </Box>
-                  </>
-                ) : (
+            {coverUploading ? (
+              <UploadOverlay
+                previewUrl={previewUrl}
+                variant={coverDeleting ? 'dark' : previewUrl ? 'dark' : 'light'}
+                text={coverDeleting ? 'Removing…' : 'Uploading…'}
+              />
+            ) : coverImageUrl ? (
+              <>
+                {!coverImageLoaded && (
                   <Box
                     sx={{
-                      width: '100%',
-                      height: '100%',
+                      position: 'absolute',
+                      inset: 0,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: isDragActive ? 'text.secondary' : 'text.disabled',
+                      '@keyframes shimmer': {
+                        '0%': { backgroundPosition: '-200% 0' },
+                        '100%': { backgroundPosition: '200% 0' },
+                      },
+                      background: 'linear-gradient(90deg, var(--mui-palette-background-default) 25%, var(--mui-palette-divider) 50%, var(--mui-palette-background-default) 75%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 1.8s ease-in-out infinite',
                     }}
                   >
-                    <Image size={18} />
+                    <ImageSquare size={18} color="var(--mui-palette-text-disabled)" />
                   </Box>
                 )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={coverImageUrl}
+                  alt="Task cover"
+                  onLoad={() => setCoverImageLoaded(true)}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+                {/* Bottom gradient fade into paper */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 40,
+                    background: 'linear-gradient(to top, var(--mui-palette-background-paper), transparent)',
+                    pointerEvents: 'none',
+                  }}
+                />
+                {/* Hover action buttons */}
+                <Box
+                  className="cover-actions"
+                  sx={{
+                    position: 'absolute',
+                    bottom: 8,
+                    right: 8,
+                    display: 'flex',
+                    gap: 0.5,
+                    opacity: 0,
+                    transition: 'opacity 0.2s',
+                  }}
+                >
+                  <Box
+                    component="button"
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      openFilePicker();
+                    }}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      color: 'white',
+                      height: 26,
+                      px: 1,
+                      bgcolor: 'rgba(0,0,0,0.5)',
+                      backdropFilter: 'blur(8px)',
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.625rem',
+                      fontWeight: 500,
+                      fontFamily: 'inherit',
+                      letterSpacing: '0.01em',
+                      lineHeight: 1,
+                      '&:hover': { bgcolor: 'rgba(0,0,0,0.65)' },
+                      transition: 'background-color 0.15s',
+                    }}
+                    aria-label="Change cover image"
+                  >
+                    <Image size={12} />
+                    Change
+                  </Box>
+                  <Box
+                    component="button"
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      void handleCoverRemove();
+                    }}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      color: 'white',
+                      height: 26,
+                      px: 1,
+                      bgcolor: 'rgba(0,0,0,0.5)',
+                      backdropFilter: 'blur(8px)',
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.625rem',
+                      fontWeight: 500,
+                      fontFamily: 'inherit',
+                      letterSpacing: '0.01em',
+                      lineHeight: 1,
+                      '&:hover': { bgcolor: 'rgba(185,28,28,0.7)' },
+                      transition: 'background-color 0.15s',
+                    }}
+                    aria-label="Remove cover image"
+                  >
+                    <Trash size={12} />
+                    Remove
+                  </Box>
+                </Box>
+              </>
+            ) : (
+              <Box
+                className="empty-cover"
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.75,
+                  borderRadius: 'inherit',
+                  border: '1.5px dashed',
+                  borderColor: isDragActive ? 'text.secondary' : 'divider',
+                  color: isDragActive ? 'text.secondary' : 'text.disabled',
+                  transition: 'border-color 0.15s, color 0.15s',
+                }}
+              >
+                <Image size={15} />
+                <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'inherit', lineHeight: 1 }}>
+                  {isDragActive ? 'Drop image here' : 'Add cover image'}
+                </Typography>
               </Box>
+            )}
+          </Box>
 
-              {/* Title + metadata */}
-              <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          {/* ── HEADER ── */}
+          <Box
+            sx={{
+              p: '8px 14px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.25,
+              position: 'relative',
+            }}
+          >
+            {/* Close button — pinned top-right */}
+            <Box
+              component="button"
+              onClick={handleClose}
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 14,
+                width: 26,
+                height: 26,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '6px',
+                border: 'none',
+                bgcolor: 'transparent',
+                cursor: 'pointer',
+                color: 'text.secondary',
+                flexShrink: 0,
+                zIndex: 1,
+                '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                transition: 'background-color 0.15s, color 0.15s',
+              }}
+              aria-label="Close"
+            >
+              <X size={13} />
+            </Box>
+
+            {/* Title + metadata */}
+            <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.5, pr: 4 }}>
                 <Typography
                   sx={{
                     fontWeight: 600,
@@ -521,31 +598,6 @@ export function TaskDetailsPopover({
                   </>
                 )}
               </Box>
-
-              {/* Close button */}
-              <Box
-                component="button"
-                onClick={handleClose}
-                sx={{
-                  width: 26,
-                  height: 26,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '6px',
-                  border: 'none',
-                  bgcolor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'text.secondary',
-                  flexShrink: 0,
-                  '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
-                  transition: 'background-color 0.15s, color 0.15s',
-                }}
-                aria-label="Close"
-              >
-                <X size={13} />
-              </Box>
-            </Box>
 
             {/* Progress bar */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
