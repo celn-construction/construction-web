@@ -1,0 +1,3408 @@
+[
+  {
+    "code": "00",
+    "name": "Procurement and Contracting Requirements",
+    "subdivisions": [
+      {
+        "code": "00 11 00",
+        "name": "Advertisements and Invitations"
+      },
+      {
+        "code": "00 21 00",
+        "name": "Instructions"
+      },
+      {
+        "code": "00 31 00",
+        "name": "Available Information"
+      },
+      {
+        "code": "00 41 00",
+        "name": "Bid Forms"
+      },
+      {
+        "code": "00 43 00",
+        "name": "Proposal Forms"
+      },
+      {
+        "code": "00 51 00",
+        "name": "Notice of Award"
+      },
+      {
+        "code": "00 52 00",
+        "name": "Agreement Forms"
+      },
+      {
+        "code": "00 61 00",
+        "name": "Bond Forms"
+      },
+      {
+        "code": "00 72 00",
+        "name": "General Conditions"
+      },
+      {
+        "code": "00 73 00",
+        "name": "Supplementary Conditions"
+      }
+    ]
+  },
+  {
+    "code": "01",
+    "name": "General Requirements",
+    "subdivisions": [
+      {
+        "code": "01 10 00",
+        "name": "Summary"
+      },
+      {
+        "code": "01 20 00",
+        "name": "Price and Payment Procedures"
+      },
+      {
+        "code": "01 30 00",
+        "name": "Administrative Requirements"
+      },
+      {
+        "code": "01 40 00",
+        "name": "Quality Requirements"
+      },
+      {
+        "code": "01 50 00",
+        "name": "Temporary Facilities and Controls"
+      },
+      {
+        "code": "01 60 00",
+        "name": "Product Requirements"
+      },
+      {
+        "code": "01 70 00",
+        "name": "Execution and Closeout Requirements"
+      },
+      {
+        "code": "01 73 00",
+        "name": "Execution"
+      },
+      {
+        "code": "01 77 00",
+        "name": "Closeout Procedures"
+      },
+      {
+        "code": "01 78 00",
+        "name": "Closeout Submittals"
+      },
+      {
+        "code": "01 79 00",
+        "name": "Demonstration and Training"
+      }
+    ]
+  },
+  {
+    "code": "02",
+    "name": "Existing Conditions",
+    "subdivisions": [
+      {
+        "code": "02 05 00",
+        "name": "Common Work Results for Existing Conditions"
+      },
+      {
+        "code": "02 10 00",
+        "name": "Building Assessment"
+      },
+      {
+        "code": "02 20 00",
+        "name": "Assessment"
+      },
+      {
+        "code": "02 30 00",
+        "name": "Subsurface Investigation"
+      },
+      {
+        "code": "02 40 00",
+        "name": "Demolition and Structure Moving"
+      },
+      {
+        "code": "02 41 00",
+        "name": "Demolition"
+      },
+      {
+        "code": "02 42 00",
+        "name": "Removal and Salvage"
+      },
+      {
+        "code": "02 50 00",
+        "name": "Site Remediation"
+      },
+      {
+        "code": "02 60 00",
+        "name": "Contaminated Site Material Removal"
+      },
+      {
+        "code": "02 70 00",
+        "name": "Water Remediation"
+      },
+      {
+        "code": "02 80 00",
+        "name": "Facility Remediation"
+      },
+      {
+        "code": "02 83 00",
+        "name": "Lead Remediation"
+      },
+      {
+        "code": "02 85 00",
+        "name": "Mold Remediation"
+      }
+    ]
+  },
+  {
+    "code": "03",
+    "name": "Concrete",
+    "subdivisions": [
+      {
+        "code": "03 05 00",
+        "name": "Common Work Results for Concrete"
+      },
+      {
+        "code": "03 10 00",
+        "name": "Concrete Forming and Accessories"
+      },
+      {
+        "code": "03 11 00",
+        "name": "Concrete Forming"
+      },
+      {
+        "code": "03 15 00",
+        "name": "Concrete Accessories"
+      },
+      {
+        "code": "03 20 00",
+        "name": "Concrete Reinforcing"
+      },
+      {
+        "code": "03 30 00",
+        "name": "Cast-in-Place Concrete"
+      },
+      {
+        "code": "03 31 00",
+        "name": "Structural Concrete"
+      },
+      {
+        "code": "03 33 00",
+        "name": "Architectural Concrete"
+      },
+      {
+        "code": "03 35 00",
+        "name": "Concrete Finishing"
+      },
+      {
+        "code": "03 37 00",
+        "name": "Specialty Placed Concrete"
+      },
+      {
+        "code": "03 38 00",
+        "name": "Post-Tensioned Concrete"
+      },
+      {
+        "code": "03 40 00",
+        "name": "Precast Concrete"
+      },
+      {
+        "code": "03 41 00",
+        "name": "Precast Structural Concrete"
+      },
+      {
+        "code": "03 45 00",
+        "name": "Precast Architectural Concrete"
+      },
+      {
+        "code": "03 47 00",
+        "name": "Site-Cast Concrete"
+      },
+      {
+        "code": "03 48 00",
+        "name": "Precast Concrete Specialties"
+      },
+      {
+        "code": "03 50 00",
+        "name": "Cast Decks and Underlayment"
+      },
+      {
+        "code": "03 51 00",
+        "name": "Cast Roof Decks"
+      },
+      {
+        "code": "03 52 00",
+        "name": "Lightweight Concrete Roof Insulation"
+      },
+      {
+        "code": "03 54 00",
+        "name": "Cast Underlayment"
+      },
+      {
+        "code": "03 60 00",
+        "name": "Grouting"
+      },
+      {
+        "code": "03 62 00",
+        "name": "Non-Shrink Grouting"
+      },
+      {
+        "code": "03 70 00",
+        "name": "Mass Concrete"
+      },
+      {
+        "code": "03 80 00",
+        "name": "Concrete Cutting and Boring"
+      },
+      {
+        "code": "03 82 00",
+        "name": "Concrete Boring"
+      }
+    ]
+  },
+  {
+    "code": "04",
+    "name": "Masonry",
+    "subdivisions": [
+      {
+        "code": "04 05 00",
+        "name": "Common Work Results for Masonry"
+      },
+      {
+        "code": "04 20 00",
+        "name": "Unit Masonry"
+      },
+      {
+        "code": "04 21 00",
+        "name": "Clay Unit Masonry"
+      },
+      {
+        "code": "04 22 00",
+        "name": "Concrete Unit Masonry"
+      },
+      {
+        "code": "04 23 00",
+        "name": "Glass Unit Masonry"
+      },
+      {
+        "code": "04 24 00",
+        "name": "Adobe Unit Masonry"
+      },
+      {
+        "code": "04 25 00",
+        "name": "Unit Masonry Panels"
+      },
+      {
+        "code": "04 27 00",
+        "name": "Multiple-Wythe Unit Masonry"
+      },
+      {
+        "code": "04 40 00",
+        "name": "Stone Assemblies"
+      },
+      {
+        "code": "04 42 00",
+        "name": "Exterior Stone Cladding"
+      },
+      {
+        "code": "04 43 00",
+        "name": "Stone Masonry"
+      },
+      {
+        "code": "04 50 00",
+        "name": "Refractory Masonry"
+      },
+      {
+        "code": "04 57 00",
+        "name": "Masonry Fireplaces"
+      },
+      {
+        "code": "04 70 00",
+        "name": "Manufactured Masonry"
+      },
+      {
+        "code": "04 72 00",
+        "name": "Cast Stone Masonry"
+      },
+      {
+        "code": "04 73 00",
+        "name": "Manufactured Stone Masonry"
+      }
+    ]
+  },
+  {
+    "code": "05",
+    "name": "Metals",
+    "subdivisions": [
+      {
+        "code": "05 05 00",
+        "name": "Common Work Results for Metals"
+      },
+      {
+        "code": "05 10 00",
+        "name": "Structural Metal Framing"
+      },
+      {
+        "code": "05 12 00",
+        "name": "Structural Steel Framing"
+      },
+      {
+        "code": "05 13 00",
+        "name": "Structural Steel for Buildings"
+      },
+      {
+        "code": "05 14 00",
+        "name": "Structural Aluminum Framing"
+      },
+      {
+        "code": "05 15 00",
+        "name": "Wire Rope Assemblies"
+      },
+      {
+        "code": "05 20 00",
+        "name": "Steel Joist Framing"
+      },
+      {
+        "code": "05 21 00",
+        "name": "Steel Joist Framing"
+      },
+      {
+        "code": "05 30 00",
+        "name": "Metal Decking"
+      },
+      {
+        "code": "05 31 00",
+        "name": "Steel Decking"
+      },
+      {
+        "code": "05 33 00",
+        "name": "Aluminum Decking"
+      },
+      {
+        "code": "05 35 00",
+        "name": "Raceway Decking Assemblies"
+      },
+      {
+        "code": "05 40 00",
+        "name": "Cold-Formed Metal Framing"
+      },
+      {
+        "code": "05 41 00",
+        "name": "Structural Metal Stud Framing"
+      },
+      {
+        "code": "05 42 00",
+        "name": "Cold-Formed Metal Joist Framing"
+      },
+      {
+        "code": "05 44 00",
+        "name": "Cold-Formed Metal Trusses"
+      },
+      {
+        "code": "05 50 00",
+        "name": "Metal Fabrications"
+      },
+      {
+        "code": "05 51 00",
+        "name": "Metal Stairs"
+      },
+      {
+        "code": "05 52 00",
+        "name": "Metal Railings"
+      },
+      {
+        "code": "05 53 00",
+        "name": "Metal Gratings"
+      },
+      {
+        "code": "05 54 00",
+        "name": "Metal Floor Plates"
+      },
+      {
+        "code": "05 56 00",
+        "name": "Metal Castings"
+      },
+      {
+        "code": "05 58 00",
+        "name": "Formed Metal Fabrications"
+      },
+      {
+        "code": "05 59 00",
+        "name": "Metal Specialties"
+      },
+      {
+        "code": "05 70 00",
+        "name": "Decorative Metal"
+      },
+      {
+        "code": "05 73 00",
+        "name": "Decorative Metal Railings"
+      },
+      {
+        "code": "05 75 00",
+        "name": "Decorative Formed Metal"
+      }
+    ]
+  },
+  {
+    "code": "06",
+    "name": "Wood, Plastics, and Composites",
+    "subdivisions": [
+      {
+        "code": "06 05 00",
+        "name": "Common Work Results for Wood, Plastics, and Composites"
+      },
+      {
+        "code": "06 10 00",
+        "name": "Rough Carpentry"
+      },
+      {
+        "code": "06 11 00",
+        "name": "Wood Framing"
+      },
+      {
+        "code": "06 12 00",
+        "name": "Structural Panels"
+      },
+      {
+        "code": "06 13 00",
+        "name": "Heavy Timber Construction"
+      },
+      {
+        "code": "06 15 00",
+        "name": "Wood Decking"
+      },
+      {
+        "code": "06 16 00",
+        "name": "Sheathing"
+      },
+      {
+        "code": "06 17 00",
+        "name": "Shop-Fabricated Structural Wood"
+      },
+      {
+        "code": "06 18 00",
+        "name": "Glued-Laminated Construction"
+      },
+      {
+        "code": "06 20 00",
+        "name": "Finish Carpentry"
+      },
+      {
+        "code": "06 22 00",
+        "name": "Millwork"
+      },
+      {
+        "code": "06 25 00",
+        "name": "Prefinished Paneling"
+      },
+      {
+        "code": "06 26 00",
+        "name": "Board Paneling"
+      },
+      {
+        "code": "06 40 00",
+        "name": "Architectural Woodwork"
+      },
+      {
+        "code": "06 41 00",
+        "name": "Architectural Wood Casework"
+      },
+      {
+        "code": "06 42 00",
+        "name": "Wood Paneling"
+      },
+      {
+        "code": "06 43 00",
+        "name": "Wood Stairs and Railings"
+      },
+      {
+        "code": "06 46 00",
+        "name": "Wood Trim"
+      },
+      {
+        "code": "06 50 00",
+        "name": "Structural Plastics"
+      },
+      {
+        "code": "06 60 00",
+        "name": "Plastic Fabrications"
+      },
+      {
+        "code": "06 64 00",
+        "name": "Plastic Paneling"
+      },
+      {
+        "code": "06 65 00",
+        "name": "Fiber-Reinforced Plastic Gratings"
+      },
+      {
+        "code": "06 70 00",
+        "name": "Structural Composites"
+      },
+      {
+        "code": "06 73 00",
+        "name": "Composite Fabrications"
+      }
+    ]
+  },
+  {
+    "code": "07",
+    "name": "Thermal and Moisture Protection",
+    "subdivisions": [
+      {
+        "code": "07 05 00",
+        "name": "Common Work Results for Thermal and Moisture Protection"
+      },
+      {
+        "code": "07 10 00",
+        "name": "Dampproofing and Waterproofing"
+      },
+      {
+        "code": "07 11 00",
+        "name": "Dampproofing"
+      },
+      {
+        "code": "07 12 00",
+        "name": "Built-up Bituminous Waterproofing"
+      },
+      {
+        "code": "07 13 00",
+        "name": "Sheet Waterproofing"
+      },
+      {
+        "code": "07 14 00",
+        "name": "Fluid-Applied Waterproofing"
+      },
+      {
+        "code": "07 16 00",
+        "name": "Cementitious and Reactive Waterproofing"
+      },
+      {
+        "code": "07 17 00",
+        "name": "Bentonite Waterproofing"
+      },
+      {
+        "code": "07 18 00",
+        "name": "Traffic Coatings"
+      },
+      {
+        "code": "07 19 00",
+        "name": "Water Repellents"
+      },
+      {
+        "code": "07 20 00",
+        "name": "Thermal Protection"
+      },
+      {
+        "code": "07 21 00",
+        "name": "Thermal Insulation"
+      },
+      {
+        "code": "07 22 00",
+        "name": "Roof and Deck Insulation"
+      },
+      {
+        "code": "07 25 00",
+        "name": "Weather Barriers"
+      },
+      {
+        "code": "07 26 00",
+        "name": "Vapor Retarders"
+      },
+      {
+        "code": "07 27 00",
+        "name": "Air Barriers"
+      },
+      {
+        "code": "07 30 00",
+        "name": "Steep Slope Roofing"
+      },
+      {
+        "code": "07 31 00",
+        "name": "Shingles and Shakes"
+      },
+      {
+        "code": "07 32 00",
+        "name": "Roof Tiles"
+      },
+      {
+        "code": "07 33 00",
+        "name": "Natural Roof Coverings"
+      },
+      {
+        "code": "07 40 00",
+        "name": "Roofing and Siding Panels"
+      },
+      {
+        "code": "07 41 00",
+        "name": "Roof Panels"
+      },
+      {
+        "code": "07 42 00",
+        "name": "Wall Panels"
+      },
+      {
+        "code": "07 44 00",
+        "name": "Faced Panels"
+      },
+      {
+        "code": "07 46 00",
+        "name": "Siding"
+      },
+      {
+        "code": "07 50 00",
+        "name": "Membrane Roofing"
+      },
+      {
+        "code": "07 51 00",
+        "name": "Built-Up Bituminous Roofing"
+      },
+      {
+        "code": "07 52 00",
+        "name": "Modified Bituminous Membrane Roofing"
+      },
+      {
+        "code": "07 53 00",
+        "name": "Elastomeric Membrane Roofing"
+      },
+      {
+        "code": "07 54 00",
+        "name": "Thermoplastic Membrane Roofing"
+      },
+      {
+        "code": "07 55 00",
+        "name": "Protected Membrane Roofing"
+      },
+      {
+        "code": "07 56 00",
+        "name": "Fluid-Applied Roofing"
+      },
+      {
+        "code": "07 57 00",
+        "name": "Coated Foamed Roofing"
+      },
+      {
+        "code": "07 60 00",
+        "name": "Flashing and Sheet Metal"
+      },
+      {
+        "code": "07 61 00",
+        "name": "Sheet Metal Roofing"
+      },
+      {
+        "code": "07 62 00",
+        "name": "Sheet Metal Flashing and Trim"
+      },
+      {
+        "code": "07 63 00",
+        "name": "Sheet Metal Roofing Specialties"
+      },
+      {
+        "code": "07 65 00",
+        "name": "Flexible Flashing"
+      },
+      {
+        "code": "07 70 00",
+        "name": "Roof and Wall Specialties and Accessories"
+      },
+      {
+        "code": "07 71 00",
+        "name": "Roof Specialties"
+      },
+      {
+        "code": "07 72 00",
+        "name": "Roof Accessories"
+      },
+      {
+        "code": "07 76 00",
+        "name": "Roof Pavers"
+      },
+      {
+        "code": "07 77 00",
+        "name": "Wall Specialties"
+      },
+      {
+        "code": "07 80 00",
+        "name": "Fire and Smoke Protection"
+      },
+      {
+        "code": "07 81 00",
+        "name": "Applied Fireproofing"
+      },
+      {
+        "code": "07 84 00",
+        "name": "Firestopping"
+      },
+      {
+        "code": "07 86 00",
+        "name": "Smoke Seals"
+      },
+      {
+        "code": "07 90 00",
+        "name": "Joint Protection"
+      },
+      {
+        "code": "07 91 00",
+        "name": "Preformed Joint Seals"
+      },
+      {
+        "code": "07 92 00",
+        "name": "Joint Sealants"
+      },
+      {
+        "code": "07 95 00",
+        "name": "Expansion Control"
+      }
+    ]
+  },
+  {
+    "code": "08",
+    "name": "Openings",
+    "subdivisions": [
+      {
+        "code": "08 05 00",
+        "name": "Common Work Results for Openings"
+      },
+      {
+        "code": "08 10 00",
+        "name": "Doors and Frames"
+      },
+      {
+        "code": "08 11 00",
+        "name": "Metal Doors and Frames"
+      },
+      {
+        "code": "08 12 00",
+        "name": "Metal Frames"
+      },
+      {
+        "code": "08 13 00",
+        "name": "Metal Doors"
+      },
+      {
+        "code": "08 14 00",
+        "name": "Wood Doors"
+      },
+      {
+        "code": "08 15 00",
+        "name": "Plastic Doors"
+      },
+      {
+        "code": "08 16 00",
+        "name": "Composite Doors"
+      },
+      {
+        "code": "08 17 00",
+        "name": "Integrated Door Opening Assemblies"
+      },
+      {
+        "code": "08 30 00",
+        "name": "Specialty Doors and Frames"
+      },
+      {
+        "code": "08 31 00",
+        "name": "Access Doors and Panels"
+      },
+      {
+        "code": "08 32 00",
+        "name": "Sliding Glass Doors"
+      },
+      {
+        "code": "08 33 00",
+        "name": "Coiling Doors and Grilles"
+      },
+      {
+        "code": "08 34 00",
+        "name": "Special Function Doors"
+      },
+      {
+        "code": "08 35 00",
+        "name": "Folding Doors and Grilles"
+      },
+      {
+        "code": "08 36 00",
+        "name": "Panel Doors"
+      },
+      {
+        "code": "08 38 00",
+        "name": "Traffic Doors"
+      },
+      {
+        "code": "08 39 00",
+        "name": "Pressure-Resistant Doors"
+      },
+      {
+        "code": "08 40 00",
+        "name": "Entrances, Storefronts, and Curtain Walls"
+      },
+      {
+        "code": "08 41 00",
+        "name": "Entrances and Storefronts"
+      },
+      {
+        "code": "08 43 00",
+        "name": "Storefronts"
+      },
+      {
+        "code": "08 44 00",
+        "name": "Curtain Wall and Glazed Assemblies"
+      },
+      {
+        "code": "08 45 00",
+        "name": "Translucent Wall and Roof Assemblies"
+      },
+      {
+        "code": "08 50 00",
+        "name": "Windows"
+      },
+      {
+        "code": "08 51 00",
+        "name": "Metal Windows"
+      },
+      {
+        "code": "08 52 00",
+        "name": "Wood Windows"
+      },
+      {
+        "code": "08 53 00",
+        "name": "Plastic Windows"
+      },
+      {
+        "code": "08 54 00",
+        "name": "Composite Windows"
+      },
+      {
+        "code": "08 56 00",
+        "name": "Special Function Windows"
+      },
+      {
+        "code": "08 60 00",
+        "name": "Roof Windows and Skylights"
+      },
+      {
+        "code": "08 61 00",
+        "name": "Roof Windows"
+      },
+      {
+        "code": "08 62 00",
+        "name": "Unit Skylights"
+      },
+      {
+        "code": "08 63 00",
+        "name": "Metal-Framed Skylights"
+      },
+      {
+        "code": "08 70 00",
+        "name": "Hardware"
+      },
+      {
+        "code": "08 71 00",
+        "name": "Door Hardware"
+      },
+      {
+        "code": "08 74 00",
+        "name": "Access Control Hardware"
+      },
+      {
+        "code": "08 75 00",
+        "name": "Window Hardware"
+      },
+      {
+        "code": "08 78 00",
+        "name": "Special Function Hardware"
+      },
+      {
+        "code": "08 79 00",
+        "name": "Hardware Accessories"
+      },
+      {
+        "code": "08 80 00",
+        "name": "Glazing"
+      },
+      {
+        "code": "08 81 00",
+        "name": "Glass Glazing"
+      },
+      {
+        "code": "08 83 00",
+        "name": "Mirrors"
+      },
+      {
+        "code": "08 84 00",
+        "name": "Plastic Glazing"
+      },
+      {
+        "code": "08 85 00",
+        "name": "Glazing Accessories"
+      },
+      {
+        "code": "08 87 00",
+        "name": "Glazing Surface Films"
+      },
+      {
+        "code": "08 88 00",
+        "name": "Special Function Glazing"
+      },
+      {
+        "code": "08 90 00",
+        "name": "Louvers and Vents"
+      },
+      {
+        "code": "08 91 00",
+        "name": "Louvers"
+      },
+      {
+        "code": "08 92 00",
+        "name": "Louvered Equipment Enclosures"
+      },
+      {
+        "code": "08 95 00",
+        "name": "Vents"
+      }
+    ]
+  },
+  {
+    "code": "09",
+    "name": "Finishes",
+    "subdivisions": [
+      {
+        "code": "09 05 00",
+        "name": "Common Work Results for Finishes"
+      },
+      {
+        "code": "09 20 00",
+        "name": "Plaster and Gypsum Board"
+      },
+      {
+        "code": "09 21 00",
+        "name": "Plaster and Gypsum Board Assemblies"
+      },
+      {
+        "code": "09 22 00",
+        "name": "Supports for Plaster and Gypsum Board"
+      },
+      {
+        "code": "09 23 00",
+        "name": "Gypsum Plastering"
+      },
+      {
+        "code": "09 24 00",
+        "name": "Portland Cement Plastering"
+      },
+      {
+        "code": "09 25 00",
+        "name": "Other Plastering"
+      },
+      {
+        "code": "09 26 00",
+        "name": "Veneer Plastering"
+      },
+      {
+        "code": "09 28 00",
+        "name": "Backing Boards and Underlayments"
+      },
+      {
+        "code": "09 29 00",
+        "name": "Gypsum Board"
+      },
+      {
+        "code": "09 30 00",
+        "name": "Tiling"
+      },
+      {
+        "code": "09 31 00",
+        "name": "Thin-Set Tiling"
+      },
+      {
+        "code": "09 32 00",
+        "name": "Mortar-Bed Tiling"
+      },
+      {
+        "code": "09 34 00",
+        "name": "Waterproofing-Membrane Tiling"
+      },
+      {
+        "code": "09 35 00",
+        "name": "Chemical-Resistant Tiling"
+      },
+      {
+        "code": "09 50 00",
+        "name": "Ceilings"
+      },
+      {
+        "code": "09 51 00",
+        "name": "Acoustical Ceilings"
+      },
+      {
+        "code": "09 53 00",
+        "name": "Acoustical Ceiling Suspension Assemblies"
+      },
+      {
+        "code": "09 54 00",
+        "name": "Specialty Ceilings"
+      },
+      {
+        "code": "09 56 00",
+        "name": "Textured Ceilings"
+      },
+      {
+        "code": "09 57 00",
+        "name": "Special Function Ceilings"
+      },
+      {
+        "code": "09 60 00",
+        "name": "Flooring"
+      },
+      {
+        "code": "09 62 00",
+        "name": "Specialty Flooring"
+      },
+      {
+        "code": "09 63 00",
+        "name": "Masonry Flooring"
+      },
+      {
+        "code": "09 64 00",
+        "name": "Wood Flooring"
+      },
+      {
+        "code": "09 65 00",
+        "name": "Resilient Flooring"
+      },
+      {
+        "code": "09 66 00",
+        "name": "Terrazzo Flooring"
+      },
+      {
+        "code": "09 67 00",
+        "name": "Fluid-Applied Flooring"
+      },
+      {
+        "code": "09 68 00",
+        "name": "Carpeting"
+      },
+      {
+        "code": "09 69 00",
+        "name": "Access Flooring"
+      },
+      {
+        "code": "09 70 00",
+        "name": "Wall Finishes"
+      },
+      {
+        "code": "09 72 00",
+        "name": "Wall Coverings"
+      },
+      {
+        "code": "09 73 00",
+        "name": "Wall Carpeting"
+      },
+      {
+        "code": "09 74 00",
+        "name": "Flexible Wood Sheets"
+      },
+      {
+        "code": "09 75 00",
+        "name": "Stone Facing"
+      },
+      {
+        "code": "09 77 00",
+        "name": "Special Wall Surfacing"
+      },
+      {
+        "code": "09 80 00",
+        "name": "Acoustic Treatment"
+      },
+      {
+        "code": "09 81 00",
+        "name": "Acoustic Insulation"
+      },
+      {
+        "code": "09 83 00",
+        "name": "Acoustic Finishes"
+      },
+      {
+        "code": "09 84 00",
+        "name": "Acoustic Room Components"
+      },
+      {
+        "code": "09 90 00",
+        "name": "Painting and Coating"
+      },
+      {
+        "code": "09 91 00",
+        "name": "Painting"
+      },
+      {
+        "code": "09 93 00",
+        "name": "Staining and Transparent Finishing"
+      },
+      {
+        "code": "09 96 00",
+        "name": "High-Performance Coatings"
+      },
+      {
+        "code": "09 97 00",
+        "name": "Special Coatings"
+      }
+    ]
+  },
+  {
+    "code": "10",
+    "name": "Specialties",
+    "subdivisions": [
+      {
+        "code": "10 10 00",
+        "name": "Information Specialties"
+      },
+      {
+        "code": "10 11 00",
+        "name": "Visual Display Surfaces"
+      },
+      {
+        "code": "10 12 00",
+        "name": "Display Cases"
+      },
+      {
+        "code": "10 13 00",
+        "name": "Directories"
+      },
+      {
+        "code": "10 14 00",
+        "name": "Signage"
+      },
+      {
+        "code": "10 20 00",
+        "name": "Interior Specialties"
+      },
+      {
+        "code": "10 21 00",
+        "name": "Compartments and Cubicles"
+      },
+      {
+        "code": "10 22 00",
+        "name": "Partitions"
+      },
+      {
+        "code": "10 25 00",
+        "name": "Service Walls"
+      },
+      {
+        "code": "10 26 00",
+        "name": "Wall and Door Protection"
+      },
+      {
+        "code": "10 28 00",
+        "name": "Toilet, Bath, and Laundry Accessories"
+      },
+      {
+        "code": "10 30 00",
+        "name": "Fireplaces and Stoves"
+      },
+      {
+        "code": "10 31 00",
+        "name": "Manufactured Fireplaces"
+      },
+      {
+        "code": "10 32 00",
+        "name": "Fireplace Specialties"
+      },
+      {
+        "code": "10 35 00",
+        "name": "Stoves"
+      },
+      {
+        "code": "10 40 00",
+        "name": "Safety Specialties"
+      },
+      {
+        "code": "10 44 00",
+        "name": "Fire Protection Specialties"
+      },
+      {
+        "code": "10 50 00",
+        "name": "Storage Specialties"
+      },
+      {
+        "code": "10 51 00",
+        "name": "Lockers"
+      },
+      {
+        "code": "10 55 00",
+        "name": "Postal Specialties"
+      },
+      {
+        "code": "10 56 00",
+        "name": "Storage Assemblies"
+      },
+      {
+        "code": "10 57 00",
+        "name": "Wardrobe and Closet Specialties"
+      },
+      {
+        "code": "10 70 00",
+        "name": "Exterior Specialties"
+      },
+      {
+        "code": "10 71 00",
+        "name": "Exterior Protection"
+      },
+      {
+        "code": "10 73 00",
+        "name": "Protective Covers"
+      },
+      {
+        "code": "10 74 00",
+        "name": "Manufactured Exterior Specialties"
+      },
+      {
+        "code": "10 75 00",
+        "name": "Flagpoles"
+      },
+      {
+        "code": "10 80 00",
+        "name": "Other Specialties"
+      },
+      {
+        "code": "10 82 00",
+        "name": "Grilles and Screens"
+      },
+      {
+        "code": "10 86 00",
+        "name": "Security Mirrors and Domes"
+      }
+    ]
+  },
+  {
+    "code": "11",
+    "name": "Equipment",
+    "subdivisions": [
+      {
+        "code": "11 10 00",
+        "name": "Vehicle and Pedestrian Equipment"
+      },
+      {
+        "code": "11 11 00",
+        "name": "Vehicle Service Equipment"
+      },
+      {
+        "code": "11 12 00",
+        "name": "Parking Control Equipment"
+      },
+      {
+        "code": "11 13 00",
+        "name": "Loading Dock Equipment"
+      },
+      {
+        "code": "11 14 00",
+        "name": "Pedestrian Control Equipment"
+      },
+      {
+        "code": "11 20 00",
+        "name": "Commercial Equipment"
+      },
+      {
+        "code": "11 21 00",
+        "name": "Mercantile and Service Equipment"
+      },
+      {
+        "code": "11 23 00",
+        "name": "Commercial Laundry and Dry Cleaning Equipment"
+      },
+      {
+        "code": "11 24 00",
+        "name": "Maintenance Equipment"
+      },
+      {
+        "code": "11 25 00",
+        "name": "Hospitality Equipment"
+      },
+      {
+        "code": "11 26 00",
+        "name": "Unit Kitchens"
+      },
+      {
+        "code": "11 28 00",
+        "name": "Office Equipment"
+      },
+      {
+        "code": "11 30 00",
+        "name": "Residential Equipment"
+      },
+      {
+        "code": "11 31 00",
+        "name": "Residential Appliances"
+      },
+      {
+        "code": "11 40 00",
+        "name": "Foodservice Equipment"
+      },
+      {
+        "code": "11 41 00",
+        "name": "Foodservice Storage Equipment"
+      },
+      {
+        "code": "11 42 00",
+        "name": "Foodservice Cleaning and Disposal Equipment"
+      },
+      {
+        "code": "11 43 00",
+        "name": "Food Preparation Equipment"
+      },
+      {
+        "code": "11 44 00",
+        "name": "Food Cooking Equipment"
+      },
+      {
+        "code": "11 46 00",
+        "name": "Food Dispensing Equipment"
+      },
+      {
+        "code": "11 50 00",
+        "name": "Educational and Scientific Equipment"
+      },
+      {
+        "code": "11 52 00",
+        "name": "Audio-Visual Equipment"
+      },
+      {
+        "code": "11 53 00",
+        "name": "Laboratory Equipment"
+      },
+      {
+        "code": "11 60 00",
+        "name": "Entertainment Equipment"
+      },
+      {
+        "code": "11 66 00",
+        "name": "Athletic Equipment"
+      },
+      {
+        "code": "11 67 00",
+        "name": "Recreational Equipment"
+      },
+      {
+        "code": "11 68 00",
+        "name": "Play Field Equipment and Structures"
+      },
+      {
+        "code": "11 70 00",
+        "name": "Healthcare Equipment"
+      },
+      {
+        "code": "11 71 00",
+        "name": "Medical Sterilizing Equipment"
+      },
+      {
+        "code": "11 72 00",
+        "name": "Examination and Treatment Equipment"
+      },
+      {
+        "code": "11 73 00",
+        "name": "Patient Care Equipment"
+      },
+      {
+        "code": "11 74 00",
+        "name": "Dental Equipment"
+      },
+      {
+        "code": "11 76 00",
+        "name": "Operating Room Equipment"
+      },
+      {
+        "code": "11 78 00",
+        "name": "Mortuary Equipment"
+      },
+      {
+        "code": "11 79 00",
+        "name": "Therapy Equipment"
+      },
+      {
+        "code": "11 80 00",
+        "name": "Collection and Disposal Equipment"
+      },
+      {
+        "code": "11 82 00",
+        "name": "Solid Waste Handling Equipment"
+      }
+    ]
+  },
+  {
+    "code": "12",
+    "name": "Furnishings",
+    "subdivisions": [
+      {
+        "code": "12 05 00",
+        "name": "Common Work Results for Furnishings"
+      },
+      {
+        "code": "12 10 00",
+        "name": "Art"
+      },
+      {
+        "code": "12 20 00",
+        "name": "Window Treatments"
+      },
+      {
+        "code": "12 21 00",
+        "name": "Window Blinds"
+      },
+      {
+        "code": "12 22 00",
+        "name": "Curtains and Drapes"
+      },
+      {
+        "code": "12 23 00",
+        "name": "Interior Shutters"
+      },
+      {
+        "code": "12 24 00",
+        "name": "Window Shades"
+      },
+      {
+        "code": "12 30 00",
+        "name": "Casework"
+      },
+      {
+        "code": "12 31 00",
+        "name": "Manufactured Metal Casework"
+      },
+      {
+        "code": "12 32 00",
+        "name": "Manufactured Wood Casework"
+      },
+      {
+        "code": "12 34 00",
+        "name": "Manufactured Plastic Casework"
+      },
+      {
+        "code": "12 35 00",
+        "name": "Specialty Casework"
+      },
+      {
+        "code": "12 36 00",
+        "name": "Countertops"
+      },
+      {
+        "code": "12 40 00",
+        "name": "Furnishings and Accessories"
+      },
+      {
+        "code": "12 46 00",
+        "name": "Furnishing Accessories"
+      },
+      {
+        "code": "12 48 00",
+        "name": "Rugs and Mats"
+      },
+      {
+        "code": "12 50 00",
+        "name": "Furniture"
+      },
+      {
+        "code": "12 51 00",
+        "name": "Office Furniture"
+      },
+      {
+        "code": "12 52 00",
+        "name": "Seating"
+      },
+      {
+        "code": "12 53 00",
+        "name": "Chair Seating"
+      },
+      {
+        "code": "12 54 00",
+        "name": "Hospitality Furniture"
+      },
+      {
+        "code": "12 55 00",
+        "name": "Detention Furniture"
+      },
+      {
+        "code": "12 56 00",
+        "name": "Healthcare Furniture"
+      },
+      {
+        "code": "12 57 00",
+        "name": "Industrial Furniture"
+      },
+      {
+        "code": "12 59 00",
+        "name": "Systems Furniture"
+      },
+      {
+        "code": "12 60 00",
+        "name": "Multiple Seating"
+      },
+      {
+        "code": "12 61 00",
+        "name": "Fixed Audience Seating"
+      },
+      {
+        "code": "12 63 00",
+        "name": "Stadium and Arena Seating"
+      },
+      {
+        "code": "12 64 00",
+        "name": "Booths and Tables"
+      },
+      {
+        "code": "12 66 00",
+        "name": "Telescoping Stands"
+      },
+      {
+        "code": "12 67 00",
+        "name": "Pews and Benches"
+      },
+      {
+        "code": "12 93 00",
+        "name": "Site Furnishings"
+      }
+    ]
+  },
+  {
+    "code": "13",
+    "name": "Special Construction",
+    "subdivisions": [
+      {
+        "code": "13 05 00",
+        "name": "Common Work Results for Special Construction"
+      },
+      {
+        "code": "13 10 00",
+        "name": "Special Facility Components"
+      },
+      {
+        "code": "13 11 00",
+        "name": "Swimming Pools"
+      },
+      {
+        "code": "13 12 00",
+        "name": "Fountains"
+      },
+      {
+        "code": "13 13 00",
+        "name": "Aquariums"
+      },
+      {
+        "code": "13 17 00",
+        "name": "Tubs and Pools"
+      },
+      {
+        "code": "13 18 00",
+        "name": "Ice Rinks"
+      },
+      {
+        "code": "13 19 00",
+        "name": "Kennels and Animal Shelters"
+      },
+      {
+        "code": "13 20 00",
+        "name": "Special Purpose Rooms"
+      },
+      {
+        "code": "13 21 00",
+        "name": "Controlled Environment Rooms"
+      },
+      {
+        "code": "13 26 00",
+        "name": "Cold Storage Rooms"
+      },
+      {
+        "code": "13 28 00",
+        "name": "Athletic and Recreational Special Construction"
+      },
+      {
+        "code": "13 30 00",
+        "name": "Special Structures"
+      },
+      {
+        "code": "13 31 00",
+        "name": "Fabric Structures"
+      },
+      {
+        "code": "13 34 00",
+        "name": "Fabricated Engineered Structures"
+      },
+      {
+        "code": "13 36 00",
+        "name": "Towers"
+      },
+      {
+        "code": "13 40 00",
+        "name": "Integrated Construction"
+      },
+      {
+        "code": "13 42 00",
+        "name": "Building Modules"
+      },
+      {
+        "code": "13 48 00",
+        "name": "Sound, Vibration, and Seismic Control"
+      },
+      {
+        "code": "13 49 00",
+        "name": "Radiation Protection"
+      }
+    ]
+  },
+  {
+    "code": "14",
+    "name": "Conveying Equipment",
+    "subdivisions": [
+      {
+        "code": "14 10 00",
+        "name": "Dumbwaiters"
+      },
+      {
+        "code": "14 20 00",
+        "name": "Elevators"
+      },
+      {
+        "code": "14 21 00",
+        "name": "Electric Traction Elevators"
+      },
+      {
+        "code": "14 24 00",
+        "name": "Hydraulic Elevators"
+      },
+      {
+        "code": "14 27 00",
+        "name": "Custom Elevators"
+      },
+      {
+        "code": "14 28 00",
+        "name": "Elevator Equipment and Controls"
+      },
+      {
+        "code": "14 30 00",
+        "name": "Escalators and Moving Walks"
+      },
+      {
+        "code": "14 31 00",
+        "name": "Escalators"
+      },
+      {
+        "code": "14 32 00",
+        "name": "Moving Walks"
+      },
+      {
+        "code": "14 40 00",
+        "name": "Lifts"
+      },
+      {
+        "code": "14 42 00",
+        "name": "Wheelchair Lifts"
+      },
+      {
+        "code": "14 45 00",
+        "name": "Vehicle Lifts"
+      },
+      {
+        "code": "14 70 00",
+        "name": "Turntables"
+      },
+      {
+        "code": "14 80 00",
+        "name": "Scaffolding"
+      },
+      {
+        "code": "14 91 00",
+        "name": "Facility Chutes"
+      }
+    ]
+  },
+  {
+    "code": "21",
+    "name": "Fire Suppression",
+    "subdivisions": [
+      {
+        "code": "21 05 00",
+        "name": "Common Work Results for Fire Suppression"
+      },
+      {
+        "code": "21 10 00",
+        "name": "Water-Based Fire-Suppression Systems"
+      },
+      {
+        "code": "21 11 00",
+        "name": "Facility Fire-Suppression Water-Service Piping"
+      },
+      {
+        "code": "21 12 00",
+        "name": "Fire-Suppression Standpipes"
+      },
+      {
+        "code": "21 13 00",
+        "name": "Fire-Suppression Sprinkler Systems"
+      },
+      {
+        "code": "21 20 00",
+        "name": "Fire-Extinguishing Systems"
+      },
+      {
+        "code": "21 21 00",
+        "name": "Carbon-Dioxide Fire-Extinguishing Systems"
+      },
+      {
+        "code": "21 22 00",
+        "name": "Clean-Agent Fire-Extinguishing Systems"
+      },
+      {
+        "code": "21 23 00",
+        "name": "Wet-Chemical Fire-Extinguishing Systems"
+      },
+      {
+        "code": "21 30 00",
+        "name": "Fire Pumps"
+      },
+      {
+        "code": "21 40 00",
+        "name": "Fire-Suppression Water Storage"
+      }
+    ]
+  },
+  {
+    "code": "22",
+    "name": "Plumbing",
+    "subdivisions": [
+      {
+        "code": "22 05 00",
+        "name": "Common Work Results for Plumbing"
+      },
+      {
+        "code": "22 07 00",
+        "name": "Plumbing Insulation"
+      },
+      {
+        "code": "22 10 00",
+        "name": "Plumbing Piping and Pumps"
+      },
+      {
+        "code": "22 11 00",
+        "name": "Facility Water Distribution"
+      },
+      {
+        "code": "22 13 00",
+        "name": "Facility Sanitary Sewerage"
+      },
+      {
+        "code": "22 14 00",
+        "name": "Facility Storm Drainage"
+      },
+      {
+        "code": "22 30 00",
+        "name": "Plumbing Equipment"
+      },
+      {
+        "code": "22 31 00",
+        "name": "Domestic Water Softeners"
+      },
+      {
+        "code": "22 33 00",
+        "name": "Electric Domestic Water Heaters"
+      },
+      {
+        "code": "22 34 00",
+        "name": "Fuel-Fired Domestic Water Heaters"
+      },
+      {
+        "code": "22 35 00",
+        "name": "Domestic Water Heat Exchangers"
+      },
+      {
+        "code": "22 40 00",
+        "name": "Plumbing Fixtures"
+      },
+      {
+        "code": "22 41 00",
+        "name": "Residential Plumbing Fixtures"
+      },
+      {
+        "code": "22 42 00",
+        "name": "Commercial Plumbing Fixtures"
+      },
+      {
+        "code": "22 43 00",
+        "name": "Healthcare Plumbing Fixtures"
+      },
+      {
+        "code": "22 45 00",
+        "name": "Emergency Plumbing Fixtures"
+      },
+      {
+        "code": "22 46 00",
+        "name": "Security Plumbing Fixtures"
+      },
+      {
+        "code": "22 47 00",
+        "name": "Drinking Fountains and Water Coolers"
+      },
+      {
+        "code": "22 60 00",
+        "name": "Gas and Vacuum Systems for Laboratory and Healthcare Facilities"
+      },
+      {
+        "code": "22 66 00",
+        "name": "Chemical-Waste Systems for Laboratory and Healthcare Facilities"
+      },
+      {
+        "code": "22 67 00",
+        "name": "Processed Water Systems for Laboratory and Healthcare Facilities"
+      }
+    ]
+  },
+  {
+    "code": "23",
+    "name": "Heating, Ventilating, and Air Conditioning (HVAC)",
+    "subdivisions": [
+      {
+        "code": "23 05 00",
+        "name": "Common Work Results for HVAC"
+      },
+      {
+        "code": "23 07 00",
+        "name": "HVAC Insulation"
+      },
+      {
+        "code": "23 09 00",
+        "name": "Instrumentation and Control for HVAC"
+      },
+      {
+        "code": "23 10 00",
+        "name": "Facility Fuel Systems"
+      },
+      {
+        "code": "23 20 00",
+        "name": "HVAC Piping and Pumps"
+      },
+      {
+        "code": "23 21 00",
+        "name": "Hydronic Piping and Pumps"
+      },
+      {
+        "code": "23 22 00",
+        "name": "Steam and Condensate Piping and Pumps"
+      },
+      {
+        "code": "23 23 00",
+        "name": "Refrigerant Piping"
+      },
+      {
+        "code": "23 25 00",
+        "name": "HVAC Water Treatment"
+      },
+      {
+        "code": "23 30 00",
+        "name": "HVAC Air Distribution"
+      },
+      {
+        "code": "23 31 00",
+        "name": "HVAC Ducts and Casings"
+      },
+      {
+        "code": "23 33 00",
+        "name": "Air Duct Accessories"
+      },
+      {
+        "code": "23 34 00",
+        "name": "HVAC Fans"
+      },
+      {
+        "code": "23 36 00",
+        "name": "Air Terminal Units"
+      },
+      {
+        "code": "23 37 00",
+        "name": "Air Outlets and Inlets"
+      },
+      {
+        "code": "23 38 00",
+        "name": "Ventilation Hoods"
+      },
+      {
+        "code": "23 40 00",
+        "name": "HVAC Air Cleaning Devices"
+      },
+      {
+        "code": "23 50 00",
+        "name": "Central Heating Equipment"
+      },
+      {
+        "code": "23 51 00",
+        "name": "Breechings, Chimneys, and Stacks"
+      },
+      {
+        "code": "23 52 00",
+        "name": "Heating Boilers"
+      },
+      {
+        "code": "23 54 00",
+        "name": "Furnaces"
+      },
+      {
+        "code": "23 55 00",
+        "name": "Fuel-Fired Heaters"
+      },
+      {
+        "code": "23 56 00",
+        "name": "Solar Energy Heating Equipment"
+      },
+      {
+        "code": "23 60 00",
+        "name": "Central Cooling Equipment"
+      },
+      {
+        "code": "23 61 00",
+        "name": "Refrigerant Compressors"
+      },
+      {
+        "code": "23 62 00",
+        "name": "Packaged Compressor and Condenser Units"
+      },
+      {
+        "code": "23 64 00",
+        "name": "Packaged Water Chillers"
+      },
+      {
+        "code": "23 65 00",
+        "name": "Cooling Towers"
+      },
+      {
+        "code": "23 70 00",
+        "name": "Central HVAC Equipment"
+      },
+      {
+        "code": "23 72 00",
+        "name": "Air-to-Air Energy Recovery Equipment"
+      },
+      {
+        "code": "23 73 00",
+        "name": "Indoor Central-Station Air-Handling Units"
+      },
+      {
+        "code": "23 74 00",
+        "name": "Packaged Outdoor HVAC Equipment"
+      },
+      {
+        "code": "23 80 00",
+        "name": "Decentralized HVAC Equipment"
+      },
+      {
+        "code": "23 81 00",
+        "name": "Decentralized Unitary HVAC Equipment"
+      },
+      {
+        "code": "23 82 00",
+        "name": "Convection Heating and Cooling Units"
+      },
+      {
+        "code": "23 83 00",
+        "name": "Radiant Heating Units"
+      },
+      {
+        "code": "23 84 00",
+        "name": "Humidity Control Equipment"
+      }
+    ]
+  },
+  {
+    "code": "25",
+    "name": "Integrated Automation",
+    "subdivisions": [
+      {
+        "code": "25 05 00",
+        "name": "Common Work Results for Integrated Automation"
+      },
+      {
+        "code": "25 10 00",
+        "name": "Integrated Automation Network Equipment"
+      },
+      {
+        "code": "25 13 00",
+        "name": "Integrated Automation Control and Monitoring Network"
+      },
+      {
+        "code": "25 14 00",
+        "name": "Integrated Automation Local Control Units"
+      },
+      {
+        "code": "25 15 00",
+        "name": "Integrated Automation Software"
+      },
+      {
+        "code": "25 30 00",
+        "name": "Integrated Automation Instrumentation and Terminal Devices"
+      },
+      {
+        "code": "25 35 00",
+        "name": "Integrated Automation Sensors and Transmitters"
+      },
+      {
+        "code": "25 36 00",
+        "name": "Integrated Automation Instrumentation and Terminal Devices for HVAC"
+      },
+      {
+        "code": "25 50 00",
+        "name": "Integrated Automation Facility Controls"
+      },
+      {
+        "code": "25 51 00",
+        "name": "Integrated Automation Control of Fire-Suppression Systems"
+      },
+      {
+        "code": "25 55 00",
+        "name": "Integrated Automation Control of HVAC"
+      },
+      {
+        "code": "25 56 00",
+        "name": "Integrated Automation Control of Electrical Systems"
+      },
+      {
+        "code": "25 90 00",
+        "name": "Integrated Automation Control Sequences"
+      }
+    ]
+  },
+  {
+    "code": "26",
+    "name": "Electrical",
+    "subdivisions": [
+      {
+        "code": "26 05 00",
+        "name": "Common Work Results for Electrical"
+      },
+      {
+        "code": "26 06 00",
+        "name": "Schedules for Electrical"
+      },
+      {
+        "code": "26 08 00",
+        "name": "Commissioning of Electrical Systems"
+      },
+      {
+        "code": "26 09 00",
+        "name": "Instrumentation and Control for Electrical Systems"
+      },
+      {
+        "code": "26 10 00",
+        "name": "Medium-Voltage Electrical Distribution"
+      },
+      {
+        "code": "26 12 00",
+        "name": "Medium-Voltage Transformers"
+      },
+      {
+        "code": "26 13 00",
+        "name": "Medium-Voltage Switchgear"
+      },
+      {
+        "code": "26 18 00",
+        "name": "Medium-Voltage Circuit Protection Devices"
+      },
+      {
+        "code": "26 20 00",
+        "name": "Low-Voltage Electrical Distribution"
+      },
+      {
+        "code": "26 22 00",
+        "name": "Low-Voltage Transformers"
+      },
+      {
+        "code": "26 23 00",
+        "name": "Low-Voltage Switchgear"
+      },
+      {
+        "code": "26 24 00",
+        "name": "Switchboards and Panelboards"
+      },
+      {
+        "code": "26 25 00",
+        "name": "Enclosed Bus Assemblies"
+      },
+      {
+        "code": "26 27 00",
+        "name": "Low-Voltage Distribution Equipment"
+      },
+      {
+        "code": "26 28 00",
+        "name": "Low-Voltage Circuit Protective Devices"
+      },
+      {
+        "code": "26 29 00",
+        "name": "Low-Voltage Controllers"
+      },
+      {
+        "code": "26 30 00",
+        "name": "Facility Electrical Power Generating and Storing Equipment"
+      },
+      {
+        "code": "26 31 00",
+        "name": "Photovoltaic Collectors"
+      },
+      {
+        "code": "26 32 00",
+        "name": "Packaged Generator Assemblies"
+      },
+      {
+        "code": "26 33 00",
+        "name": "Battery Equipment"
+      },
+      {
+        "code": "26 35 00",
+        "name": "Power Filters and Conditioners"
+      },
+      {
+        "code": "26 36 00",
+        "name": "Transfer Switches"
+      },
+      {
+        "code": "26 37 00",
+        "name": "Static Uninterruptible Power Supply"
+      },
+      {
+        "code": "26 40 00",
+        "name": "Electrical and Cathodic Protection"
+      },
+      {
+        "code": "26 41 00",
+        "name": "Facility Lightning Protection"
+      },
+      {
+        "code": "26 42 00",
+        "name": "Cathodic Protection"
+      },
+      {
+        "code": "26 43 00",
+        "name": "Transient Voltage Suppression"
+      },
+      {
+        "code": "26 50 00",
+        "name": "Lighting"
+      },
+      {
+        "code": "26 51 00",
+        "name": "Interior Lighting"
+      },
+      {
+        "code": "26 52 00",
+        "name": "Emergency Lighting"
+      },
+      {
+        "code": "26 53 00",
+        "name": "Exit Signs"
+      },
+      {
+        "code": "26 55 00",
+        "name": "Special Purpose Lighting"
+      },
+      {
+        "code": "26 56 00",
+        "name": "Exterior Lighting"
+      }
+    ]
+  },
+  {
+    "code": "27",
+    "name": "Communications",
+    "subdivisions": [
+      {
+        "code": "27 05 00",
+        "name": "Common Work Results for Communications"
+      },
+      {
+        "code": "27 08 00",
+        "name": "Commissioning of Communications"
+      },
+      {
+        "code": "27 10 00",
+        "name": "Structured Cabling"
+      },
+      {
+        "code": "27 11 00",
+        "name": "Communications Equipment Room Fittings"
+      },
+      {
+        "code": "27 13 00",
+        "name": "Communications Backbone Cabling"
+      },
+      {
+        "code": "27 15 00",
+        "name": "Communications Horizontal Cabling"
+      },
+      {
+        "code": "27 16 00",
+        "name": "Communications Connecting Cords, Patch Cords, and Station Cords"
+      },
+      {
+        "code": "27 20 00",
+        "name": "Data Communications"
+      },
+      {
+        "code": "27 21 00",
+        "name": "Data Communications Network Equipment"
+      },
+      {
+        "code": "27 22 00",
+        "name": "Data Communications Hardware"
+      },
+      {
+        "code": "27 24 00",
+        "name": "Data Communications Peripheral Equipment"
+      },
+      {
+        "code": "27 25 00",
+        "name": "Data Communications Software"
+      },
+      {
+        "code": "27 30 00",
+        "name": "Voice Communications"
+      },
+      {
+        "code": "27 32 00",
+        "name": "Voice Communications Switching and Routing Equipment"
+      },
+      {
+        "code": "27 33 00",
+        "name": "Voice Communications Terminal Equipment"
+      },
+      {
+        "code": "27 40 00",
+        "name": "Audio-Video Communications"
+      },
+      {
+        "code": "27 41 00",
+        "name": "Audio-Video Systems"
+      },
+      {
+        "code": "27 42 00",
+        "name": "Electronic Digital Systems"
+      },
+      {
+        "code": "27 50 00",
+        "name": "Distributed Communications and Monitoring Systems"
+      },
+      {
+        "code": "27 51 00",
+        "name": "Distributed Audio-Video Communications Systems"
+      },
+      {
+        "code": "27 52 00",
+        "name": "Healthcare Communications and Monitoring Systems"
+      },
+      {
+        "code": "27 53 00",
+        "name": "Distributed Systems"
+      }
+    ]
+  },
+  {
+    "code": "28",
+    "name": "Electronic Safety and Security",
+    "subdivisions": [
+      {
+        "code": "28 05 00",
+        "name": "Common Work Results for Electronic Safety and Security"
+      },
+      {
+        "code": "28 08 00",
+        "name": "Commissioning of Electronic Safety and Security"
+      },
+      {
+        "code": "28 10 00",
+        "name": "Electronic Access Control and Intrusion Detection"
+      },
+      {
+        "code": "28 13 00",
+        "name": "Access Control"
+      },
+      {
+        "code": "28 15 00",
+        "name": "Intrusion Detection"
+      },
+      {
+        "code": "28 16 00",
+        "name": "Intrusion Detection Systems Infrastructure"
+      },
+      {
+        "code": "28 20 00",
+        "name": "Electronic Surveillance"
+      },
+      {
+        "code": "28 23 00",
+        "name": "Video Surveillance"
+      },
+      {
+        "code": "28 26 00",
+        "name": "Electronic Personal Protection Systems"
+      },
+      {
+        "code": "28 30 00",
+        "name": "Electronic Detection and Alarm"
+      },
+      {
+        "code": "28 31 00",
+        "name": "Fire Detection and Alarm"
+      },
+      {
+        "code": "28 33 00",
+        "name": "Fuel-Gas Detection and Alarm"
+      },
+      {
+        "code": "28 34 00",
+        "name": "Vapor Detection and Alarm"
+      },
+      {
+        "code": "28 46 00",
+        "name": "Electronic Detention Monitoring and Control Systems"
+      }
+    ]
+  },
+  {
+    "code": "31",
+    "name": "Earthwork",
+    "subdivisions": [
+      {
+        "code": "31 05 00",
+        "name": "Common Work Results for Earthwork"
+      },
+      {
+        "code": "31 09 00",
+        "name": "Geotechnical Instrumentation and Monitoring"
+      },
+      {
+        "code": "31 10 00",
+        "name": "Site Clearing"
+      },
+      {
+        "code": "31 11 00",
+        "name": "Clearing and Grubbing"
+      },
+      {
+        "code": "31 12 00",
+        "name": "Selective Clearing"
+      },
+      {
+        "code": "31 13 00",
+        "name": "Selective Tree and Shrub Removal and Trimming"
+      },
+      {
+        "code": "31 14 00",
+        "name": "Earth Stripping and Stockpiling"
+      },
+      {
+        "code": "31 20 00",
+        "name": "Earth Moving"
+      },
+      {
+        "code": "31 22 00",
+        "name": "Grading"
+      },
+      {
+        "code": "31 23 00",
+        "name": "Excavation and Fill"
+      },
+      {
+        "code": "31 24 00",
+        "name": "Embankments"
+      },
+      {
+        "code": "31 25 00",
+        "name": "Erosion and Sedimentation Controls"
+      },
+      {
+        "code": "31 30 00",
+        "name": "Earthwork Methods"
+      },
+      {
+        "code": "31 31 00",
+        "name": "Soil Treatment"
+      },
+      {
+        "code": "31 32 00",
+        "name": "Soil Stabilization"
+      },
+      {
+        "code": "31 33 00",
+        "name": "Rock Stabilization"
+      },
+      {
+        "code": "31 34 00",
+        "name": "Soil Reinforcement"
+      },
+      {
+        "code": "31 35 00",
+        "name": "Slope Protection"
+      },
+      {
+        "code": "31 36 00",
+        "name": "Gabions"
+      },
+      {
+        "code": "31 37 00",
+        "name": "Riprap"
+      },
+      {
+        "code": "31 40 00",
+        "name": "Shoring and Underpinning"
+      },
+      {
+        "code": "31 41 00",
+        "name": "Shoring"
+      },
+      {
+        "code": "31 43 00",
+        "name": "Concrete Raising"
+      },
+      {
+        "code": "31 45 00",
+        "name": "Vibratory Deep Compaction"
+      },
+      {
+        "code": "31 46 00",
+        "name": "Needle Beams"
+      },
+      {
+        "code": "31 48 00",
+        "name": "Underpinning"
+      },
+      {
+        "code": "31 50 00",
+        "name": "Excavation Support and Protection"
+      },
+      {
+        "code": "31 52 00",
+        "name": "Cofferdams"
+      },
+      {
+        "code": "31 54 00",
+        "name": "Ground Freezing"
+      },
+      {
+        "code": "31 56 00",
+        "name": "Slurry Walls"
+      },
+      {
+        "code": "31 60 00",
+        "name": "Special Foundations and Load-Bearing Elements"
+      },
+      {
+        "code": "31 62 00",
+        "name": "Driven Piles"
+      },
+      {
+        "code": "31 63 00",
+        "name": "Bored Piles"
+      },
+      {
+        "code": "31 64 00",
+        "name": "Caissons"
+      },
+      {
+        "code": "31 66 00",
+        "name": "Special Foundations"
+      },
+      {
+        "code": "31 68 00",
+        "name": "Foundation Anchors"
+      },
+      {
+        "code": "31 70 00",
+        "name": "Tunneling and Mining"
+      },
+      {
+        "code": "31 72 00",
+        "name": "Tunnel Excavation"
+      },
+      {
+        "code": "31 75 00",
+        "name": "Tunnel Construction"
+      },
+      {
+        "code": "31 77 00",
+        "name": "Submersible Tubes"
+      }
+    ]
+  },
+  {
+    "code": "32",
+    "name": "Exterior Improvements",
+    "subdivisions": [
+      {
+        "code": "32 05 00",
+        "name": "Common Work Results for Exterior Improvements"
+      },
+      {
+        "code": "32 10 00",
+        "name": "Bases, Ballasts, and Paving"
+      },
+      {
+        "code": "32 11 00",
+        "name": "Base Courses"
+      },
+      {
+        "code": "32 12 00",
+        "name": "Flexible Paving"
+      },
+      {
+        "code": "32 13 00",
+        "name": "Rigid Paving"
+      },
+      {
+        "code": "32 14 00",
+        "name": "Unit Paving"
+      },
+      {
+        "code": "32 15 00",
+        "name": "Aggregate Surfacing"
+      },
+      {
+        "code": "32 16 00",
+        "name": "Curbs and Gutters"
+      },
+      {
+        "code": "32 17 00",
+        "name": "Paving Specialties"
+      },
+      {
+        "code": "32 18 00",
+        "name": "Athletic and Recreational Surfacing"
+      },
+      {
+        "code": "32 30 00",
+        "name": "Site Improvements"
+      },
+      {
+        "code": "32 31 00",
+        "name": "Fences and Gates"
+      },
+      {
+        "code": "32 32 00",
+        "name": "Retaining Walls"
+      },
+      {
+        "code": "32 33 00",
+        "name": "Site Furnishings"
+      },
+      {
+        "code": "32 34 00",
+        "name": "Fabricated Bridges"
+      },
+      {
+        "code": "32 35 00",
+        "name": "Screening Devices"
+      },
+      {
+        "code": "32 70 00",
+        "name": "Wetlands"
+      },
+      {
+        "code": "32 80 00",
+        "name": "Irrigation"
+      },
+      {
+        "code": "32 84 00",
+        "name": "Planting Irrigation"
+      },
+      {
+        "code": "32 90 00",
+        "name": "Planting"
+      },
+      {
+        "code": "32 91 00",
+        "name": "Planting Preparation"
+      },
+      {
+        "code": "32 92 00",
+        "name": "Turf and Grasses"
+      },
+      {
+        "code": "32 93 00",
+        "name": "Plants"
+      },
+      {
+        "code": "32 94 00",
+        "name": "Planting Accessories"
+      },
+      {
+        "code": "32 96 00",
+        "name": "Transplanting"
+      }
+    ]
+  },
+  {
+    "code": "33",
+    "name": "Utilities",
+    "subdivisions": [
+      {
+        "code": "33 05 00",
+        "name": "Common Work Results for Utilities"
+      },
+      {
+        "code": "33 08 00",
+        "name": "Commissioning of Utilities"
+      },
+      {
+        "code": "33 09 00",
+        "name": "Instrumentation and Control for Utilities"
+      },
+      {
+        "code": "33 10 00",
+        "name": "Water Utilities"
+      },
+      {
+        "code": "33 11 00",
+        "name": "Water Utility Distribution Piping"
+      },
+      {
+        "code": "33 12 00",
+        "name": "Water Utility Distribution Equipment"
+      },
+      {
+        "code": "33 13 00",
+        "name": "Disinfecting of Water Utility Distribution"
+      },
+      {
+        "code": "33 16 00",
+        "name": "Water Utility Storage Tanks"
+      },
+      {
+        "code": "33 20 00",
+        "name": "Wells"
+      },
+      {
+        "code": "33 21 00",
+        "name": "Water Supply Wells"
+      },
+      {
+        "code": "33 23 00",
+        "name": "Monitoring Wells"
+      },
+      {
+        "code": "33 29 00",
+        "name": "Well Abandonment"
+      },
+      {
+        "code": "33 30 00",
+        "name": "Sanitary Sewerage"
+      },
+      {
+        "code": "33 31 00",
+        "name": "Sanitary Sewerage Piping"
+      },
+      {
+        "code": "33 32 00",
+        "name": "Wastewater Utility Pumping Stations"
+      },
+      {
+        "code": "33 34 00",
+        "name": "Onsite Wastewater Disposal"
+      },
+      {
+        "code": "33 36 00",
+        "name": "Utility Septic Tanks"
+      },
+      {
+        "code": "33 40 00",
+        "name": "Storm Drainage Utilities"
+      },
+      {
+        "code": "33 41 00",
+        "name": "Storm Drainage Piping"
+      },
+      {
+        "code": "33 42 00",
+        "name": "Culverts"
+      },
+      {
+        "code": "33 44 00",
+        "name": "Storm Drainage Manholes, Frames, and Covers"
+      },
+      {
+        "code": "33 46 00",
+        "name": "Subdrainage"
+      },
+      {
+        "code": "33 49 00",
+        "name": "Storm Drainage Structures"
+      },
+      {
+        "code": "33 50 00",
+        "name": "Fuel-Distribution Utilities"
+      },
+      {
+        "code": "33 51 00",
+        "name": "Natural-Gas Distribution"
+      },
+      {
+        "code": "33 52 00",
+        "name": "Liquid Fuel Distribution"
+      },
+      {
+        "code": "33 56 00",
+        "name": "Fuel-Storage Tanks"
+      },
+      {
+        "code": "33 60 00",
+        "name": "Hydronic and Steam Energy Utilities"
+      },
+      {
+        "code": "33 61 00",
+        "name": "Hydronic Energy Distribution"
+      },
+      {
+        "code": "33 63 00",
+        "name": "Steam Energy Distribution"
+      },
+      {
+        "code": "33 70 00",
+        "name": "Electrical Utilities"
+      },
+      {
+        "code": "33 71 00",
+        "name": "Electrical Utility Transmission and Distribution"
+      },
+      {
+        "code": "33 72 00",
+        "name": "Utility Substations"
+      },
+      {
+        "code": "33 73 00",
+        "name": "Utility Transformers"
+      },
+      {
+        "code": "33 75 00",
+        "name": "High-Voltage Switchgear and Protection Devices"
+      },
+      {
+        "code": "33 77 00",
+        "name": "Medium-Voltage Utility Switchgear and Protection Devices"
+      },
+      {
+        "code": "33 79 00",
+        "name": "Site Grounding"
+      },
+      {
+        "code": "33 80 00",
+        "name": "Communications Utilities"
+      },
+      {
+        "code": "33 81 00",
+        "name": "Communications Distribution"
+      },
+      {
+        "code": "33 82 00",
+        "name": "Communications Transmission Equipment"
+      }
+    ]
+  },
+  {
+    "code": "34",
+    "name": "Transportation",
+    "subdivisions": [
+      {
+        "code": "34 10 00",
+        "name": "Guideways/Railways"
+      },
+      {
+        "code": "34 11 00",
+        "name": "Rail Tracks"
+      },
+      {
+        "code": "34 13 00",
+        "name": "Quarterways"
+      },
+      {
+        "code": "34 20 00",
+        "name": "Traction Power"
+      },
+      {
+        "code": "34 21 00",
+        "name": "Traction Power Distribution"
+      },
+      {
+        "code": "34 40 00",
+        "name": "Transportation Signaling and Control Equipment"
+      },
+      {
+        "code": "34 41 00",
+        "name": "Roadway Signaling and Control Equipment"
+      },
+      {
+        "code": "34 42 00",
+        "name": "Railway Signaling and Control Equipment"
+      },
+      {
+        "code": "34 43 00",
+        "name": "Airfield Signaling and Control Equipment"
+      },
+      {
+        "code": "34 48 00",
+        "name": "Bridge Signaling and Control Equipment"
+      },
+      {
+        "code": "34 70 00",
+        "name": "Transportation Construction and Equipment"
+      },
+      {
+        "code": "34 71 00",
+        "name": "Roadway Construction"
+      },
+      {
+        "code": "34 72 00",
+        "name": "Railway Construction"
+      },
+      {
+        "code": "34 73 00",
+        "name": "Airfield Construction"
+      },
+      {
+        "code": "34 75 00",
+        "name": "Bridge Construction"
+      },
+      {
+        "code": "34 77 00",
+        "name": "Tunnel Construction"
+      }
+    ]
+  },
+  {
+    "code": "35",
+    "name": "Waterway and Marine Construction",
+    "subdivisions": [
+      {
+        "code": "35 05 00",
+        "name": "Common Work Results for Waterway and Marine Construction"
+      },
+      {
+        "code": "35 10 00",
+        "name": "Waterway and Marine Signaling and Control Equipment"
+      },
+      {
+        "code": "35 13 00",
+        "name": "Signaling and Navigation Aids"
+      },
+      {
+        "code": "35 20 00",
+        "name": "Waterway and Marine Construction and Equipment"
+      },
+      {
+        "code": "35 21 00",
+        "name": "Waterway Construction"
+      },
+      {
+        "code": "35 23 00",
+        "name": "Dredging"
+      },
+      {
+        "code": "35 31 00",
+        "name": "Shoreline Protection"
+      },
+      {
+        "code": "35 41 00",
+        "name": "Levees"
+      },
+      {
+        "code": "35 42 00",
+        "name": "Waterway Bank Protection"
+      },
+      {
+        "code": "35 43 00",
+        "name": "Flood Control Channels"
+      },
+      {
+        "code": "35 50 00",
+        "name": "Marine Construction"
+      },
+      {
+        "code": "35 51 00",
+        "name": "Floating Construction"
+      },
+      {
+        "code": "35 52 00",
+        "name": "Offshore Platform Construction"
+      },
+      {
+        "code": "35 59 00",
+        "name": "Marine Specialties"
+      },
+      {
+        "code": "35 70 00",
+        "name": "Dam Construction and Equipment"
+      },
+      {
+        "code": "35 71 00",
+        "name": "Gravity Dams"
+      }
+    ]
+  },
+  {
+    "code": "40",
+    "name": "Process Interconnections",
+    "subdivisions": [
+      {
+        "code": "40 05 00",
+        "name": "Common Work Results for Process Interconnections"
+      },
+      {
+        "code": "40 10 00",
+        "name": "Gas and Vapor Process Piping"
+      },
+      {
+        "code": "40 20 00",
+        "name": "Liquids Process Piping"
+      },
+      {
+        "code": "40 25 00",
+        "name": "Liquid Process Piping Specialties"
+      },
+      {
+        "code": "40 30 00",
+        "name": "Solid and Mixed Materials Piping and Chutes"
+      },
+      {
+        "code": "40 40 00",
+        "name": "Process Piping and Equipment Protection"
+      },
+      {
+        "code": "40 41 00",
+        "name": "Process Piping and Equipment Insulation"
+      },
+      {
+        "code": "40 42 00",
+        "name": "Process Piping and Equipment Heat Tracing"
+      },
+      {
+        "code": "40 46 00",
+        "name": "Process Corrosion Protection"
+      },
+      {
+        "code": "40 47 00",
+        "name": "Process Seismic Protection"
+      },
+      {
+        "code": "40 70 00",
+        "name": "Instrumentation for Process Systems"
+      },
+      {
+        "code": "40 90 00",
+        "name": "Instrumentation and Control for Process Systems"
+      },
+      {
+        "code": "40 91 00",
+        "name": "Primary Process Measurement Devices"
+      },
+      {
+        "code": "40 96 00",
+        "name": "Process Control Hardware and Software"
+      }
+    ]
+  },
+  {
+    "code": "41",
+    "name": "Material Processing and Handling Equipment",
+    "subdivisions": [
+      {
+        "code": "41 05 00",
+        "name": "Common Work Results for Material Processing and Handling Equipment"
+      },
+      {
+        "code": "41 10 00",
+        "name": "Bulk Material Processing Equipment"
+      },
+      {
+        "code": "41 11 00",
+        "name": "Bulk Material Sizing Equipment"
+      },
+      {
+        "code": "41 12 00",
+        "name": "Bulk Material Conveying Equipment"
+      },
+      {
+        "code": "41 13 00",
+        "name": "Bulk Material Feeders"
+      },
+      {
+        "code": "41 14 00",
+        "name": "Batching Equipment"
+      },
+      {
+        "code": "41 20 00",
+        "name": "Piece Material Handling Equipment"
+      },
+      {
+        "code": "41 21 00",
+        "name": "Conveyors"
+      },
+      {
+        "code": "41 22 00",
+        "name": "Cranes and Hoists"
+      },
+      {
+        "code": "41 30 00",
+        "name": "Manufacturing Equipment"
+      },
+      {
+        "code": "41 40 00",
+        "name": "Container Processing and Packaging"
+      },
+      {
+        "code": "41 50 00",
+        "name": "Material Storage"
+      },
+      {
+        "code": "41 53 00",
+        "name": "Automatic Material Storage"
+      },
+      {
+        "code": "41 60 00",
+        "name": "Mobile Plant Equipment"
+      },
+      {
+        "code": "41 64 00",
+        "name": "Earthmoving Equipment"
+      }
+    ]
+  },
+  {
+    "code": "42",
+    "name": "Process Heating, Cooling, and Drying Equipment",
+    "subdivisions": [
+      {
+        "code": "42 05 00",
+        "name": "Common Work Results for Process Heating, Cooling, and Drying Equipment"
+      },
+      {
+        "code": "42 10 00",
+        "name": "Process Heating Equipment"
+      },
+      {
+        "code": "42 11 00",
+        "name": "Process Boilers"
+      },
+      {
+        "code": "42 12 00",
+        "name": "Process Furnaces"
+      },
+      {
+        "code": "42 13 00",
+        "name": "Industrial Heat Exchangers and Condensers"
+      },
+      {
+        "code": "42 14 00",
+        "name": "Industrial Kilns"
+      },
+      {
+        "code": "42 20 00",
+        "name": "Process Cooling Equipment"
+      },
+      {
+        "code": "42 30 00",
+        "name": "Process Drying Equipment"
+      },
+      {
+        "code": "42 31 00",
+        "name": "Gas Dryers"
+      },
+      {
+        "code": "42 32 00",
+        "name": "Liquid Dryers"
+      },
+      {
+        "code": "42 33 00",
+        "name": "Solid Material Dryers"
+      }
+    ]
+  },
+  {
+    "code": "43",
+    "name": "Process Gas and Liquid Handling, Purification, and Storage Equipment",
+    "subdivisions": [
+      {
+        "code": "43 05 00",
+        "name": "Common Work Results for Process Gas and Liquid Handling Equipment"
+      },
+      {
+        "code": "43 10 00",
+        "name": "Gas Handling Equipment"
+      },
+      {
+        "code": "43 11 00",
+        "name": "Gas Fans and Blowers"
+      },
+      {
+        "code": "43 12 00",
+        "name": "Gas Compressors"
+      },
+      {
+        "code": "43 13 00",
+        "name": "Gas Process Pumps"
+      },
+      {
+        "code": "43 20 00",
+        "name": "Liquid Handling Equipment"
+      },
+      {
+        "code": "43 21 00",
+        "name": "Liquid Pumps"
+      },
+      {
+        "code": "43 22 00",
+        "name": "Liquid Process Mixers"
+      },
+      {
+        "code": "43 30 00",
+        "name": "Gas and Liquid Purification Equipment"
+      },
+      {
+        "code": "43 31 00",
+        "name": "Gas Purification Equipment"
+      },
+      {
+        "code": "43 32 00",
+        "name": "Liquid Purification Equipment"
+      },
+      {
+        "code": "43 40 00",
+        "name": "Gas and Liquid Storage"
+      },
+      {
+        "code": "43 41 00",
+        "name": "Gas Storage Tanks"
+      },
+      {
+        "code": "43 42 00",
+        "name": "Liquid Storage Tanks"
+      }
+    ]
+  },
+  {
+    "code": "44",
+    "name": "Pollution and Waste Control Equipment",
+    "subdivisions": [
+      {
+        "code": "44 05 00",
+        "name": "Common Work Results for Pollution and Waste Control Equipment"
+      },
+      {
+        "code": "44 10 00",
+        "name": "Air Pollution Control"
+      },
+      {
+        "code": "44 11 00",
+        "name": "Particulate Controls"
+      },
+      {
+        "code": "44 12 00",
+        "name": "Gas Phase Air Pollution Control"
+      },
+      {
+        "code": "44 20 00",
+        "name": "Noise Pollution Control"
+      },
+      {
+        "code": "44 30 00",
+        "name": "Odor Control"
+      },
+      {
+        "code": "44 40 00",
+        "name": "Water Pollution Control Equipment"
+      },
+      {
+        "code": "44 41 00",
+        "name": "Water Treatment Equipment"
+      },
+      {
+        "code": "44 42 00",
+        "name": "Wastewater Treatment Equipment"
+      },
+      {
+        "code": "44 50 00",
+        "name": "Solid Waste Control"
+      },
+      {
+        "code": "44 51 00",
+        "name": "Solid Waste Processing Equipment"
+      },
+      {
+        "code": "44 53 00",
+        "name": "Solid Waste Handling and Recycling Equipment"
+      },
+      {
+        "code": "44 56 00",
+        "name": "Thermal Processing Equipment"
+      }
+    ]
+  },
+  {
+    "code": "45",
+    "name": "Industry-Specific Manufacturing Equipment",
+    "subdivisions": [
+      {
+        "code": "45 05 00",
+        "name": "Common Work Results for Industry-Specific Manufacturing Equipment"
+      },
+      {
+        "code": "45 10 00",
+        "name": "Oil and Gas Extraction Equipment"
+      },
+      {
+        "code": "45 11 00",
+        "name": "Drilling Equipment"
+      },
+      {
+        "code": "45 12 00",
+        "name": "Oil and Gas Production Equipment"
+      },
+      {
+        "code": "45 13 00",
+        "name": "Gas Production Equipment"
+      },
+      {
+        "code": "45 20 00",
+        "name": "Mining and Quarrying Equipment"
+      },
+      {
+        "code": "45 30 00",
+        "name": "Primary Metal Manufacturing Equipment"
+      },
+      {
+        "code": "45 40 00",
+        "name": "Woodworking Machinery"
+      },
+      {
+        "code": "45 50 00",
+        "name": "Chemical Manufacturing Equipment"
+      },
+      {
+        "code": "45 60 00",
+        "name": "Printing and Publishing Equipment"
+      },
+      {
+        "code": "45 70 00",
+        "name": "Food and Beverage Manufacturing Equipment"
+      }
+    ]
+  },
+  {
+    "code": "46",
+    "name": "Water and Wastewater Equipment",
+    "subdivisions": [
+      {
+        "code": "46 05 00",
+        "name": "Common Work Results for Water and Wastewater Equipment"
+      },
+      {
+        "code": "46 07 00",
+        "name": "Packaged Water and Wastewater Treatment Equipment"
+      },
+      {
+        "code": "46 08 00",
+        "name": "Commissioning of Water and Wastewater Equipment"
+      },
+      {
+        "code": "46 10 00",
+        "name": "Water and Wastewater Preliminary Treatment Equipment"
+      },
+      {
+        "code": "46 20 00",
+        "name": "Water Treatment Equipment"
+      },
+      {
+        "code": "46 21 00",
+        "name": "Water Intake Equipment"
+      },
+      {
+        "code": "46 23 00",
+        "name": "Water Mixing Equipment"
+      },
+      {
+        "code": "46 24 00",
+        "name": "Water Flocculation Equipment"
+      },
+      {
+        "code": "46 25 00",
+        "name": "Water Sedimentation Equipment"
+      },
+      {
+        "code": "46 28 00",
+        "name": "Water Filtration Equipment"
+      },
+      {
+        "code": "46 30 00",
+        "name": "Water and Wastewater Chemical Feed Equipment"
+      },
+      {
+        "code": "46 33 00",
+        "name": "Water and Wastewater Disinfection Equipment"
+      },
+      {
+        "code": "46 40 00",
+        "name": "Water and Wastewater Clarification and Mixing Equipment"
+      },
+      {
+        "code": "46 50 00",
+        "name": "Water and Wastewater Secondary Treatment Equipment"
+      },
+      {
+        "code": "46 60 00",
+        "name": "Water and Wastewater Advanced Treatment Equipment"
+      },
+      {
+        "code": "46 70 00",
+        "name": "Water and Wastewater Residuals Handling and Treatment Equipment"
+      }
+    ]
+  },
+  {
+    "code": "48",
+    "name": "Electrical Power Generation",
+    "subdivisions": [
+      {
+        "code": "48 05 00",
+        "name": "Common Work Results for Electrical Power Generation"
+      },
+      {
+        "code": "48 10 00",
+        "name": "Electrical Power Generation Equipment"
+      },
+      {
+        "code": "48 11 00",
+        "name": "Fossil Fuel Plant Electrical Power Generation Equipment"
+      },
+      {
+        "code": "48 12 00",
+        "name": "Nuclear Fuel Plant Electrical Power Generation Equipment"
+      },
+      {
+        "code": "48 13 00",
+        "name": "Hydroelectric Plant Electrical Power Generation Equipment"
+      },
+      {
+        "code": "48 14 00",
+        "name": "Solar Energy Electrical Power Generation Equipment"
+      },
+      {
+        "code": "48 15 00",
+        "name": "Wind Energy Electrical Power Generation Equipment"
+      },
+      {
+        "code": "48 16 00",
+        "name": "Geothermal Energy Electrical Power Generation Equipment"
+      },
+      {
+        "code": "48 17 00",
+        "name": "Electrochemical Energy Electrical Power Generation Equipment"
+      },
+      {
+        "code": "48 18 00",
+        "name": "Fuel Cell Electrical Power Generation Equipment"
+      },
+      {
+        "code": "48 70 00",
+        "name": "Electrical Power Generation Testing"
+      }
+    ]
+  }
+]

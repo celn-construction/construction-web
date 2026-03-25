@@ -1,51 +1,50 @@
+import rawData from "./csiCodes.json";
+
 export interface CsiDivision {
   code: string;
   name: string;
 }
 
-export const CSI_DIVISIONS: CsiDivision[] = [
-  { code: "00", name: "Procurement and Contracting Requirements" },
-  { code: "01", name: "General Requirements" },
-  { code: "02", name: "Existing Conditions" },
-  { code: "03", name: "Concrete" },
-  { code: "04", name: "Masonry" },
-  { code: "05", name: "Metals" },
-  { code: "06", name: "Wood, Plastics, and Composites" },
-  { code: "07", name: "Thermal and Moisture Protection" },
-  { code: "08", name: "Openings" },
-  { code: "09", name: "Finishes" },
-  { code: "10", name: "Specialties" },
-  { code: "11", name: "Equipment" },
-  { code: "12", name: "Furnishings" },
-  { code: "13", name: "Special Construction" },
-  { code: "14", name: "Conveying Equipment" },
-  { code: "21", name: "Fire Suppression" },
-  { code: "22", name: "Plumbing" },
-  { code: "23", name: "Heating, Ventilating, and Air Conditioning (HVAC)" },
-  { code: "25", name: "Integrated Automation" },
-  { code: "26", name: "Electrical" },
-  { code: "27", name: "Communications" },
-  { code: "28", name: "Electronic Safety and Security" },
-  { code: "31", name: "Earthwork" },
-  { code: "32", name: "Exterior Improvements" },
-  { code: "33", name: "Utilities" },
-  { code: "34", name: "Transportation" },
-  { code: "35", name: "Waterway and Marine Construction" },
-  { code: "40", name: "Process Interconnections" },
-  { code: "41", name: "Material Processing and Handling Equipment" },
-  { code: "42", name: "Process Heating, Cooling, and Drying Equipment" },
-  { code: "43", name: "Process Gas and Liquid Handling, Purification, and Storage Equipment" },
-  { code: "44", name: "Pollution and Waste Control Equipment" },
-  { code: "45", name: "Industry-Specific Manufacturing Equipment" },
-  { code: "46", name: "Water and Wastewater Equipment" },
-  { code: "48", name: "Electrical Power Generation" },
-];
+export interface CsiSubdivision {
+  code: string; // e.g. "03 30 00"
+  name: string; // e.g. "Cast-in-Place Concrete"
+}
+
+export interface CsiDivisionWithSubs {
+  code: string;
+  name: string;
+  subdivisions: CsiSubdivision[];
+}
+
+export const CSI_MASTERFORMAT: CsiDivisionWithSubs[] = rawData;
+
+// Backward-compatible flat division list
+export const CSI_DIVISIONS: CsiDivision[] = CSI_MASTERFORMAT.map(({ code, name }) => ({
+  code,
+  name,
+}));
 
 export const CSI_DIVISION_MAP = new Map(
-  CSI_DIVISIONS.map((d) => [d.code, d]),
+  CSI_MASTERFORMAT.map((d) => [d.code, d]),
 );
 
+// Flat lookup: subdivision code -> { subdivision, division }
+export const CSI_SUBDIVISION_MAP = new Map<
+  string,
+  { subdivision: CsiSubdivision; division: CsiDivisionWithSubs }
+>();
+for (const div of CSI_MASTERFORMAT) {
+  for (const sub of div.subdivisions) {
+    CSI_SUBDIVISION_MAP.set(sub.code, { subdivision: sub, division: div });
+  }
+}
+
 export function formatCsiCode(code: string): string {
-  const division = CSI_DIVISION_MAP.get(code);
-  return division ? `${code} - ${division.name}` : code;
+  // Check subdivision first (more specific)
+  const subEntry = CSI_SUBDIVISION_MAP.get(code);
+  if (subEntry) return `${code} - ${subEntry.subdivision.name}`;
+  // Fall back to division (backward compat for old 2-digit codes)
+  const div = CSI_DIVISION_MAP.get(code);
+  if (div) return `${code} - ${div.name}`;
+  return code;
 }

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { Tag, CaretDown, Plus, MagnifyingGlass } from '@phosphor-icons/react';
-import { Box, Typography, Menu, MenuItem, TextField, InputAdornment, CircularProgress } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Tag, CaretDown, CaretRight, Plus, MagnifyingGlass } from '@phosphor-icons/react';
+import { Box, Typography, Menu, MenuItem, TextField, InputAdornment } from '@mui/material';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import { formatCsiCode, CSI_DIVISIONS } from '@/lib/constants/csiCodes';
+import { formatCsiCode, CSI_MASTERFORMAT, CSI_SUBDIVISION_MAP } from '@/lib/constants/csiCodes';
 
 interface CsiCodeSelectorProps {
   csiCode: string | null | undefined;
@@ -23,6 +23,8 @@ export default function CsiCodeSelector({
   const { showSnackbar } = useSnackbar();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [search, setSearch] = useState('');
+  const [expandedDivision, setExpandedDivision] = useState<string | null>(null);
+  const [optimisticCode, setOptimisticCode] = useState<string | null | undefined>(undefined);
 
   const utils = api.useUtils();
 
@@ -31,27 +33,58 @@ export default function CsiCodeSelector({
       void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
     },
     onError: (error) => {
+      setOptimisticCode(undefined);
       showSnackbar(error.message || 'Failed to update CSI code', 'error');
     },
   });
 
-  const filteredDivisions = CSI_DIVISIONS.filter((d) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return d.code.includes(q) || d.name.toLowerCase().includes(q);
-  });
+  // Clear optimistic value once the server prop catches up
+  useEffect(() => {
+    if (optimisticCode !== undefined && csiCode === optimisticCode) {
+      setOptimisticCode(undefined);
+    }
+  }, [csiCode, optimisticCode]);
 
-  const hasCode = !!csiCode;
-  const isPending = updateCsiCode.isPending;
+  // Use optimistic value while mutation is in flight, otherwise use server value
+  const displayCode = optimisticCode !== undefined ? optimisticCode : csiCode;
+
+  // Auto-expand parent division when menu opens with an existing code
+  useEffect(() => {
+    if (anchorEl && displayCode) {
+      const subEntry = CSI_SUBDIVISION_MAP.get(displayCode);
+      if (subEntry) {
+        setExpandedDivision(subEntry.division.code);
+      }
+    }
+  }, [anchorEl, displayCode]);
+
+  const query = search.toLowerCase();
+
+  // Filter: show divisions that match name OR have matching subdivisions
+  const filteredDivisions = CSI_MASTERFORMAT.map((div) => {
+    const divMatches = !query || div.code.includes(query) || div.name.toLowerCase().includes(query);
+    const matchingSubs = div.subdivisions.filter(
+      (sub) =>
+        !query || sub.code.toLowerCase().includes(query) || sub.name.toLowerCase().includes(query),
+    );
+
+    if (!query) return { div, matchingSubs: div.subdivisions, show: true };
+    if (divMatches) return { div, matchingSubs: div.subdivisions, show: true };
+    if (matchingSubs.length > 0) return { div, matchingSubs, show: true };
+    return { div, matchingSubs: [], show: false };
+  }).filter((entry) => entry.show);
+
+  const isSearching = query.length > 0;
+  const hasCode = !!displayCode;
 
   return (
     <>
       <Box
         component="button"
         onClick={(e) => {
-          if (isPending) return;
           setAnchorEl(e.currentTarget as HTMLElement);
           setSearch('');
+          if (!displayCode) setExpandedDivision(null);
         }}
         sx={{
           display: 'inline-flex',
@@ -63,12 +96,10 @@ export default function CsiCodeSelector({
           borderColor: hasCode ? 'divider' : 'text.disabled',
           borderRadius: '6px',
           bgcolor: 'transparent',
-          cursor: isPending ? 'default' : 'pointer',
+          cursor: 'pointer',
           px: 1,
           py: '3px',
           maxWidth: '100%',
-          opacity: isPending ? 0.7 : 1,
-          pointerEvents: isPending ? 'none' : 'auto',
           transition: 'background-color 0.15s, border-color 0.15s, opacity 0.15s',
           '&:hover': {
             bgcolor: 'action.hover',
@@ -94,7 +125,7 @@ export default function CsiCodeSelector({
               whiteSpace: 'nowrap',
             }}
           >
-            {formatCsiCode(csiCode!)}
+            {formatCsiCode(displayCode!)}
           </Typography>
         ) : (
           <Typography
@@ -108,9 +139,7 @@ export default function CsiCodeSelector({
             CSI Code
           </Typography>
         )}
-        {isPending ? (
-          <CircularProgress size={10} sx={{ color: 'text.disabled', flexShrink: 0 }} />
-        ) : hasCode ? (
+        {hasCode ? (
           <CaretDown
             size={10}
             color="var(--mui-palette-text-disabled)"
@@ -132,8 +161,8 @@ export default function CsiCodeSelector({
         slotProps={{
           paper: {
             sx: {
-              maxHeight: 320,
-              width: 340,
+              maxHeight: 380,
+              width: 380,
               borderRadius: '12px',
               mt: 0.5,
             },
@@ -143,7 +172,7 @@ export default function CsiCodeSelector({
         <Box sx={{ px: 1.5, py: 1, position: 'sticky', top: 0, bgcolor: 'background.paper', zIndex: 1 }}>
           <TextField
             size="small"
-            placeholder="Search divisions…"
+            placeholder="Search CSI codes…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
@@ -161,9 +190,11 @@ export default function CsiCodeSelector({
             onKeyDown={(e) => e.stopPropagation()}
           />
         </Box>
+
         {hasCode && (
           <MenuItem
             onClick={() => {
+              setOptimisticCode(null);
               updateCsiCode.mutate({
                 organizationId,
                 projectId,
@@ -181,42 +212,119 @@ export default function CsiCodeSelector({
             Remove CSI Code
           </MenuItem>
         )}
-        {filteredDivisions.map((d) => (
-          <MenuItem
-            key={d.code}
-            selected={csiCode === d.code}
-            onClick={() => {
-              updateCsiCode.mutate({
-                organizationId,
-                projectId,
-                taskId,
-                csiCode: d.code,
-              });
-              setAnchorEl(null);
-            }}
-            sx={{
-              fontSize: 12,
-              gap: 1,
-            }}
-          >
-            <Typography
-              component="span"
-              sx={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'text.secondary',
-                minWidth: 24,
-              }}
-            >
-              {d.code}
-            </Typography>
-            {d.name}
-          </MenuItem>
-        ))}
+
+        {filteredDivisions.map(({ div, matchingSubs }) => {
+          const isExpanded = isSearching || expandedDivision === div.code;
+
+          return (
+            <Box key={div.code}>
+              {/* Division header — non-selectable, toggles expand */}
+              <MenuItem
+                onClick={() => {
+                  if (isSearching) return;
+                  setExpandedDivision(expandedDivision === div.code ? null : div.code);
+                }}
+                sx={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  gap: 0.75,
+                  py: 0.75,
+                  cursor: isSearching ? 'default' : 'pointer',
+                  '&:hover': {
+                    bgcolor: isSearching ? 'transparent' : 'action.hover',
+                  },
+                }}
+              >
+                {isSearching ? (
+                  <CaretDown
+                    size={12}
+                    color="var(--mui-palette-text-disabled)"
+                    style={{ flexShrink: 0 }}
+                  />
+                ) : isExpanded ? (
+                  <CaretDown
+                    size={12}
+                    color="var(--mui-palette-text-disabled)"
+                    style={{ flexShrink: 0 }}
+                  />
+                ) : (
+                  <CaretRight
+                    size={12}
+                    color="var(--mui-palette-text-disabled)"
+                    style={{ flexShrink: 0 }}
+                  />
+                )}
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: 'text.secondary',
+                    minWidth: 20,
+                  }}
+                >
+                  {div.code}
+                </Typography>
+                {div.name}
+              </MenuItem>
+
+              {/* Subdivision items — only when expanded or searching */}
+              {isExpanded &&
+                matchingSubs.map((sub) => (
+                  <MenuItem
+                    key={sub.code}
+                    selected={displayCode === sub.code}
+                    onClick={() => {
+                      setOptimisticCode(sub.code);
+                      updateCsiCode.mutate({
+                        organizationId,
+                        projectId,
+                        taskId,
+                        csiCode: sub.code,
+                      });
+                      setAnchorEl(null);
+                    }}
+                    sx={{
+                      fontSize: 12,
+                      gap: 0.75,
+                      pl: 4.5,
+                      py: 0.5,
+                    }}
+                  >
+                    <Typography
+                      component="span"
+                      sx={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'text.secondary',
+                        minWidth: 56,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {sub.code}
+                    </Typography>
+                    <Typography
+                      component="span"
+                      sx={{
+                        fontSize: 12,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {sub.name}
+                    </Typography>
+                  </MenuItem>
+                ))}
+            </Box>
+          );
+        })}
+
         {filteredDivisions.length === 0 && (
           <Box sx={{ px: 2, py: 1.5 }}>
             <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
-              No divisions match &ldquo;{search}&rdquo;
+              No CSI codes match &ldquo;{search}&rdquo;
             </Typography>
           </Box>
         )}

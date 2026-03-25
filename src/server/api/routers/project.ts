@@ -52,25 +52,41 @@ export const projectRouter = createTRPCRouter({
 
       // Get task completion stats per project
       const projectIds = projects.map((p) => p.id);
-      const taskStats = projectIds.length > 0
-        ? await ctx.db.ganttTask.groupBy({
-            by: ["projectId"],
-            where: { projectId: { in: projectIds } },
-            _avg: { percentDone: true },
-            _count: { id: true },
-          })
-        : [];
+      const [taskStats, completedStats] = projectIds.length > 0
+        ? await Promise.all([
+            ctx.db.ganttTask.groupBy({
+              by: ["projectId"],
+              where: { projectId: { in: projectIds } },
+              _avg: { percentDone: true },
+              _count: { id: true },
+            }),
+            ctx.db.ganttTask.groupBy({
+              by: ["projectId"],
+              where: { projectId: { in: projectIds }, percentDone: 100 },
+              _count: { id: true },
+            }),
+          ])
+        : [[], []];
+
+      const completedMap = new Map(
+        completedStats.map((s) => [s.projectId, s._count.id])
+      );
 
       const statsMap = new Map(
         taskStats.map((s) => [
           s.projectId,
-          { taskCount: s._count.id, completionPercent: Math.round(s._avg.percentDone ?? 0) },
+          {
+            taskCount: s._count.id,
+            completedTaskCount: completedMap.get(s.projectId) ?? 0,
+            completionPercent: Math.round(s._avg.percentDone ?? 0),
+          },
         ])
       );
 
       return projects.map((p) => ({
         ...p,
         taskCount: statsMap.get(p.id)?.taskCount ?? 0,
+        completedTaskCount: statsMap.get(p.id)?.completedTaskCount ?? 0,
         completionPercent: statsMap.get(p.id)?.completionPercent ?? 0,
       }));
     }),
