@@ -23,14 +23,14 @@ export default function LoadingSpinner({
 }: LoadingSpinnerProps) {
   const spinner = (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
-      <CircularProgress size={sizeMap[size]} />
+      <CircularProgress size={sizeMap[size]} sx={fullScreen ? { color: 'common.white' } : undefined} />
       {text && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={fullScreen ? { color: 'common.white', opacity: 0.85 } : { color: 'text.secondary' }}>
             {text}
           </Typography>
         </motion.div>

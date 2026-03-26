@@ -147,6 +147,7 @@ export const projectRouter = createTRPCRouter({
       const project = await ctx.db.project.create({
         data: {
           name: input.name,
+          location: input.location,
           slug,
           status: "active",
           organizationId,

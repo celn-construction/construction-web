@@ -18,6 +18,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useNavigationLoading } from '@/hooks/useNavigationLoading';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import ProjectSwitcher from './ProjectSwitcher';
+import LocationWeather from './LocationWeather';
 
 const PAGE_TITLES: Record<string, string> = {
   gantt: 'Gantt Chart',
@@ -138,6 +139,9 @@ export default function Header() {
               </Box>
             );
           })()}
+          {currentProject?.location && activeOrganizationId && (
+            <LocationWeather location={currentProject.location} organizationId={activeOrganizationId} />
+          )}
         </>
       )}
 
