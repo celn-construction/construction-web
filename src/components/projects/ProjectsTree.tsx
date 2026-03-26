@@ -20,6 +20,7 @@ import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { Box, IconButton, Skeleton, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/react';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { folderData } from '@/lib/folders';
@@ -294,7 +295,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
   const theme = useTheme();
   const { data: tasks = [], isLoading } = api.gantt.tasks.useQuery(
     { organizationId: organizationId!, projectId: projectId! },
-    { enabled: !!projectId && !!organizationId }
+    { enabled: !!projectId && !!organizationId, placeholderData: keepPreviousData }
   );
 
   // Build grouped structure from database tasks:
@@ -435,27 +436,29 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
     </Box>
   );
 
-  // Skeleton loading state
+  // Ghost tree loading state — real folder structure at reduced opacity
   if (isLoading) {
-    // Mirrors real tree: Group → Tasks → Folder rows (RFI, Submittals, Change Orders, Photos, Inspections)
-    const skeletonGroups = [
-      { nameWidth: 140, tasks: [{ nameWidth: 160 }, { nameWidth: 120 }] },
-      { nameWidth: 180, tasks: [{ nameWidth: 100 }, { nameWidth: 140 }] },
+    const ghostGroups = [
+      { nameWidth: 140, taskWidth: 160 },
+      { nameWidth: 180, taskWidth: 120 },
     ];
-
-    const skeletonFolders = folderData.map((f) => ({
-      name: f.name,
-      color: f.color,
-      Icon: folderIconMap[f.id] ?? FolderSimple,
-    }));
 
     return (
       <Box sx={{ width: '100%' }}>
         {headerBar}
-        <Box sx={{ py: 0.5 }}>
-          {skeletonGroups.map((group, gi) => (
+        <Box
+          sx={{
+            py: 0.5,
+            '@keyframes ghostPulse': {
+              '0%, 100%': { opacity: 0.3 },
+              '50%': { opacity: 0.5 },
+            },
+            animation: 'ghostPulse 2s ease-in-out infinite',
+          }}
+        >
+          {ghostGroups.map((group, gi) => (
             <Fragment key={gi}>
-              {/* Group row */}
+              {/* Group row — skeleton for dynamic name */}
               <Box
                 sx={{
                   display: 'flex',
@@ -465,66 +468,58 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
                   px: 1.5,
                 }}
               >
-                <Skeleton variant="circular" width={14} height={14} sx={{ flexShrink: 0 }} />
-                <Skeleton variant="rounded" width={14} height={14} sx={{ flexShrink: 0 }} />
-                <Skeleton variant="rounded" width={group.nameWidth} height={12} sx={{ flexShrink: 0 }} />
+                <FolderSimple size={16} style={{ flexShrink: 0, opacity: 0.4 }} />
+                <Skeleton variant="rounded" width={group.nameWidth} height={12} animation={false} sx={{ flexShrink: 0 }} />
                 <Box sx={{ flexGrow: 1 }} />
-                <Skeleton variant="rounded" width={32} height={12} />
+                <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>0 tasks</Typography>
               </Box>
 
-              {/* Task rows under group */}
-              {group.tasks.map((task, ti) => (
-                <Fragment key={ti}>
-                  {/* Task row */}
+              {/* Task row — skeleton for dynamic name */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  py: 0.375,
+                  px: 1.5,
+                  ml: 2.5,
+                }}
+              >
+                <Hammer size={14} style={{ flexShrink: 0, opacity: 0.4 }} />
+                <Skeleton variant="rounded" width={group.taskWidth} height={12} animation={false} sx={{ flexShrink: 0 }} />
+                <Box sx={{ flexGrow: 1 }} />
+                <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>Planned</Typography>
+              </Box>
+
+              {/* Folder rows — real icons, names, and colors */}
+              {folderData.map((folder) => {
+                const FolderIcon = folderIconMap[folder.id] ?? FolderSimple;
+                return (
                   <Box
+                    key={folder.id}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 1,
                       py: 0.375,
                       px: 1.5,
-                      ml: 2.5,
+                      ml: 5,
                     }}
                   >
-                    <Skeleton variant="circular" width={14} height={14} sx={{ flexShrink: 0 }} />
-                    <Skeleton variant="rounded" width={14} height={14} sx={{ flexShrink: 0 }} />
-                    <Skeleton variant="rounded" width={task.nameWidth} height={12} sx={{ flexShrink: 0 }} />
-                    <Box sx={{ flexGrow: 1 }} />
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Skeleton variant="rounded" width={22} height={12} />
-                      <Skeleton variant="rounded" width={44} height={12} />
-                    </Box>
-                  </Box>
-
-                  {/* Folder rows under task — use real folder names/icons/colors */}
-                  {skeletonFolders.map((folder, fi) => (
-                    <Box
-                      key={fi}
+                    <FolderIcon size={14} color={folder.color} style={{ flexShrink: 0 }} />
+                    <Typography
                       sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        py: 0.375,
-                        px: 1.5,
-                        ml: 5,
-                        opacity: 0.5,
+                        fontSize: '0.8125rem',
+                        fontWeight: 500,
+                        color: 'text.disabled',
+                        flexGrow: 1,
                       }}
                     >
-                      <folder.Icon size={14} color={folder.color} style={{ flexShrink: 0 }} />
-                      <Typography
-                        sx={{
-                          fontSize: '0.8125rem',
-                          fontWeight: 500,
-                          color: 'text.disabled',
-                          flexGrow: 1,
-                        }}
-                      >
-                        {folder.name}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Fragment>
-              ))}
+                      {folder.name}
+                    </Typography>
+                  </Box>
+                );
+              })}
             </Fragment>
           ))}
         </Box>
