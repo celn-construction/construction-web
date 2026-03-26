@@ -20,15 +20,22 @@ export function useTaskPopover() {
   const [popoverPlacement, setPopoverPlacement] = useState<PopoverPlacement | null>(null);
 
   const selectedTaskIdRef = useRef<string | null>(null);
+  const highlightedElementRef = useRef<Element | null>(null);
 
   useEffect(() => {
     selectedTaskIdRef.current = selectedTask?.id ?? null;
   }, [selectedTask?.id]);
 
+  const clearHighlight = useCallback(() => {
+    highlightedElementRef.current?.classList.remove('b-task-selected');
+    highlightedElementRef.current = null;
+  }, []);
+
   const closeTaskPopover = useCallback(() => {
+    clearHighlight();
     setSelectedTask(null);
     setPopoverPlacement(null);
-  }, []);
+  }, [clearHighlight]);
 
   const handleTaskClick = useCallback(
     ({ taskRecord, event }: TaskClickEventPayload) => {
@@ -49,7 +56,12 @@ export function useTaskPopover() {
 
       const taskBarElement = findTaskBarElement(event.target);
 
+      // Move highlight to the new task bar
+      clearHighlight();
       if (taskBarElement) {
+        taskBarElement.classList.add('b-task-selected');
+        highlightedElementRef.current = taskBarElement;
+
         setPopoverPlacement(
           calculatePopoverPlacement({
             rect: taskBarElement.getBoundingClientRect(),
@@ -62,7 +74,7 @@ export function useTaskPopover() {
 
       setPopoverPlacement(createFallbackPopoverPlacement(event.clientX, event.clientY));
     },
-    [closeTaskPopover]
+    [clearHighlight, closeTaskPopover]
   );
 
   return {
