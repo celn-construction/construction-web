@@ -119,6 +119,7 @@ enum ProjectTemplate {
 model Project {
     id             String          @id @default(cuid())
     name           String
+    location       String          @default("")
     slug           String
     status         String          @default("active")
     organizationId String

@@ -21,6 +21,8 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 | `SENTRY_ORG` | Sentry organization slug for source map uploads | Optional | `celn-construction` |
 | `SENTRY_PROJECT` | Sentry project slug for source map uploads | Optional | `sentry-cinnabar-clock` |
 | `SENTRY_AUTH_TOKEN` | Sentry auth token for source map uploads | Optional | Auto-provisioned by Vercel-Sentry integration |
+| `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY` | Google API key with Places API enabled for address autocomplete on project creation. Omit to fall back to plain text input. | Optional | Get from console.cloud.google.com |
+| `OPENWEATHERMAP_API_KEY` | OpenWeatherMap API key for job site weather display in header. Omit to hide weather info. | Optional | Get from openweathermap.org/api |
 | `NEXT_PUBLIC_APP_URL` | Client-side base URL | Optional | `http://localhost:3000` |
 | `NODE_ENV` | Runtime environment | Auto | `development` / `production` / `test` |
 | `PORT` | Dev server port | Auto (defaults to `3000`) | `3000` |
