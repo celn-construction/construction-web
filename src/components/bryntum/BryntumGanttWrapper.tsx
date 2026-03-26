@@ -16,6 +16,7 @@ import { useTaskPopover } from './hooks/useTaskPopover';
 import { useGanttControls } from './hooks/useGanttControls';
 import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
 import { validateParentDuration } from './utils/ganttValidation';
+import { ChannelProvider } from 'ably/react';
 import { useGanttRealtime } from './hooks/useGanttRealtime';
 import GanttPresence from './components/GanttPresence';
 import GanttLoadingSpinner from './components/GanttLoadingSpinner';
@@ -66,7 +67,7 @@ interface BryntumGanttCoreProps extends BryntumGanttWrapperProps {
 
 // ─── Realtime wrapper — only mounted inside AblyProvider ────────────────────
 
-function BryntumGanttRealtimeWrapper({
+function BryntumGanttRealtimeInner({
   ganttControls,
   ...props
 }: BryntumGanttWrapperProps & { ganttControls: ReturnType<typeof useGanttControls> }) {
@@ -85,6 +86,17 @@ function BryntumGanttRealtimeWrapper({
       isApplyingRemoteRef={isApplyingRemoteRef}
       presenceData={presenceData}
     />
+  );
+}
+
+function BryntumGanttRealtimeWrapper(
+  props: BryntumGanttWrapperProps & { ganttControls: ReturnType<typeof useGanttControls> },
+) {
+  const channelName = `project:${props.projectId}:gantt`;
+  return (
+    <ChannelProvider channelName={channelName}>
+      <BryntumGanttRealtimeInner {...props} />
+    </ChannelProvider>
   );
 }
 
