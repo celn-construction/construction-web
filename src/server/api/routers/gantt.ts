@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { Prisma } from "../../../../generated/prisma";
 import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 import { ganttLoadInputSchema, ganttSyncInputSchema } from "@/lib/validations/gantt";
+import { CSI_SUBDIVISION_MAP, CSI_DIVISION_MAP } from "@/lib/constants/csiCodes";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
 import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
 
@@ -266,7 +267,10 @@ export const ganttRouter = createTRPCRouter({
     .input(z.object({
       projectId: z.string(),
       taskId: z.string(),
-      csiCode: z.string().nullable(),
+      csiCode: z.string().nullable().refine(
+        (val) => val === null || CSI_SUBDIVISION_MAP.has(val) || CSI_DIVISION_MAP.has(val),
+        { message: "Invalid CSI code" },
+      ),
     }))
     .mutation(async ({ ctx, input }) => {
       const { projectId, taskId, csiCode } = input;

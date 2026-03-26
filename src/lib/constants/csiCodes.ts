@@ -8,15 +8,25 @@ export interface CsiDivision {
 export interface CsiSubdivision {
   code: string; // e.g. "03 30 00"
   name: string; // e.g. "Cast-in-Place Concrete"
+  nameLower: string; // pre-computed for search perf
 }
 
 export interface CsiDivisionWithSubs {
   code: string;
   name: string;
+  nameLower: string; // pre-computed for search perf
   subdivisions: CsiSubdivision[];
 }
 
-export const CSI_MASTERFORMAT: CsiDivisionWithSubs[] = rawData;
+// Pre-compute lowercase names once at module init to avoid per-keystroke allocations
+export const CSI_MASTERFORMAT: CsiDivisionWithSubs[] = rawData.map((div) => ({
+  ...div,
+  nameLower: div.name.toLowerCase(),
+  subdivisions: div.subdivisions.map((sub) => ({
+    ...sub,
+    nameLower: sub.name.toLowerCase(),
+  })),
+}));
 
 // Backward-compatible flat division list
 export const CSI_DIVISIONS: CsiDivision[] = CSI_MASTERFORMAT.map(({ code, name }) => ({

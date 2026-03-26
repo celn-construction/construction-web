@@ -7,7 +7,7 @@ import {
   FileText,
   Plus,
   CalendarBlank,
-  ArrowsClockwise,
+
   Question,
   PaperPlaneTilt,
   PencilSimpleLine,
@@ -292,17 +292,10 @@ function deriveStatus(percentDone: number, theme: import('@mui/material/styles')
 
 export default function ProjectsTree({ selectedNodeId, onSelect, projectId, organizationId }: ProjectsTreeProps) {
   const theme = useTheme();
-  const utils = api.useUtils();
-  const { data: tasks = [], isLoading, isFetching } = api.gantt.tasks.useQuery(
+  const { data: tasks = [], isLoading } = api.gantt.tasks.useQuery(
     { organizationId: organizationId!, projectId: projectId! },
     { enabled: !!projectId && !!organizationId }
   );
-
-  const handleRefresh = () => {
-    if (organizationId && projectId) {
-      void utils.gantt.tasks.invalidate({ organizationId, projectId });
-    }
-  };
 
   // Build grouped structure from database tasks:
   // Top-level tasks (no parentId) = groups, their children = tasks
@@ -439,28 +432,6 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
       >
         File Tree
       </Typography>
-      <IconButton
-        size="small"
-        onClick={handleRefresh}
-        disabled={isFetching}
-        aria-label="Refresh file tree"
-        sx={{
-          p: 0.5,
-          color: 'text.secondary',
-          '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
-          ...(isFetching && {
-            '@keyframes spin': {
-              from: { transform: 'rotate(0deg)' },
-              to: { transform: 'rotate(360deg)' },
-            },
-            '& svg': {
-              animation: 'spin 1s linear infinite',
-            },
-          }),
-        }}
-      >
-        <ArrowsClockwise size={14} />
-      </IconButton>
     </Box>
   );
 

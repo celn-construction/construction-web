@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { keyframes } from '@mui/system';
-import { Bell, UserPlus } from 'lucide-react';
+import { Bell, UserPlus, CalendarDots } from '@phosphor-icons/react';
 import { Box, Typography, IconButton, Divider } from '@mui/material';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,107 +46,35 @@ export default function Header() {
       component="header"
       sx={{
         px: 3,
-        py: 1.5,
+        pt: 1.5,
+        pb: 1,
         display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
+        flexDirection: 'column',
+        gap: 0.75,
         flexShrink: 0,
       }}
     >
-      {/* Page Title */}
-      {pageTitle && (
-        <>
-          <Typography sx={{ fontSize: 18, fontWeight: 700, color: 'text.primary', lineHeight: 1 }}>
-            {pageTitle}
-          </Typography>
-          <Typography sx={{ color: 'text.disabled', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>·</Typography>
-          <ProjectSwitcher />
-          {currentProject && currentProject.completionPercent != null && (() => {
-            const pct = currentProject.completionPercent;
-            const fillColor =
-              pct >= 100 ? 'status.completed' :
-              pct >= 60  ? 'status.active' :
-              pct >= 30  ? 'status.inProgress' :
-                           'text.disabled';
-            return (
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.75,
-                  ml: 0.75,
-                  px: 1,
-                  py: 0.5,
-                  borderRadius: 'var(--radius-pill)',
-                  bgcolor: 'action.hover',
-                }}
-              >
-                <Box sx={{ width: 64, height: 5, borderRadius: 'var(--radius-pill)', bgcolor: 'divider', overflow: 'hidden', flexShrink: 0 }}>
-                  <Box
-                    sx={{
-                      height: '100%',
-                      width: `${pct}%`,
-                      borderRadius: 'var(--radius-pill)',
-                      bgcolor: fillColor,
-                      animation: `${keyframes`from { width: 0% } to { width: ${pct}% }`} 0.6s ease-out`,
-                      transition: 'width 0.4s ease',
-                    }}
-                  />
-                </Box>
-                <Typography
-                  sx={{
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    color: fillColor,
-                    lineHeight: 1,
-                    letterSpacing: '-0.01em',
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {pct}%
-                </Typography>
-                {currentProject.taskCount != null && currentProject.taskCount > 0 && (
-                  <Typography
-                    sx={{
-                      fontSize: '0.625rem',
-                      fontWeight: 500,
-                      color: 'text.secondary',
-                      lineHeight: 1,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    · {currentProject.completedTaskCount ?? 0}/{currentProject.taskCount} tasks
-                  </Typography>
-                )}
-                {(() => {
-                  if (!currentProject.endDate) {
-                    return (
-                      <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                        · No end date
-                      </Typography>
-                    );
-                  }
-                  const daysLeft = differenceInCalendarDays(new Date(currentProject.endDate), new Date());
-                  const label = daysLeft > 0 ? `${daysLeft} days left` : daysLeft === 0 ? 'Due today' : `${Math.abs(daysLeft)} days overdue`;
-                  const color = daysLeft > 0 ? 'text.secondary' : daysLeft === 0 ? 'status.inProgress' : 'error.main';
-                  return (
-                    <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color, lineHeight: 1, whiteSpace: 'nowrap' }}>
-                      · {label}
-                    </Typography>
-                  );
-                })()}
-              </Box>
-            );
-          })()}
-          {currentProject?.location && activeOrganizationId && (
-            <LocationWeather location={currentProject.location} organizationId={activeOrganizationId} />
-          )}
-        </>
-      )}
+      {/* Row 1: Navigation + Location/Weather + Notifications */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+        {pageTitle && (
+          <>
+            <Typography sx={{ fontSize: 18, fontWeight: 700, color: 'text.primary', lineHeight: 1 }}>
+              {pageTitle}
+            </Typography>
+            <Typography sx={{ color: 'text.disabled', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>·</Typography>
+            <ProjectSwitcher />
+          </>
+        )}
 
-      {/* Spacer */}
-      <Box sx={{ flex: 1 }} />
-      {/* Notifications Bell */}
+        {/* Spacer */}
+        <Box sx={{ flex: 1 }} />
+
+        {/* Location/Weather pill — right side of Row 1 */}
+        {currentProject?.location && activeOrganizationId && (
+          <LocationWeather location={currentProject.location} organizationId={activeOrganizationId} />
+        )}
+
+        {/* Notifications Bell */}
       <DropdownMenu open={notifMenuOpen} onOpenChange={setNotifMenuOpen}>
         <DropdownMenuTrigger asChild>
           <IconButton
@@ -162,7 +89,7 @@ export default function Header() {
               '&:hover': { bgcolor: 'divider' },
             }}
           >
-            <Bell style={{ width: 18, height: 18, color: 'inherit' }} />
+            <Bell size={18} weight="regular" />
             {unreadCount > 0 && (
               <Box
                 sx={{
@@ -227,7 +154,7 @@ export default function Header() {
                       flexShrink: 0,
                     }}
                   >
-                    <UserPlus style={{ width: 16, height: 16, color: 'white' }} />
+                    <UserPlus size={16} weight="regular" color="white" />
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{ fontSize: 13, mb: 0.5 }}>{n.message}</Typography>
@@ -248,6 +175,105 @@ export default function Header() {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      </Box>
+
+      {/* Row 2: Progress + Schedule pills */}
+      {currentProject && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'nowrap', overflow: 'hidden' }}>
+          {/* Progress pill — segmented bar */}
+          {currentProject.completionPercent != null && (() => {
+            const pct = currentProject.completionPercent;
+            const total = currentProject.taskCount ?? 0;
+            const completed = currentProject.completedTaskCount ?? 0;
+            const fillColor =
+              pct >= 100 ? 'status.completed' :
+              pct >= 60  ? 'status.active' :
+              pct >= 30  ? 'status.inProgress' :
+                           'text.disabled';
+            return (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 'var(--radius-pill)',
+                  bgcolor: 'action.hover',
+                }}
+              >
+                <Box sx={{ display: 'flex', gap: '2px', width: 140, flexShrink: 0 }}>
+                  {total > 0 ? (
+                    Array.from({ length: total }, (_, i) => (
+                      <Box
+                        key={i}
+                        sx={{
+                          flex: 1,
+                          minWidth: 2,
+                          height: 6,
+                          borderRadius: 1,
+                          bgcolor: i < completed ? fillColor : 'divider',
+                          transition: 'background-color 0.3s ease',
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <Box sx={{ flex: 1, height: 6, borderRadius: 1, bgcolor: 'divider' }} />
+                  )}
+                </Box>
+                <Typography
+                  sx={{
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    color: fillColor,
+                    lineHeight: 1,
+                    letterSpacing: '-0.01em',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {pct}%
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.625rem',
+                    fontWeight: 500,
+                    color: 'text.secondary',
+                    lineHeight: 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  · {completed}/{total} tasks
+                </Typography>
+              </Box>
+            );
+          })()}
+
+          {/* Schedule pill */}
+          {(() => {
+            if (!currentProject.endDate) {
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.5, borderRadius: 'var(--radius-pill)', bgcolor: 'action.hover' }}>
+                  <CalendarDots size={11} style={{ flexShrink: 0, opacity: 0.6 }} />
+                  <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1, whiteSpace: 'nowrap' }}>
+                    No end date
+                  </Typography>
+                </Box>
+              );
+            }
+            const daysLeft = differenceInCalendarDays(new Date(currentProject.endDate), new Date());
+            const label = daysLeft > 0 ? `${daysLeft} days left` : daysLeft === 0 ? 'Due today' : `${Math.abs(daysLeft)} days overdue`;
+            const color = daysLeft > 0 ? 'text.secondary' : daysLeft === 0 ? 'status.inProgress' : 'error.main';
+            return (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.5, borderRadius: 'var(--radius-pill)', bgcolor: 'action.hover' }}>
+                <CalendarDots size={11} style={{ flexShrink: 0, opacity: 0.6 }} />
+                <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color, lineHeight: 1, whiteSpace: 'nowrap' }}>
+                  {label}
+                </Typography>
+              </Box>
+            );
+          })()}
+        </Box>
+      )}
 
     </Box>
   );

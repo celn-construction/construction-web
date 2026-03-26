@@ -601,8 +601,8 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
       <style>{`
         .bryntum-gantt-container .b-tree-cell { cursor: pointer; }
         .bryntum-gantt-container .b-gantt-task.b-task-selected {
-          outline: 2px solid rgba(43, 45, 66, 0.5) !important;
-          outline-offset: 1px;
+          outline: 2.5px solid rgba(43, 45, 66, 0.85) !important;
+          outline-offset: 2px;
         }
         /* Row actions ⋮ button */
         .gantt-row-actions-btn {

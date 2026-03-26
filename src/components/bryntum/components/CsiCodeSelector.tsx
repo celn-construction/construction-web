@@ -1,11 +1,65 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { Tag, CaretDown, CaretRight, Plus, MagnifyingGlass } from '@phosphor-icons/react';
 import { Box, Typography, Menu, MenuItem, TextField, InputAdornment } from '@mui/material';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import { formatCsiCode, CSI_MASTERFORMAT, CSI_SUBDIVISION_MAP } from '@/lib/constants/csiCodes';
+import {
+  formatCsiCode,
+  CSI_MASTERFORMAT,
+  CSI_SUBDIVISION_MAP,
+  type CsiSubdivision,
+} from '@/lib/constants/csiCodes';
+
+interface SubdivisionItemProps {
+  sub: CsiSubdivision;
+  isSelected: boolean;
+  onSelect: (code: string) => void;
+}
+
+const SubdivisionItem = memo(function SubdivisionItem({
+  sub,
+  isSelected,
+  onSelect,
+}: SubdivisionItemProps) {
+  return (
+    <MenuItem
+      selected={isSelected}
+      onClick={() => onSelect(sub.code)}
+      sx={{
+        fontSize: 12,
+        gap: 0.75,
+        pl: 4.5,
+        py: 0.5,
+      }}
+    >
+      <Typography
+        component="span"
+        sx={{
+          fontSize: 12,
+          fontWeight: 600,
+          color: 'text.secondary',
+          minWidth: 56,
+          flexShrink: 0,
+        }}
+      >
+        {sub.code}
+      </Typography>
+      <Typography
+        component="span"
+        sx={{
+          fontSize: 12,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {sub.name}
+      </Typography>
+    </MenuItem>
+  );
+});
 
 interface CsiCodeSelectorProps {
   csiCode: string | null | undefined;
@@ -59,22 +113,46 @@ export default function CsiCodeSelector({
   }, [anchorEl, displayCode]);
 
   const query = search.toLowerCase();
-
-  // Filter: show divisions that match name OR have matching subdivisions
-  const filteredDivisions = CSI_MASTERFORMAT.map((div) => {
-    const divMatches = !query || div.code.includes(query) || div.name.toLowerCase().includes(query);
-    const matchingSubs = div.subdivisions.filter(
-      (sub) =>
-        !query || sub.code.toLowerCase().includes(query) || sub.name.toLowerCase().includes(query),
-    );
-
-    if (!query) return { div, matchingSubs: div.subdivisions, show: true };
-    if (divMatches) return { div, matchingSubs: div.subdivisions, show: true };
-    if (matchingSubs.length > 0) return { div, matchingSubs, show: true };
-    return { div, matchingSubs: [], show: false };
-  }).filter((entry) => entry.show);
-
   const isSearching = query.length > 0;
+
+  // Memoize filtering to avoid recomputing when unrelated state changes (expandedDivision, anchorEl, etc.)
+  const displayDivisions = useMemo(() => {
+    const filtered = CSI_MASTERFORMAT.map((div) => {
+      const divMatches =
+        !query || div.code.includes(query) || div.nameLower.includes(query);
+      const matchingSubs = div.subdivisions.filter(
+        (sub) =>
+          !query || sub.code.includes(query) || sub.nameLower.includes(query),
+      );
+
+      if (!query) return { div, matchingSubs: div.subdivisions, show: true };
+      if (divMatches) return { div, matchingSubs: div.subdivisions, show: true };
+      if (matchingSubs.length > 0) return { div, matchingSubs, show: true };
+      return { div, matchingSubs: [], show: false };
+    }).filter((entry) => entry.show);
+
+    // Cap visible subdivisions per division during search to prevent rendering hundreds of MenuItems
+    return isSearching
+      ? filtered.map((entry) => ({
+          ...entry,
+          matchingSubs: entry.matchingSubs.slice(0, 15),
+        }))
+      : filtered;
+  }, [query, isSearching]);
+  const handleSelectSubdivision = useCallback(
+    (code: string) => {
+      setOptimisticCode(code);
+      updateCsiCode.mutate({
+        organizationId,
+        projectId,
+        taskId,
+        csiCode: code,
+      });
+      setAnchorEl(null);
+    },
+    [organizationId, projectId, taskId, updateCsiCode],
+  );
+
   const hasCode = !!displayCode;
 
   return (
@@ -213,7 +291,7 @@ export default function CsiCodeSelector({
           </MenuItem>
         )}
 
-        {filteredDivisions.map(({ div, matchingSubs }) => {
+        {displayDivisions.map(({ div, matchingSubs }) => {
           const isExpanded = isSearching || expandedDivision === div.code;
 
           return (
@@ -272,56 +350,18 @@ export default function CsiCodeSelector({
               {/* Subdivision items — only when expanded or searching */}
               {isExpanded &&
                 matchingSubs.map((sub) => (
-                  <MenuItem
+                  <SubdivisionItem
                     key={sub.code}
-                    selected={displayCode === sub.code}
-                    onClick={() => {
-                      setOptimisticCode(sub.code);
-                      updateCsiCode.mutate({
-                        organizationId,
-                        projectId,
-                        taskId,
-                        csiCode: sub.code,
-                      });
-                      setAnchorEl(null);
-                    }}
-                    sx={{
-                      fontSize: 12,
-                      gap: 0.75,
-                      pl: 4.5,
-                      py: 0.5,
-                    }}
-                  >
-                    <Typography
-                      component="span"
-                      sx={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: 'text.secondary',
-                        minWidth: 56,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {sub.code}
-                    </Typography>
-                    <Typography
-                      component="span"
-                      sx={{
-                        fontSize: 12,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {sub.name}
-                    </Typography>
-                  </MenuItem>
+                    sub={sub}
+                    isSelected={displayCode === sub.code}
+                    onSelect={handleSelectSubdivision}
+                  />
                 ))}
             </Box>
           );
         })}
 
-        {filteredDivisions.length === 0 && (
+        {displayDivisions.length === 0 && (
           <Box sx={{ px: 2, py: 1.5 }}>
             <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
               No CSI codes match &ldquo;{search}&rdquo;

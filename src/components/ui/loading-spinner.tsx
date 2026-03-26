@@ -44,6 +44,7 @@ export default function LoadingSpinner({
         open
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
+          bgcolor: 'rgba(0, 0, 0, 0.7)',
           backdropFilter: 'blur(4px)',
         }}
       >
