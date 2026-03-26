@@ -1,9 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Clock } from 'lucide-react';
+import {
+  MapPin,
+  Clock,
+  Sun,
+  Moon,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  CloudFog,
+  type Icon,
+} from '@phosphor-icons/react';
 import { Box, Typography } from '@mui/material';
-import Image from 'next/image';
 import { api } from '@/trpc/react';
 
 interface LocationWeatherProps {
@@ -20,6 +30,23 @@ function getLocalTime(timezoneOffset: number): string {
     minute: '2-digit',
     hour12: true,
   });
+}
+
+/** Map OpenWeatherMap icon codes to Phosphor icons and labels */
+function getWeatherIcon(icon: string): { Icon: Icon; label: string } {
+  const code = icon.slice(0, 2);
+  switch (code) {
+    case '01': return icon.endsWith('n') ? { Icon: Moon, label: 'Clear' } : { Icon: Sun, label: 'Clear' };
+    case '02': return { Icon: Cloud, label: 'Partly cloudy' };
+    case '03': return { Icon: Cloud, label: 'Cloudy' };
+    case '04': return { Icon: Cloud, label: 'Overcast' };
+    case '09': return { Icon: CloudRain, label: 'Drizzle' };
+    case '10': return { Icon: CloudRain, label: 'Rain' };
+    case '11': return { Icon: CloudLightning, label: 'Thunderstorm' };
+    case '13': return { Icon: CloudSnow, label: 'Snow' };
+    case '50': return { Icon: CloudFog, label: 'Fog' };
+    default:   return { Icon: Cloud, label: 'Cloudy' };
+  }
 }
 
 export default function LocationWeather({ location, organizationId }: LocationWeatherProps) {
@@ -45,8 +72,8 @@ export default function LocationWeather({ location, organizationId }: LocationWe
     return () => clearInterval(interval);
   }, [weather?.timezoneOffset]);
 
-  // Truncate location for display (e.g. "123 Main St, New York, NY 10001" -> "New York, NY")
   const shortLocation = location.length > 30 ? location.slice(0, 28) + '…' : location;
+  const weatherInfo = weather ? getWeatherIcon(weather.icon) : null;
 
   return (
     <Box
@@ -54,7 +81,6 @@ export default function LocationWeather({ location, organizationId }: LocationWe
         display: 'flex',
         alignItems: 'center',
         gap: 0.75,
-        ml: 0.75,
         px: 1,
         py: 0.5,
         borderRadius: 'var(--radius-pill)',
@@ -62,7 +88,7 @@ export default function LocationWeather({ location, organizationId }: LocationWe
       }}
     >
       {/* Location */}
-      <MapPin size={11} style={{ flexShrink: 0, opacity: 0.6 }} />
+      <MapPin size={12} weight="bold" style={{ flexShrink: 0, opacity: 0.6 }} />
       <Typography
         sx={{
           fontSize: '0.625rem',
@@ -76,17 +102,10 @@ export default function LocationWeather({ location, organizationId }: LocationWe
       </Typography>
 
       {/* Weather */}
-      {weather && (
+      {weather && weatherInfo && (
         <>
           <Typography sx={{ color: 'text.disabled', fontSize: '0.625rem', lineHeight: 1, userSelect: 'none' }}>·</Typography>
-          <Image
-            src={`https://openweathermap.org/img/wn/${weather.icon}.png`}
-            alt={weather.description}
-            width={18}
-            height={18}
-            style={{ marginLeft: -2, marginRight: -2 }}
-            unoptimized
-          />
+          <weatherInfo.Icon size={12} weight="bold" style={{ flexShrink: 0, opacity: 0.6 }} />
           <Typography
             sx={{
               fontSize: '0.625rem',
@@ -97,7 +116,7 @@ export default function LocationWeather({ location, organizationId }: LocationWe
               fontVariantNumeric: 'tabular-nums',
             }}
           >
-            {weather.temp}°F
+            {weatherInfo.label} {weather.temp}°F
           </Typography>
         </>
       )}
@@ -106,7 +125,7 @@ export default function LocationWeather({ location, organizationId }: LocationWe
       {localTime && (
         <>
           <Typography sx={{ color: 'text.disabled', fontSize: '0.625rem', lineHeight: 1, userSelect: 'none' }}>·</Typography>
-          <Clock size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+          <Clock size={11} weight="bold" style={{ flexShrink: 0, opacity: 0.5 }} />
           <Typography
             sx={{
               fontSize: '0.625rem',

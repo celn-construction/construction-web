@@ -600,13 +600,9 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
           calculations use real dimensions.  The loading/error overlays sit on top. */}
       <style>{`
         .bryntum-gantt-container .b-tree-cell { cursor: pointer; }
-        .bryntum-gantt-container .b-gantt-task.b-highlight {
-          animation: gantt-bar-glow 0.8s ease-out !important;
-          outline: none !important;
-        }
-        @keyframes gantt-bar-glow {
-          0% { box-shadow: 0 0 0 3px rgba(43, 45, 66, 0.2), var(--gantt-task-shadow); }
-          100% { box-shadow: var(--gantt-task-shadow); }
+        .bryntum-gantt-container .b-gantt-task.b-task-selected {
+          outline: 2.5px solid rgba(43, 45, 66, 0.85) !important;
+          outline-offset: 2px;
         }
         /* Row actions ⋮ button */
         .gantt-row-actions-btn {

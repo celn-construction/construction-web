@@ -117,7 +117,7 @@ MUI `sx` prop is the primary styling mechanism. Do not use CSS modules or Tailwi
 <Box sx={{ bgcolor: '#fff', color: '#333' }}>
 ```
 
-Lucide icons are always sized via `style={{ width: N, height: N }}` (not `sx`). Phosphor icons use the `size` prop instead: `<Icon size={18} />`.
+**Always prefer Phosphor icons (`@phosphor-icons/react`) over Lucide.** Phosphor is the primary icon library for this project. Only use Lucide for `getFileIcon()` in `files.tsx` (legacy). Phosphor icons use the `size` prop: `<Icon size={18} weight="regular" />`.
 
 ---
 
@@ -264,13 +264,17 @@ gap: 1.25    // 10px — sidebar nav items
 
 ### Icons
 
-| Context | Library | Size | Notes |
-|---|---|---|---|
-| Sidebar nav | Phosphor | `size={17}` | `weight={isActive ? 'fill' : 'regular'}` |
-| Tree folders / tasks | Phosphor | `size={14}` | |
-| Tree documents | Phosphor | `size={12}` | |
-| Utility (refresh, add) | Phosphor | `size={14}` | `weight="bold"` for action buttons |
-| Chevrons / small indicators | Phosphor | `style={{ width: 13, height: 13 }}` | |
+**Always use Phosphor (`@phosphor-icons/react`) over Lucide.** Phosphor is the project's primary icon library.
+
+| Context | Size | Notes |
+|---|---|---|
+| Sidebar nav | `size={17}` | `weight={isActive ? 'fill' : 'regular'}` |
+| Header pills (weather, calendar, location) | `size={11}`–`size={12}` | `weight="bold"` |
+| Tree folders / tasks | `size={14}` | |
+| Tree documents | `size={12}` | |
+| Utility (refresh, add) | `size={14}` | `weight="bold"` for action buttons |
+| Chevrons / small indicators | `size={13}` | |
+| Notification bell | `size={18}` | `weight="regular"` |
 
 ### Active-state indicator (left bar)
 
