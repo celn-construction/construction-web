@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "Project" ADD COLUMN "location" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Project" ADD COLUMN IF NOT EXISTS "location" TEXT NOT NULL DEFAULT '';
