@@ -8,26 +8,18 @@ export function useGanttControls() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getGanttInstance = useCallback((): any => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const refInstance = (ganttRef.current as any)?.instance;
-    // React strict mode + Ably ChannelProvider can create multiple Bryntum
-    // widget instances across mount/unmount cycles. The ref may point to a
-    // stale widget (0×0, invisible) while the real one is in the DOM.
-    // Validate the ref instance; if it's stale, find the active widget from the DOM.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (refInstance && !refInstance.isDestroyed && refInstance.isVisible) {
-      return refInstance;
-    }
-    // Fallback: find the visible Bryntum Gantt widget from the DOM
+    // React strict mode + Ably ChannelProvider create multiple Bryntum widget
+    // instances across mount/unmount cycles. The React ref frequently points to
+    // a stale, invisible (0×0) widget while the real one lives in the DOM.
+    // Always resolve the widget from the DOM to guarantee we operate on the
+    // visible instance.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const el = document.querySelector('.b-gantt:not(.b-destroyed)') as any;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const domWidget = el?.widget;
-    if (domWidget) {
-      console.log('[Gantt:getGanttInstance] Ref was stale (element 0x0 or invisible), using DOM widget instead. refInstance isVisible:', refInstance?.isVisible, 'domWidget id:', domWidget?.id);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return domWidget ?? refInstance;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+    if (el?.widget) return el.widget;
+    // Last resort: try the ref (may be stale)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    return (ganttRef.current as any)?.instance;
   }, []);
 
   const handleAddTask = useCallback(() => {
