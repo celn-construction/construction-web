@@ -23,22 +23,32 @@ export function useGanttControls() {
   const handleAddTask = useCallback(() => {
     const gantt = getGanttInstance();
     if (!gantt) return;
+
+    // DEBUG: log the state of the widget before adding
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    console.log('[AddTask] Before add — taskStore count:', gantt.taskStore?.count,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'rowManager rows:', gantt.rowManager?.rowCount,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'element:', gantt.element?.offsetWidth, 'x', gantt.element?.offsetHeight,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'isDestroyed:', gantt.isDestroyed,
+      'b-gantt count:', document.querySelectorAll('.b-gantt').length,
+      'b-gantt not-destroyed:', document.querySelectorAll('.b-gantt:not(.b-destroyed)').length,
+    );
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const [task] = gantt.taskStore.add({
+    gantt.taskStore.add({
       name: 'New Task',
       startDate: new Date(),
       duration: 1,
     });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    void gantt.project.commitAsync().then(() => {
-      // Refresh contents so the time axis header re-renders cells for
-      // the scrolled position (Bryntum's virtual renderer doesn't always
-      // pick up programmatic scroll changes).
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.renderContents();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
-    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    console.log('[AddTask] After add — taskStore count:', gantt.taskStore?.count,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'rowManager rows:', gantt.rowManager?.rowCount,
+    );
   }, [getGanttInstance]);
 
   const handleIndent = useCallback(() => {
