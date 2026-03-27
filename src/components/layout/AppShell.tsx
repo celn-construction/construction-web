@@ -84,6 +84,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           component="main"
           sx={{
             flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
             overflowX: 'hidden',
             overflowY: 'auto',
           }}

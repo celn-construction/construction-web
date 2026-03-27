@@ -29,7 +29,8 @@ type PresenceData = Array<{
 const WRAPPER_STYLE: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  height: '100%',
+  flex: 1,
+  minHeight: 0,
   borderRadius: '12px',
   border: '1px solid var(--border-color)',
   backgroundColor: 'var(--bg-card)',
