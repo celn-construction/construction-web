@@ -14,20 +14,24 @@ export function useGanttControls() {
   const handleAddTask = useCallback(() => {
     const gantt = getGanttInstance();
     if (!gantt) return;
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const [task] = gantt.taskStore.add({
       name: 'New Task',
-      startDate: new Date(),
+      startDate: now,
+      endDate: tomorrow,
       duration: 1,
     });
-    // Immediately scroll the timeline to today so the task bar area is visible
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    gantt.scrollToDate(new Date(), { block: 'center', animate: true });
-    // After the scheduling engine processes, scroll to the specific task row + bar
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync().then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (gantt.isDestroyed) return;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      if (task) gantt.scrollTaskIntoView(task, { block: 'center', animate: { duration: 300 } });
+      gantt.renderContents();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
     });
   }, [getGanttInstance]);
 
