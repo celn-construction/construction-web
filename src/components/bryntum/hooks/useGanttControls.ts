@@ -64,6 +64,33 @@ export function useGanttControls() {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         'isDestroyed:', gantt.isDestroyed,
       );
+
+      // Check visual state of subgrids
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const subGrids = gantt.subGrids as Record<string, { element?: HTMLElement; height?: number; scrollable?: { scrollHeight?: number } }> | undefined;
+      if (subGrids) {
+        for (const [name, sg] of Object.entries(subGrids)) {
+          console.log(`[Gantt:addTask] subGrid "${name}":`,
+            'element size:', sg.element?.offsetWidth, 'x', sg.element?.offsetHeight,
+            'scrollHeight:', sg.scrollable?.scrollHeight,
+          );
+        }
+      }
+
+      // Check row elements in DOM
+      const rowEls = document.querySelectorAll('.b-grid-row');
+      console.log('[Gantt:addTask] .b-grid-row elements in DOM:', rowEls.length);
+      rowEls.forEach((el, i) => {
+        const re = el as HTMLElement;
+        console.log(`[Gantt:addTask] row[${i}] size: ${re.offsetWidth}x${re.offsetHeight}, top: ${re.style.top}, display: ${re.style.display}, className: ${re.className}`);
+      });
+
+      // Force a full refresh of the Gantt to ensure rows render
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      console.log('[Gantt:addTask] Calling gantt.refresh()');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.refresh();
+
       // Refresh contents so the time axis header re-renders cells for
       // the scrolled position (Bryntum's virtual renderer doesn't always
       // pick up programmatic scroll changes).
@@ -71,6 +98,10 @@ export function useGanttControls() {
       gantt.renderContents();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
+
+      // Log state after refresh
+      const rowElsAfter = document.querySelectorAll('.b-grid-row');
+      console.log('[Gantt:addTask] After refresh — .b-grid-row count:', rowElsAfter.length);
     }).catch((err: unknown) => {
       console.error('[Gantt:addTask] commitAsync FAILED:', err);
     });
