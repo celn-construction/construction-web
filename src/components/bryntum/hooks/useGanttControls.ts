@@ -8,7 +8,26 @@ export function useGanttControls() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getGanttInstance = useCallback((): any => {
-    return (ganttRef.current as unknown as { instance: unknown })?.instance;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const refInstance = (ganttRef.current as any)?.instance;
+    // React strict mode + Ably ChannelProvider can create multiple Bryntum
+    // widget instances across mount/unmount cycles. The ref may point to a
+    // stale widget (0×0, invisible) while the real one is in the DOM.
+    // Validate the ref instance; if it's stale, find the active widget from the DOM.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (refInstance && !refInstance.isDestroyed && refInstance.isVisible) {
+      return refInstance;
+    }
+    // Fallback: find the visible Bryntum Gantt widget from the DOM
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const el = document.querySelector('.b-gantt:not(.b-destroyed)') as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const domWidget = el?.widget;
+    if (domWidget) {
+      console.log('[Gantt:getGanttInstance] Ref was stale (element 0x0 or invisible), using DOM widget instead. refInstance isVisible:', refInstance?.isVisible, 'domWidget id:', domWidget?.id);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return domWidget ?? refInstance;
   }, []);
 
   const handleAddTask = useCallback(() => {
