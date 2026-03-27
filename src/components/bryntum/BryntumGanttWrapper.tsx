@@ -51,10 +51,6 @@ const GANTT_CONTENT_STYLE: CSSProperties = {
   overflow: 'hidden',
 };
 
-// Singleton guard — ensures only ONE BryntumGantt widget is ever created,
-// even when BryntumGanttCore mounts multiple times simultaneously.
-let activeGanttInstance: string | null = null;
-
 const STALE_THRESHOLD_MS = 60_000; // 60 seconds
 // Short settle time so the Bryntum scheduling engine finishes before we sync
 const AUTO_SAVE_DELAY_MS = 1_000; // 1 second
@@ -172,25 +168,21 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     handlePresetChange,
   } = ganttControls;
 
-  // Singleton guard: Bryntum's React wrapper (class component) cannot survive
-  // multiple simultaneous mounts — the second widget corrupts the first's
-  // rendering pipeline. Only the first instance that mounts creates the widget;
-  // any concurrent duplicate renders an empty container.
-  const [widgetReady, setWidgetReady] = useState(false);
-  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
+  // Clean up ghost Bryntum widgets from React double-mount.
+  // After mount, check for multiple .b-gantt elements — destroy any 0×0 ghosts.
   useEffect(() => {
-    const id = instanceId.current;
-    if (!activeGanttInstance) {
-      activeGanttInstance = id;
-      setWidgetReady(true);
-    }
-    return () => {
-      if (activeGanttInstance === id) {
-        activeGanttInstance = null;
-      }
-      setWidgetReady(false);
-    };
-  }, [projectId]);
+    const timer = setTimeout(() => {
+      const ganttEls = document.querySelectorAll('.b-gantt:not(.b-destroyed)');
+      if (ganttEls.length <= 1) return;
+      ganttEls.forEach(el => {
+        if (el instanceof HTMLElement && el.offsetWidth === 0 && el.offsetHeight === 0) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+          (el as any).widget?.destroy();
+        }
+      });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const errorColor = '#D93C15';
   const [isLoading, setIsLoading] = useState(true);
@@ -730,7 +722,7 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
       <div style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          {widgetReady && <BryntumGantt ref={ganttRef} {...ganttConfig} />}
+          <BryntumGantt ref={ganttRef} {...ganttConfig} />
         </div>
 
         {isLoading && (
