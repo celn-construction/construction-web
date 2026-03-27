@@ -13,15 +13,57 @@ export function useGanttControls() {
 
   const handleAddTask = useCallback(() => {
     const gantt = getGanttInstance();
+    console.log('[Gantt:addTask] gantt instance:', !!gantt);
     if (!gantt) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    console.log('[Gantt:addTask] Before add — taskStore count:', gantt.taskStore?.count,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'project ready:', gantt.project?.isEngineReady,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'isDestroyed:', gantt.isDestroyed,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'isVisible:', gantt.isVisible,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'element size:', gantt.element?.offsetWidth, 'x', gantt.element?.offsetHeight,
+    );
+
+    // Check for ghost widgets
+    const allGantts = document.querySelectorAll('.b-gantt');
+    console.log('[Gantt:addTask] .b-gantt elements in DOM:', allGantts.length);
+    allGantts.forEach((el, i) => {
+      const ge = el as HTMLElement;
+      console.log(`[Gantt:addTask] .b-gantt[${i}] size: ${ge.offsetWidth}x${ge.offsetHeight}, visible: ${ge.style.display !== 'none'}`);
+    });
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const [task] = gantt.taskStore.add({
       name: 'New Task',
       startDate: new Date(),
       duration: 1,
     });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    console.log('[Gantt:addTask] After add — task:', task?.id, 'taskStore count:', gantt.taskStore?.count,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'task startDate:', task?.startDate, 'task duration:', task?.duration,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'rowCount:', gantt.rowManager?.rowCount,
+    );
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync().then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      console.log('[Gantt:addTask] commitAsync resolved — taskStore count:', gantt.taskStore?.count,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        'rowCount:', gantt.rowManager?.rowCount,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        'task startDate:', task?.startDate, 'task endDate:', task?.endDate,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        'timeAxis start:', gantt.timeAxis?.startDate, 'timeAxis end:', gantt.timeAxis?.endDate,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        'isDestroyed:', gantt.isDestroyed,
+      );
       // Refresh contents so the time axis header re-renders cells for
       // the scrolled position (Bryntum's virtual renderer doesn't always
       // pick up programmatic scroll changes).
@@ -29,6 +71,8 @@ export function useGanttControls() {
       gantt.renderContents();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
+    }).catch((err: unknown) => {
+      console.error('[Gantt:addTask] commitAsync FAILED:', err);
     });
   }, [getGanttInstance]);
 

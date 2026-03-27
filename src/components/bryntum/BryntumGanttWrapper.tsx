@@ -138,12 +138,19 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
   // Clean up orphaned zero-sized Bryntum widgets left by React double-mount.
   useEffect(() => {
+    console.log('[Gantt:mount] BryntumGanttCore mounted, projectId:', projectId);
     const cleanupTimer = setTimeout(() => {
       const allGantts = document.querySelectorAll('.b-gantt');
+      console.log('[Gantt:ghostCleanup] .b-gantt count:', allGantts.length);
+      allGantts.forEach((el, i) => {
+        const ge = el as HTMLElement;
+        console.log(`[Gantt:ghostCleanup] [${i}] size: ${ge.offsetWidth}x${ge.offsetHeight}`);
+      });
       if (allGantts.length > 1) {
         allGantts.forEach((el) => {
           const ge = el as HTMLElement;
           if (ge.offsetWidth === 0 && ge.offsetHeight === 0) {
+            console.log('[Gantt:ghostCleanup] Destroying ghost widget');
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
             const widget = (ge as any).widget;
             if (widget && typeof widget.destroy === 'function') {
@@ -155,8 +162,11 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
         });
       }
     }, 200);
-    return () => clearTimeout(cleanupTimer);
-  }, []);
+    return () => {
+      console.log('[Gantt:unmount] BryntumGanttCore unmounting, projectId:', projectId);
+      clearTimeout(cleanupTimer);
+    };
+  }, [projectId]);
 
   const errorColor = '#D93C15';
   const [isLoading, setIsLoading] = useState(true);
@@ -201,6 +211,17 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    console.log('[Gantt:postLoad] Load complete — gantt ready. taskStore count:', gantt.taskStore?.count,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'isEngineReady:', gantt.project?.isEngineReady,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'isDestroyed:', gantt.isDestroyed,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'element size:', gantt.element?.offsetWidth, 'x', gantt.element?.offsetHeight,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'timeAxis:', gantt.timeAxis?.startDate, '→', gantt.timeAxis?.endDate,
+    );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
   }, [isLoading, getGanttInstance]);
@@ -484,13 +505,16 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   // autoLoad), which wipes locally-added tasks.
   const [ganttConfig] = useState(() => createGanttConfig(projectId, {
     onLoadStart: () => {
+      console.log('[Gantt:config] onLoadStart fired');
       setIsLoading(true);
       setLoadError(null);
     },
     onLoadComplete: () => {
+      console.log('[Gantt:config] onLoadComplete fired');
       setIsLoading(false);
     },
     onLoadError: (error: string) => {
+      console.log('[Gantt:config] onLoadError fired:', error);
       setIsLoading(false);
       setLoadError(error);
     },
