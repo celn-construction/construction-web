@@ -34,13 +34,11 @@ type PresenceData = Array<{
 const WRAPPER_STYLE: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  flex: 1,
-  minHeight: 0,
+  height: '100%',
   borderRadius: '12px',
   border: '1px solid var(--border-color)',
   backgroundColor: 'var(--bg-card)',
   boxShadow: 'var(--gantt-container-ring), var(--gantt-container-shadow)',
-  overflow: 'hidden',
 };
 
 const GANTT_CONTENT_STYLE: CSSProperties = {
@@ -48,7 +46,7 @@ const GANTT_CONTENT_STYLE: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   position: 'relative',
-  overflow: 'hidden',
+  overflow: 'clip',
 };
 
 const STALE_THRESHOLD_MS = 60_000; // 60 seconds
@@ -168,22 +166,6 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     handlePresetChange,
   } = ganttControls;
 
-  // Clean up ghost Bryntum widgets from React double-mount.
-  // After mount, check for multiple .b-gantt elements — destroy any 0×0 ghosts.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const ganttEls = document.querySelectorAll('.b-gantt:not(.b-destroyed)');
-      if (ganttEls.length <= 1) return;
-      ganttEls.forEach(el => {
-        if (el instanceof HTMLElement && el.offsetWidth === 0 && el.offsetHeight === 0) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-          (el as any).widget?.destroy();
-        }
-      });
-    }, 200);
-    return () => clearTimeout(timer);
-  }, []);
-
   const errorColor = '#D93C15';
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -220,29 +202,13 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
   useBryntumThemeAssets();
 
-  // After data loads, finalize the project so the scheduling engine is fully
-  // settled before user interaction. Only run on a widget with real dimensions —
-  // a 0×0 widget from a duplicate mount would corrupt the row layout.
+  // After data loads, disable parent task click toggle.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const elW = gantt.element?.offsetWidth as number | undefined;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const elH = gantt.element?.offsetHeight as number | undefined;
-    if (!elW || !elH) return;
-
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    void gantt.project.commitAsync().then(() => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (gantt.isDestroyed) return;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.renderContents();
-    });
   }, [isLoading, getGanttInstance]);
 
   const handleSave = useCallback(async () => {

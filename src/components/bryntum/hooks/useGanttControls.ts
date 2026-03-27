@@ -8,47 +8,27 @@ export function useGanttControls() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getGanttInstance = useCallback((): any => {
-    // React strict mode + dynamic imports can create multiple Bryntum widget
-    // instances. The React ref may point to a stale widget. Always resolve
-    // from the DOM to guarantee we operate on the visible instance.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const el = document.querySelector('.b-gantt:not(.b-destroyed)') as any;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
-    if (el?.widget) return el.widget;
-    // Last resort: try the ref
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    return (ganttRef.current as any)?.instance;
+    return (ganttRef.current as unknown as { instance: unknown })?.instance;
   }, []);
 
   const handleAddTask = useCallback(() => {
     const gantt = getGanttInstance();
     if (!gantt) return;
-
-    // DEBUG: log the state of the widget before adding
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    console.log('[AddTask] Before add — taskStore count:', gantt.taskStore?.count,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'rowManager rows:', gantt.rowManager?.rowCount,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'element:', gantt.element?.offsetWidth, 'x', gantt.element?.offsetHeight,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'isDestroyed:', gantt.isDestroyed,
-      'b-gantt count:', document.querySelectorAll('.b-gantt').length,
-      'b-gantt not-destroyed:', document.querySelectorAll('.b-gantt:not(.b-destroyed)').length,
-    );
-
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    gantt.taskStore.add({
+    const [task] = gantt.taskStore.add({
       name: 'New Task',
       startDate: new Date(),
       duration: 1,
     });
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    console.log('[AddTask] After add — taskStore count:', gantt.taskStore?.count,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'rowManager rows:', gantt.rowManager?.rowCount,
-    );
+    // Immediately scroll the timeline to today so the task bar area is visible
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.scrollToDate(new Date(), { block: 'center', animate: true });
+    // After the scheduling engine processes, scroll to the specific task row + bar
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    void gantt.project.commitAsync().then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      if (task) gantt.scrollTaskIntoView(task, { block: 'center', animate: { duration: 300 } });
+    });
   }, [getGanttInstance]);
 
   const handleIndent = useCallback(() => {

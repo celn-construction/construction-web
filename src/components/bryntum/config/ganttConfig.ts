@@ -41,14 +41,6 @@ export function createGanttConfig(
   return {
     detectCSSCompatibilityIssues: false,
 
-    // Disable Bryntum's built-in loading mask — we use our own overlay in BryntumGanttWrapper
-    loadMask: null,
-
-    // infiniteScroll removed — it requires both startDate and endDate to
-    // define a valid initial time axis range.  Without endDate the time
-    // axis config is invalid and Bryntum throws at mount time.
-
-
     // Performance optimizations
     autoHeight: false,
     rowHeight: 45, // Consistent row height for better performance
@@ -60,10 +52,8 @@ export function createGanttConfig(
       autoSync: false,
       taskModelClass: VersionedTaskModel,
 
-      // delayCalculation removed — it prevents the scheduling engine from
-      // initializing properly when React double-mounts the widget (the first
-      // commitAsync runs on a destroyed instance, leaving the visible instance
-      // with an uncalculated engine and no task bar rendering).
+      // Enable delay calculation for better initial load performance
+      delayCalculation: true,
 
       transport: projectId
         ? {
