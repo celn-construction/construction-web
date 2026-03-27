@@ -16,10 +16,15 @@ import { useTaskPopover } from './hooks/useTaskPopover';
 import { useGanttControls } from './hooks/useGanttControls';
 import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
 import { validateParentDuration } from './utils/ganttValidation';
+import dynamic from 'next/dynamic';
 import { ChannelProvider } from 'ably/react';
 import { useGanttRealtime } from './hooks/useGanttRealtime';
 import GanttPresence from './components/GanttPresence';
 import GanttLoadingSpinner from './components/GanttLoadingSpinner';
+
+// Dynamic import so Ably SDK is only loaded when realtime is enabled.
+// Renders null while loading — no DOM disruption to siblings.
+const AblyProviderLazy = dynamic(() => import('@/components/providers/AblyProvider'), { ssr: false });
 
 type PresenceData = Array<{
   clientId: string;
@@ -117,19 +122,21 @@ export default function BryntumGanttWrapper(props: BryntumGanttWrapperProps) {
 
   return (
     <>
-      {/* Realtime listener runs inside ChannelProvider but renders NO DOM.
-          BryntumGanttCore is a sibling, so Ably reconnections never unmount the Gantt. */}
+      {/* Realtime listener runs inside Ably + ChannelProvider but renders NO DOM.
+          BryntumGanttCore is a sibling, so Ably mount cycles never affect the Gantt widget. */}
       {props.realtimeEnabled && props.projectId && (
-        <ChannelProvider channelName={`project:${props.projectId}:gantt`}>
-          <RealtimeListener
-            projectId={props.projectId}
-            userId={props.userId ?? ''}
-            userName={props.userName ?? ''}
-            userAvatar={props.userAvatar}
-            getGanttInstance={ganttControls.getGanttInstance}
-            onStateChange={handleStateChange}
-          />
-        </ChannelProvider>
+        <AblyProviderLazy projectId={props.projectId}>
+          <ChannelProvider channelName={`project:${props.projectId}:gantt`}>
+            <RealtimeListener
+              projectId={props.projectId}
+              userId={props.userId ?? ''}
+              userName={props.userName ?? ''}
+              userAvatar={props.userAvatar}
+              getGanttInstance={ganttControls.getGanttInstance}
+              onStateChange={handleStateChange}
+            />
+          </ChannelProvider>
+        </AblyProviderLazy>
       )}
       <BryntumGanttCore
         {...props}
