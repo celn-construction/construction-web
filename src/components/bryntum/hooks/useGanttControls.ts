@@ -29,8 +29,6 @@ export function useGanttControls() {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (gantt.isDestroyed) return;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.renderContents();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
     });
   }, [getGanttInstance]);
