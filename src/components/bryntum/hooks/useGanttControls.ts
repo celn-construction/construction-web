@@ -24,28 +24,39 @@ export function useGanttControls() {
 
   const handleAddTask = useCallback(() => {
     const gantt = getGanttInstance();
-    console.log('[Gantt:addTask] gantt instance:', !!gantt);
-    if (!gantt) return;
+    if (!gantt) {
+      console.log('[Gantt:addTask] No gantt instance!');
+      return;
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    console.log('[Gantt:addTask] Before add — taskStore count:', gantt.taskStore?.count,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'project ready:', gantt.project?.isEngineReady,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'isDestroyed:', gantt.isDestroyed,
+    const ganttId = gantt.id as string;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const ganttEl = gantt.element as HTMLElement | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const projectId = gantt.project?.id as string | undefined;
+
+    console.log('[Gantt:addTask] widget id:', ganttId,
+      'element id:', ganttEl?.id,
+      'element size:', ganttEl?.offsetWidth, 'x', ganttEl?.offsetHeight,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       'isVisible:', gantt.isVisible,
+      'project id:', projectId,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'element size:', gantt.element?.offsetWidth, 'x', gantt.element?.offsetHeight,
+      'taskStore count:', gantt.taskStore?.count,
     );
 
-    // Check for ghost widgets
-    const allGantts = document.querySelectorAll('.b-gantt');
-    console.log('[Gantt:addTask] .b-gantt elements in DOM:', allGantts.length);
-    allGantts.forEach((el, i) => {
-      const ge = el as HTMLElement;
-      console.log(`[Gantt:addTask] .b-gantt[${i}] size: ${ge.offsetWidth}x${ge.offsetHeight}, visible: ${ge.style.display !== 'none'}`);
-    });
+    // Compare widget's taskStore vs project's taskStore — are they the same?
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const widgetStore = gantt.taskStore;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const projectStore = gantt.project?.taskStore;
+    console.log('[Gantt:addTask] taskStore identity check — same object:', widgetStore === projectStore,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'widget store id:', widgetStore?.id, 'project store id:', projectStore?.id,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'widget store count:', widgetStore?.count, 'project store count:', projectStore?.count,
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const [task] = gantt.taskStore.add({
@@ -55,9 +66,9 @@ export function useGanttControls() {
     });
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    console.log('[Gantt:addTask] After add — task:', task?.id, 'taskStore count:', gantt.taskStore?.count,
+    console.log('[Gantt:addTask] After add — task:', task?.id,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'task startDate:', task?.startDate, 'task duration:', task?.duration,
+      'taskStore count:', gantt.taskStore?.count,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       'rowCount:', gantt.rowManager?.rowCount,
     );
@@ -65,54 +76,51 @@ export function useGanttControls() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync().then(() => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.log('[Gantt:addTask] commitAsync resolved — taskStore count:', gantt.taskStore?.count,
+      console.log('[Gantt:addTask] commitAsync resolved —',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        'taskStore:', gantt.taskStore?.count,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         'rowCount:', gantt.rowManager?.rowCount,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'task startDate:', task?.startDate, 'task endDate:', task?.endDate,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'timeAxis start:', gantt.timeAxis?.startDate, 'timeAxis end:', gantt.timeAxis?.endDate,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'isDestroyed:', gantt.isDestroyed,
+        'task dates:', task?.startDate, '→', task?.endDate,
       );
 
-      // Check visual state of subgrids
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const subGrids = gantt.subGrids as Record<string, { element?: HTMLElement; height?: number; scrollable?: { scrollHeight?: number } }> | undefined;
-      if (subGrids) {
-        for (const [name, sg] of Object.entries(subGrids)) {
-          console.log(`[Gantt:addTask] subGrid "${name}":`,
-            'element size:', sg.element?.offsetWidth, 'x', sg.element?.offsetHeight,
-            'scrollHeight:', sg.scrollable?.scrollHeight,
-          );
-        }
-      }
-
-      // Check row elements in DOM
+      // Inspect actual cell content in DOM rows
       const rowEls = document.querySelectorAll('.b-grid-row');
-      console.log('[Gantt:addTask] .b-grid-row elements in DOM:', rowEls.length);
+      console.log('[Gantt:addTask] .b-grid-row count:', rowEls.length);
       rowEls.forEach((el, i) => {
         const re = el as HTMLElement;
-        console.log(`[Gantt:addTask] row[${i}] size: ${re.offsetWidth}x${re.offsetHeight}, top: ${re.style.top}, display: ${re.style.display}, className: ${re.className}`);
+        const cells = re.querySelectorAll('.b-grid-cell');
+        const cellTexts = Array.from(cells).map(c => `"${(c as HTMLElement).innerText?.trim()}"`).join(', ');
+        console.log(`[Gantt:addTask] row[${i}]: ${re.offsetWidth}x${re.offsetHeight}, transform: ${re.style.transform}, top: ${re.style.top}, cells: [${cellTexts}], parent: ${re.parentElement?.className}`);
       });
 
-      // Force a full refresh of the Gantt to ensure rows render
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      console.log('[Gantt:addTask] Calling gantt.refresh()');
+      // Check if task bars exist in the schedule area
+      const taskBars = document.querySelectorAll('.b-gantt-task');
+      console.log('[Gantt:addTask] .b-gantt-task (task bars) count:', taskBars.length);
+      taskBars.forEach((el, i) => {
+        const te = el as HTMLElement;
+        console.log(`[Gantt:addTask] bar[${i}]: ${te.offsetWidth}x${te.offsetHeight}, left: ${te.style.left}, transform: ${te.style.transform}`);
+      });
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       gantt.refresh();
-
-      // Refresh contents so the time axis header re-renders cells for
-      // the scrolled position (Bryntum's virtual renderer doesn't always
-      // pick up programmatic scroll changes).
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       gantt.renderContents();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
 
-      // Log state after refresh
+      // Log AFTER refresh
       const rowElsAfter = document.querySelectorAll('.b-grid-row');
-      console.log('[Gantt:addTask] After refresh — .b-grid-row count:', rowElsAfter.length);
+      console.log('[Gantt:addTask] After refresh — rows:', rowElsAfter.length);
+      rowElsAfter.forEach((el, i) => {
+        const re = el as HTMLElement;
+        const cells = re.querySelectorAll('.b-grid-cell');
+        const cellTexts = Array.from(cells).map(c => `"${(c as HTMLElement).innerText?.trim()}"`).join(', ');
+        console.log(`[Gantt:addTask] after[${i}]: ${re.offsetWidth}x${re.offsetHeight}, transform: ${re.style.transform}, cells: [${cellTexts}], parent: ${re.parentElement?.className}`);
+      });
+      const barsAfter = document.querySelectorAll('.b-gantt-task');
+      console.log('[Gantt:addTask] After refresh — task bars:', barsAfter.length);
     }).catch((err: unknown) => {
       console.error('[Gantt:addTask] commitAsync FAILED:', err);
     });
