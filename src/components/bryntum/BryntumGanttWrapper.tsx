@@ -168,35 +168,21 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     handlePresetChange,
   } = ganttControls;
 
-  // Clean up orphaned zero-sized Bryntum widgets left by React double-mount.
+  // Delay rendering the BryntumGantt widget until the next animation frame.
+  // Whatever causes the double-mount (dynamic import, strict mode, parent re-render)
+  // creates two BryntumGanttCore instances simultaneously. Delaying widget creation
+  // lets the mount cycle settle — only the surviving instance creates a widget.
+  const [widgetReady, setWidgetReady] = useState(false);
   useEffect(() => {
     console.log('[Gantt:mount] BryntumGanttCore mounted, projectId:', projectId);
-    const cleanupTimer = setTimeout(() => {
-      const allGantts = document.querySelectorAll('.b-gantt');
-      console.log('[Gantt:ghostCleanup] .b-gantt count:', allGantts.length);
-      allGantts.forEach((el, i) => {
-        const ge = el as HTMLElement;
-        console.log(`[Gantt:ghostCleanup] [${i}] size: ${ge.offsetWidth}x${ge.offsetHeight}`);
-      });
-      if (allGantts.length > 1) {
-        allGantts.forEach((el) => {
-          const ge = el as HTMLElement;
-          if (ge.offsetWidth === 0 && ge.offsetHeight === 0) {
-            console.log('[Gantt:ghostCleanup] Destroying ghost widget');
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-            const widget = (ge as any).widget;
-            if (widget && typeof widget.destroy === 'function') {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-              widget.destroy();
-            }
-            ge.remove();
-          }
-        });
-      }
-    }, 200);
+    const rafId = requestAnimationFrame(() => {
+      console.log('[Gantt:mount] rAF fired — creating widget');
+      setWidgetReady(true);
+    });
     return () => {
       console.log('[Gantt:unmount] BryntumGanttCore unmounting, projectId:', projectId);
-      clearTimeout(cleanupTimer);
+      cancelAnimationFrame(rafId);
+      setWidgetReady(false);
     };
   }, [projectId]);
 
@@ -776,7 +762,7 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
       <div style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <BryntumGantt ref={ganttRef} {...ganttConfig} />
+          {widgetReady && <BryntumGantt ref={ganttRef} {...ganttConfig} />}
         </div>
 
         {isLoading && (
