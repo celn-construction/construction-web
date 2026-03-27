@@ -202,17 +202,13 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
   useBryntumThemeAssets();
 
-  // After data loads, finalize the project so the scheduling engine runs
-  // (required because delayCalculation: true defers it) and the time axis
-  // header renders properly.
+  // After data loads, disable parent task click toggle.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    void gantt.project.commitAsync();
   }, [isLoading, getGanttInstance]);
 
   const handleSave = useCallback(async () => {

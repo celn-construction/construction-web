@@ -52,9 +52,6 @@ export function createGanttConfig(
       autoSync: false,
       taskModelClass: VersionedTaskModel,
 
-      // Enable delay calculation for better initial load performance
-      delayCalculation: true,
-
       transport: projectId
         ? {
             load: {
