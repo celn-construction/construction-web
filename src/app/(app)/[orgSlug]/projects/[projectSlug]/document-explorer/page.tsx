@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, Skeleton, useTheme } from '@mui/material';
+import { Box, Typography, Skeleton, Tooltip, useTheme } from '@mui/material';
 import Pagination from '@/components/documents/Pagination';
-import { FileText, LayoutGrid, List, ChevronDown, Sparkles, Search } from 'lucide-react';
+import { FileText, ChevronDown, Sparkles, Search, AlignJustify, Table2 } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/react';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
@@ -12,8 +12,8 @@ import DocumentToolbar from '@/components/documents/DocumentToolbar';
 import DocumentFilterTabs from '@/components/documents/DocumentFilterTabs';
 import DocumentFilterPopup from '@/components/documents/DocumentFilterPopup';
 import type { LinkFilter } from '@/components/documents/DocumentFilterPopup';
-import DocumentCard from '@/components/documents/DocumentCard';
-import DocumentTable from '@/components/documents/DocumentTable';
+import DocumentCardCompact from '@/components/documents/DocumentCardCompact';
+import DocumentCardDetail from '@/components/documents/DocumentCardDetail';
 import type { DocumentResult } from '@/components/documents/types';
 
 const LIMIT = 20;
@@ -26,7 +26,7 @@ export default function DocumentExplorerPage() {
   const [page, setPage] = useState(1);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiSearchQuery, setAiSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'compact' | 'detail'>('compact');
 
   // Filter state
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -188,45 +188,34 @@ export default function DocumentExplorerPage() {
             </Box>
 
             {/* View toggle */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-              <Box
-                component="button"
-                onClick={() => setViewMode('grid')}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 32,
-                  height: 32,
-                  borderRadius: '6px',
-                  border: 'none',
-                  bgcolor: viewMode === 'grid' ? 'secondary.main' : 'transparent',
-                  color: viewMode === 'grid' ? 'text.primary' : 'text.secondary',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: 'secondary.main' },
-                }}
-              >
-                <LayoutGrid size={16} />
-              </Box>
-              <Box
-                component="button"
-                onClick={() => setViewMode('list')}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 32,
-                  height: 32,
-                  borderRadius: '6px',
-                  border: 'none',
-                  bgcolor: viewMode === 'list' ? 'secondary.main' : 'transparent',
-                  color: viewMode === 'list' ? 'text.primary' : 'text.secondary',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: 'secondary.main' },
-                }}
-              >
-                <List size={16} />
-              </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px', bgcolor: 'background.paper', borderRadius: '8px', border: '1px solid', borderColor: 'divider', p: '2px' }}>
+              {([
+                { mode: 'compact' as const, icon: <AlignJustify size={14} />, label: 'Compact' },
+                { mode: 'detail' as const, icon: <Table2 size={14} />, label: 'Detail' },
+              ]).map(({ mode, icon, label }) => (
+                <Tooltip key={mode} title={label}>
+                  <Box
+                    component="button"
+                    onClick={() => setViewMode(mode)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 30,
+                      height: 28,
+                      borderRadius: '6px',
+                      border: 'none',
+                      bgcolor: viewMode === mode ? 'secondary.main' : 'transparent',
+                      color: viewMode === mode ? 'text.primary' : 'text.secondary',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.12s',
+                      '&:hover': { bgcolor: viewMode === mode ? 'secondary.main' : 'action.hover' },
+                    }}
+                  >
+                    {icon}
+                  </Box>
+                </Tooltip>
+              ))}
             </Box>
           </Box>
         </Box>
@@ -239,56 +228,44 @@ export default function DocumentExplorerPage() {
 
         // Initial browse (no search query) → skeleton cards
         if (!activeSearchText) {
-          return viewMode === 'grid' ? (
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, 280px)', gap: 2, alignItems: 'start' }}>
+          return viewMode === 'detail' ? (
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, 260px)', gap: 2, alignItems: 'start' }}>
               {Array.from({ length: 8 }).map((_, i) => (
                 <Box key={i} sx={{ borderRadius: '12px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', bgcolor: 'background.paper' }}>
-                  {/* Image area — 160px, matches card image container */}
-                  <Skeleton variant="rectangular" height={160} sx={{ display: 'block' }} />
-
-                  {/* Card body — px 16, pt 16, pb 12, gap 12 */}
-                  <Box sx={{ px: '16px', pt: '16px', pb: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {/* Title — single truncated line */}
-                    <Skeleton variant="rectangular" width="72%" height={13} sx={{ borderRadius: '4px' }} />
-
-                    {/* Category row — small icon + pill badge */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <Skeleton variant="circular" width={11} height={11} />
-                      <Skeleton variant="rectangular" width={72} height={20} sx={{ borderRadius: '999px' }} />
-                    </Box>
-
-                    {/* Meta row — date left, file size right */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Skeleton variant="rectangular" width={88} height={11} sx={{ borderRadius: '4px' }} />
-                      <Skeleton variant="rectangular" width={36} height={11} sx={{ borderRadius: '4px' }} />
-                    </Box>
-
-                    {/* Task link row — icon + short label, pt 6 */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', pt: '6px' }}>
-                      <Skeleton variant="circular" width={12} height={12} />
-                      <Skeleton variant="rectangular" width={80} height={11} sx={{ borderRadius: '4px' }} />
-                    </Box>
+                  {/* Header */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: '16px', pt: '16px', pb: '12px' }}>
+                    <Skeleton variant="rounded" width={40} height={40} sx={{ borderRadius: '8px' }} />
+                    <Skeleton variant="rectangular" width="60%" height={13} sx={{ borderRadius: '4px' }} />
                   </Box>
-
-                  {/* Divider */}
+                  <Box sx={{ height: '1px', bgcolor: 'divider', mx: '16px' }} />
+                  {/* Meta rows */}
+                  <Box sx={{ px: '16px', py: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {Array.from({ length: 5 }).map((_, j) => (
+                      <Box key={j} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Skeleton variant="circular" width={12} height={12} />
+                        <Skeleton variant="rectangular" width={50} height={11} sx={{ borderRadius: '4px' }} />
+                        <Skeleton variant="rectangular" width={80} height={11} sx={{ borderRadius: '4px' }} />
+                      </Box>
+                    ))}
+                  </Box>
                   <Box sx={{ height: '1px', bgcolor: 'divider' }} />
-
-                  {/* Action row — px 16, py 8 — 3 icons left, 1 right */}
-                  <Box sx={{ px: '16px', py: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <Skeleton variant="circular" width={14} height={14} />
-                      <Skeleton variant="circular" width={14} height={14} />
-                      <Skeleton variant="circular" width={14} height={14} />
-                    </Box>
-                    <Skeleton variant="circular" width={14} height={14} />
+                  <Box sx={{ px: '16px', py: '10px', display: 'flex', gap: 1 }}>
+                    <Skeleton variant="rounded" width={80} height={24} sx={{ borderRadius: '6px' }} />
+                    <Skeleton variant="rounded" width={60} height={24} sx={{ borderRadius: '6px' }} />
                   </Box>
                 </Box>
               ))}
             </Box>
           ) : (
-            <Box>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} height={48} sx={{ mb: 0.5 }} />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: '14px', py: '10px', borderRadius: '10px', border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                  <Skeleton variant="rounded" width={48} height={48} sx={{ borderRadius: '8px', flexShrink: 0 }} />
+                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <Skeleton variant="rectangular" width="55%" height={13} sx={{ borderRadius: '4px' }} />
+                    <Skeleton variant="rectangular" width="80%" height={11} sx={{ borderRadius: '4px' }} />
+                  </Box>
+                </Box>
               ))}
             </Box>
           );
@@ -395,33 +372,36 @@ export default function DocumentExplorerPage() {
       )}
 
       {/* Results */}
-      {!isLoading && !showFuzzyLoader && rawResults.length > 0 && (
-        viewMode === 'grid' ? (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, 280px)',
-              gap: 2,
-              alignItems: 'start',
-              opacity: isBackgroundFetching ? 0.6 : 1,
-              transition: 'opacity 0.2s',
-            }}
-          >
+      {!isLoading && !showFuzzyLoader && rawResults.length > 0 && (() => {
+        const opacitySx = { opacity: isBackgroundFetching ? 0.6 : 1, transition: 'opacity 0.2s' };
+
+        if (viewMode === 'detail') {
+          return (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, 260px)',
+                gap: 2,
+                alignItems: 'start',
+                ...opacitySx,
+              }}
+            >
+              {rawResults.map((doc) => (
+                <DocumentCardDetail key={doc.id} doc={doc} organizationId={organizationId} />
+              ))}
+            </Box>
+          );
+        }
+
+        // Compact view — stacked rows with thumbnails
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '6px', ...opacitySx }}>
             {rawResults.map((doc) => (
-              <DocumentCard key={doc.id} doc={doc} organizationId={organizationId} />
+              <DocumentCardCompact key={doc.id} doc={doc} organizationId={organizationId} />
             ))}
           </Box>
-        ) : (
-          <Box
-            sx={{
-              opacity: isBackgroundFetching ? 0.6 : 1,
-              transition: 'opacity 0.2s',
-            }}
-          >
-            <DocumentTable docs={rawResults} />
-          </Box>
-        )
-      )}
+        );
+      })()}
     </Box>
   );
 }
