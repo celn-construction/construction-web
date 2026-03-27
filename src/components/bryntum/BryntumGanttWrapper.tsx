@@ -51,6 +51,10 @@ const GANTT_CONTENT_STYLE: CSSProperties = {
   overflow: 'hidden',
 };
 
+// Singleton guard — ensures only ONE BryntumGantt widget is ever created,
+// even when BryntumGanttCore mounts multiple times simultaneously.
+let activeGanttInstance: string | null = null;
+
 const STALE_THRESHOLD_MS = 60_000; // 60 seconds
 // Short settle time so the Bryntum scheduling engine finishes before we sync
 const AUTO_SAVE_DELAY_MS = 1_000; // 1 second
@@ -168,20 +172,27 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     handlePresetChange,
   } = ganttControls;
 
-  // Delay rendering the BryntumGantt widget until the next animation frame.
-  // Whatever causes the double-mount (dynamic import, strict mode, parent re-render)
-  // creates two BryntumGanttCore instances simultaneously. Delaying widget creation
-  // lets the mount cycle settle — only the surviving instance creates a widget.
+  // Singleton guard: whatever is causing BryntumGanttCore to mount twice
+  // simultaneously (no unmount between), we MUST ensure only ONE BryntumGantt
+  // widget is ever created. The first instance that mounts claims the slot;
+  // any concurrent duplicate skips widget creation entirely.
   const [widgetReady, setWidgetReady] = useState(false);
+  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
   useEffect(() => {
-    console.log('[Gantt:mount] BryntumGanttCore mounted, projectId:', projectId);
-    const rafId = requestAnimationFrame(() => {
-      console.log('[Gantt:mount] rAF fired — creating widget');
+    const id = instanceId.current;
+    console.log('[Gantt:mount]', id, 'mounted. activeGanttInstance:', activeGanttInstance);
+    if (!activeGanttInstance) {
+      activeGanttInstance = id;
+      console.log('[Gantt:mount]', id, 'claimed the singleton slot');
       setWidgetReady(true);
-    });
+    } else {
+      console.log('[Gantt:mount]', id, 'SKIPPED — another instance already active:', activeGanttInstance);
+    }
     return () => {
-      console.log('[Gantt:unmount] BryntumGanttCore unmounting, projectId:', projectId);
-      cancelAnimationFrame(rafId);
+      console.log('[Gantt:unmount]', id, 'unmounting');
+      if (activeGanttInstance === id) {
+        activeGanttInstance = null;
+      }
       setWidgetReady(false);
     };
   }, [projectId]);
