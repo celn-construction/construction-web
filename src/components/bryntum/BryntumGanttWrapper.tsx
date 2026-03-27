@@ -209,61 +209,58 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   // fully ready before the user can interact. Even without delayCalculation,
   // commitAsync ensures the engine is fully settled — without it, adding the first
   // task to an empty project can fail to render.
+  //
+  // IMPORTANT: Only run on a widget with real dimensions. React strict mode +
+  // Ably ChannelProvider can trigger multiple load completions — the first may
+  // fire on a stale 0×0 widget. Running commitAsync on a 0×0 widget corrupts
+  // the row layout (all rows stack at top:0). We skip those and only finalize
+  // when the widget has real dimensions.
   useEffect(() => {
-    console.log('[Gantt:postLoad] Effect fired — isLoading:', isLoading);
     if (isLoading) return;
     const gantt = getGanttInstance();
-    console.log('[Gantt:postLoad] gantt instance:', !!gantt, 'isDestroyed:', gantt?.isDestroyed);
     if (!gantt) return;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const taskCount = gantt.taskStore?.count;
+    const elW = gantt.element?.offsetWidth as number | undefined;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const elW = gantt.element?.offsetWidth;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const elH = gantt.element?.offsetHeight;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const rowCount = gantt.rowManager?.rowCount;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const bodyH = gantt.bodyContainer?.offsetHeight;
+    const elH = gantt.element?.offsetHeight as number | undefined;
 
     console.log('[Gantt:postLoad] Load complete —',
-      'taskStore:', taskCount,
-      'rows:', rowCount,
-      'element:', elW, 'x', elH,
-      'bodyContainer height:', bodyH,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'isDestroyed:', gantt.isDestroyed,
+      'taskStore:', gantt.taskStore?.count,
+      'element:', elW, 'x', elH,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       'isVisible:', gantt.isVisible,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      'isDestroyed:', gantt.isDestroyed,
     );
 
-    // Log all .b-gantt elements still in DOM
-    const allGantts = document.querySelectorAll('.b-gantt');
-    console.log('[Gantt:postLoad] .b-gantt elements:', allGantts.length);
-    allGantts.forEach((el, i) => {
-      const ge = el as HTMLElement;
-      console.log(`[Gantt:postLoad] .b-gantt[${i}]: ${ge.offsetWidth}x${ge.offsetHeight}, id=${ge.id}`);
-    });
+    // Skip if the widget has no dimensions yet — commitAsync on a 0×0 widget
+    // corrupts the row layout engine. A subsequent load completion will re-trigger
+    // this effect once the widget is properly rendered.
+    if (!elW || !elH) {
+      console.log('[Gantt:postLoad] Skipping — widget has no dimensions yet');
+      return;
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
 
-    console.log('[Gantt:postLoad] Calling commitAsync...');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync().then(() => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.log('[Gantt:postLoad] commitAsync resolved —',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'taskStore:', gantt.taskStore?.count,
+      if (gantt.isDestroyed) return;
+      // Force a full refresh so the row manager recalculates positions
+      // with the correct widget dimensions.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.refresh();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.renderContents();
+      console.log('[Gantt:postLoad] commitAsync + refresh done —',
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         'rows:', gantt.rowManager?.rowCount,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         'element:', gantt.element?.offsetWidth, 'x', gantt.element?.offsetHeight,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'bodyContainer height:', gantt.bodyContainer?.offsetHeight,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'isDestroyed:', gantt.isDestroyed,
       );
     }).catch((err: unknown) => {
       console.error('[Gantt:postLoad] commitAsync FAILED:', err);
