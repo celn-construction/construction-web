@@ -8,16 +8,14 @@ export function useGanttControls() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getGanttInstance = useCallback((): any => {
-    // React strict mode + Ably ChannelProvider create multiple Bryntum widget
-    // instances across mount/unmount cycles. The React ref frequently points to
-    // a stale, invisible (0×0) widget while the real one lives in the DOM.
-    // Always resolve the widget from the DOM to guarantee we operate on the
-    // visible instance.
+    // React strict mode + dynamic imports can create multiple Bryntum widget
+    // instances. The React ref may point to a stale widget. Always resolve
+    // from the DOM to guarantee we operate on the visible instance.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const el = document.querySelector('.b-gantt:not(.b-destroyed)') as any;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
     if (el?.widget) return el.widget;
-    // Last resort: try the ref (may be stale)
+    // Last resort: try the ref
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     return (ganttRef.current as any)?.instance;
   }, []);
@@ -33,6 +31,9 @@ export function useGanttControls() {
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync().then(() => {
+      // Refresh contents so the time axis header re-renders cells for
+      // the scrolled position (Bryntum's virtual renderer doesn't always
+      // pick up programmatic scroll changes).
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       gantt.renderContents();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access

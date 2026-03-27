@@ -172,24 +172,19 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     handlePresetChange,
   } = ganttControls;
 
-  // Singleton guard: whatever is causing BryntumGanttCore to mount twice
-  // simultaneously (no unmount between), we MUST ensure only ONE BryntumGantt
-  // widget is ever created. The first instance that mounts claims the slot;
-  // any concurrent duplicate skips widget creation entirely.
+  // Singleton guard: Bryntum's React wrapper (class component) cannot survive
+  // multiple simultaneous mounts — the second widget corrupts the first's
+  // rendering pipeline. Only the first instance that mounts creates the widget;
+  // any concurrent duplicate renders an empty container.
   const [widgetReady, setWidgetReady] = useState(false);
   const instanceId = useRef(Math.random().toString(36).slice(2, 8));
   useEffect(() => {
     const id = instanceId.current;
-    console.log('[Gantt:mount]', id, 'mounted. activeGanttInstance:', activeGanttInstance);
     if (!activeGanttInstance) {
       activeGanttInstance = id;
-      console.log('[Gantt:mount]', id, 'claimed the singleton slot');
       setWidgetReady(true);
-    } else {
-      console.log('[Gantt:mount]', id, 'SKIPPED — another instance already active:', activeGanttInstance);
     }
     return () => {
-      console.log('[Gantt:unmount]', id, 'unmounting');
       if (activeGanttInstance === id) {
         activeGanttInstance = null;
       }
@@ -233,16 +228,9 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
   useBryntumThemeAssets();
 
-  // After data loads, finalize the project so the scheduling engine and layout are
-  // fully ready before the user can interact. Even without delayCalculation,
-  // commitAsync ensures the engine is fully settled — without it, adding the first
-  // task to an empty project can fail to render.
-  //
-  // IMPORTANT: Only run on a widget with real dimensions. React strict mode +
-  // Ably ChannelProvider can trigger multiple load completions — the first may
-  // fire on a stale 0×0 widget. Running commitAsync on a 0×0 widget corrupts
-  // the row layout (all rows stack at top:0). We skip those and only finalize
-  // when the widget has real dimensions.
+  // After data loads, finalize the project so the scheduling engine is fully
+  // settled before user interaction. Only run on a widget with real dimensions —
+  // a 0×0 widget from a duplicate mount would corrupt the row layout.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
@@ -252,44 +240,16 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     const elW = gantt.element?.offsetWidth as number | undefined;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const elH = gantt.element?.offsetHeight as number | undefined;
-
-    console.log('[Gantt:postLoad] Load complete —',
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'taskStore:', gantt.taskStore?.count,
-      'element:', elW, 'x', elH,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'isVisible:', gantt.isVisible,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'isDestroyed:', gantt.isDestroyed,
-    );
-
-    // Skip if the widget has no dimensions yet — commitAsync on a 0×0 widget
-    // corrupts the row layout engine. A subsequent load completion will re-trigger
-    // this effect once the widget is properly rendered.
-    if (!elW || !elH) {
-      console.log('[Gantt:postLoad] Skipping — widget has no dimensions yet');
-      return;
-    }
+    if (!elW || !elH) return;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
-
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync().then(() => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (gantt.isDestroyed) return;
-      // DO NOT call gantt.refresh() — it wipes cell content from rendered rows.
-      // renderContents only refreshes the time axis header (safe).
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       gantt.renderContents();
-      console.log('[Gantt:postLoad] commitAsync + refresh done —',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'rows:', gantt.rowManager?.rowCount,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'element:', gantt.element?.offsetWidth, 'x', gantt.element?.offsetHeight,
-      );
-    }).catch((err: unknown) => {
-      console.error('[Gantt:postLoad] commitAsync FAILED:', err);
     });
   }, [isLoading, getGanttInstance]);
 
@@ -572,16 +532,13 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   // autoLoad), which wipes locally-added tasks.
   const [ganttConfig] = useState(() => createGanttConfig(projectId, {
     onLoadStart: () => {
-      console.log('[Gantt:config] onLoadStart fired');
       setIsLoading(true);
       setLoadError(null);
     },
     onLoadComplete: () => {
-      console.log('[Gantt:config] onLoadComplete fired');
       setIsLoading(false);
     },
     onLoadError: (error: string) => {
-      console.log('[Gantt:config] onLoadError fired:', error);
       setIsLoading(false);
       setLoadError(error);
     },

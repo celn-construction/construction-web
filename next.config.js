@@ -7,12 +7,6 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import("next").NextConfig} */
 const config = {
-  // Bryntum Gantt does not survive React strict mode's double-mount in dev.
-  // The first mount creates a widget that becomes a 0×0 ghost; the surviving
-  // widget's rendering pipeline is corrupted (rowCount frozen at 1, no task
-  // bars). Disabling strict mode prevents the ghost entirely.
-  // Production is unaffected — strict mode only double-mounts in dev.
-  reactStrictMode: false,
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
