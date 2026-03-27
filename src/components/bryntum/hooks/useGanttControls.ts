@@ -25,28 +25,19 @@ export function useGanttControls() {
   const handleAddTask = useCallback(() => {
     const gantt = getGanttInstance();
     if (!gantt) return;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    console.log('[Gantt:addTask] widget:', gantt.id, 'taskStore:', gantt.taskStore?.count);
-
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    gantt.taskStore.add({
+    const [task] = gantt.taskStore.add({
       name: 'New Task',
       startDate: new Date(),
       duration: 1,
     });
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    console.log('[Gantt:addTask] After add — taskStore:', gantt.taskStore?.count,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      'rowCount:', gantt.rowManager?.rowCount,
-    );
-
-    // Let Bryntum handle rendering naturally. DO NOT call refresh(),
-    // renderContents(), or scrollTaskIntoView() — all of these trigger
-    // the virtual renderer to re-create rows, which loses cell content
-    // when the widget's rendering pipeline is in a broken state from
-    // React strict mode's multiple mount/unmount cycles.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    void gantt.project.commitAsync().then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.renderContents();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
+    });
   }, [getGanttInstance]);
 
   const handleIndent = useCallback(() => {

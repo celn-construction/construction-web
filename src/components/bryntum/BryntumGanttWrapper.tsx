@@ -66,57 +66,78 @@ interface BryntumGanttCoreProps extends BryntumGanttWrapperProps {
   presenceData: PresenceData;
 }
 
-// ─── Realtime wrapper — only mounted inside AblyProvider ────────────────────
+// ─── Realtime listener — runs inside ChannelProvider, NEVER wraps the Gantt ──
 
-function BryntumGanttRealtimeInner({
-  ganttControls,
-  ...props
-}: BryntumGanttWrapperProps & { ganttControls: ReturnType<typeof useGanttControls> }) {
+function RealtimeListener({
+  projectId,
+  userId,
+  userName,
+  userAvatar,
+  getGanttInstance,
+  onStateChange,
+}: {
+  projectId?: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getGanttInstance: () => any;
+  onStateChange: (state: { isApplyingRemoteRef: React.MutableRefObject<boolean>; presenceData: PresenceData }) => void;
+}) {
   const { isApplyingRemoteRef, presenceData } = useGanttRealtime({
-    projectId: props.projectId,
-    userId: props.userId ?? '',
-    userName: props.userName ?? '',
-    userAvatar: props.userAvatar,
-    getGanttInstance: ganttControls.getGanttInstance,
-    enabled: !!props.projectId,
+    projectId,
+    userId,
+    userName,
+    userAvatar,
+    getGanttInstance,
+    enabled: !!projectId,
   });
-  return (
-    <BryntumGanttCore
-      {...props}
-      ganttControls={ganttControls}
-      isApplyingRemoteRef={isApplyingRemoteRef}
-      presenceData={presenceData}
-    />
-  );
+
+  // Push realtime state up to the parent without re-mounting the Gantt
+  useEffect(() => {
+    onStateChange({ isApplyingRemoteRef, presenceData });
+  }, [isApplyingRemoteRef, presenceData, onStateChange]);
+
+  return null; // No DOM — just hooks
 }
 
-function BryntumGanttRealtimeWrapper(
-  props: BryntumGanttWrapperProps & { ganttControls: ReturnType<typeof useGanttControls> },
-) {
-  const channelName = `project:${props.projectId}:gantt`;
-  return (
-    <ChannelProvider channelName={channelName}>
-      <BryntumGanttRealtimeInner {...props} />
-    </ChannelProvider>
-  );
-}
-
-// ─── Exported router — calls hooks unconditionally, routes rendering ─────────
+// ─── Exported wrapper — BryntumGanttCore is always a sibling, never a child ──
 
 export default function BryntumGanttWrapper(props: BryntumGanttWrapperProps) {
   const ganttControls = useGanttControls();
   const noopRef = useRef(false);
+  const [realtimeState, setRealtimeState] = useState<{
+    isApplyingRemoteRef: React.MutableRefObject<boolean>;
+    presenceData: PresenceData;
+  }>({ isApplyingRemoteRef: noopRef, presenceData: [] });
 
-  if (props.realtimeEnabled) {
-    return <BryntumGanttRealtimeWrapper {...props} ganttControls={ganttControls} />;
-  }
+  const handleStateChange = useCallback((state: { isApplyingRemoteRef: React.MutableRefObject<boolean>; presenceData: PresenceData }) => {
+    setRealtimeState(state);
+  }, []);
+
   return (
-    <BryntumGanttCore
-      {...props}
-      ganttControls={ganttControls}
-      isApplyingRemoteRef={noopRef}
-      presenceData={[]}
-    />
+    <>
+      {/* Realtime listener runs inside ChannelProvider but renders NO DOM.
+          BryntumGanttCore is a sibling, so Ably reconnections never unmount the Gantt. */}
+      {props.realtimeEnabled && props.projectId && (
+        <ChannelProvider channelName={`project:${props.projectId}:gantt`}>
+          <RealtimeListener
+            projectId={props.projectId}
+            userId={props.userId ?? ''}
+            userName={props.userName ?? ''}
+            userAvatar={props.userAvatar}
+            getGanttInstance={ganttControls.getGanttInstance}
+            onStateChange={handleStateChange}
+          />
+        </ChannelProvider>
+      )}
+      <BryntumGanttCore
+        {...props}
+        ganttControls={ganttControls}
+        isApplyingRemoteRef={realtimeState.isApplyingRemoteRef}
+        presenceData={realtimeState.presenceData}
+      />
+    </>
   );
 }
 
