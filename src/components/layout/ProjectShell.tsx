@@ -72,7 +72,7 @@ export default function ProjectShell({ children, projectId, projectName, userId,
               userId={userId}
               userName={userName}
               userAvatar={userImage}
-              realtimeEnabled={realtimeEnabled}
+              realtimeEnabled={false}
             />
           </Box>
         </Box>
