@@ -202,13 +202,24 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
   useBryntumThemeAssets();
 
-  // After data loads, disable parent task click toggle.
+  // After data loads, finalize the widget: disable parent click toggle and
+  // refresh the time axis headers (the virtual header renderer can miss cells
+  // on the initial render when the Ably wrapper causes intermediate re-renders).
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    void gantt.project.commitAsync().then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (gantt.isDestroyed) return;
+      // refreshHeaders only re-renders time axis headers — safe, does NOT
+      // wipe grid row content like renderContents() does.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.refreshHeaders();
+    });
   }, [isLoading, getGanttInstance]);
 
   const handleSave = useCallback(async () => {
