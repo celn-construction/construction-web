@@ -1,16 +1,27 @@
 'use client';
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode, type ComponentType } from 'react';
 import { usePathname } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { Box } from '@mui/material';
 import FilesContent from '@/components/files/FilesContent';
 import GanttLoadingSpinner from '@/components/bryntum/components/GanttLoadingSpinner';
+import type { default as BryntumGanttWrapperType } from '@/components/bryntum/BryntumGanttWrapper';
 
-const BryntumGanttWrapper = dynamic(
-  () => import('@/components/bryntum/BryntumGanttWrapper'),
-  { ssr: false }
-);
+// Manual client-only import — avoids next/dynamic which causes double-mounts
+// that corrupt Bryntum's rendering pipeline.
+function useClientComponent() {
+  const [Component, setComponent] = useState<ComponentType<React.ComponentProps<typeof BryntumGanttWrapperType>> | null>(null);
+  const loaded = useRef(false);
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    void import('@/components/bryntum/BryntumGanttWrapper').then(mod => {
+      setComponent(() => mod.default);
+    });
+  }, []);
+  return Component;
+}
+
 
 interface ProjectShellProps {
   children: ReactNode;
@@ -28,6 +39,7 @@ export default function ProjectShell({ children, projectId, projectName, userId,
   const isFilesRoute = pathname.endsWith('/files');
   const [ganttMounted, setGanttMounted] = useState(false);
   const [filesMounted, setFilesMounted] = useState(false);
+  const BryntumGanttWrapper = useClientComponent();
 
   // Lazy-mount each tab on first visit — avoids loading heavy bundles until needed
   useEffect(() => {
@@ -55,18 +67,20 @@ export default function ProjectShell({ children, projectId, projectName, userId,
           }}
         >
           <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* BryntumGanttWrapper must NOT be inside AblyGate — the dynamic
-                import of AblyProvider causes unmount/remount cycles that destroy
-                the Bryntum widget's rendering pipeline. Ably is handled internally
-                by the wrapper via a sibling ChannelProvider. */}
-            <BryntumGanttWrapper
-              projectId={projectId}
-              isVisible={isGanttRoute}
-              userId={userId}
-              userName={userName}
-              userAvatar={userImage}
-              realtimeEnabled={false}
-            />
+            {BryntumGanttWrapper ? (
+              <BryntumGanttWrapper
+                projectId={projectId}
+                isVisible={isGanttRoute}
+                userId={userId}
+                userName={userName}
+                userAvatar={userImage}
+                realtimeEnabled={false}
+              />
+            ) : (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                <GanttLoadingSpinner />
+              </Box>
+            )}
           </Box>
         </Box>
       )}
