@@ -205,9 +205,10 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
   useBryntumThemeAssets();
 
-  // After data loads, disable parent task click toggle.
-  // delayCalculation was removed from the project config so the engine
-  // calculates immediately — no commitAsync needed here.
+  // After data loads, finalize the project so the scheduling engine and layout are
+  // fully ready before the user can interact. Even without delayCalculation,
+  // commitAsync ensures the engine is fully settled — without it, adding the first
+  // task to an empty project can fail to render.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
@@ -225,6 +226,8 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    void gantt.project.commitAsync();
   }, [isLoading, getGanttInstance]);
 
   const handleSave = useCallback(async () => {
