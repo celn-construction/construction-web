@@ -136,6 +136,28 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     handlePresetChange,
   } = ganttControls;
 
+  // Clean up orphaned zero-sized Bryntum widgets left by React double-mount.
+  useEffect(() => {
+    const cleanupTimer = setTimeout(() => {
+      const allGantts = document.querySelectorAll('.b-gantt');
+      if (allGantts.length > 1) {
+        allGantts.forEach((el) => {
+          const ge = el as HTMLElement;
+          if (ge.offsetWidth === 0 && ge.offsetHeight === 0) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+            const widget = (ge as any).widget;
+            if (widget && typeof widget.destroy === 'function') {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+              widget.destroy();
+            }
+            ge.remove();
+          }
+        });
+      }
+    }, 200);
+    return () => clearTimeout(cleanupTimer);
+  }, []);
+
   const errorColor = '#D93C15';
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
