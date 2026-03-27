@@ -110,16 +110,35 @@ After implementing, cross-check with docs for:
 ### Common Bryntum Pitfalls
 | Pitfall | Details |
 |---------|---------|
-| **`delayCalculation: true` + React double-mount** | **NEVER use `delayCalculation: true`** in the project config. React (Strict Mode, HMR, Suspense) can double-mount the `BryntumGantt` component — creating two widget instances. The first gets `commitAsync()` (triggering the deferred engine calculation) but is then destroyed. The second (visible) instance never gets its calculation, so: no task bars render, time axis headers break on scroll, and scroll sync between header and body fails. Removing `delayCalculation` makes the engine calculate immediately on data load, so both instances work regardless of which one React keeps. |
+| **`delayCalculation: true` + Ably wrapper** | **NEVER use `delayCalculation: true`** in the project config. With our Ably wrapper structure (`BryntumGanttWrapper` → `BryntumGanttCore`), `delayCalculation: true` prevents the scheduling engine from running properly — task bars never render (grid rows show but timeline is empty). The engine only kicks in after a sync (Save). Removing `delayCalculation` makes the engine calculate immediately on data load/task add, so task bars render instantly. This also breaks with React Strict Mode double-mount. |
+| **`height: '100%'` required on WRAPPER_STYLE** | The Gantt wrapper container MUST use `height: '100%'`, not `flex: 1` with `minHeight: 0`. Bryntum's internal layout engine needs an explicit height constraint from its container to calculate how many rows to render. With `flex: 1`, the grid's virtual renderer can fail to create rows even though the container visually has space (task bars render on the timeline but grid rows are empty). |
+| **`overflow: 'clip'` on Gantt containers** | The Gantt content container and ProjectShell wrapper MUST use `overflow: 'clip'`, not `overflow: 'hidden'`. Despite `overflow: hidden` being the general CSS recommendation, Bryntum's internal scroll synchronization works correctly with `clip` in this project. Switching to `hidden` can corrupt the grid's virtual renderer, causing grid rows to not render while task bars still show on the timeline. |
+| **Always use ref-based `getGanttInstance`** | Use `ganttRef.current.instance` to get the Bryntum widget — NOT DOM queries like `document.querySelector('.b-gantt')`. DOM queries can return ghost/destroyed widgets or the wrong instance. The React ref is the authoritative source. With `reactStrictMode: false`, there are no ghost widgets to worry about. |
+| **`reactStrictMode: false` is required** | Bryntum's React wrapper is a class component that cannot survive React 18's mount→unmount→remount cycle in Strict Mode. The second mount creates a widget on a corrupted DOM element, breaking the rendering pipeline. This is a known Bryntum incompatibility (forum thread #21713). Keep `reactStrictMode: false` in `next.config.js`. |
 | `scrollTaskIntoView` breaks header rendering | After programmatic scrolling, call `gantt.renderContents()` to force the time axis header virtual renderer to regenerate cells for the new scroll position. Without this, the header cells stay at the old position while the body scrolls away. |
-| Ghost Bryntum widgets from double-mount | React double-mount can leave a zero-sized ghost `.b-gantt` element in the DOM. The wrapper includes cleanup code that removes ghost widgets (0×0 elements) 200ms after mount. If you see rendering issues, check `document.querySelectorAll('.b-gantt').length` — it should be 1. |
-| `overflow: clip` on Bryntum containers | Never use `overflow: clip` on elements containing Bryntum widgets. Unlike `overflow: hidden`, `clip` does not create a scroll container, which can break Bryntum's internal scroll synchronization. Use `overflow: hidden` instead. |
 | Parent duration is read-only | Bryntum auto-calculates parent duration from children. Must set `manuallyScheduled: true` before editing. |
 | Custom fields silently dropped | Must extend `TaskModel` with custom fields (see `VersionedTaskModel`). |
 | `cellDblClick` fires before `beforeCellEditStart` | Use `cellDblClick` to modify record state before editor opens. |
 | Duration column blocks parent editing internally | Bryntum checks `isParent` before `beforeCellEditStart` fires. |
 | Stale data after tab-away | Project uses 60-second staleness threshold for reload. |
 | Unscheduled tasks crash `scrollTaskIntoView` | Guard against `!record.startDate` before scrolling. |
+
+### Critical Config Rules (Do NOT Change)
+These settings were discovered through extensive debugging. Changing any of them will break task rendering:
+
+```
+ganttConfig:
+  - delayCalculation: MUST be absent (not false, just omitted)
+  - WRAPPER_STYLE.height: MUST be '100%' (not flex: 1)
+  - GANTT_CONTENT_STYLE.overflow: MUST be 'clip' (not 'hidden')
+  - ProjectShell outer Box overflow: MUST be 'clip' (not 'hidden')
+
+next.config.js:
+  - reactStrictMode: MUST be false
+
+useGanttControls:
+  - getGanttInstance: MUST use ganttRef.current.instance (not DOM query)
+```
 
 ## Ably Real-Time Collaboration
 
