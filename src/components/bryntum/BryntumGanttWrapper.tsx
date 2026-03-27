@@ -122,8 +122,17 @@ export default function BryntumGanttWrapper(props: BryntumGanttWrapperProps) {
 
   return (
     <>
-      {/* Realtime listener runs inside Ably + ChannelProvider but renders NO DOM.
-          BryntumGanttCore is a sibling, so Ably mount cycles never affect the Gantt widget. */}
+      {/* BryntumGanttCore MUST be the first child so its index in the fragment
+          is always [0] regardless of whether the Ably block renders.  If the
+          conditional Ably block comes first, it shifts the Gantt from index [0]
+          to [1] when Ably loads — React treats this as a new component and
+          remounts it, creating a ghost Bryntum widget that corrupts rendering. */}
+      <BryntumGanttCore
+        {...props}
+        ganttControls={ganttControls}
+        isApplyingRemoteRef={realtimeState.isApplyingRemoteRef}
+        presenceData={realtimeState.presenceData}
+      />
       {props.realtimeEnabled && props.projectId && (
         <AblyProviderLazy projectId={props.projectId}>
           <ChannelProvider channelName={`project:${props.projectId}:gantt`}>
@@ -138,12 +147,6 @@ export default function BryntumGanttWrapper(props: BryntumGanttWrapperProps) {
           </ChannelProvider>
         </AblyProviderLazy>
       )}
-      <BryntumGanttCore
-        {...props}
-        ganttControls={ganttControls}
-        isApplyingRemoteRef={realtimeState.isApplyingRemoteRef}
-        presenceData={realtimeState.presenceData}
-      />
     </>
   );
 }
