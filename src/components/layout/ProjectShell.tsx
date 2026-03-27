@@ -9,14 +9,7 @@ import GanttLoadingSpinner from '@/components/bryntum/components/GanttLoadingSpi
 
 const BryntumGanttWrapper = dynamic(
   () => import('@/components/bryntum/BryntumGanttWrapper'),
-  {
-    ssr: false,
-    loading: () => (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <GanttLoadingSpinner />
-      </Box>
-    ),
-  }
+  { ssr: false }
 );
 
 interface ProjectShellProps {
