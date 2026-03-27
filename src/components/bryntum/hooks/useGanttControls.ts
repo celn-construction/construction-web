@@ -103,24 +103,25 @@ export function useGanttControls() {
         console.log(`[Gantt:addTask] bar[${i}]: ${te.offsetWidth}x${te.offsetHeight}, left: ${te.style.left}, transform: ${te.style.transform}`);
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.refresh();
+      // DO NOT call gantt.refresh() here — it wipes cell content from the rows.
+      // renderContents only refreshes the time axis header (safe).
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       gantt.renderContents();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
 
-      // Log AFTER refresh
-      const rowElsAfter = document.querySelectorAll('.b-grid-row');
-      console.log('[Gantt:addTask] After refresh — rows:', rowElsAfter.length);
-      rowElsAfter.forEach((el, i) => {
-        const re = el as HTMLElement;
-        const cells = re.querySelectorAll('.b-grid-cell');
-        const cellTexts = Array.from(cells).map(c => `"${(c as HTMLElement).innerText?.trim()}"`).join(', ');
-        console.log(`[Gantt:addTask] after[${i}]: ${re.offsetWidth}x${re.offsetHeight}, transform: ${re.style.transform}, cells: [${cellTexts}], parent: ${re.parentElement?.className}`);
+      // Check task bars after scroll (may need a frame to render)
+      requestAnimationFrame(() => {
+        const barsAfter = document.querySelectorAll('.b-gantt-task');
+        console.log('[Gantt:addTask] After scroll (rAF) — task bars:', barsAfter.length);
+        const rowElsAfter = document.querySelectorAll('.b-grid-row');
+        rowElsAfter.forEach((el, i) => {
+          const re = el as HTMLElement;
+          const cells = re.querySelectorAll('.b-grid-cell');
+          const cellTexts = Array.from(cells).map(c => `"${(c as HTMLElement).innerText?.trim()}"`).join(', ');
+          console.log(`[Gantt:addTask] after[${i}]: cells: [${cellTexts}]`);
+        });
       });
-      const barsAfter = document.querySelectorAll('.b-gantt-task');
-      console.log('[Gantt:addTask] After refresh — task bars:', barsAfter.length);
     }).catch((err: unknown) => {
       console.error('[Gantt:addTask] commitAsync FAILED:', err);
     });

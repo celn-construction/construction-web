@@ -250,10 +250,8 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     void gantt.project.commitAsync().then(() => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (gantt.isDestroyed) return;
-      // Force a full refresh so the row manager recalculates positions
-      // with the correct widget dimensions.
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.refresh();
+      // DO NOT call gantt.refresh() — it wipes cell content from rendered rows.
+      // renderContents only refreshes the time axis header (safe).
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       gantt.renderContents();
       console.log('[Gantt:postLoad] commitAsync + refresh done —',
