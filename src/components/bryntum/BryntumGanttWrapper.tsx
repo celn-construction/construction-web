@@ -169,31 +169,6 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   const [conflictOpen, setConflictOpen] = useState(false);
   const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
-  // Wait for the container to have real dimensions before mounting BryntumGantt.
-  // Without this, the widget initializes at 0×0 which permanently corrupts the
-  // time axis header virtual renderer (headers never show date labels).
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerReady, setContainerReady] = useState(false);
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    // Check immediately in case dimensions are already available
-    if (el.offsetWidth > 0 && el.offsetHeight > 0) {
-      setContainerReady(true);
-      return;
-    }
-    const observer = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-          setContainerReady(true);
-          observer.disconnect();
-        }
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   const isRevertingRef = useRef(false);
   const isReloadingRef = useRef(false);
   const skipVersionRef = useRef(false);
@@ -587,12 +562,12 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
         }
       `}</style>
 
-      <div ref={containerRef} style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
+      <div style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          {containerReady && <BryntumGantt ref={ganttRef} {...ganttConfig} />}
+          <BryntumGantt ref={ganttRef} {...ganttConfig} />
         </div>
 
-        {(isLoading || !containerReady) && (
+        {isLoading && (
           <Box
             sx={{
               position: 'absolute',
