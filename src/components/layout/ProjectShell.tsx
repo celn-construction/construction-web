@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Box } from '@mui/material';
 import FilesContent from '@/components/files/FilesContent';
-import AblyGate from '@/components/providers/AblyGate';
 import GanttLoadingSpinner from '@/components/bryntum/components/GanttLoadingSpinner';
 
 const BryntumGanttWrapper = dynamic(
@@ -56,23 +55,21 @@ export default function ProjectShell({ children, projectId, projectName, userId,
             flex: 1,
             flexDirection: 'column',
             minHeight: 0,
-            overflow: 'hidden',
+            overflow: 'clip',
             width: '100%',
             p: 3,
             display: isGanttRoute ? 'flex' : 'none',
           }}
         >
           <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <AblyGate enabled={!!realtimeEnabled} projectId={projectId}>
-              <BryntumGanttWrapper
-                projectId={projectId}
-                isVisible={isGanttRoute}
-                userId={userId}
-                userName={userName}
-                userAvatar={userImage}
-                realtimeEnabled={realtimeEnabled}
-              />
-            </AblyGate>
+            <BryntumGanttWrapper
+              projectId={projectId}
+              isVisible={isGanttRoute}
+              userId={userId}
+              userName={userName}
+              userAvatar={userImage}
+              realtimeEnabled={realtimeEnabled}
+            />
           </Box>
         </Box>
       )}

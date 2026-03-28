@@ -26,7 +26,6 @@ function formatTooltipText(record: Record<string, unknown>, field?: string): str
 }
 
 // Debounce timer so a double-click (edit) cancels the single-click scroll
-let pendingScrollTimer: ReturnType<typeof setTimeout> | undefined;
 
 interface LoadingCallbacks {
   onLoadStart?: () => void;
@@ -39,31 +38,19 @@ export function createGanttConfig(
   loadingCallbacks?: LoadingCallbacks
 ): GanttConfig {
   return {
-    detectCSSCompatibilityIssues: false,
-
-    // Disable Bryntum's built-in loading mask — we use our own overlay in BryntumGanttWrapper
-    loadMask: null,
-
-    // infiniteScroll removed — it requires both startDate and endDate to
-    // define a valid initial time axis range.  Without endDate the time
-    // axis config is invalid and Bryntum throws at mount time.
-
-
     // Performance optimizations
     autoHeight: false,
     rowHeight: 45, // Consistent row height for better performance
     animateTreeNodeToggle: false, // Disable animations for faster rendering
-    toggleParentTasksOnClick: false, // Prevent clicking a parent task bar from collapsing its children
+    detectCSSCompatibilityIssues: false,
 
     project: {
       autoLoad: true,
       autoSync: false,
       taskModelClass: VersionedTaskModel,
 
-      // delayCalculation removed — it prevents the scheduling engine from
-      // initializing properly when React double-mounts the widget (the first
-      // commitAsync runs on a destroyed instance, leaving the visible instance
-      // with an uncalculated engine and no task bar rendering).
+      // Enable delay calculation for better initial load performance
+      delayCalculation: true,
 
       transport: projectId
         ? {
@@ -183,6 +170,7 @@ export function createGanttConfig(
       taskEdit: false,
       columnLines: true,
       stripe: true,
+      tree: { toggleTreeNode: false },
       cellTooltip: {
         tooltipRenderer: ({ record, column }) => formatTooltipText(record, column.field),
       },
@@ -190,6 +178,7 @@ export function createGanttConfig(
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     viewPreset: 'weekAndDayLetter',
     startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
+    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
     barMargin: 10,
     listeners: {
       // Bryntum blocks the duration cell editor for parent tasks before
@@ -201,33 +190,12 @@ export function createGanttConfig(
         record: { isParent: boolean; manuallyScheduled: boolean; set: (field: string, value: unknown) => void };
         column: { type: string };
       }) {
-        // Cancel any pending single-click scroll so editing starts cleanly
-        clearTimeout(pendingScrollTimer);
         if (column.type === 'duration' && record.isParent && !record.manuallyScheduled) {
           record.set('manuallyScheduled', true);
         }
       },
-      // Single-click on the task name cell → scroll the timeline bar into view.
-      // Guards against unscheduled tasks (no startDate) to avoid a Bryntum crash.
-      cellClick({ record, column, grid }: {
-        record: { id: string | number; startDate?: Date | null };
-        column: { type?: string } | undefined;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        grid: any;
-      }) {
-        if (column?.type !== 'name') return;
-        if (!record.startDate) return;
-        // Debounce: wait 200ms so a double-click (edit) can cancel the scroll
-        clearTimeout(pendingScrollTimer);
-        pendingScrollTimer = setTimeout(() => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          grid.scrollTaskIntoView(record, {
-            block: 'center',
-            animate: { duration: 300 },
-            highlight: true,
-          });
-        }, 200);
-      },
+      // scrollTaskIntoView removed — it corrupts the time axis header
+      // virtual renderer, causing all date labels to disappear after scroll.
     },
   };
 }

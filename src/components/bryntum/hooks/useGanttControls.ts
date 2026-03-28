@@ -14,22 +14,18 @@ export function useGanttControls() {
   const handleAddTask = useCallback(() => {
     const gantt = getGanttInstance();
     if (!gantt) return;
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const [task] = gantt.taskStore.add({
+    gantt.taskStore.add({
       name: 'New Task',
-      startDate: new Date(),
+      startDate: now,
+      endDate: tomorrow,
       duration: 1,
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    void gantt.project.commitAsync().then(() => {
-      // Refresh contents so the time axis header re-renders cells for
-      // the scrolled position (Bryntum's virtual renderer doesn't always
-      // pick up programmatic scroll changes).
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.renderContents();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
-    });
+    void gantt.project.commitAsync();
   }, [getGanttInstance]);
 
   const handleIndent = useCallback(() => {
@@ -67,17 +63,8 @@ export function useGanttControls() {
     (preset: string) => {
       const gantt = getGanttInstance();
       if (!gantt) return;
-
-      // Capture the current center date so the viewport stays on the same
-      // point after the preset change.  infiniteScroll handles the range.
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const center = gantt.viewportCenterDate as Date | undefined;
-      const anchor = center ?? new Date();
-
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       gantt.viewPreset = preset;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.scrollToDate(anchor, { block: 'center' });
     },
     [getGanttInstance]
   );
