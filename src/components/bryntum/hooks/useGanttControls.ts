@@ -18,16 +18,12 @@ export function useGanttControls() {
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const [task] = gantt.taskStore.add({
+    gantt.taskStore.add({
       name: 'New Task',
       startDate: now,
       endDate: tomorrow,
       duration: 1,
     });
-    // Scroll timeline to today so the new task bar is visible.
-    // Use scrollToDate (NOT scrollTaskIntoView which corrupts time axis headers).
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    gantt.scrollToDate(new Date(), { block: 'center' });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync();
   }, [getGanttInstance]);
@@ -67,17 +63,8 @@ export function useGanttControls() {
     (preset: string) => {
       const gantt = getGanttInstance();
       if (!gantt) return;
-
-      // Capture the current center date so the viewport stays on the same
-      // point after the preset change.  infiniteScroll handles the range.
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const center = gantt.viewportCenterDate as Date | undefined;
-      const anchor = center ?? new Date();
-
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       gantt.viewPreset = preset;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.scrollToDate(anchor, { block: 'center' });
     },
     [getGanttInstance]
   );

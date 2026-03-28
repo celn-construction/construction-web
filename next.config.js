@@ -7,9 +7,6 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import("next").NextConfig} */
 const config = {
-  // Bryntum's React wrapper (class component) cannot survive strict mode's
-  // mount-unmount-remount cycle — the widget's rendering pipeline corrupts.
-  reactStrictMode: false,
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

@@ -1,8 +1,7 @@
 'use client';
 
-import { Search, Plus, Menu } from 'lucide-react';
+import { Plus, Menu } from 'lucide-react';
 import { Box, IconButton, Typography } from '@mui/material';
-import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { LogoIcon } from '@/components/ui/Logo';
 
 interface MobileHeaderProps {
@@ -50,35 +49,6 @@ export default function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <IconButton
-          sx={{
-            p: 0.5,
-            '&:hover': {
-              opacity: 0.7,
-            },
-          }}
-        >
-          <Search style={{ width: 16, height: 16, color: 'var(--text-secondary)' }} />
-        </IconButton>
-        <Box
-          component="button"
-          sx={{
-            width: 36,
-            height: 36,
-            bgcolor: 'action.hover',
-            borderRadius: '50%',
-            overflow: 'hidden',
-            cursor: 'pointer',
-            border: 'none',
-            p: 0,
-          }}
-        >
-          <ImageWithFallback
-            src="/images/avatar-1.jpg"
-            alt="User"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        </Box>
         <IconButton
           sx={{
             bgcolor: 'warm.main',

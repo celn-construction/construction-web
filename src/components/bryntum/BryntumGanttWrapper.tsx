@@ -2,7 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
+// Bryntum requires BOTH: structural CSS (layout/grid) + theme CSS (colors/visual).
+// gantt.css = 431KB structural, stockholm-light.css = 24KB theme overrides.
 import '@bryntum/gantt/gantt.css';
+import '@bryntum/gantt/stockholm-light.css';
 import { Box } from '@mui/material';
 import { api } from '@/trpc/react';
 import { createGanttConfig } from './config/ganttConfig';
@@ -175,16 +178,17 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
   useBryntumThemeAssets();
 
-  // After data loads, disable parent task click toggle and diagnose time axis.
+  // After data loads, finalize the project so the scheduling engine is ready.
+  // delayCalculation defers the initial engine run — commitAsync triggers it.
+  // Do NOT call scrollToDate here — it corrupts the time axis header.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
-    // Scroll to today so the initial view shows the current date range
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    gantt.scrollToDate(new Date(), { block: 'center' });
+    void gantt.project.commitAsync();
   }, [isLoading, getGanttInstance]);
 
   // Invalidate tRPC cache when Bryntum syncs so sibling components (e.g. file tree) refetch

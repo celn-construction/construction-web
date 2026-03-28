@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Bell, UserPlus, CalendarDots } from '@phosphor-icons/react';
+import { Bell, UserPlus, CalendarDots, List } from '@phosphor-icons/react';
 import { Box, Typography, IconButton, Divider } from '@mui/material';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,7 +26,11 @@ const PAGE_TITLES: Record<string, string> = {
   team: 'Team',
 };
 
-export default function Header() {
+interface HeaderProps {
+  onMenuOpen?: () => void;
+}
+
+export default function Header({ onMenuOpen }: HeaderProps) {
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -56,6 +60,15 @@ export default function Header() {
     >
       {/* Row 1: Navigation + Location/Weather + Notifications */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+        {onMenuOpen && (
+          <IconButton
+            onClick={onMenuOpen}
+            aria-label="Open menu"
+            sx={{ display: { xs: 'inline-flex', md: 'none' }, p: 0.5, '&:hover': { opacity: 0.7 } }}
+          >
+            <List size={20} weight="bold" />
+          </IconButton>
+        )}
         {pageTitle && (
           <>
             <Typography sx={{ fontSize: 18, fontWeight: 700, color: 'text.primary', lineHeight: 1 }}>

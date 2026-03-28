@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { X, User, Settings, CreditCard, LifeBuoy, LogOut, ChevronRight } from 'lucide-react';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, type Icon } from '@phosphor-icons/react';
+import { User, Settings, CreditCard, LifeBuoy, LogOut, ChevronRight } from 'lucide-react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, X, type Icon } from '@phosphor-icons/react';
 import { Drawer, Box, IconButton, Typography } from '@mui/material';
 import {
   DropdownMenu,
@@ -91,20 +91,29 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       }}
     >
       {/* Org Header */}
-      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-        {/* Close button */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', px: 1.5, pt: 1 }}>
-          <IconButton
-            onClick={onClose}
-            aria-label="Close menu"
-            size="small"
-            sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
-          >
-            <X style={{ width: 18, height: 18 }} />
-          </IconButton>
-        </Box>
-
+      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', position: 'relative' }}>
         <OrgSwitcher />
+        {/* Close button — overlaid top-right */}
+        <IconButton
+          onClick={onClose}
+          aria-label="Close menu"
+          sx={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            p: '6px',
+            borderRadius: '8px',
+            color: 'text.secondary',
+            bgcolor: 'action.hover',
+            transition: 'all 0.15s',
+            '&:hover': {
+              color: 'text.primary',
+              bgcolor: 'action.selected',
+            },
+          }}
+        >
+          <X size={15} weight="bold" />
+        </IconButton>
       </Box>
 
       {/* Navigation */}

@@ -4,7 +4,6 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Box } from '@mui/material';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
-import MobileHeader from '@/components/layout/MobileHeader';
 import MobileDrawer from '@/components/layout/MobileDrawer';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -34,52 +33,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         bgcolor: 'background.default',
         overflow: 'hidden',
         transition: 'background-color 0.15s',
+        display: 'flex',
       }}
     >
-      {/* Desktop Layout */}
-      <Box
-        sx={{
-          display: { xs: 'none', md: 'flex' },
-          height: '100vh',
-        }}
-      >
-        {/* Sidebar */}
+      {/* Sidebar — desktop only */}
+      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
         <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
-
-        {/* Main Content Area */}
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            minWidth: 0,
-          }}
-        >
-          <Header />
-          <Box
-            component="main"
-            sx={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              overflowX: 'hidden',
-              overflowY: 'auto',
-            }}
-          >
-            {children}
-          </Box>
-        </Box>
       </Box>
 
-      {/* Mobile Layout */}
+      {/* Main content column — single instance, responsive */}
       <Box
         sx={{
-          display: { xs: 'flex', md: 'none' },
+          flex: 1,
+          display: 'flex',
           flexDirection: 'column',
+          minWidth: 0,
           height: '100vh',
         }}
       >
-        <MobileHeader onMenuOpen={openDrawer} />
+        <Header onMenuOpen={openDrawer} />
         <Box
           component="main"
           sx={{
