@@ -80,8 +80,7 @@ function RealtimeListener({
   userId: string;
   userName: string;
   userAvatar?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getGanttInstance: () => any;
+  getGanttInstance: () => BryntumGanttInstance | null;
   onStateChange: (state: { isApplyingRemoteRef: React.MutableRefObject<boolean>; presenceData: PresenceData }) => void;
 }) {
   const { isApplyingRemoteRef, presenceData } = useGanttRealtime({
