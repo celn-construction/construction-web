@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createProjectSchema = z.object({
   name: z.string().min(1, "Project name is required").max(100).trim(),
-  location: z.string().max(200).trim(),
+  location: z.string().min(1, "Location is required").max(200).trim(),
   template: z.enum(["BLANK"]).default("BLANK").optional(),
 });
 
