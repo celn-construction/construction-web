@@ -182,23 +182,9 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
-
-    // DEBUG: Check if time axis header cells exist in the DOM
-    setTimeout(() => {
-      const headerCells = document.querySelectorAll('.b-sch-header-row-0 .b-sch-header-timeaxis-cell');
-      const headerRow = document.querySelector('.b-sch-header-row-0');
-      const normalHeader = document.querySelector('.b-grid-header-scroller-normal');
-      console.log('[Gantt:CSS-debug] header cells found:', headerCells.length);
-      console.log('[Gantt:CSS-debug] header row:', headerRow, 'display:', headerRow ? getComputedStyle(headerRow).display : 'N/A', 'height:', headerRow ? getComputedStyle(headerRow).height : 'N/A', 'visibility:', headerRow ? getComputedStyle(headerRow).visibility : 'N/A');
-      console.log('[Gantt:CSS-debug] normal header:', normalHeader, 'height:', normalHeader ? getComputedStyle(normalHeader).height : 'N/A', 'overflow:', normalHeader ? getComputedStyle(normalHeader).overflow : 'N/A');
-      // Check all header-related elements
-      const allHeaders = document.querySelectorAll('[class*="b-sch-header"], [class*="b-grid-header"]');
-      console.log('[Gantt:CSS-debug] all header elements:', allHeaders.length);
-      allHeaders.forEach((el, i) => {
-        const s = getComputedStyle(el);
-        console.log(`[Gantt:CSS-debug]   [${i}] ${el.className.slice(0, 80)} — ${el.clientWidth}x${el.clientHeight} display:${s.display} vis:${s.visibility} opacity:${s.opacity}`);
-      });
-    }, 2000);
+    // Scroll to today so the initial view shows the current date range
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.scrollToDate(new Date(), { block: 'center' });
   }, [isLoading, getGanttInstance]);
 
   // Invalidate tRPC cache when Bryntum syncs so sibling components (e.g. file tree) refetch

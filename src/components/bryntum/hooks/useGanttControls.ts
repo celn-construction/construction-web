@@ -24,8 +24,10 @@ export function useGanttControls() {
       endDate: tomorrow,
       duration: 1,
     });
-    // Let the scheduling engine settle. Do NOT call scrollTaskIntoView —
-    // it corrupts the time axis header virtual renderer (headers disappear).
+    // Scroll timeline to today so the new task bar is visible.
+    // Use scrollToDate (NOT scrollTaskIntoView which corrupts time axis headers).
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.scrollToDate(new Date(), { block: 'center' });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync();
   }, [getGanttInstance]);
