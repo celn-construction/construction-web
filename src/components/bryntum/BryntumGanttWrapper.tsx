@@ -106,43 +106,16 @@ function RealtimeListener({
 export default function BryntumGanttWrapper(props: BryntumGanttWrapperProps) {
   const ganttControls = useGanttControls();
   const noopRef = useRef(false);
-  const [realtimeState, setRealtimeState] = useState<{
-    isApplyingRemoteRef: React.MutableRefObject<boolean>;
-    presenceData: PresenceData;
-  }>({ isApplyingRemoteRef: noopRef, presenceData: [] });
 
-  const handleStateChange = useCallback((state: { isApplyingRemoteRef: React.MutableRefObject<boolean>; presenceData: PresenceData }) => {
-    setRealtimeState(state);
-  }, []);
-
+  // TEMPORARY: bypass Ably wrapper to test if the fragment structure
+  // is what breaks time axis headers. Render BryntumGanttCore directly.
   return (
-    <>
-      {/* BryntumGanttCore MUST be the first child so its index in the fragment
-          is always [0] regardless of whether the Ably block renders.  If the
-          conditional Ably block comes first, it shifts the Gantt from index [0]
-          to [1] when Ably loads — React treats this as a new component and
-          remounts it, creating a ghost Bryntum widget that corrupts rendering. */}
-      <BryntumGanttCore
-        {...props}
-        ganttControls={ganttControls}
-        isApplyingRemoteRef={realtimeState.isApplyingRemoteRef}
-        presenceData={realtimeState.presenceData}
-      />
-      {props.realtimeEnabled && props.projectId && (
-        <AblyProviderLazy projectId={props.projectId}>
-          <ChannelProvider channelName={`project:${props.projectId}:gantt`}>
-            <RealtimeListener
-              projectId={props.projectId}
-              userId={props.userId ?? ''}
-              userName={props.userName ?? ''}
-              userAvatar={props.userAvatar}
-              getGanttInstance={ganttControls.getGanttInstance}
-              onStateChange={handleStateChange}
-            />
-          </ChannelProvider>
-        </AblyProviderLazy>
-      )}
-    </>
+    <BryntumGanttCore
+      {...props}
+      ganttControls={ganttControls}
+      isApplyingRemoteRef={noopRef}
+      presenceData={[]}
+    />
   );
 }
 
