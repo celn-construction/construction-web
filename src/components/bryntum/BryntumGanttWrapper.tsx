@@ -106,16 +106,38 @@ function RealtimeListener({
 export default function BryntumGanttWrapper(props: BryntumGanttWrapperProps) {
   const ganttControls = useGanttControls();
   const noopRef = useRef(false);
+  const [realtimeState, setRealtimeState] = useState<{
+    isApplyingRemoteRef: React.MutableRefObject<boolean>;
+    presenceData: PresenceData;
+  }>({ isApplyingRemoteRef: noopRef, presenceData: [] });
 
-  // TEMPORARY: bypass Ably wrapper to test if the fragment structure
-  // is what breaks time axis headers. Render BryntumGanttCore directly.
+  const handleStateChange = useCallback((state: { isApplyingRemoteRef: React.MutableRefObject<boolean>; presenceData: PresenceData }) => {
+    setRealtimeState(state);
+  }, []);
+
   return (
-    <BryntumGanttCore
-      {...props}
-      ganttControls={ganttControls}
-      isApplyingRemoteRef={noopRef}
-      presenceData={[]}
-    />
+    <>
+      <BryntumGanttCore
+        {...props}
+        ganttControls={ganttControls}
+        isApplyingRemoteRef={realtimeState.isApplyingRemoteRef}
+        presenceData={realtimeState.presenceData}
+      />
+      {props.realtimeEnabled && props.projectId && (
+        <AblyProviderLazy projectId={props.projectId}>
+          <ChannelProvider channelName={`project:${props.projectId}:gantt`}>
+            <RealtimeListener
+              projectId={props.projectId}
+              userId={props.userId ?? ''}
+              userName={props.userName ?? ''}
+              userAvatar={props.userAvatar}
+              getGanttInstance={ganttControls.getGanttInstance}
+              onStateChange={handleStateChange}
+            />
+          </ChannelProvider>
+        </AblyProviderLazy>
+      )}
+    </>
   );
 }
 
@@ -153,13 +175,30 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
   useBryntumThemeAssets();
 
-  // After data loads, disable parent task click toggle.
+  // After data loads, disable parent task click toggle and diagnose time axis.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
+
+    // DEBUG: Check if time axis header cells exist in the DOM
+    setTimeout(() => {
+      const headerCells = document.querySelectorAll('.b-sch-header-row-0 .b-sch-header-timeaxis-cell');
+      const headerRow = document.querySelector('.b-sch-header-row-0');
+      const normalHeader = document.querySelector('.b-grid-header-scroller-normal');
+      console.log('[Gantt:CSS-debug] header cells found:', headerCells.length);
+      console.log('[Gantt:CSS-debug] header row:', headerRow, 'display:', headerRow ? getComputedStyle(headerRow).display : 'N/A', 'height:', headerRow ? getComputedStyle(headerRow).height : 'N/A', 'visibility:', headerRow ? getComputedStyle(headerRow).visibility : 'N/A');
+      console.log('[Gantt:CSS-debug] normal header:', normalHeader, 'height:', normalHeader ? getComputedStyle(normalHeader).height : 'N/A', 'overflow:', normalHeader ? getComputedStyle(normalHeader).overflow : 'N/A');
+      // Check all header-related elements
+      const allHeaders = document.querySelectorAll('[class*="b-sch-header"], [class*="b-grid-header"]');
+      console.log('[Gantt:CSS-debug] all header elements:', allHeaders.length);
+      allHeaders.forEach((el, i) => {
+        const s = getComputedStyle(el);
+        console.log(`[Gantt:CSS-debug]   [${i}] ${el.className.slice(0, 80)} — ${el.clientWidth}x${el.clientHeight} display:${s.display} vis:${s.visibility} opacity:${s.opacity}`);
+      });
+    }, 2000);
   }, [isLoading, getGanttInstance]);
 
   // Invalidate tRPC cache when Bryntum syncs so sibling components (e.g. file tree) refetch
