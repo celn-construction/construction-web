@@ -24,13 +24,10 @@ export function useGanttControls() {
       endDate: tomorrow,
       duration: 1,
     });
+    // Let the scheduling engine settle. Do NOT call scrollTaskIntoView —
+    // it corrupts the time axis header virtual renderer (headers disappear).
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    void gantt.project.commitAsync().then(() => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (gantt.isDestroyed) return;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      if (task) gantt.scrollTaskIntoView(task, { block: 'center' });
-    });
+    void gantt.project.commitAsync();
   }, [getGanttInstance]);
 
   const handleIndent = useCallback(() => {
