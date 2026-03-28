@@ -2,9 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
-// CSS is loaded dynamically via useBryntumThemeAssets from /bryntum/stockholm-light.css.
-// Do NOT add static CSS imports here — they duplicate the dynamic load and can't be
-// swapped at runtime for theme switching.
+import '@bryntum/gantt/gantt.css';
 import { Box } from '@mui/material';
 import { api } from '@/trpc/react';
 import { createGanttConfig } from './config/ganttConfig';
