@@ -169,10 +169,33 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   const [conflictOpen, setConflictOpen] = useState(false);
   const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
+  // Wait for the container to have real dimensions before mounting BryntumGantt.
+  // Without this, the widget initializes at 0×0 which permanently corrupts the
+  // time axis header virtual renderer (headers never show date labels).
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerReady, setContainerReady] = useState(false);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    // Check immediately in case dimensions are already available
+    if (el.offsetWidth > 0 && el.offsetHeight > 0) {
+      setContainerReady(true);
+      return;
+    }
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          setContainerReady(true);
+          observer.disconnect();
+        }
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const isRevertingRef = useRef(false);
-  // Guards against spurious events when stores change during a conflict reload
   const isReloadingRef = useRef(false);
-  // When true, beforeSync skips version injection so the save goes through without version check
   const skipVersionRef = useRef(false);
 
   const { showSnackbar } = useSnackbar();
@@ -182,32 +205,13 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
 
   useBryntumThemeAssets();
 
-  // After data loads, finalize the widget and fix time axis headers.
-  // Use requestAnimationFrame to ensure the browser has painted the widget
-  // with real dimensions before we try to fix the time axis.
+  // After data loads, disable parent task click toggle.
   useEffect(() => {
     if (isLoading) return;
-    const raf = requestAnimationFrame(() => {
-      const gantt = getGanttInstance();
-      if (!gantt) return;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (gantt.isDestroyed) return;
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      gantt.toggleParentTasksOnClick = false;
-
-      // Force the time axis to recalculate by re-applying the view preset.
-      // The virtual header renderer can miss cells when the widget initializes
-      // at 0×0 (ghost from dynamic import) then gains real dimensions.
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const preset = gantt.viewPreset as { id?: string } | string | undefined;
-      const presetId = typeof preset === 'string' ? preset : preset?.id;
-      if (presetId) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        gantt.viewPreset = presetId;
-      }
-    });
-    return () => cancelAnimationFrame(raf);
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    gantt.toggleParentTasksOnClick = false;
   }, [isLoading, getGanttInstance]);
 
   // Invalidate tRPC cache when Bryntum syncs so sibling components (e.g. file tree) refetch
@@ -583,12 +587,12 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
         }
       `}</style>
 
-      <div style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
+      <div ref={containerRef} style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <BryntumGantt ref={ganttRef} {...ganttConfig} />
+          {containerReady && <BryntumGantt ref={ganttRef} {...ganttConfig} />}
         </div>
 
-        {isLoading && (
+        {(isLoading || !containerReady) && (
           <Box
             sx={{
               position: 'absolute',
