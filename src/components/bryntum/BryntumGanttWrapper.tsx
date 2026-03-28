@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
 import '@bryntum/gantt/gantt.css';
-import '@bryntum/gantt/stockholm-light.css';
 import { Box } from '@mui/material';
 import { api } from '@/trpc/react';
 import { createGanttConfig } from './config/ganttConfig';
