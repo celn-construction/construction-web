@@ -50,9 +50,6 @@ const GANTT_CONTENT_STYLE: CSSProperties = {
 };
 
 const STALE_THRESHOLD_MS = 60_000; // 60 seconds
-// Short settle time so the Bryntum scheduling engine finishes before we sync
-const AUTO_SAVE_DELAY_MS = 1_000; // 1 second
-const AUTO_SAVE_STORAGE_KEY = 'gantt-autosave-enabled';
 
 interface BryntumGanttWrapperProps {
   projectId?: string;
@@ -169,31 +166,14 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   const errorColor = '#D93C15';
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasPendingChanges, setHasPendingChanges] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return localStorage.getItem(AUTO_SAVE_STORAGE_KEY) !== 'false';
-  });
   const [conflictOpen, setConflictOpen] = useState(false);
   const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
-  const justSavedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // Refs so timer callbacks always read fresh state without stale closures
-  const isSavingRef = useRef(false);
-  const autoSaveEnabledRef = useRef(autoSaveEnabled);
   const isRevertingRef = useRef(false);
-  // Guards against spurious auto-save when stores change during a conflict reload
+  // Guards against spurious events when stores change during a conflict reload
   const isReloadingRef = useRef(false);
-  // Guards against spurious hasPendingChanges when Bryntum writes server response back to stores
-  const isSyncingRef = useRef(false);
   // When true, beforeSync skips version injection so the save goes through without version check
   const skipVersionRef = useRef(false);
-
-  useEffect(() => { isSavingRef.current = isSaving; }, [isSaving]);
-  useEffect(() => { autoSaveEnabledRef.current = autoSaveEnabled; }, [autoSaveEnabled]);
 
   const { showSnackbar } = useSnackbar();
 
@@ -203,66 +183,32 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   useBryntumThemeAssets();
 
   // After data loads, finalize the widget and fix time axis headers.
-  // IMPORTANT: Skip if widget has 0×0 dimensions — there are two Bryntum
-  // widgets from the dynamic import. The first is a 0×0 ghost; only the
-  // second (with real dimensions) needs finalization.
+  // Use requestAnimationFrame to ensure the browser has painted the widget
+  // with real dimensions before we try to fix the time axis.
   useEffect(() => {
     if (isLoading) return;
-    const gantt = getGanttInstance();
-    if (!gantt) return;
+    const raf = requestAnimationFrame(() => {
+      const gantt = getGanttInstance();
+      if (!gantt) return;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (gantt.isDestroyed) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const w = gantt.element?.offsetWidth as number | undefined;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const h = gantt.element?.offsetHeight as number | undefined;
-    if (!w || !h) return; // Ghost widget — skip
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      gantt.toggleParentTasksOnClick = false;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    gantt.toggleParentTasksOnClick = false;
-
-    // Force the time axis to recalculate and re-render header cells by
-    // re-setting the time span. This is the only reliable way to make the
-    // virtual header renderer generate cells after the widget gains real
-    // dimensions (the ghost widget's 0×0 initialization corrupts the
-    // header cell cache for the real widget).
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const start = gantt.startDate as Date;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const end = gantt.endDate as Date;
-    if (start && end) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.setTimeSpan(start, end);
-    }
-  }, [isLoading, getGanttInstance]);
-
-  const handleSave = useCallback(async () => {
-    const gantt = getGanttInstance();
-    if (!gantt?.project) return;
-    // Bryntum returns null from .changes when there's nothing to sync.
-    // Calling sync() with no dirty records skips the HTTP request entirely and
-    // fires neither 'sync' nor 'syncFail', so isSaving would never reset.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const changes = gantt.project.changes as unknown;
-    if (!changes) {
-      console.log('[Gantt:handleSave] No Bryntum changes to sync — resetting hasPendingChanges');
-      setHasPendingChanges(false);
-      return;
-    }
-    console.log('[Gantt:handleSave] Starting sync, autoSave:', autoSaveEnabledRef.current, 'changes:', JSON.stringify(changes));
-    setIsSaving(true);
-    await gantt.project.sync();
-    // isSaving and hasPendingChanges are reset by the sync/syncFail event listeners
-  }, [getGanttInstance]);
-
-  const handleToggleAutoSave = useCallback(() => {
-    setAutoSaveEnabled(prev => {
-      const next = !prev;
-      localStorage.setItem(AUTO_SAVE_STORAGE_KEY, String(next));
-      // Cancel any pending auto-save when turning off
-      if (!next) clearTimeout(autoSaveTimerRef.current);
-      return next;
+      // Force the time axis to recalculate by re-applying the view preset.
+      // The virtual header renderer can miss cells when the widget initializes
+      // at 0×0 (ghost from dynamic import) then gains real dimensions.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const preset = gantt.viewPreset as { id?: string } | string | undefined;
+      const presetId = typeof preset === 'string' ? preset : preset?.id;
+      if (presetId) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        gantt.viewPreset = presetId;
+      }
     });
-  }, []);
+    return () => cancelAnimationFrame(raf);
+  }, [isLoading, getGanttInstance]);
 
   // Invalidate tRPC cache when Bryntum syncs so sibling components (e.g. file tree) refetch
   const utils = api.useUtils();
@@ -280,9 +226,6 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
       console.log('[Gantt:beforeResponseApply] response keys:', Object.keys(response), 'conflict:', response.conflict);
 
       if (response.conflict) {
-        console.log('[Gantt:beforeResponseApply] CONFLICT detected');
-        setIsSaving(false);
-
         // Manually clear Bryntum's "Saving changes, please wait..." mask
         // since returning false prevents the sync cycle from finalizing.
         const g = getGanttInstance();
@@ -295,28 +238,12 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     };
 
     const onSync = () => {
-      console.log('[Gantt:onSync] Sync succeeded, skipVersion was:', skipVersionRef.current);
       skipVersionRef.current = false;
-      // Block store 'change' events fired when Bryntum writes server response
-      // data (e.g. new version numbers) back into its stores — those are not
-      // user edits and must not re-arm hasPendingChanges.
-      isSyncingRef.current = true;
-      clearTimeout(autoSaveTimerRef.current);
-      setIsSaving(false);
-      setHasPendingChanges(false);
-      setJustSaved(true);
-      clearTimeout(justSavedTimerRef.current);
-      justSavedTimerRef.current = setTimeout(() => setJustSaved(false), 2000);
       void utils.gantt.tasks.invalidate();
-      // Clear the guard after the microtask queue drains so all synchronous
-      // store updates from the sync response are suppressed.
-      setTimeout(() => { isSyncingRef.current = false; }, 0);
     };
 
     const onSyncFail = () => {
-      setIsSaving(false);
       skipVersionRef.current = false;
-      // For non-conflict errors, hasPendingChanges stays true so user can retry
     };
 
     // Inject version into sync payload for optimistic locking.
@@ -368,58 +295,8 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
       gantt.project?.un('sync', onSync);
       gantt.project?.un('syncFail', onSyncFail);
       gantt.project?.un('beforeSync', onBeforeSync);
-      clearTimeout(justSavedTimerRef.current);
     };
   }, [isLoading, getGanttInstance, utils]);
-
-  // Mark pending changes when any store is modified locally.
-  // When auto-save is enabled, schedule a save shortly after each change so the
-  // Bryntum scheduling engine has time to settle before we sync.
-  useEffect(() => {
-    if (isLoading) return;
-    const gantt = getGanttInstance();
-    if (!gantt?.project) return;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stores: any[] = [
-      gantt.project.taskStore,
-      gantt.project.dependencyStore,
-      gantt.project.resourceStore,
-      gantt.project.assignmentStore,
-      gantt.project.timeRangeStore,
-    ];
-
-    const onStoreChange = () => {
-      // Skip store changes triggered by a conflict reload, by Bryntum writing
-      // server response data back into its stores after a successful sync,
-      // or by remote changes applied via Ably real-time.
-      if (isReloadingRef.current || isSyncingRef.current || isApplyingRemoteRef.current) {
-        console.log('[Gantt:onStoreChange] Suppressed (reloading:', isReloadingRef.current, 'syncing:', isSyncingRef.current, 'remote:', isApplyingRemoteRef.current, ')');
-        return;
-      }
-      console.log('[Gantt:onStoreChange] Change detected, autoSave:', autoSaveEnabledRef.current, 'isSaving:', isSavingRef.current);
-      setHasPendingChanges(true);
-      if (!autoSaveEnabledRef.current) return;
-      // Debounce so rapid successive engine updates collapse into one sync call
-      clearTimeout(autoSaveTimerRef.current);
-      autoSaveTimerRef.current = setTimeout(() => {
-        if (!isSavingRef.current) {
-          console.log('[Gantt:autoSave] Debounce fired — triggering save');
-          void handleSave();
-        } else {
-          console.log('[Gantt:autoSave] Debounce fired — skipped (save already in flight)');
-        }
-      }, AUTO_SAVE_DELAY_MS);
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    stores.forEach(store => store?.on('change', onStoreChange));
-    return () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      stores.forEach(store => store?.un('change', onStoreChange));
-      clearTimeout(autoSaveTimerRef.current);
-    };
-  }, [isLoading, getGanttInstance, handleSave]);
 
   // Validate parent task duration: revert and warn if shortened below subtask span
   useEffect(() => {
@@ -529,8 +406,10 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   const handleConflictProceed = useCallback(() => {
     setConflictOpen(false);
     skipVersionRef.current = true;
-    void handleSave();
-  }, [handleSave]);
+    const g = getGanttInstance();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    if (g?.project) void g.project.sync();
+  }, [getGanttInstance]);
 
   const handleConflictRefresh = useCallback(() => {
     setConflictOpen(false);
@@ -635,12 +514,6 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
         onZoomToFit={handleZoomToFit}
         onShiftPrevious={handleShiftPrevious}
         onShiftNext={handleShiftNext}
-        onSave={handleSave}
-        isSaving={isSaving}
-        hasPendingChanges={hasPendingChanges}
-        justSaved={justSaved}
-        autoSaveEnabled={autoSaveEnabled}
-        onToggleAutoSave={handleToggleAutoSave}
         presenceSlot={
           realtimeEnabled && userId ? (
             <GanttPresence currentUserId={userId} presenceData={presenceData} />

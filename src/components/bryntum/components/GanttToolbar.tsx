@@ -5,10 +5,7 @@ import {
   Box,
   Stack,
   IconButton,
-  Switch,
-  Typography,
   Divider,
-  CircularProgress,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Button } from '@/components/ui/button';
@@ -19,7 +16,6 @@ import {
   Columns,
   DotsThreeVertical,
   Plus,
-  CheckCircle,
 } from '@phosphor-icons/react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -65,34 +61,6 @@ const iconBtnSx = {
   },
 } as const;
 
-/** Auto-save switch track/thumb overrides */
-const switchSx = {
-  width: 36,
-  height: 20,
-  p: 0,
-  '& .MuiSwitch-switchBase': {
-    p: '2px',
-    '&.Mui-checked': {
-      transform: 'translateX(16px)',
-      color: '#fff',
-      '& + .MuiSwitch-track': {
-        backgroundColor: 'var(--accent-primary, #2563eb)',
-        opacity: 1,
-      },
-    },
-  },
-  '& .MuiSwitch-thumb': {
-    width: 16,
-    height: 16,
-    boxShadow: 'none',
-  },
-  '& .MuiSwitch-track': {
-    borderRadius: '999px',
-    backgroundColor: 'var(--border-color)',
-    opacity: 1,
-  },
-} as const;
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 type GanttToolbarProps = {
   onAddTask?: () => void;
@@ -102,12 +70,6 @@ type GanttToolbarProps = {
   onZoomToFit?: () => void;
   onShiftPrevious?: () => void;
   onShiftNext?: () => void;
-  onSave?: () => void;
-  isSaving?: boolean;
-  hasPendingChanges?: boolean;
-  justSaved?: boolean;
-  autoSaveEnabled?: boolean;
-  onToggleAutoSave?: () => void;
   onExport?: () => void;
   onColumnsClick?: () => void;
   onMoreClick?: () => void;
@@ -123,12 +85,6 @@ export default function GanttToolbar({
   onZoomToFit,
   onShiftPrevious,
   onShiftNext,
-  onSave,
-  isSaving,
-  hasPendingChanges,
-  justSaved,
-  autoSaveEnabled = false,
-  onToggleAutoSave,
   onExport,
   onColumnsClick,
   onMoreClick,
@@ -174,8 +130,6 @@ export default function GanttToolbar({
       transform: 'scale(0.96)',
     },
   });
-
-  const showSavedCheck = autoSaveEnabled && !isSaving && !hasPendingChanges && justSaved;
 
   return (
     <Stack
@@ -248,64 +202,6 @@ export default function GanttToolbar({
 
       {/* ── Presence Indicators ──────────────────────────────────────── */}
       {presenceSlot}
-
-      {/* ── Auto-save ──────────────────────────────────────────────────── */}
-      {onToggleAutoSave && (
-        <Stack direction="row" spacing={1.25} alignItems="center">
-          <Switch
-            checked={autoSaveEnabled}
-            onChange={() => onToggleAutoSave()}
-            size="small"
-            sx={switchSx}
-            title={autoSaveEnabled ? 'Auto-save on — click to disable' : 'Auto-save off — click to enable'}
-          />
-          <Typography
-            sx={{
-              fontSize: '12px',
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              userSelect: 'none',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Auto-save
-          </Typography>
-          {showSavedCheck && (
-            <CheckCircle
-              size={ICON_SIZE}
-              color="var(--success, #16a34a)"
-            />
-          )}
-          {isSaving && <CircularProgress size={14} sx={{ color: 'var(--text-secondary)' }} />}
-        </Stack>
-      )}
-
-      {/* ── Manual Save (only when auto-save is off) ───────────────────── */}
-      {onSave && !autoSaveEnabled && (
-        <Button
-          variant="outlined"
-          size="small"
-          disabled={!hasPendingChanges || justSaved}
-          onClick={hasPendingChanges && !isSaving && !justSaved ? onSave : undefined}
-          title={
-            isSaving ? 'Saving…' :
-            justSaved ? 'Changes saved' :
-            hasPendingChanges ? 'Save changes' :
-            'No unsaved changes'
-          }
-          loading={isSaving}
-          loadingPosition="start"
-          sx={{
-            ...toolBtnSx,
-            borderRadius: '8px',
-            ...(hasPendingChanges && !isSaving && !justSaved
-              ? { color: 'var(--accent-primary, #2563eb)', borderColor: 'var(--accent-primary, #2563eb)' }
-              : {}),
-          }}
-        >
-          {isSaving ? 'Saving…' : hasPendingChanges ? 'Save' : 'Saved'}
-        </Button>
-      )}
 
       <Divider orientation="vertical" flexItem sx={{ my: 'auto', height: 18, alignSelf: 'center' }} />
 
