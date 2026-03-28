@@ -185,8 +185,6 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    gantt.toggleParentTasksOnClick = false;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     void gantt.project.commitAsync();
   }, [isLoading, getGanttInstance]);

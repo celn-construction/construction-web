@@ -3,8 +3,6 @@
 import { useEffect } from 'react';
 
 const BRYNTUM_THEME_LINK_ID = 'bryntum-theme';
-const FONT_AWESOME_LINK_ID = 'font-awesome';
-const FONT_AWESOME_URL = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
 
 function ensureStylesheet(id: string): HTMLLinkElement {
   const existing = document.getElementById(id);
@@ -20,26 +18,13 @@ function ensureStylesheet(id: string): HTMLLinkElement {
   return link;
 }
 
-function removeElementById(id: string) {
-  const element = document.getElementById(id);
-  if (element) {
-    element.remove();
-  }
-}
-
 export function useBryntumThemeAssets() {
   useEffect(() => {
-    const fontAwesomeLink = ensureStylesheet(FONT_AWESOME_LINK_ID);
-    fontAwesomeLink.href = FONT_AWESOME_URL;
-
     const themeLink = ensureStylesheet(BRYNTUM_THEME_LINK_ID);
     themeLink.href = '/bryntum/stockholm-light.css';
-  }, []);
 
-  useEffect(() => {
     return () => {
-      removeElementById(BRYNTUM_THEME_LINK_ID);
-      removeElementById(FONT_AWESOME_LINK_ID);
+      document.getElementById(BRYNTUM_THEME_LINK_ID)?.remove();
     };
   }, []);
 }

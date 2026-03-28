@@ -145,7 +145,6 @@ export type GanttConfig = {
   loadMask?: string | null | Record<string, unknown>;
   rowHeight?: number;
   animateTreeNodeToggle?: boolean;
-  toggleParentTasksOnClick?: boolean;
   project: {
     autoLoad: boolean;
     autoSync?: boolean;
@@ -180,6 +179,7 @@ export type GanttConfig = {
     cellTooltip: {
       tooltipRenderer: (args: TooltipRendererArgs) => string;
     };
+    tree?: { toggleTreeNode?: boolean };
   };
   emptyText?: string;
   viewPreset: string;

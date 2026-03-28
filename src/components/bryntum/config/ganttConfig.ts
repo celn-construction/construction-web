@@ -42,7 +42,7 @@ export function createGanttConfig(
     autoHeight: false,
     rowHeight: 45, // Consistent row height for better performance
     animateTreeNodeToggle: false, // Disable animations for faster rendering
-    toggleParentTasksOnClick: false, // Prevent clicking a parent task bar from collapsing its children
+    detectCSSCompatibilityIssues: false,
 
     project: {
       autoLoad: true,
@@ -170,6 +170,7 @@ export function createGanttConfig(
       taskEdit: false,
       columnLines: true,
       stripe: true,
+      tree: { toggleTreeNode: false },
       cellTooltip: {
         tooltipRenderer: ({ record, column }) => formatTooltipText(record, column.field),
       },
