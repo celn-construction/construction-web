@@ -26,7 +26,6 @@ function formatTooltipText(record: Record<string, unknown>, field?: string): str
 }
 
 // Debounce timer so a double-click (edit) cancels the single-click scroll
-let pendingScrollTimer: ReturnType<typeof setTimeout> | undefined;
 
 interface LoadingCallbacks {
   onLoadStart?: () => void;
@@ -192,33 +191,12 @@ export function createGanttConfig(
         record: { isParent: boolean; manuallyScheduled: boolean; set: (field: string, value: unknown) => void };
         column: { type: string };
       }) {
-        // Cancel any pending single-click scroll so editing starts cleanly
-        clearTimeout(pendingScrollTimer);
         if (column.type === 'duration' && record.isParent && !record.manuallyScheduled) {
           record.set('manuallyScheduled', true);
         }
       },
-      // Single-click on the task name cell → scroll the timeline bar into view.
-      // Guards against unscheduled tasks (no startDate) to avoid a Bryntum crash.
-      cellClick({ record, column, grid }: {
-        record: { id: string | number; startDate?: Date | null };
-        column: { type?: string } | undefined;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        grid: any;
-      }) {
-        if (column?.type !== 'name') return;
-        if (!record.startDate) return;
-        // Debounce: wait 200ms so a double-click (edit) can cancel the scroll
-        clearTimeout(pendingScrollTimer);
-        pendingScrollTimer = setTimeout(() => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          grid.scrollTaskIntoView(record, {
-            block: 'center',
-            animate: { duration: 300 },
-            highlight: true,
-          });
-        }, 200);
-      },
+      // scrollTaskIntoView removed — it corrupts the time axis header
+      // virtual renderer, causing all date labels to disappear after scroll.
     },
   };
 }
