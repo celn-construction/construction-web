@@ -203,53 +203,36 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
   useBryntumThemeAssets();
 
   // After data loads, finalize the widget and fix time axis headers.
+  // IMPORTANT: Skip if widget has 0×0 dimensions — there are two Bryntum
+  // widgets from the dynamic import. The first is a 0×0 ghost; only the
+  // second (with real dimensions) needs finalization.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const w = gantt.element?.offsetWidth as number | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const h = gantt.element?.offsetHeight as number | undefined;
+    if (!w || !h) return; // Ghost widget — skip
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     gantt.toggleParentTasksOnClick = false;
 
-    // DEBUG: inspect what's available for time axis header rendering
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-    console.log('[Gantt:postLoad] gantt keys:', Object.keys(gantt).filter(k => /time|header|axis|sub/i.test(k)));
-    console.log('[Gantt:postLoad] timeAxisSubGrid:', gantt.timeAxisSubGrid);
-    console.log('[Gantt:postLoad] timeAxisColumn:', gantt.timeAxisColumn);
-    console.log('[Gantt:postLoad] timeAxis:', gantt.timeAxis);
-    console.log('[Gantt:postLoad] timeView:', gantt.timeView);
-    console.log('[Gantt:postLoad] viewPreset:', gantt.viewPreset);
-    console.log('[Gantt:postLoad] startDate:', gantt.startDate, 'endDate:', gantt.endDate);
-    console.log('[Gantt:postLoad] element size:', gantt.element?.offsetWidth, 'x', gantt.element?.offsetHeight);
-    console.log('[Gantt:postLoad] subGrids:', gantt.subGrids);
-
-    // Check if the header element has any rendered cells
-    const headerEl = gantt.timeAxisSubGrid?.header?.element ?? gantt.element?.querySelector('.b-grid-header-scroller-normal');
-    console.log('[Gantt:postLoad] header element:', headerEl, 'children:', headerEl?.children?.length);
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    void gantt.project.commitAsync().then(() => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (gantt.isDestroyed) return;
-
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-      console.log('[Gantt:postCommit] Trying to fix time axis headers...');
-
-      // Try multiple approaches to re-render time axis headers
-      try { gantt.refreshHeaders(); console.log('[Gantt:postCommit] refreshHeaders() called'); } catch (e) { console.log('[Gantt:postCommit] refreshHeaders failed:', e); }
-      try { gantt.timeAxisSubGrid?.refreshHeaders?.(); console.log('[Gantt:postCommit] timeAxisSubGrid.refreshHeaders() called'); } catch (e) { console.log('[Gantt:postCommit] timeAxisSubGrid.refreshHeaders failed:', e); }
-      try { gantt.timeAxisColumn?.refreshHeader?.(); console.log('[Gantt:postCommit] timeAxisColumn.refreshHeader() called'); } catch (e) { console.log('[Gantt:postCommit] timeAxisColumn.refreshHeader failed:', e); }
-
-      // Force time axis to recalculate by re-setting the preset
-      try {
-        const currentPreset = gantt.viewPreset;
-        console.log('[Gantt:postCommit] Re-setting viewPreset:', currentPreset?.id ?? currentPreset);
-        if (currentPreset) {
-          gantt.viewPreset = currentPreset;
-        }
-      } catch (e) { console.log('[Gantt:postCommit] viewPreset re-set failed:', e); }
-      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-    });
+    // Force the time axis to recalculate and re-render header cells by
+    // re-setting the time span. This is the only reliable way to make the
+    // virtual header renderer generate cells after the widget gains real
+    // dimensions (the ghost widget's 0×0 initialization corrupts the
+    // header cell cache for the real widget).
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const start = gantt.startDate as Date;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const end = gantt.endDate as Date;
+    if (start && end) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.setTimeSpan(start, end);
+    }
   }, [isLoading, getGanttInstance]);
 
   const handleSave = useCallback(async () => {
