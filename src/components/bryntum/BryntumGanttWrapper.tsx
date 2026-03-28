@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
-// Bryntum requires BOTH: structural CSS (layout/grid) + theme CSS (colors/visual).
-// gantt.css = 431KB structural, stockholm-light.css = 24KB theme overrides.
-import '@bryntum/gantt/gantt.css';
-import '@bryntum/gantt/stockholm-light.css';
+// CSS is loaded dynamically via useBryntumThemeAssets from /bryntum/stockholm-light.css.
+// Do NOT add static CSS imports here — they duplicate the dynamic load and can't be
+// swapped at runtime for theme switching.
 import { Box } from '@mui/material';
 import { api } from '@/trpc/react';
 import { createGanttConfig } from './config/ganttConfig';
