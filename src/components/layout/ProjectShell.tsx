@@ -23,13 +23,9 @@ interface ProjectShellProps {
   children: ReactNode;
   projectId: string;
   projectName: string;
-  userId?: string;
-  userName?: string;
-  userImage?: string;
-  realtimeEnabled?: boolean;
 }
 
-export default function ProjectShell({ children, projectId, projectName, userId, userName, userImage, realtimeEnabled }: ProjectShellProps) {
+export default function ProjectShell({ children, projectId, projectName }: ProjectShellProps) {
   const pathname = usePathname();
   const isGanttRoute = pathname.endsWith('/gantt');
   const isFilesRoute = pathname.endsWith('/files');
@@ -65,10 +61,6 @@ export default function ProjectShell({ children, projectId, projectName, userId,
             <BryntumGanttWrapper
               projectId={projectId}
               isVisible={isGanttRoute}
-              userId={userId}
-              userName={userName}
-              userAvatar={userImage}
-              realtimeEnabled={realtimeEnabled}
             />
           </Box>
         </Box>

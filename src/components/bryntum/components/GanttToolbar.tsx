@@ -73,7 +73,6 @@ type GanttToolbarProps = {
   onExport?: () => void;
   onColumnsClick?: () => void;
   onMoreClick?: () => void;
-  presenceSlot?: React.ReactNode;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -88,7 +87,6 @@ export default function GanttToolbar({
   onExport,
   onColumnsClick,
   onMoreClick,
-  presenceSlot,
 }: GanttToolbarProps) {
   const [activePreset, setActivePreset] = useState('weekAndDayLetter');
   const theme = useTheme();
@@ -199,11 +197,6 @@ export default function GanttToolbar({
 
       {/* ── Spacer ─────────────────────────────────────────────────────── */}
       <Box sx={{ flex: 1 }} />
-
-      {/* ── Presence Indicators ──────────────────────────────────────── */}
-      {presenceSlot}
-
-      <Divider orientation="vertical" flexItem sx={{ my: 'auto', height: 18, alignSelf: 'center' }} />
 
       {/* ── Right Controls ─────────────────────────────────────────────── */}
       <Stack direction="row" spacing={0.5} alignItems="center">

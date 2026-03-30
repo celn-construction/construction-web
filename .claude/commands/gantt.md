@@ -66,16 +66,8 @@ src/components/bryntum/
 **Related files outside bryntum/:**
 - `src/server/api/routers/gantt.ts` — tRPC router for load/sync
 - `src/app/api/gantt/load/route.ts` — Load transport endpoint
-- `src/app/api/gantt/sync/route.ts` — Sync transport endpoint + Ably broadcast
+- `src/app/api/gantt/sync/route.ts` — Sync transport endpoint
 - `src/lib/utils/gantt.ts` — Shared Gantt data helpers
-
-**Ably real-time collaboration files:**
-- `src/lib/ably.ts` — Server-side REST client singleton (lazy, returns null when key missing)
-- `src/server/api/helpers/ganttBroadcast.ts` — `broadcastGanttChanges()` publishes sync events to Ably
-- `src/app/api/ably/auth/route.ts` — Token auth endpoint (validates session + project membership)
-- `src/components/providers/AblyProvider.tsx` — Client Ably provider (wraps `ably/react`, scoped per project)
-- `src/components/bryntum/hooks/useGanttRealtime.ts` — Subscribe to sync events + apply remote changes + presence
-- `src/components/bryntum/components/GanttPresence.tsx` — Avatar group showing who's viewing
 
 ### Step 3: Apply Changes Following Existing Patterns
 - New types → `types.ts`
@@ -129,7 +121,7 @@ CSS is loaded dynamically via `useBryntumThemeAssets` from `/bryntum/stockholm-l
 | Pitfall | Details |
 |---------|---------|
 | **Version mismatch between gantt and gantt-react** | `@bryntum/gantt` and `@bryntum/gantt-react` MUST be the exact same version. A mismatch causes the timeline SubGrid to silently fail — grid rows render but the entire right side (time axis headers + task bars) is blank. No errors in console. Fix: `npm install @bryntum/gantt@X.Y.Z @bryntum/gantt-react@X.Y.Z`. |
-| **`delayCalculation: true` + Ably wrapper** | **NEVER use `delayCalculation: true`** in the project config. With our Ably wrapper structure (`BryntumGanttWrapper` → `BryntumGanttCore`), `delayCalculation: true` prevents the scheduling engine from running properly — task bars never render (grid rows show but timeline is empty). The engine only kicks in after a sync (Save). Removing `delayCalculation` makes the engine calculate immediately on data load/task add, so task bars render instantly. |
+| **`delayCalculation: true`** | **NEVER use `delayCalculation: true`** in the project config. It prevents the scheduling engine from running properly — task bars never render (grid rows show but timeline is empty). The engine only kicks in after a sync (Save). Removing `delayCalculation` makes the engine calculate immediately on data load/task add, so task bars render instantly. |
 | **`scrollTaskIntoView` and `scrollToDate` corrupt headers** | Both methods corrupt the time axis header virtual renderer — all date labels disappear after the scroll and never regenerate. Use `visibleDate` in the config to center the viewport on a date instead. If you must scroll programmatically, call `gantt.renderContents()` afterward, but be aware it can wipe grid cell content. |
 | **`height: '100%'` required on WRAPPER_STYLE** | The Gantt wrapper container MUST use `height: '100%'`, not `flex: 1` with `minHeight: 0`. Bryntum's internal layout engine needs an explicit height constraint from its container to calculate how many rows to render. |
 | **`overflow: 'clip'` on Gantt containers** | The Gantt content container and ProjectShell wrapper MUST use `overflow: 'clip'`, not `overflow: 'hidden'`. Bryntum's internal scroll synchronization works correctly with `clip` in this project. |
@@ -171,71 +163,6 @@ useGanttControls:
   - getGanttInstance: MUST use ganttRef.current.instance (not DOM query)
 ```
 
-## Ably Real-Time Collaboration
-
-### Architecture
-```
-User A edits → auto-save → POST /api/gantt/sync → DB write → response to User A
-                                                            → Ably REST publish (fire-and-forget)
-
-Ably cloud → WebSocket → User B's useGanttRealtime → applyRemoteChanges to Bryntum stores
-```
-
-The Ably layer is an *addition* to the existing sync flow, not a replacement. If `ABLY_API_KEY` is not set, everything works exactly as before — no real-time, no errors.
-
-### Data Flow
-1. User A saves (auto-save debounce fires CrudManager sync)
-2. `/api/gantt/sync` writes to DB, returns response with new versions + phantom→real ID mappings
-3. After response, fire-and-forget `broadcastGanttChanges()` publishes a single `"sync"` event to `project:${projectId}:gantt` channel
-4. User B's `useGanttRealtime` hook receives the event:
-   - Skips if `data.userId === currentUserId` (echo suppression)
-   - Sets `isApplyingRemoteRef.current = true` (suppresses auto-save in BryntumGanttWrapper)
-   - Calls `project.suspendAutoSync()` so Bryntum won't trigger a save cycle
-   - Applies changes in order: **removals → additions → updates**
-   - Resolves phantom→real IDs from the server result
-   - Calls `project.resumeAutoSync()` + `commitAsync()` to let the scheduling engine recalculate
-   - Clears `isApplyingRemoteRef` after microtask queue drains
-
-### Channel Naming
-- Pattern: `project:${projectId}:gantt`
-- Token auth scoped to specific project via `/api/ably/auth?projectId=xxx`
-- Token validates Better Auth session + `ProjectMember` record before issuing
-
-### Presence
-- `usePresence` enters the channel with `{ name, avatar, joinedAt }`
-- `usePresenceListener` provides the list of connected users
-- `GanttPresence` component renders avatar group, filtered to exclude current user
-- Renders in toolbar between spacer and auto-save controls
-
-### Key Implementation Details
-
-| Detail | Implementation |
-|--------|---------------|
-| Server client | Lazy singleton `Ably.Rest` in `src/lib/ably.ts` — reused across requests |
-| Client client | `Ably.Realtime` with `authUrl` pointing to token endpoint, one per project |
-| Broadcast | Single batched event per sync (not per-record) — atomic application |
-| Echo suppression | `userId` in message payload, filtered in `handleSyncMessage` |
-| Auto-save guard | `isApplyingRemoteRef` checked by BryntumGanttWrapper store change listener |
-| Phantom IDs | Server result contains `$PhantomId` → `id` mappings, resolved before store operations |
-| Idempotency | `store.getById(realId)` check before additions to prevent duplicates |
-| Reconnection | Ably auto-reconnects; for long disconnects (>2min), full `project.load()` on state change |
-
-### Graceful Degradation
-- No `ABLY_API_KEY` → `getAblyRest()` returns null → broadcast is no-op
-- Client `AblyProvider` only rendered when key exists
-- Auth endpoint returns 503 when key missing
-- All existing functionality (sync, conflicts, auto-save) works without Ably
-
-### Ably Pitfalls
-| Pitfall | Details |
-|---------|---------|
-| **Don't block sync on broadcast** | Always `void broadcastGanttChanges(...).catch(...)` — never await in the sync response path |
-| **Remote changes trigger store listeners** | Must set `isApplyingRemoteRef.current = true` BEFORE applying, clear AFTER microtask drain (setTimeout 0) |
-| **`suspendAutoSync` is critical** | Without it, remote changes trigger the CrudManager to sync back, creating an infinite loop |
-| **Phantom IDs in additions** | New records arrive with `$PhantomId` in input but `id` in result — must resolve before `store.add()` |
-| **Parent ID resolution** | Tasks with `parentId` referencing phantom IDs must resolve to real IDs or tree structure breaks |
-| **Hook rules with conditional channels** | `useChannel`/`usePresence` called unconditionally with `skip` param — never wrap in conditionals |
-
 ## MCP Integration
 - **Context7 MCP**: Primary tool — always resolve Bryntum Gantt library and query docs before changes
 - Query examples:
@@ -276,23 +203,6 @@ The Ably layer is an *addition* to the existing sync flow, not a replacement. If
 # 1. Context7: query "Gantt undo redo STM"
 # 2. Review GanttToolbar.tsx and useGanttControls.ts
 # 3. Implement following existing toolbar pattern
-```
-
-### Debug Ably Real-Time Sync
-```
-/gantt remote changes aren't showing up for other users --feature sync
-# 1. Check broadcastGanttChanges is called in sync/route.ts
-# 2. Check useGanttRealtime hook is enabled (projectId + userId present)
-# 3. Verify isApplyingRemoteRef flag isn't stuck true
-# 4. Check Ably auth token has correct channel capability
-```
-
-### Add Real-Time Feature
-```
-/gantt show which task another user is currently editing
-# 1. Review useGanttRealtime.ts presence data structure
-# 2. Update presence data with selected task on click
-# 3. Add editing indicator to task rows via GanttPresence
 ```
 
 ## Boundaries
