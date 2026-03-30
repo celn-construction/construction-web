@@ -16,20 +16,7 @@ import { useTaskPopover } from './hooks/useTaskPopover';
 import { useGanttControls } from './hooks/useGanttControls';
 import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
 import { validateParentDuration } from './utils/ganttValidation';
-import dynamic from 'next/dynamic';
-import { ChannelProvider } from 'ably/react';
-import { useGanttRealtime } from './hooks/useGanttRealtime';
-import GanttPresence from './components/GanttPresence';
 import GanttLoadingSpinner from './components/GanttLoadingSpinner';
-
-// Dynamic import so Ably SDK is only loaded when realtime is enabled.
-// Renders null while loading — no DOM disruption to siblings.
-const AblyProviderLazy = dynamic(() => import('@/components/providers/AblyProvider'), { ssr: false });
-
-type PresenceData = Array<{
-  clientId: string;
-  data?: { name?: string; avatar?: string; joinedAt?: number };
-}>;
 
 const WRAPPER_STYLE: CSSProperties = {
   display: 'flex',
@@ -54,95 +41,15 @@ const STALE_THRESHOLD_MS = 60_000; // 60 seconds
 interface BryntumGanttWrapperProps {
   projectId?: string;
   isVisible?: boolean;
-  userId?: string;
-  userName?: string;
-  userAvatar?: string;
-  realtimeEnabled?: boolean;
 }
-
-interface BryntumGanttCoreProps extends BryntumGanttWrapperProps {
-  ganttControls: ReturnType<typeof useGanttControls>;
-  isApplyingRemoteRef: React.MutableRefObject<boolean>;
-  presenceData: PresenceData;
-}
-
-// ─── Realtime listener — runs inside ChannelProvider, NEVER wraps the Gantt ──
-
-function RealtimeListener({
-  projectId,
-  userId,
-  userName,
-  userAvatar,
-  getGanttInstance,
-  onStateChange,
-}: {
-  projectId?: string;
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  getGanttInstance: () => BryntumGanttInstance | null;
-  onStateChange: (state: { isApplyingRemoteRef: React.MutableRefObject<boolean>; presenceData: PresenceData }) => void;
-}) {
-  const { isApplyingRemoteRef, presenceData } = useGanttRealtime({
-    projectId,
-    userId,
-    userName,
-    userAvatar,
-    getGanttInstance,
-    enabled: !!projectId,
-  });
-
-  // Push realtime state up to the parent without re-mounting the Gantt
-  useEffect(() => {
-    onStateChange({ isApplyingRemoteRef, presenceData });
-  }, [isApplyingRemoteRef, presenceData, onStateChange]);
-
-  return null; // No DOM — just hooks
-}
-
-// ─── Exported wrapper — BryntumGanttCore is always a sibling, never a child ──
 
 export default function BryntumGanttWrapper(props: BryntumGanttWrapperProps) {
   const ganttControls = useGanttControls();
-  const noopRef = useRef(false);
-  const [realtimeState, setRealtimeState] = useState<{
-    isApplyingRemoteRef: React.MutableRefObject<boolean>;
-    presenceData: PresenceData;
-  }>({ isApplyingRemoteRef: noopRef, presenceData: [] });
 
-  const handleStateChange = useCallback((state: { isApplyingRemoteRef: React.MutableRefObject<boolean>; presenceData: PresenceData }) => {
-    setRealtimeState(state);
-  }, []);
-
-  return (
-    <>
-      <BryntumGanttCore
-        {...props}
-        ganttControls={ganttControls}
-        isApplyingRemoteRef={realtimeState.isApplyingRemoteRef}
-        presenceData={realtimeState.presenceData}
-      />
-      {props.realtimeEnabled && props.projectId && (
-        <AblyProviderLazy projectId={props.projectId}>
-          <ChannelProvider channelName={`project:${props.projectId}:gantt`}>
-            <RealtimeListener
-              projectId={props.projectId}
-              userId={props.userId ?? ''}
-              userName={props.userName ?? ''}
-              userAvatar={props.userAvatar}
-              getGanttInstance={ganttControls.getGanttInstance}
-              onStateChange={handleStateChange}
-            />
-          </ChannelProvider>
-        </AblyProviderLazy>
-      )}
-    </>
-  );
+  return <BryntumGanttCore {...props} ganttControls={ganttControls} />;
 }
 
-// ─── Core — all Gantt state/logic, no Ably hooks ─────────────────────────────
-
-function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userAvatar, realtimeEnabled = false, ganttControls, isApplyingRemoteRef, presenceData }: BryntumGanttCoreProps) {
+function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: BryntumGanttWrapperProps & { ganttControls: ReturnType<typeof useGanttControls> }) {
   const {
     ganttRef,
     getGanttInstance,
@@ -489,11 +396,6 @@ function BryntumGanttCore({ projectId, isVisible = true, userId, userName, userA
         onZoomToFit={handleZoomToFit}
         onShiftPrevious={handleShiftPrevious}
         onShiftNext={handleShiftNext}
-        presenceSlot={
-          realtimeEnabled && userId ? (
-            <GanttPresence currentUserId={userId} presenceData={presenceData} />
-          ) : undefined
-        }
       />
 
       {/* Bryntum must always render in a visible container so its internal layout

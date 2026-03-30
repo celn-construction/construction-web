@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/server/db";
-import { env } from "@/env";
 import { ProjectProvider } from "@/components/providers/ProjectProvider";
 import ProjectShell from "@/components/layout/ProjectShell";
 
@@ -76,10 +75,6 @@ export default async function ProjectLayout({
       <ProjectShell
         projectId={project.id}
         projectName={project.name}
-        userId={session.user.id}
-        userName={session.user.name ?? session.user.email}
-        userImage={session.user.image ?? undefined}
-        realtimeEnabled={!!env.ABLY_API_KEY}
       >
         {children}
       </ProjectShell>

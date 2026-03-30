@@ -5,7 +5,6 @@ import { createCaller } from "@/server/api/root";
 import { createTRPCContext } from "@/server/api/trpc";
 import { getActiveOrganizationId } from "@/server/api/helpers/getActiveOrganization";
 import { db } from "@/server/db";
-import { broadcastGanttChanges } from "@/server/api/helpers/ganttBroadcast";
 
 export async function POST(request: Request) {
   try {
@@ -69,10 +68,6 @@ export async function POST(request: Request) {
     });
 
     console.log('[Gantt:sync] Success — task rows returned:', (result as { tasks?: { rows?: unknown[] } }).tasks?.rows?.length ?? 0);
-
-    // Broadcast changes to other connected clients via Ably (fire-and-forget)
-    void broadcastGanttChanges(projectId, session.user.id, body, result)
-      .catch((err) => console.error("[Ably] Failed to broadcast gantt changes:", err));
 
     return NextResponse.json(result);
   } catch (error) {
