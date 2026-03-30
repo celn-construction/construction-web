@@ -40,6 +40,8 @@ export function createGanttConfig(
   return {
     // Performance optimizations
     autoHeight: false,
+    loadMask: null,
+    syncMask: null,
     rowHeight: 45, // Consistent row height for better performance
     animateTreeNodeToggle: false, // Disable animations for faster rendering
     detectCSSCompatibilityIssues: false,
