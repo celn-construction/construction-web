@@ -143,6 +143,7 @@ export type GanttConfig = {
   bufferCoef?: number;
   detectCSSCompatibilityIssues: boolean;
   loadMask?: string | null | Record<string, unknown>;
+  syncMask?: string | null | Record<string, unknown>;
   rowHeight?: number;
   animateTreeNodeToggle?: boolean;
   project: {
