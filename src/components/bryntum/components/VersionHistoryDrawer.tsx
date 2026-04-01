@@ -1,0 +1,230 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  Drawer,
+  Box,
+  Typography,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Divider,
+} from '@mui/material';
+import { X, DotsThreeVertical, ClockCounterClockwise, Trash } from '@phosphor-icons/react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { formatDistanceToNow } from 'date-fns';
+import { api } from '@/trpc/react';
+import { useSnackbar } from '@/hooks/useSnackbar';
+import { hasPermission } from '@/lib/permissions';
+import type { Role } from '@/lib/permissions';
+
+interface VersionHistoryDrawerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  projectId: string;
+  memberRole: Role;
+  onRestore?: () => void;
+}
+
+export default function VersionHistoryDrawer({
+  open,
+  onOpenChange,
+  projectId,
+  memberRole,
+  onRestore,
+}: VersionHistoryDrawerProps) {
+  const utils = api.useUtils();
+  const { showSnackbar } = useSnackbar();
+  const canManage = hasPermission(memberRole, 'MANAGE_PROJECTS');
+
+  const [confirmAction, setConfirmAction] = useState<{ type: 'restore' | 'delete'; versionId: string; versionName: string } | null>(null);
+
+  const { data: versions = [], isLoading } = api.schedule.listVersions.useQuery(
+    { projectId },
+    { enabled: open },
+  );
+
+  const deleteMutation = api.schedule.deleteVersion.useMutation({
+    onSuccess: () => {
+      void utils.schedule.listVersions.invalidate({ projectId });
+      showSnackbar('Version deleted', 'success');
+      setConfirmAction(null);
+    },
+    onError: (error) => {
+      showSnackbar(error.message || 'Failed to delete version', 'error');
+    },
+  });
+
+  const restoreMutation = api.schedule.restoreVersion.useMutation({
+    onSuccess: () => {
+      void utils.schedule.listVersions.invalidate({ projectId });
+      showSnackbar('Version restored', 'success');
+      const restoredName = confirmAction?.versionName ?? '';
+      setConfirmAction(null);
+      onOpenChange(false);
+      // Trigger Gantt reload and notify store of restored version name
+      window.dispatchEvent(new CustomEvent('gantt-version-restored', { detail: { name: restoredName } }));
+      window.dispatchEvent(new Event('gantt-reload'));
+      onRestore?.();
+    },
+    onError: (error) => {
+      showSnackbar(error.message || 'Failed to restore version', 'error');
+    },
+  });
+
+  const handleConfirm = () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === 'delete') {
+      deleteMutation.mutate({ projectId, versionId: confirmAction.versionId });
+    } else {
+      restoreMutation.mutate({ projectId, versionId: confirmAction.versionId });
+    }
+  };
+
+  return (
+    <>
+      <Drawer
+        anchor="right"
+        open={open}
+        onClose={() => onOpenChange(false)}
+        PaperProps={{
+          sx: { width: 360, maxWidth: '100vw' },
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, py: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
+            <Typography sx={{ fontSize: 15, fontWeight: 600 }}>Version History</Typography>
+            <Typography sx={{ fontSize: 11, color: 'text.disabled', fontWeight: 500 }}>
+              {versions.length}/50
+            </Typography>
+          </Box>
+          <IconButton size="small" onClick={() => onOpenChange(false)} sx={{ p: 0.5 }}>
+            <X size={16} />
+          </IconButton>
+        </Box>
+        {versions.length >= 45 && (
+          <Box sx={{ mx: 2.5, mb: 1, px: 1.5, py: 1, borderRadius: '8px', bgcolor: versions.length >= 50 ? 'error.main' : 'warning.main', opacity: 0.9 }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'white', lineHeight: 1.3 }}>
+              {versions.length >= 50
+                ? 'Version limit reached. Delete older versions to save new ones.'
+                : `${50 - versions.length} versions remaining. Consider deleting older versions.`}
+            </Typography>
+          </Box>
+        )}
+        <Divider />
+
+        <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, py: 1.5 }}>
+          {isLoading ? (
+            <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center', py: 4 }}>
+              Loading...
+            </Typography>
+          ) : versions.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                No versions saved yet
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.5 }}>
+                Save a version to create a snapshot of your schedule
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {versions.map((version) => (
+                <Box
+                  key={version.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    px: 1.5,
+                    py: 1.25,
+                    borderRadius: '8px',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                >
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {version.name}
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.25 }}>
+                      {version.createdBy.name ?? version.createdBy.email} · {formatDistanceToNow(new Date(version.createdAt), { addSuffix: true })}
+                    </Typography>
+                  </Box>
+
+                  {canManage && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <IconButton size="small" sx={{ p: 0.5, flexShrink: 0 }}>
+                          <DotsThreeVertical size={16} weight="bold" />
+                        </IconButton>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => setConfirmAction({ type: 'restore', versionId: version.id, versionName: version.name })}
+                        >
+                          <ClockCounterClockwise size={14} style={{ marginRight: 8 }} />
+                          Restore
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setConfirmAction({ type: 'delete', versionId: version.id, versionName: version.name })}
+                        >
+                          <Trash size={14} style={{ marginRight: 8 }} />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+      </Drawer>
+
+      {/* Confirmation dialog */}
+      <Dialog open={!!confirmAction} onClose={() => setConfirmAction(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: 16, fontWeight: 600 }}>
+          {confirmAction?.type === 'restore' ? 'Restore Version' : 'Delete Version'}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: 13 }}>
+            {confirmAction?.type === 'restore'
+              ? `This will replace your current schedule with "${confirmAction.versionName}". This cannot be undone.`
+              : `Are you sure you want to delete "${confirmAction?.versionName}"? This cannot be undone.`}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button variant="outlined" size="small" onClick={() => setConfirmAction(null)}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            color={confirmAction?.type === 'delete' ? 'error' : 'primary'}
+            loading={deleteMutation.isPending || restoreMutation.isPending}
+            onClick={handleConfirm}
+          >
+            {confirmAction?.type === 'restore' ? 'Restore' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}

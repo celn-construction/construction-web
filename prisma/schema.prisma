@@ -37,6 +37,7 @@ model User {
     notifications      Notification[]
     activeOrganization Organization?    @relation("ActiveOrganization", fields: [activeOrganizationId], references: [id], onDelete: SetNull)
     activeProject      Project?         @relation("ActiveProject", fields: [activeProjectId], references: [id], onDelete: SetNull)
+    scheduleVersions   ScheduleVersion[]
 }
 
 model Session {
@@ -144,6 +145,7 @@ model Project {
     ganttAssignments GanttAssignment[]
     ganttTimeRanges GanttTimeRange[]
     activeUsers     User[]           @relation("ActiveProject")
+    scheduleVersions ScheduleVersion[]
 
     @@unique([organizationId, slug])
     @@index([organizationId])
@@ -347,4 +349,18 @@ model GanttTimeRange {
     project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
     @@index([projectId])
+}
+
+model ScheduleVersion {
+    id          String   @id @default(cuid())
+    projectId   String
+    name        String
+    snapshot    Json
+    createdById String
+    createdAt   DateTime @default(now())
+
+    project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    createdBy User    @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+    @@index([projectId, createdAt])
 }

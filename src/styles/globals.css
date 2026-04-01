@@ -65,15 +65,15 @@
   --lp-nav-btn: rgba(15, 23, 42, 0.06);
   --lp-nav-btn-hover: rgba(15, 23, 42, 0.10);
 
-  /* Gantt bar colors */
-  --gantt-task-bg: rgba(37, 99, 235, 0.18);
-  --gantt-task-fill: rgba(37, 99, 235, 0.45);
-  --gantt-task-border: rgba(37, 99, 235, 0.30);
-  --gantt-task-font: #1e40af;
-  --gantt-summary-bg: rgba(22, 163, 74, 0.18);
-  --gantt-summary-fill: rgba(22, 163, 74, 0.45);
-  --gantt-summary-border: rgba(22, 163, 74, 0.30);
-  --gantt-summary-font: #166534;
+  /* Gantt bar colors — deep indigo-blue child tasks, forest green parent tasks */
+  --gantt-task-bg: rgba(30, 64, 175, 0.85);
+  --gantt-task-fill: rgba(30, 64, 175, 0.95);
+  --gantt-task-border: rgba(30, 64, 175, 0.5);
+  --gantt-task-font: #FFFFFF;
+  --gantt-summary-bg: rgba(21, 128, 61, 0.80);
+  --gantt-summary-fill: rgba(21, 128, 61, 0.92);
+  --gantt-summary-border: rgba(21, 128, 61, 0.5);
+  --gantt-summary-font: #FFFFFF;
   --gantt-milestone-bg: rgba(217, 119, 6, 0.70);
   --gantt-milestone-border: rgba(217, 119, 6, 0.40);
 
@@ -260,6 +260,8 @@ body {
 
 /* Refined with subtle shadow and rounded corners */
 .bryntum-gantt-container .b-gantt-task {
+  background-color: var(--gantt-task-bg) !important;
+  border-color: var(--gantt-task-border) !important;
   border-radius: var(--gantt-task-radius) !important;
   box-shadow: var(--gantt-task-shadow) !important;
   border-width: 1px !important;
@@ -293,17 +295,39 @@ body {
   font-size: 11px !important;
   font-weight: 500 !important;
   letter-spacing: 0.01em !important;
+  color: var(--gantt-task-font) !important;
 }
 
 /* Progress bar inside task */
 .bryntum-gantt-container .b-gantt-task-percent {
+  background-color: var(--gantt-task-fill) !important;
   border-radius: var(--gantt-task-radius) 0 0 var(--gantt-task-radius) !important;
   opacity: 0.85 !important;
 }
 
-/* Parent/summary tasks — slightly tighter radius */
+/* Parent/summary tasks — light translucent navy to differentiate from solid child tasks.
+   Uses .gantt-parent-bar class added by taskRenderer for reliable targeting. */
+.bryntum-gantt-container .b-gantt-task.gantt-parent-bar,
 .bryntum-gantt-container .b-gantt-task.b-gantt-task-parent {
+  background-color: var(--gantt-summary-bg) !important;
+  border-color: var(--gantt-summary-border) !important;
   border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+.bryntum-gantt-container .b-gantt-task.gantt-parent-bar::before,
+.bryntum-gantt-container .b-gantt-task.b-gantt-task-parent::before {
+  display: none !important;
+}
+
+.bryntum-gantt-container .b-gantt-task.gantt-parent-bar .b-gantt-task-content,
+.bryntum-gantt-container .b-gantt-task.b-gantt-task-parent .b-gantt-task-content {
+  color: var(--gantt-summary-font) !important;
+}
+
+.bryntum-gantt-container .b-gantt-task.gantt-parent-bar .b-gantt-task-percent,
+.bryntum-gantt-container .b-gantt-task.b-gantt-task-parent .b-gantt-task-percent {
+  background-color: var(--gantt-summary-fill) !important;
 }
 
 /* ── Splitter ────────────────────────────────────────────────── */

@@ -8,6 +8,7 @@ import { LoadingProvider } from "@/components/providers/LoadingProvider";
 import ThemeRegistry from "@/components/providers/ThemeRegistry";
 import { SnackbarProvider } from "@/hooks/useSnackbar";
 
+
 export const metadata: Metadata = {
   title: "BuildTrack Pro",
   description: "Construction project management",

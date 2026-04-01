@@ -1,3 +1,5 @@
+import type { Model, Column, Grid, Row, TaskModel, DomClassList } from '@bryntum/gantt';
+
 export type PopoverPlacement = {
   anchorPosition: { top: number; left: number };
   transformOrigin: {
@@ -27,6 +29,31 @@ export type TaskClickEventPayload = {
 
 export type TaskClickHandler = (payload: TaskClickEventPayload) => void;
 
+/** Bryntum DomConfig — a virtual DOM node descriptor used by column renderers. */
+export interface BryntumDomConfig {
+  tag?: string;
+  class?: string;
+  html?: string;
+  text?: string;
+  style?: string | Record<string, string>;
+  dataset?: Record<string, string>;
+  children?: BryntumDomConfig[];
+  [key: string]: unknown;
+}
+
+/** Column renderer data — mirrors Bryntum's own renderer signature from gantt.d.ts. */
+export interface ColumnRendererData {
+  cellElement: HTMLElement;
+  value: unknown;
+  record: Model;
+  column: Column;
+  grid: Grid;
+  row: Row;
+  size: { height: number; configuredHeight: number };
+  isExport: boolean;
+  isMeasuring: boolean;
+}
+
 type GanttColumnConfig = {
   type: string;
   field?: string;
@@ -37,8 +64,8 @@ type GanttColumnConfig = {
   resizable?: boolean;
   sortable?: boolean;
   filterable?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   widgets?: Record<string, unknown>[];
+  renderer?: (data: ColumnRendererData) => string | BryntumDomConfig | BryntumDomConfig[] | HTMLElement | void;
 };
 
 type TooltipRendererArgs = {
@@ -149,8 +176,7 @@ export type GanttConfig = {
   project: {
     autoLoad: boolean;
     autoSync?: boolean;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    taskModelClass?: any;
+    taskModelClass?: typeof TaskModel;
     delayCalculation?: boolean;
     transport: {
       load: {
@@ -187,11 +213,32 @@ export type GanttConfig = {
   startDate?: Date;
   endDate?: Date;
   barMargin: number;
+  taskRenderer?: (detail: {
+    taskRecord: TaskModel;
+    renderData: {
+      cls: DomClassList | string;
+      style: string | Record<string, string>;
+      wrapperCls: DomClassList | string;
+      iconCls: DomClassList | string;
+    };
+  }) => string | BryntumDomConfig | BryntumDomConfig[];
   listeners: {
     taskClick?: TaskClickHandler;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    cellDblClick?: (...args: any[]) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    cellClick?: (...args: any[]) => void;
+    cellDblClick?: (event: {
+      grid: Grid;
+      record: Model;
+      column: Column;
+      cellElement: HTMLElement;
+      target: HTMLElement;
+      event: MouseEvent;
+    }) => void;
+    cellClick?: (event: {
+      grid: Grid;
+      record: Model;
+      column: Column;
+      cellElement: HTMLElement;
+      target: HTMLElement;
+      event: MouseEvent;
+    }) => void;
   };
 };

@@ -16,6 +16,7 @@ import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useNavigationLoading } from '@/hooks/useNavigationLoading';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
+import { api } from '@/trpc/react';
 import ProjectSwitcher from './ProjectSwitcher';
 import LocationWeather from './LocationWeather';
 
