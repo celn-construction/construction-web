@@ -45,6 +45,18 @@ function topologicalSortTasks(tasks: Array<Record<string, unknown>>): Array<Reco
     }
   }
 
+  // Append any orphaned tasks (parentId references a non-existent task)
+  // so they are not silently dropped during restore
+  if (sorted.length < tasks.length) {
+    const sortedIds = new Set(sorted.map((t) => t.id as string));
+    for (const task of tasks) {
+      if (!sortedIds.has(task.id as string)) {
+        // Clear the broken parentId so it can be inserted as a root task
+        sorted.push({ ...task, parentId: null });
+      }
+    }
+  }
+
   return sorted;
 }
 
@@ -110,24 +122,26 @@ export const scheduleRouter = createTRPCRouter({
       const projectId = ctx.project.id;
       const { versionId } = input;
 
-      const version = await ctx.db.scheduleVersion.findFirst({
-        where: { id: versionId, projectId },
+      const version = await ctx.db.scheduleVersion.findUnique({
+        where: { id: versionId },
         select: {
           id: true,
           name: true,
           snapshot: true,
           createdAt: true,
+          projectId: true,
           createdBy: {
             select: { id: true, name: true, email: true },
           },
         },
       });
 
-      if (!version) {
+      if (!version || version.projectId !== projectId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
       }
 
-      return version;
+      const { projectId: _, ...versionData } = version;
+      return versionData;
     }),
 
   deleteVersion: projectProcedure
@@ -140,11 +154,11 @@ export const scheduleRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN", message: "You don't have permission to delete versions" });
       }
 
-      const version = await ctx.db.scheduleVersion.findFirst({
-        where: { id: versionId, projectId },
+      const version = await ctx.db.scheduleVersion.findUnique({
+        where: { id: versionId },
       });
 
-      if (!version) {
+      if (!version || version.projectId !== projectId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
       }
 
@@ -165,11 +179,11 @@ export const scheduleRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN", message: "You don't have permission to restore versions" });
       }
 
-      const version = await ctx.db.scheduleVersion.findFirst({
-        where: { id: versionId, projectId },
+      const version = await ctx.db.scheduleVersion.findUnique({
+        where: { id: versionId },
       });
 
-      if (!version) {
+      if (!version || version.projectId !== projectId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
       }
 

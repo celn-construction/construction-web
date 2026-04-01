@@ -7,7 +7,7 @@ export const saveVersionSchema = z.object({
 export type SaveVersionInput = z.infer<typeof saveVersionSchema>;
 
 export const versionIdSchema = z.object({
-  versionId: z.string(),
+  versionId: z.string().cuid(),
 }).strict();
 
 export type VersionIdInput = z.infer<typeof versionIdSchema>;

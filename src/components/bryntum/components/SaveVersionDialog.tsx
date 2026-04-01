@@ -42,11 +42,26 @@ export default function SaveVersionDialog({ open, onOpenChange, projectId }: Sav
   const handleSave = useCallback((data: SaveVersionInput) => {
     setIsSyncing(true);
 
-    const onSyncDone = () => {
+    const SYNC_TIMEOUT_MS = 5000;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const cleanup = () => {
       window.removeEventListener('gantt-sync-done', onSyncDone);
+      clearTimeout(timeoutId);
+    };
+
+    const onSyncDone = () => {
+      cleanup();
       setIsSyncing(false);
       saveMutation.mutate({ ...data, projectId });
     };
+
+    timeoutId = setTimeout(() => {
+      cleanup();
+      setIsSyncing(false);
+      // Proceed with save even if sync event was not received
+      saveMutation.mutate({ ...data, projectId });
+    }, SYNC_TIMEOUT_MS);
 
     window.addEventListener('gantt-sync-done', onSyncDone);
     window.dispatchEvent(new Event('gantt-force-sync'));
