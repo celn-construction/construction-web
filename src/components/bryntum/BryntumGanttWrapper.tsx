@@ -567,11 +567,10 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-        /* Row actions ⋮ button — right side of name cell, hover-visible */
+        /* Row actions ⋮ button — right side of name cell, always visible */
         .gantt-row-actions-btn {
           flex-shrink: 0;
-          opacity: 0;
-          transition: opacity 0.15s;
+          opacity: 1;
           background: none;
           border: none;
           box-shadow: none;
@@ -584,11 +583,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           font-weight: bold;
           letter-spacing: 1px;
           line-height: 1;
-        }
-        .b-grid-row:hover .gantt-row-actions-btn,
-        .gantt-row-actions-btn:focus,
-        .gantt-row-actions-btn.gantt-menu-open {
-          opacity: 1;
         }
         .gantt-row-actions-btn:hover {
           background: rgba(0, 0, 0, 0.04);

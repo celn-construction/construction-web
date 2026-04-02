@@ -12,6 +12,7 @@ import VersionControlBar from '@/components/bryntum/components/VersionControlBar
 import TaskProgressCard from '@/components/bryntum/components/TaskProgressCard';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
+import { api } from '@/trpc/react';
 
 const BryntumGanttWrapper = dynamic(
   () => import('@/components/bryntum/BryntumGanttWrapper'),
@@ -98,6 +99,11 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
   const [ganttMounted, setGanttMounted] = useState(false);
   const [filesMounted, setFilesMounted] = useState(false);
 
+  const { data: reqStats } = api.gantt.requirementStats.useQuery(
+    { organizationId: activeOrganizationId!, projectId },
+    { enabled: !!activeOrganizationId }
+  );
+
   // Lazy-mount each tab on first visit — avoids loading heavy bundles until needed
   useEffect(() => {
     if (isGanttRoute && !ganttMounted) {
@@ -127,8 +133,8 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
             {currentProject && (
               <>
                 <TaskProgressCard
-                  completedTaskCount={currentProject.completedTaskCount ?? 0}
-                  taskCount={currentProject.taskCount ?? 0}
+                  uploaded={reqStats?.totalUploaded ?? 0}
+                  required={reqStats?.totalRequired ?? 0}
                 />
                 <SchedulePill endDate={currentProject.endDate as string | null} />
               </>

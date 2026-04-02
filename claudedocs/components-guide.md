@@ -212,6 +212,16 @@ bryntum/
     BryntumPanelHeader.tsx
     CsiCodeSelector.tsx
     GanttLoadingSpinner.tsx
+    task-popover/             ← extracted sub-components for TaskDetailsPopover
+      types.ts
+      TaskHeader.tsx
+      CoverImageBanner.tsx
+      FolderRow.tsx
+      BaseFolderContent.tsx
+      PhotosFolderContent.tsx
+      TrackableFolderContent.tsx
+      RequirementCounter.tsx
+      FilePreviewPanel.tsx
   hooks/
     useTaskPopover.ts
     useBryntumThemeAssets.ts

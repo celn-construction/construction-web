@@ -13,6 +13,8 @@ export interface Folder {
   isLeaf: boolean;
   color: string;
   children?: FolderChild[];
+  trackable?: boolean;
+  requirementField?: 'requiredSubmittals' | 'requiredInspections';
 }
 
 export const folderData: Folder[] = [
@@ -27,6 +29,8 @@ export const folderData: Folder[] = [
     name: 'Submittals',
     isLeaf: false,
     color: '#2563EB',
+    trackable: true,
+    requirementField: 'requiredSubmittals',
     children: [
       { id: 'submittals-product', name: 'Product Data' },
       { id: 'submittals-shop', name: 'Shop Drawings' },
@@ -50,6 +54,8 @@ export const folderData: Folder[] = [
     name: 'Inspections',
     isLeaf: false,
     color: '#8E44AD',
+    trackable: true,
+    requirementField: 'requiredInspections',
     children: [
       { id: 'inspections-structural', name: 'Structural' },
       { id: 'inspections-mep', name: 'MEP' },

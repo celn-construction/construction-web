@@ -4,28 +4,49 @@ import { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 
 interface TaskProgressCardProps {
-  completedTaskCount: number;
-  taskCount: number;
+  uploaded: number;
+  required: number;
 }
 
-const SEGMENT_COUNT = 8;
+export default function TaskProgressCard({ uploaded, required }: TaskProgressCardProps) {
+  const percent = required > 0 ? Math.min(Math.round((uploaded / required) * 100), 100) : 0;
+  const isFulfilled = required > 0 && uploaded >= required;
+  const remaining = Math.max(required - uploaded, 0);
 
-export default function TaskProgressCard({ completedTaskCount, taskCount }: TaskProgressCardProps) {
-  const percent = taskCount > 0 ? Math.round((completedTaskCount / taskCount) * 100) : 0;
-  const filledSegments = Math.round((percent / 100) * SEGMENT_COUNT);
-
-  const fillColor = useMemo(() => {
-    if (percent >= 100) return 'var(--status-green)';
-    if (percent >= 60) return 'var(--status-amber)';
+  const accentColor = useMemo(() => {
+    if (isFulfilled) return 'var(--status-green)';
+    if (percent >= 50) return 'var(--status-amber)';
     return 'var(--accent-primary)';
-  }, [percent]);
+  }, [percent, isFulfilled]);
+
+  if (required === 0) {
+    return (
+      <Box
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          height: 34,
+          px: 1.5,
+          borderRadius: '10px',
+          bgcolor: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+          flexShrink: 0,
+        }}
+      >
+        <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1, whiteSpace: 'nowrap' }}>
+          No requirements set
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box
       sx={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 1,
+        gap: '10px',
         height: 34,
         pl: 1.25,
         pr: 1.5,
@@ -36,74 +57,59 @@ export default function TaskProgressCard({ completedTaskCount, taskCount }: Task
         flexShrink: 0,
       }}
     >
-      {/* Segment gauge */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '2px',
-        }}
-      >
-        {Array.from({ length: SEGMENT_COUNT }, (_, i) => {
-          const isFilled = i < filledSegments;
-          return (
-            <Box
-              key={i}
-              sx={{
-                width: 4,
-                height: 14,
-                borderRadius: '1.5px',
-                bgcolor: isFilled ? fillColor : 'var(--border-color)',
-                opacity: isFilled ? 1 - i * 0.03 : 0.5,
-                transition: 'background-color 0.3s ease, opacity 0.3s ease',
-              }}
-            />
-          );
-        })}
-      </Box>
-
-      {/* Fraction */}
+      {/* Big remaining number — the hero */}
       <Typography
-        component="span"
         sx={{
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          color: 'text.primary',
+          fontSize: '1.0625rem',
+          fontWeight: 700,
+          color: isFulfilled ? 'var(--status-green)' : 'text.primary',
           lineHeight: 1,
           fontVariantNumeric: 'tabular-nums',
-          letterSpacing: '-0.02em',
-          whiteSpace: 'nowrap',
+          letterSpacing: '-0.03em',
         }}
       >
-        {completedTaskCount}
-        <Typography
-          component="span"
-          sx={{
-            fontSize: '0.6875rem',
-            fontWeight: 400,
-            color: 'text.disabled',
-            mx: '1px',
-          }}
-        >
-          /
-        </Typography>
-        {taskCount}
+        {remaining}
       </Typography>
 
-      {/* Label */}
-      <Typography
-        sx={{
-          fontSize: '0.5625rem',
-          fontWeight: 600,
-          color: 'text.disabled',
-          lineHeight: 1,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        tasks
-      </Typography>
+      {/* Right side: bar + label */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 52 }}>
+        {/* Progress bar */}
+        <Box
+          sx={{
+            width: '100%',
+            height: 3,
+            borderRadius: '1.5px',
+            bgcolor: 'rgba(0,0,0,0.06)',
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              height: '100%',
+              borderRadius: '1.5px',
+              bgcolor: accentColor,
+              width: `${percent}%`,
+              minWidth: uploaded > 0 ? 3 : 0,
+              transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease',
+            }}
+          />
+        </Box>
+
+        {/* Label */}
+        <Typography
+          sx={{
+            fontSize: '0.5rem',
+            fontWeight: 600,
+            color: isFulfilled ? 'var(--status-green)' : 'text.disabled',
+            lineHeight: 1,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {isFulfilled ? 'all complete' : `remaining of ${required}`}
+        </Typography>
+      </Box>
     </Box>
   );
 }
