@@ -3,10 +3,15 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import { CalendarDots } from '@phosphor-icons/react';
+import { differenceInCalendarDays } from 'date-fns';
 import FilesContent from '@/components/files/FilesContent';
 import GanttLoadingSpinner from '@/components/bryntum/components/GanttLoadingSpinner';
 import VersionControlBar from '@/components/bryntum/components/VersionControlBar';
+import TaskProgressCard from '@/components/bryntum/components/TaskProgressCard';
+import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
+import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 
 const BryntumGanttWrapper = dynamic(
   () => import('@/components/bryntum/BryntumGanttWrapper'),
@@ -26,8 +31,68 @@ interface ProjectShellProps {
   projectName: string;
 }
 
+function SchedulePill({ endDate }: { endDate: string | null }) {
+  if (!endDate) {
+    return (
+      <Box
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.625,
+          height: 34,
+          px: 1.25,
+          borderRadius: '10px',
+          bgcolor: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+          flexShrink: 0,
+        }}
+      >
+        <CalendarDots size={13} style={{ flexShrink: 0, opacity: 0.4 }} />
+        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1, whiteSpace: 'nowrap' }}>
+          No end date
+        </Typography>
+      </Box>
+    );
+  }
+
+  const daysLeft = differenceInCalendarDays(new Date(endDate), new Date());
+  const label =
+    daysLeft > 0
+      ? `${daysLeft}d left`
+      : daysLeft === 0
+        ? 'Due today'
+        : `${Math.abs(daysLeft)}d overdue`;
+  const color =
+    daysLeft > 0 ? 'text.secondary' : daysLeft === 0 ? 'var(--status-amber)' : 'var(--status-red)';
+
+  return (
+    <Box
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.625,
+        height: 34,
+        px: 1.25,
+        borderRadius: '10px',
+        bgcolor: 'var(--bg-card)',
+        border: '1px solid var(--border-color)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+        flexShrink: 0,
+      }}
+    >
+      <CalendarDots size={13} style={{ flexShrink: 0, opacity: 0.5 }} />
+      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color, lineHeight: 1, whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+        {label}
+      </Typography>
+    </Box>
+  );
+}
+
 export default function ProjectShell({ children, projectId, projectName }: ProjectShellProps) {
   const pathname = usePathname();
+  const { activeOrganizationId, orgSlug } = useOrgFromUrl();
+  const { currentProject } = useProjectSwitcher(activeOrganizationId, orgSlug);
   const isGanttRoute = pathname.endsWith('/gantt');
   const isFilesRoute = pathname.endsWith('/files');
   const [ganttMounted, setGanttMounted] = useState(false);
@@ -58,7 +123,20 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
             display: isGanttRoute ? 'flex' : 'none',
           }}
         >
-          <VersionControlBar />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5, flexShrink: 0 }}>
+            {currentProject && (
+              <>
+                <TaskProgressCard
+                  completedTaskCount={currentProject.completedTaskCount ?? 0}
+                  taskCount={currentProject.taskCount ?? 0}
+                />
+                <SchedulePill endDate={currentProject.endDate as string | null} />
+              </>
+            )}
+            <Box sx={{ flex: 1 }}>
+              <VersionControlBar />
+            </Box>
+          </Box>
           <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
             <BryntumGanttWrapper
               projectId={projectId}
