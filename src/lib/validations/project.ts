@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { VALID_PROJECT_ICONS } from "@/lib/constants/projectIcons";
 
 export const createProjectSchema = z.object({
   name: z.string().min(1, "Project name is required").max(100).trim(),
   location: z.string().min(1, "Location is required").max(200).trim(),
+  icon: z.enum(VALID_PROJECT_ICONS).default("building").optional(),
   template: z.enum(["BLANK"]).default("BLANK").optional(),
 });
 

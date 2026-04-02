@@ -122,6 +122,7 @@ model Project {
     name           String
     location       String          @default("")
     slug           String
+    icon           String          @default("building")
     status         String          @default("active")
     organizationId String
     template       ProjectTemplate @default(BLANK)

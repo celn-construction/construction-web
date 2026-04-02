@@ -163,7 +163,9 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     // We dispatch individual change events; the ganttChangesStore accumulates them.
     const taskStore = gantt.project.taskStore;
 
-    const onTaskAdd = ({ records }: { records: Array<{ id?: string; name?: string; isRoot?: boolean }> }) => {
+    const onTaskAdd = ({ records, isExpand }: { records: Array<{ id?: string; name?: string; isRoot?: boolean }>; isExpand?: boolean }) => {
+      // Skip expand/collapse visibility changes — these are not real additions
+      if (isExpand) return;
       const tasks = records
         .filter((r) => !r.isRoot && r.id)
         .map((r) => ({ id: String(r.id), name: r.name ?? 'New Task' }));
@@ -174,7 +176,9 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       }
     };
 
-    const onTaskRemove = ({ records }: { records: Array<{ id?: string; name?: string; isRoot?: boolean }> }) => {
+    const onTaskRemove = ({ records, isCollapse }: { records: Array<{ id?: string; name?: string; isRoot?: boolean }>; isCollapse?: boolean }) => {
+      // Skip expand/collapse visibility changes — these are not real removals
+      if (isCollapse) return;
       const tasks = records
         .filter((r) => !r.isRoot && r.id)
         .map((r) => ({ id: String(r.id), name: r.name ?? 'Task' }));
