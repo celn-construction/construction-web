@@ -88,3 +88,36 @@ vercel env pull .env.production --environment production --scope celn --yes
 ```bash
 printf 'value' | vercel env add KEY_NAME development --scope celn --force
 ```
+
+## PR Checklist
+
+Before merging any PR, verify the following. Skipping these steps has caused production/preview outages in the past.
+
+### Database & Schema
+- [ ] **If `prisma/schema.prisma` changed**: a new migration file exists in `prisma/migrations/`. `db:push` only updates your local database — Vercel runs `prisma migrate deploy` which requires migration files. Use `npx prisma migrate dev --name <name>` to generate one.
+- [ ] **Migration is additive**: new columns have defaults or are nullable, so existing rows don't break.
+- [ ] **Migration file is committed**: check `git status prisma/migrations/` — the `.sql` file must be tracked.
+
+### Environment Variables
+- [ ] **If new env vars were added**: they are set in Vercel for all target environments (development, preview, production). Check with `vercel env ls --scope celn`.
+- [ ] **If env vars are required**: they are added to `src/env.js` validation schema so the build fails fast with a clear message instead of a runtime crash.
+
+### Build & Types
+- [ ] **TypeScript compiles**: `npx tsc --noEmit` passes with no errors.
+- [ ] **Build succeeds locally**: `npm run build` completes (or at minimum, no new type errors introduced).
+
+### Auth & Origins
+- [ ] **If auth or middleware changed**: trusted origins in `src/lib/auth.ts` still cover `APP_URL`, `VERCEL_URL`, and `VERCEL_BRANCH_URL`.
+- [ ] **If new routes were added**: they are either protected by middleware or explicitly listed in the pass-through routes in `src/middleware.ts`.
+
+### Quick Verify Commands
+```bash
+# Schema changed? Make sure a migration exists:
+git diff main --name-only | grep schema.prisma && ls prisma/migrations/ | tail -1
+
+# Type check:
+npx tsc --noEmit
+
+# Check for uncommitted migration files:
+git status prisma/migrations/
+```
