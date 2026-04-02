@@ -1,12 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Box,
-  Stack,
-  IconButton,
-  Divider,
-} from '@mui/material';
+import { Box, Stack } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,39 +21,48 @@ const VIEW_PRESETS = [
   { label: 'Year',  value: 'monthAndYear' },
 ] as const;
 
-const ICON_SIZE = 14;
+// ─── Shared card styles (matches VersionControlBar / TaskProgressCard) ────────
 
-// ─── MUI sx overrides ─────────────────────────────────────────────────────────
+/** Card container — groups related controls into a single rounded pill */
+const cardContainerSx = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  height: 34,
+  bgcolor: 'var(--bg-card)',
+  borderRadius: '10px',
+  border: '1px solid var(--border-color)',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+  overflow: 'hidden',
+} as const;
 
-/** Small outlined toolbar button (zoom –/+/Fit, nav) */
-const toolBtnSx = {
-  minWidth: 0,
-  px: '10px',
-  py: '4px',
-  fontSize: '12px',
+/** Borderless button inside a card container */
+const cardItemSx = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '100%',
+  px: 1.25,
+  border: 'none',
+  bgcolor: 'transparent',
+  color: 'var(--text-secondary)',
+  cursor: 'pointer',
+  fontSize: '0.6875rem',
   fontWeight: 500,
   fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
-  textTransform: 'none',
-  color: 'var(--text-secondary)',
-  borderColor: 'var(--border-color)',
-  borderRadius: '6px',
-  lineHeight: 1.5,
+  letterSpacing: '-0.01em',
+  lineHeight: 1,
+  transition: 'background-color 0.15s, color 0.15s',
   '&:hover': {
-    borderColor: 'var(--border-color)',
-    backgroundColor: 'action.hover',
+    bgcolor: 'action.hover',
   },
 } as const;
 
-/** Small icon-only toolbar button (nav arrows, export, more) */
-const iconBtnSx = {
-  width: 32,
-  height: 32,
-  border: '1px solid var(--border-color)',
-  borderRadius: '8px',
-  color: 'var(--text-secondary)',
-  '&:hover': {
-    backgroundColor: 'action.hover',
-  },
+/** Thin vertical separator inside a card */
+const cardDividerSx = {
+  width: '1px',
+  height: 14,
+  bgcolor: 'divider',
+  flexShrink: 0,
 } as const;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -129,6 +133,8 @@ export default function GanttToolbar({
     },
   });
 
+  const hasRightControls = onExport || onColumnsClick || onMoreClick;
+
   return (
     <Stack
       direction="row"
@@ -172,57 +178,60 @@ export default function GanttToolbar({
         })}
       </Box>
 
-      {/* ── Zoom Controls ──────────────────────────────────────────────── */}
-      <Stack direction="row" spacing={0.25} alignItems="center">
-        <Button variant="outlined" size="small" sx={toolBtnSx} onClick={onZoomOut} title="Zoom out">
+      {/* ── Zoom + Nav Controls ──────────────────────────────────────────── */}
+      <Box sx={cardContainerSx}>
+        <Box component="button" sx={cardItemSx} onClick={onZoomOut} title="Zoom out">
           –
-        </Button>
-        <Button variant="outlined" size="small" sx={toolBtnSx} onClick={onZoomIn} title="Zoom in">
+        </Box>
+        <Box sx={cardDividerSx} />
+        <Box component="button" sx={cardItemSx} onClick={onZoomIn} title="Zoom in">
           +
-        </Button>
-        <Button variant="outlined" size="small" sx={toolBtnSx} onClick={onZoomToFit} title="Fit all tasks">
+        </Box>
+        <Box sx={cardDividerSx} />
+        <Box component="button" sx={cardItemSx} onClick={onZoomToFit} title="Fit all tasks">
           Fit
-        </Button>
-
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 'auto', height: 18, alignSelf: 'center' }} />
-
-        <IconButton size="small" sx={iconBtnSx} onClick={onShiftPrevious} title="Previous time span">
-          <CaretDoubleLeft size={ICON_SIZE} />
-        </IconButton>
-        <IconButton size="small" sx={iconBtnSx} onClick={onShiftNext} title="Next time span">
-          <CaretDoubleRight size={ICON_SIZE} />
-        </IconButton>
-
-      </Stack>
+        </Box>
+        <Box sx={cardDividerSx} />
+        <Box component="button" sx={cardItemSx} onClick={onShiftPrevious} title="Previous time span">
+          <CaretDoubleLeft size={12} weight="bold" />
+        </Box>
+        <Box sx={cardDividerSx} />
+        <Box component="button" sx={cardItemSx} onClick={onShiftNext} title="Next time span">
+          <CaretDoubleRight size={12} weight="bold" />
+        </Box>
+      </Box>
 
       {/* ── Spacer ─────────────────────────────────────────────────────── */}
       <Box sx={{ flex: 1 }} />
 
       {/* ── Right Controls ─────────────────────────────────────────────── */}
-      <Stack direction="row" spacing={0.5} alignItems="center">
-        {onExport && (
-          <IconButton size="small" sx={iconBtnSx} onClick={onExport} title="Export">
-            <DownloadSimple size={ICON_SIZE} />
-          </IconButton>
-        )}
-        {onColumnsClick && (
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Columns size={ICON_SIZE} />}
-            onClick={onColumnsClick}
-            title="Configure columns"
-            sx={{ ...toolBtnSx, borderRadius: '8px', gap: '6px' }}
-          >
-            Columns
-          </Button>
-        )}
-        {onMoreClick && (
-          <IconButton size="small" sx={iconBtnSx} onClick={onMoreClick} title="More options">
-            <DotsThreeVertical size={ICON_SIZE} />
-          </IconButton>
-        )}
-      </Stack>
+      {hasRightControls && (
+        <Box sx={cardContainerSx}>
+          {onExport && (
+            <Box component="button" sx={cardItemSx} onClick={onExport} title="Export">
+              <DownloadSimple size={12} weight="bold" />
+            </Box>
+          )}
+          {onExport && (onColumnsClick || onMoreClick) && <Box sx={cardDividerSx} />}
+          {onColumnsClick && (
+            <Box
+              component="button"
+              sx={{ ...cardItemSx, gap: 0.5, px: 1.5 }}
+              onClick={onColumnsClick}
+              title="Configure columns"
+            >
+              <Columns size={12} weight="bold" />
+              Columns
+            </Box>
+          )}
+          {onColumnsClick && onMoreClick && <Box sx={cardDividerSx} />}
+          {onMoreClick && (
+            <Box component="button" sx={cardItemSx} onClick={onMoreClick} title="More options">
+              <DotsThreeVertical size={12} weight="bold" />
+            </Box>
+          )}
+        </Box>
+      )}
 
       {/* ── Add Task ───────────────────────────────────────────────────── */}
       {onAddTask && (

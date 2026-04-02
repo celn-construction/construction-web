@@ -148,6 +148,7 @@ export const projectRouter = createTRPCRouter({
         data: {
           name: input.name,
           location: input.location,
+          icon: input.icon,
           slug,
           status: "active",
           organizationId,

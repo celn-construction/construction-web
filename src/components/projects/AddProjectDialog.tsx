@@ -2,7 +2,7 @@
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, ArrowRight, MapPin } from 'lucide-react';
+import { ArrowRight, MapPin } from '@phosphor-icons/react';
 import { api } from '@/trpc/react';
 import { useRouter } from 'next/navigation';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Tooltip,
   Typography,
   alpha,
   useTheme,
@@ -24,6 +25,10 @@ import {
   createProjectSchema,
   type CreateProjectInput,
 } from '@/lib/validations/project';
+import {
+  PROJECT_ICON_OPTIONS,
+  getProjectIcon,
+} from '@/lib/constants/projectIconComponents';
 import usePlacesAutocomplete, { getGeocode } from 'use-places-autocomplete';
 import { useState, useCallback, useEffect } from 'react';
 import { env } from '@/env';
@@ -232,15 +237,20 @@ export default function AddProjectDialog({
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<CreateProjectInput>({
     resolver: zodResolver(createProjectSchema),
     defaultValues: {
       name: '',
       location: '',
+      icon: 'building',
       template: 'BLANK',
     },
   });
+
+  const selectedIcon = watch('icon') ?? 'building';
+  const HeaderIcon = getProjectIcon(selectedIcon);
 
   const createProject = api.project.create.useMutation({
     onSuccess: (newProject) => {
@@ -310,9 +320,10 @@ export default function AddProjectDialog({
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
+                transition: 'all 0.15s ease',
               }}
             >
-              <Building2
+              <HeaderIcon
                 size={22}
                 style={{ color: theme.palette.primary.main }}
               />
@@ -345,6 +356,80 @@ export default function AddProjectDialog({
 
         <DialogContent sx={{ px: 3.5, pt: 2.5, pb: 1 }}>
           <form onSubmit={handleSubmit(onSubmit)} id="add-project-form">
+            {/* Icon Picker */}
+            <Typography
+              component="label"
+              sx={{
+                display: 'block',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'text.secondary',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                mb: 0.75,
+              }}
+            >
+              Icon
+            </Typography>
+            <Controller
+              name="icon"
+              control={control}
+              render={({ field }) => (
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, 1fr)',
+                    gap: 0.75,
+                    mb: 2.5,
+                  }}
+                >
+                  {PROJECT_ICON_OPTIONS.map(({ id, label, Icon }) => {
+                    const isSelected = (field.value ?? 'building') === id;
+                    return (
+                      <Tooltip key={id} title={label} arrow placement="top">
+                        <Box
+                          component="button"
+                          type="button"
+                          onClick={() => field.onChange(id)}
+                          sx={{
+                            width: '100%',
+                            aspectRatio: '1',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '10px',
+                            border: '1.5px solid',
+                            borderColor: isSelected
+                              ? theme.palette.primary.main
+                              : 'transparent',
+                            bgcolor: isSelected
+                              ? alpha(theme.palette.primary.main, 0.08)
+                              : 'transparent',
+                            color: isSelected
+                              ? theme.palette.primary.main
+                              : theme.palette.text.secondary,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            p: 0,
+                            '&:hover': {
+                              bgcolor: isSelected
+                                ? alpha(theme.palette.primary.main, 0.12)
+                                : alpha(theme.palette.divider, 0.12),
+                              color: isSelected
+                                ? theme.palette.primary.main
+                                : theme.palette.text.primary,
+                            },
+                          }}
+                        >
+                          <Icon size={20} weight={isSelected ? 'fill' : 'regular'} />
+                        </Box>
+                      </Tooltip>
+                    );
+                  })}
+                </Box>
+              )}
+            />
+
             {/* Project Name */}
             <Typography
               component="label"

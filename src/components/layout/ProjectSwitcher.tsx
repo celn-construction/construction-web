@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { ChevronsUpDown, Search, Check, Plus } from 'lucide-react';
-import { Buildings } from '@phosphor-icons/react';
+import { getProjectIcon } from '@/lib/constants/projectIconComponents';
 import { Box, Typography, Menu, ButtonBase } from '@mui/material';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
@@ -63,7 +63,10 @@ export default function ProjectSwitcher() {
           '&:hover': { bgcolor: 'action.selected' },
         }}
       >
-        <Buildings size={15} style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }} />
+        {(() => {
+          const CurrentIcon = getProjectIcon(currentProject?.icon);
+          return <CurrentIcon size={15} style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }} />;
+        })()}
         <Typography sx={{ fontSize: 14, fontWeight: 500, color: 'text.secondary', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
           {projectSlug && currentProject ? currentProject.name : 'Select project'}
         </Typography>
@@ -158,17 +161,14 @@ export default function ProjectSwitcher() {
                   '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
-                <Box
-                  sx={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    flexShrink: 0,
-                    bgcolor: getStatusColor(project.status),
-                    mt: 0.25,
-                    alignSelf: 'flex-start',
-                  }}
-                />
+                {(() => {
+                  const ItemIcon = getProjectIcon(project.icon);
+                  return (
+                    <Box sx={{ flexShrink: 0, color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
+                      <ItemIcon size={14} />
+                    </Box>
+                  );
+                })()}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Typography
