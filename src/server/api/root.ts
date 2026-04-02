@@ -11,6 +11,7 @@ import { notificationRouter } from "@/server/api/routers/notification";
 import { ganttRouter } from "@/server/api/routers/gantt";
 import { betaRouter } from "@/server/api/routers/beta";
 import { weatherRouter } from "@/server/api/routers/weather";
+import { scheduleRouter } from "@/server/api/routers/schedule";
 
 /**
  * This is the primary router for your server.
@@ -30,6 +31,7 @@ export const appRouter = createTRPCRouter({
   gantt: ganttRouter,
   beta: betaRouter,
   weather: weatherRouter,
+  schedule: scheduleRouter,
 });
 
 // export type definition of API

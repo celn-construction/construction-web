@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { Box } from '@mui/material';
 import FilesContent from '@/components/files/FilesContent';
 import GanttLoadingSpinner from '@/components/bryntum/components/GanttLoadingSpinner';
+import VersionControlBar from '@/components/bryntum/components/VersionControlBar';
 
 const BryntumGanttWrapper = dynamic(
   () => import('@/components/bryntum/BryntumGanttWrapper'),
@@ -57,6 +58,7 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
             display: isGanttRoute ? 'flex' : 'none',
           }}
         >
+          <VersionControlBar />
           <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
             <BryntumGanttWrapper
               projectId={projectId}

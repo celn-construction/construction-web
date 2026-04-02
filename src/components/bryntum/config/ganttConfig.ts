@@ -1,5 +1,6 @@
 import { TaskModel } from '@bryntum/gantt';
-import type { GanttConfig } from '../types';
+import type { DomClassList } from '@bryntum/gantt';
+import type { GanttConfig, ColumnRendererData } from '../types';
 
 // Extend TaskModel to include the `version` field used for optimistic locking.
 // Without this, Bryntum silently drops the version from loaded data and
@@ -51,9 +52,6 @@ export function createGanttConfig(
       autoSync: false,
       taskModelClass: VersionedTaskModel,
 
-      // Enable delay calculation for better initial load performance
-      delayCalculation: true,
-
       transport: projectId
         ? {
             load: {
@@ -86,7 +84,6 @@ export function createGanttConfig(
         },
       },
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     columns: [
       {
         type: 'name',
@@ -94,6 +91,24 @@ export function createGanttConfig(
         flex: 1,
         minWidth: 300,
         resizable: true,
+        // Inject a three-dot actions button alongside the task name.
+        // TreeColumn renderer return value replaces the cell content —
+        // return a DomConfig object that includes both the name and the button.
+        renderer({ value, record }: ColumnRendererData) {
+          return {
+            class: 'gantt-name-cell-inner',
+            children: [
+              { tag: 'span', class: 'gantt-name-text', text: String(value ?? '') },
+              {
+                tag: 'button',
+                class: 'gantt-row-actions-btn',
+                type: 'button',
+                dataset: { taskId: String(record.id) },
+                text: '⋮',
+              },
+            ],
+          };
+        },
       },
       // Single-clicking the name cell scrolls the timeline to the task's bar (see cellClick listener).
       // Double-clicking starts inline name editing (Bryntum native behavior).
@@ -110,63 +125,6 @@ export function createGanttConfig(
         width: 100,
         resizable: true,
       },
-      {
-        type: 'widget',
-        width: 40,
-        resizable: false,
-        sortable: false,
-        filterable: false,
-        text: '',
-        widgets: [
-          {
-            type: 'button',
-            menuIcon: false,
-            icon: 'b-icon b-icon-menu-vertical',
-            cls: 'gantt-row-actions-btn',
-            menu: {
-              items: {
-                taskDetails: {
-                  text: 'Task Details',
-                  icon: 'b-icon b-icon-edit',
-                  weight: 50,
-                  onItem: 'up.onRowActionClick',
-                },
-                addSubtask: {
-                  text: 'Add Subtask',
-                  icon: 'b-icon b-icon-add',
-                  weight: 100,
-                  onItem: 'up.onRowActionClick',
-                },
-                indent: {
-                  text: 'Indent',
-                  icon: 'b-icon b-icon-indent',
-                  weight: 200,
-                  onItem: 'up.onRowActionClick',
-                },
-                outdent: {
-                  text: 'Outdent',
-                  icon: 'b-icon b-icon-outdent',
-                  weight: 300,
-                  onItem: 'up.onRowActionClick',
-                },
-                unlinkTask: {
-                  text: 'Unlink',
-                  icon: 'b-icon b-icon-unlink',
-                  weight: 500,
-                  onItem: 'up.onRowActionClick',
-                },
-                deleteTask: {
-                  text: 'Delete',
-                  icon: 'b-icon b-icon-trash',
-                  cls: 'gantt-action-danger',
-                  weight: 600,
-                  onItem: 'up.onRowActionClick',
-                },
-              },
-            },
-          },
-        ],
-      },
     ],
     features: {
       taskEdit: false,
@@ -182,17 +140,31 @@ export function createGanttConfig(
     startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
     barMargin: 10,
+
+    // Differentiate parent bars from child bars.
+    // Adds 'gantt-parent-bar' class to parent tasks for CSS targeting.
+    // Parent bars show no text (name is in the tree column).
+    taskRenderer({ taskRecord, renderData }: {
+      taskRecord: TaskModel;
+      renderData: { cls: DomClassList | string; style: string | Record<string, string>; wrapperCls: DomClassList | string; iconCls: DomClassList | string };
+    }) {
+      if (taskRecord.isParent) {
+        if (typeof renderData.cls !== 'string') {
+          renderData.cls.add('gantt-parent-bar');
+        }
+        return '';
+      }
+      return taskRecord.name;
+    },
+
     listeners: {
       // Bryntum blocks the duration cell editor for parent tasks before
       // beforeCellEditStart ever fires (checked internally in DurationColumn).
       // cellDblClick fires first, so we can set manuallyScheduled: true here —
       // telling the scheduling engine to stop auto-deriving duration from children
       // — before Bryntum decides whether to open the editor.
-      cellDblClick({ record, column }: {
-        record: { isParent: boolean; manuallyScheduled: boolean; set: (field: string, value: unknown) => void };
-        column: { type: string };
-      }) {
-        if (column.type === 'duration' && record.isParent && !record.manuallyScheduled) {
+      cellDblClick({ record, column }) {
+        if (column.type === 'duration' && record.isParent && !record.get('manuallyScheduled')) {
           record.set('manuallyScheduled', true);
         }
       },

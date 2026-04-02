@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
+import { Menu } from '@bryntum/gantt';
 import '@bryntum/gantt/gantt.css';
 import { Box } from '@mui/material';
 import { api } from '@/trpc/react';
@@ -105,8 +106,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     // Returning false prevents Bryntum from applying the empty conflict response.
     const onBeforeResponseApply = ({ requestType, response }: { requestType: string; response: Record<string, unknown> }) => {
       if (requestType !== 'sync') return;
-      console.log('[Gantt:beforeResponseApply] response keys:', Object.keys(response), 'conflict:', response.conflict);
-
       if (response.conflict) {
         // Manually clear Bryntum's "Saving changes, please wait..." mask
         // since returning false prevents the sync cycle from finalizing.
@@ -122,6 +121,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     const onSync = () => {
       skipVersionRef.current = false;
       void utils.gantt.tasks.invalidate();
+      // Sync complete — store events already tracked the changes
     };
 
     const onSyncFail = () => {
@@ -134,39 +134,76 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     // recalculations) are intentionally NOT injected — they skip the version check.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onBeforeSync = ({ pack }: { pack: any }) => {
-      console.log('[Gantt:beforeSync] FIRED — skipVersion:', skipVersionRef.current, 'pack keys:', Object.keys(pack as object));
-
       // When user clicks "Proceed" after a conflict, skip version injection
       // so the server does a last-write-wins save (no version check).
       if (skipVersionRef.current) {
-        console.log('[Gantt:beforeSync] Skipping version injection (force save)');
         return;
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const taskChanges = pack?.tasks as { updated?: Array<Record<string, unknown>> } | undefined;
-      console.log('[Gantt:beforeSync] taskChanges:', taskChanges ? `updated: ${taskChanges.updated?.length ?? 0}` : 'none');
       if (taskChanges?.updated) {
         for (const task of taskChanges.updated) {
-          console.log('[Gantt:beforeSync] Task in pack:', task.id, 'typeof id:', typeof task.id, 'existing version in pack:', task.version);
           if (task.id && typeof task.id === 'string') {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             const record = gantt.project.taskStore.getById(task.id) as { get?: (field: string) => unknown; data?: Record<string, unknown> } | null;
-            console.log('[Gantt:beforeSync] Record found:', !!record, 'has get:', !!record?.get);
             if (record?.get) {
               const version = record.get('version');
-              console.log('[Gantt:beforeSync] Task', task.id, '→ store version:', version, 'typeof:', typeof version);
               if (typeof version === 'number') {
                 task.version = version;
-                console.log('[Gantt:beforeSync] Task', task.id, '→ INJECTED version:', version);
-              } else {
-                console.warn('[Gantt:beforeSync] Task', task.id, '→ version NOT a number, skipping injection. record.data:', JSON.stringify(record.data));
               }
             }
           }
         }
       }
     };
+
+    // Track changes via direct store events (add/remove/update).
+    // These fire synchronously BEFORE auto-sync, so they're reliable.
+    // We dispatch individual change events; the ganttChangesStore accumulates them.
+    const taskStore = gantt.project.taskStore;
+
+    const onTaskAdd = ({ records }: { records: Array<{ id?: string; name?: string; isRoot?: boolean }> }) => {
+      const tasks = records
+        .filter((r) => !r.isRoot && r.id)
+        .map((r) => ({ id: String(r.id), name: r.name ?? 'New Task' }));
+      if (tasks.length > 0) {
+        window.dispatchEvent(new CustomEvent('gantt-task-change', {
+          detail: { type: 'add', tasks },
+        }));
+      }
+    };
+
+    const onTaskRemove = ({ records }: { records: Array<{ id?: string; name?: string; isRoot?: boolean }> }) => {
+      const tasks = records
+        .filter((r) => !r.isRoot && r.id)
+        .map((r) => ({ id: String(r.id), name: r.name ?? 'Task' }));
+      if (tasks.length > 0) {
+        window.dispatchEvent(new CustomEvent('gantt-task-change', {
+          detail: { type: 'remove', tasks },
+        }));
+      }
+    };
+
+    // Track updates only for user-initiated field changes (name, note, csiCode),
+    // NOT scheduling engine recalculations (dates, duration, percentDone, etc.)
+    const userEditableFields = new Set(['name', 'note', 'csiCode', 'manuallyScheduled']);
+    const onTaskUpdate = ({ record, changes }: { record: { id?: string; name?: string; isRoot?: boolean }; changes: Record<string, unknown> }) => {
+      if (record.isRoot || !record.id) return;
+      const userChanges = Object.keys(changes).filter((k) => userEditableFields.has(k));
+      if (userChanges.length > 0) {
+        window.dispatchEvent(new CustomEvent('gantt-task-change', {
+          detail: { type: 'update', tasks: [{ id: String(record.id), name: record.name ?? 'Task' }] },
+        }));
+      }
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    taskStore.on('add', onTaskAdd);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    taskStore.on('remove', onTaskRemove);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    taskStore.on('update', onTaskUpdate);
 
     gantt.project.on('beforeResponseApply', onBeforeResponseApply);
     gantt.project.on('sync', onSync);
@@ -177,6 +214,12 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       gantt.project?.un('sync', onSync);
       gantt.project?.un('syncFail', onSyncFail);
       gantt.project?.un('beforeSync', onBeforeSync);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.project?.taskStore?.un('add', onTaskAdd);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.project?.taskStore?.un('remove', onTaskRemove);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.project?.taskStore?.un('update', onTaskUpdate);
     };
   }, [isLoading, getGanttInstance, utils]);
 
@@ -305,6 +348,69 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     }
   }, [getGanttInstance]);
 
+  // Listen for force-sync requests (e.g. before saving a version).
+  // Per Bryntum docs: commitAsync() ensures the scheduling engine finishes calculating,
+  // then sync() persists all pending CRUD changes. sync() queues if one is already in-flight.
+  // We loop until crudStoreHasChanges() returns false (max 3 attempts) to handle the case
+  // where new changes appear during an in-flight sync.
+  useEffect(() => {
+    const handleForceSync = () => {
+      const gantt = getGanttInstance();
+      if (!gantt?.project) {
+        window.dispatchEvent(new Event('gantt-sync-done'));
+        return;
+      }
+
+      const syncUntilClean = async (attempt = 1): Promise<void> => {
+        const MAX_ATTEMPTS = 3;
+
+        // 1. Commit pending scheduling engine calculations
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        await gantt.project.commitAsync();
+
+        // 2. Check if there are CRUD changes to persist
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        const dirty = gantt.project.crudStoreHasChanges() as boolean;
+
+        if (!dirty) {
+          return;
+        }
+
+        // 3. Sync — this queues behind any in-flight sync per Bryntum docs
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        await gantt.project.sync();
+
+        // 4. Check again — new changes may have appeared during in-flight sync
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        const stillDirty = gantt.project.crudStoreHasChanges() as boolean;
+        if (stillDirty && attempt < MAX_ATTEMPTS) {
+          return syncUntilClean(attempt + 1);
+        }
+      };
+
+      void syncUntilClean().then(() => {
+        window.dispatchEvent(new Event('gantt-sync-done'));
+      }).catch(() => {
+        window.dispatchEvent(new Event('gantt-sync-done'));
+      });
+    };
+    window.addEventListener('gantt-force-sync', handleForceSync);
+    return () => window.removeEventListener('gantt-force-sync', handleForceSync);
+  }, [getGanttInstance]);
+
+  // Listen for external reload requests (e.g. after restoring a version)
+  useEffect(() => {
+    const handleReload = () => {
+      const gantt = getGanttInstance();
+      if (gantt?.project) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        void gantt.project.load();
+      }
+    };
+    window.addEventListener('gantt-reload', handleReload);
+    return () => window.removeEventListener('gantt-reload', handleReload);
+  }, [getGanttInstance]);
+
   // Attach the taskClick listener on the Bryntum instance (not in the static config)
   // so we can use the latest handleTaskClick reference from useTaskPopover.
   useEffect(() => {
@@ -329,62 +435,99 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     return () => { detach?.(); };
   }, [isLoading, getGanttInstance, closeTaskPopover]);
 
-  // Attach the row action menu handler on the Gantt instance.
-  // The WidgetColumn menu items use `onItem: 'up.onRowActionClick'` which
-  // resolves to this method on the Gantt widget.
+  // Row action menu — detect clicks on the ⋮ button injected by the name column
+  // renderer, then show a programmatic Bryntum Menu at the button position.
+  const activeMenuRef = useRef<{ destroy: () => void } | null>(null);
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    (gantt as any).onRowActionClick = ({ source }: { source: { ref: string; up: (type: string) => { cellInfo: { record: unknown } } | null } }) => {
-      // Walk up to the button widget to get the cellInfo injected by WidgetColumn
-      const button = source.up('button');
-      if (!button) return;
-      const record = button.cellInfo?.record as BryntumTaskRecord | undefined;
-      if (!record) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onCellClick = ({ record, column, event }: { record: any; column: { type: string }; event: MouseEvent }) => {
+      const target = event.target as HTMLElement;
+      const btn = target.closest('.gantt-row-actions-btn') as HTMLElement | null;
+      if (!btn || column.type !== 'name') return;
+
+      event.stopPropagation();
+
+      // Destroy any previously open menu
+      if (activeMenuRef.current) {
+        activeMenuRef.current.destroy();
+        activeMenuRef.current = null;
+      }
+
+      const taskRecord = record as BryntumTaskRecord;
       const g = gantt as unknown as BryntumGanttInstance;
 
-      switch (source.ref) {
-        case 'taskDetails':
-          closeTaskPopover();
-          setTaskInfoRecord(record);
-          break;
-        case 'addSubtask':
-          record.appendChild({ name: 'New Subtask', duration: 1, startDate: new Date() });
-          // Expand the parent so the new subtask is visible
-          if (!record.isExpanded) {
-            g.expand(record);
-          }
-          break;
-        case 'indent':
-          g.indent([record]);
-          break;
-        case 'outdent':
-          g.outdent([record]);
-          break;
-        case 'unlinkTask': {
-          // Remove all dependencies (both incoming and outgoing) for this task
-          const deps = [
-            ...(record.predecessors ?? []),
-            ...(record.successors ?? []),
-          ];
-          if (deps.length > 0) g.dependencyStore.remove(deps);
-          break;
-        }
-        case 'deleteTask':
-          record.remove();
-          break;
-      }
+      btn.classList.add('gantt-menu-open');
+
+      activeMenuRef.current = new Menu({
+        forElement: btn,
+        align: 't-b',
+        items: [
+          {
+            ref: 'taskDetails',
+            text: 'Task Details',
+            icon: 'b-icon b-icon-edit',
+            onItem: () => { closeTaskPopover(); setTaskInfoRecord(taskRecord); },
+          },
+          {
+            ref: 'addSubtask',
+            text: 'Add Subtask',
+            icon: 'b-icon b-icon-add',
+            onItem: () => {
+              taskRecord.appendChild({ name: 'New Subtask', duration: 1, startDate: new Date() });
+              if (!taskRecord.isExpanded) g.expand(taskRecord);
+            },
+          },
+          {
+            ref: 'indent',
+            text: 'Indent',
+            icon: 'b-icon b-icon-indent',
+            onItem: () => { g.indent([taskRecord]); },
+          },
+          {
+            ref: 'outdent',
+            text: 'Outdent',
+            icon: 'b-icon b-icon-outdent',
+            onItem: () => { g.outdent([taskRecord]); },
+          },
+          {
+            ref: 'unlinkTask',
+            text: 'Unlink',
+            icon: 'b-icon b-icon-unlink',
+            onItem: () => {
+              const deps = [...(taskRecord.predecessors ?? []), ...(taskRecord.successors ?? [])];
+              if (deps.length > 0) g.dependencyStore.remove(deps);
+            },
+          },
+          {
+            ref: 'deleteTask',
+            text: 'Delete',
+            icon: 'b-icon b-icon-trash',
+            cls: 'gantt-action-danger',
+            onItem: () => { taskRecord.remove(); },
+          },
+        ],
+        onDestroy: () => {
+          btn.classList.remove('gantt-menu-open');
+          activeMenuRef.current = null;
+        },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const detach = gantt.on('cellClick', onCellClick) as (() => void) | undefined;
     return () => {
-      const g = getGanttInstance();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      if (g) delete (g as any).onRowActionClick;
+      detach?.();
+      if (activeMenuRef.current) {
+        activeMenuRef.current.destroy();
+        activeMenuRef.current = null;
+      }
     };
-  }, [isLoading, getGanttInstance]);
+  }, [isLoading, getGanttInstance, closeTaskPopover]);
 
   return (
     <div style={WRAPPER_STYLE}>
@@ -406,22 +549,47 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           outline: 2.5px solid rgba(43, 45, 66, 0.85) !important;
           outline-offset: 2px;
         }
-        /* Row actions ⋮ button */
+        /* Name cell inner wrapper — flex row with name + dots button */
+        .gantt-name-cell-inner {
+          display: flex;
+          align-items: center;
+          width: 100%;
+          position: relative;
+        }
+        .gantt-name-text {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        /* Row actions ⋮ button — right side of name cell, hover-visible */
         .gantt-row-actions-btn {
-          opacity: 0.4;
+          flex-shrink: 0;
+          opacity: 0;
           transition: opacity 0.15s;
-          background: none !important;
-          border: none !important;
-          box-shadow: none !important;
-          min-width: 0 !important;
+          background: none;
+          border: none;
+          box-shadow: none;
+          min-width: 0;
+          padding: 4px 6px;
+          cursor: pointer;
+          border-radius: 4px;
+          color: var(--text-secondary, #8D99AE);
+          font-size: 16px;
+          font-weight: bold;
+          letter-spacing: 1px;
+          line-height: 1;
         }
         .b-grid-row:hover .gantt-row-actions-btn,
         .gantt-row-actions-btn:focus,
-        .gantt-row-actions-btn[aria-expanded="true"] {
+        .gantt-row-actions-btn.gantt-menu-open {
           opacity: 1;
         }
+        .gantt-row-actions-btn:hover {
+          background: rgba(0, 0, 0, 0.04);
+        }
         /* Row actions dropdown menu — clean card style */
-        .gantt-row-actions-btn + .b-menu,
         .b-menu:has(.gantt-action-danger) {
           border-radius: 10px !important;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
@@ -429,7 +597,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           padding: 4px 0 !important;
           overflow: hidden;
         }
-        .gantt-row-actions-btn + .b-menu .b-menuitem,
         .b-menu:has(.gantt-action-danger) .b-menuitem {
           padding: 8px 16px !important;
           font-size: 13px !important;
@@ -437,17 +604,14 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           border-radius: 0 !important;
           gap: 10px !important;
         }
-        .gantt-row-actions-btn + .b-menu .b-menuitem:hover,
         .b-menu:has(.gantt-action-danger) .b-menuitem:hover {
           background: var(--hover-bg, rgba(0, 0, 0, 0.04)) !important;
         }
-        .gantt-row-actions-btn + .b-menu .b-menuitem .b-icon,
         .b-menu:has(.gantt-action-danger) .b-menuitem .b-icon {
           font-size: 14px !important;
           width: 18px !important;
           text-align: center;
         }
-        .gantt-row-actions-btn + .b-menu .b-menu-separator,
         .b-menu:has(.gantt-action-danger) .b-menu-separator {
           margin: 4px 0 !important;
         }
