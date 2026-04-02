@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Box, Typography, Avatar, Skeleton, Stack } from '@mui/material';
+import { Box, Typography, Avatar, Skeleton } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { formatRole } from '@/lib/utils/formatting';
 
@@ -23,6 +23,23 @@ interface MembersListProps {
 
 export default function MembersList({ members, isLoading }: MembersListProps) {
   const theme = useTheme();
+
+  const getRoleDescription = (role: string): string => {
+    switch (role) {
+      case 'owner':
+        return 'Full access — manage members, roles, projects, and organization settings';
+      case 'admin':
+        return 'Manage members, roles, and projects — cannot change organization settings';
+      case 'project_manager':
+        return 'Create and manage projects — cannot manage members or roles';
+      case 'member':
+        return 'View projects they are invited to';
+      case 'viewer':
+        return 'View-only access to assigned projects';
+      default:
+        return '';
+    }
+  };
 
   const getRoleBadgeStyle = (role: string) => {
     switch (role) {
@@ -49,8 +66,8 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
 
   if (isLoading) {
     return (
-      <Stack spacing={1.5}>
-        {[1, 2, 3].map((i) => (
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        {[1, 2].map((i) => (
           <Box
             key={i}
             sx={{
@@ -61,15 +78,17 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
               borderRadius: '12px',
             }}
           >
-            <Skeleton variant="rounded" width={38} height={38} sx={{ borderRadius: '10px' }} />
-            <Box sx={{ flex: 1 }}>
-              <Skeleton width="33%" height={16} sx={{ mb: 0.5 }} />
-              <Skeleton width="50%" height={12} />
+            <Skeleton variant="circular" width={38} height={38} sx={{ flexShrink: 0 }} />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Skeleton variant="rounded" width={120} height={14} sx={{ borderRadius: '4px' }} />
+                <Skeleton variant="rounded" width={50} height={18} sx={{ borderRadius: '999px' }} />
+              </Box>
+              <Skeleton variant="rounded" width={180} height={12} sx={{ borderRadius: '4px', mt: 0.75 }} />
             </Box>
-            <Skeleton width={80} height={24} />
           </Box>
         ))}
-      </Stack>
+      </Box>
     );
   }
 
@@ -97,7 +116,7 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
           },
         },
       }}
-      sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
+      sx={{ display: 'flex', flexDirection: 'column' }}
     >
       {members.map((member) => (
         <Box
@@ -125,7 +144,7 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
             sx={{
               width: 38,
               height: 38,
-              borderRadius: '10px',
+              borderRadius: '50%',
               background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
               color: theme.palette.primary.contrastText,
               fontWeight: 600,
@@ -136,21 +155,39 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
           </Avatar>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  color: 'text.primary',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  minWidth: 0,
+                }}
+              >
+                {member.user.name || member.user.email}
+              </Typography>
+              <Box
+                sx={{
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: '999px',
+                  fontSize: '0.6875rem',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  ...getRoleBadgeStyle(member.role),
+                }}
+              >
+                {formatRole(member.role)}
+              </Box>
+            </Box>
             <Typography
               sx={{
-                fontWeight: 500,
-                color: 'text.primary',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {member.user.name || member.user.email}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'text.disabled',
+                fontSize: '0.8125rem',
+                color: 'text.secondary',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -158,20 +195,18 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
             >
               {member.user.email}
             </Typography>
-          </Box>
-
-          <Box
-            sx={{
-              px: 1.5,
-              py: 0.5,
-              borderRadius: '999px',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
-              ...getRoleBadgeStyle(member.role),
-            }}
-          >
-            {formatRole(member.role)}
+            <Typography
+              sx={{
+                fontSize: '0.75rem',
+                color: 'text.disabled',
+                mt: 0.25,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {getRoleDescription(member.role)}
+            </Typography>
           </Box>
         </Box>
       ))}

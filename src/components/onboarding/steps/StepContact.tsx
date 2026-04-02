@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Phone, Globe, MapPin } from "lucide-react";
+import { Phone, Globe, MapPin } from "@phosphor-icons/react";
 import { OnboardingField } from "../OnboardingField";
 import { TextField, Box } from "@mui/material";
 

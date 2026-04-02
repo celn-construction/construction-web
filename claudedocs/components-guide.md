@@ -8,11 +8,11 @@ Conventions for adding, naming, and structuring components in `src/components/`.
 
 | Directory | Purpose |
 |-----------|---------|
-| `ui/` | Shared design-system primitives (Button, Label, dropdowns, image helpers, spinner) |
+| `ui/` | Shared design-system primitives (Button, Label, dropdowns, image helpers, spinner, ProjectAvatar) |
 | `layout/` | App shell: Header, Sidebar, MobileDrawer, OrgSwitcher, ProjectSwitcher, UserMenu, PageHeader |
 | `providers/` | React context providers: ThemeRegistry, OrgProvider, ProjectProvider, LoadingProvider |
 | `dashboard/` | Dashboard feature components (StatsCards, ProjectsList, TeamActivity) |
-| `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectsTree, ProjectDetailPanel) |
+| `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel) |
 | `documents/` | Document feature components (DocumentList, UploadDialog, FileDropzone) |
 | `team/` | Team/invite management (MembersList, InviteDialog, RoleSelect, PendingInvitesList) |
 | `onboarding/` | Onboarding wizard and step components |
@@ -178,6 +178,7 @@ const { control, handleSubmit, reset, formState: { errors } } = useForm<InputTyp
 | `ImageWithFallback` / `OptimizedImage` | `next/image` | Always use over bare `<img>` |
 | `FileDropzone` | `react-dropzone` | Standalone or embedded dropzone; accepts `getRootProps`/`getInputProps` for standalone mode |
 | `UploadOverlay` | `CircularProgress` | Upload progress overlay with spinner; variants: `dark` (image overlay), `light` (form area) |
+| `ProjectAvatar` | `next/image` + `Box` | Renders project cover image (with `onError` fallback) or project icon; used in ProjectSwitcher and ProjectFormBody |
 
 For any MUI component without a `ui/` wrapper, use MUI directly — do not create wrappers unless the abstraction is used in 3+ places.
 

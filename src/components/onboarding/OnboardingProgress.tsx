@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check } from "@phosphor-icons/react";
 import { Box, Typography, LinearProgress } from "@mui/material";
 
 interface OnboardingProgressProps {
@@ -87,7 +87,7 @@ export function OnboardingProgress({
                       lineHeight: 0,
                     }}
                   >
-                    <Check size={18} strokeWidth={3} />
+                    <Check size={18} weight="bold" />
                   </Box>
                 ) : (
                   index + 1

@@ -2,7 +2,7 @@
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UserPlus } from 'lucide-react';
+import { UserPlus } from '@phosphor-icons/react';
 import { api } from '@/trpc/react';
 import {
   Box,

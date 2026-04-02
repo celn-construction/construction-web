@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText } from "lucide-react";
+import { FileText } from "@phosphor-icons/react";
 import { OnboardingField } from "../OnboardingField";
 import { TextField, Box, Typography, Paper } from "@mui/material";
 
@@ -16,6 +16,7 @@ interface StepReviewProps {
     state: string;
     zip: string;
     licenseNumber: string;
+    logoUrl: string;
   };
   updateField: (field: string, value: string) => void;
 }
@@ -72,6 +73,30 @@ export function StepReview({ formData, updateField }: StepReviewProps) {
           }}
         />
       </OnboardingField>
+
+      {formData.logoUrl && (
+        <Box
+          component={motion.div}
+          variants={fieldVariants}
+          sx={{ display: "flex", alignItems: "center", gap: 2 }}
+        >
+          <Box
+            component="img"
+            src={formData.logoUrl}
+            alt="Company logo"
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: "10px",
+              objectFit: "cover",
+              border: "1px solid var(--border-light)",
+            }}
+          />
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Company logo uploaded
+          </Typography>
+        </Box>
+      )}
 
       {summaryFields.length > 0 && (
         <Box component={motion.div} variants={fieldVariants}>

@@ -123,6 +123,7 @@ model Project {
     location       String          @default("")
     slug           String
     icon           String          @default("building")
+    imageUrl       String?
     status         String          @default("active")
     organizationId String
     template       ProjectTemplate @default(BLANK)
