@@ -25,6 +25,7 @@ const PAGE_TITLES: Record<string, string> = {
   files: 'File Tree',
   'document-explorer': 'Document Explorer',
   team: 'Team',
+  manage: 'Manage',
 };
 
 interface HeaderProps {
@@ -76,9 +77,9 @@ export default function Header({ onMenuOpen }: HeaderProps) {
               {pageTitle}
             </Typography>
             <Typography sx={{ color: 'text.disabled', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>·</Typography>
-            <ProjectSwitcher />
           </>
         )}
+        <ProjectSwitcher />
 
         {/* Spacer */}
         <Box sx={{ flex: 1 }} />

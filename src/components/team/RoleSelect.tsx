@@ -1,6 +1,6 @@
 'use client';
 
-import { Check } from 'lucide-react';
+import { Check } from '@phosphor-icons/react';
 import {
   Box,
   Typography,
@@ -99,7 +99,7 @@ export default function RoleSelect({
               </Typography>
             </Box>
             {value === role.value && (
-              <Check size={16} style={{ marginTop: 4, flexShrink: 0 }} />
+              <Check size={16} weight="bold" style={{ marginTop: 4, flexShrink: 0 }} />
             )}
           </MenuItem>
         ))}

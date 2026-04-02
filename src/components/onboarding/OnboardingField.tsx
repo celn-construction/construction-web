@@ -1,12 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { type LucideIcon } from "lucide-react";
+import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { Box, Typography, FormHelperText } from "@mui/material";
 
 interface OnboardingFieldProps {
   label: string;
-  icon?: LucideIcon;
+  icon?: PhosphorIcon;
   children: React.ReactNode;
   error?: string;
 }

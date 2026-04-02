@@ -149,6 +149,7 @@ export const projectRouter = createTRPCRouter({
           name: input.name,
           location: input.location,
           icon: input.icon,
+          imageUrl: input.imageUrl ?? null,
           slug,
           status: "active",
           organizationId,
@@ -392,6 +393,7 @@ export const projectRouter = createTRPCRouter({
       const blobUrls = [
         ...documents.map((d) => d.blobUrl),
         ...tasksWithCovers.map((t) => t.coverImageUrl).filter((url): url is string => !!url),
+        ...(ctx.project.imageUrl ? [ctx.project.imageUrl] : []),
       ];
 
       // Best-effort blob cleanup

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, User, KeyRound, ChevronLeft } from 'lucide-react';
-import { authClient, signUp } from '@/lib/auth-client';
+import { Envelope, Lock, Eye, EyeSlash, ArrowRight, User, Key, CaretLeft } from '@phosphor-icons/react';
+import { authClient, signUp, signOut } from '@/lib/auth-client';
 import { api } from '@/trpc/react';
 import { TRPCClientError } from '@trpc/client';
 import { LogoIcon } from '@/components/ui/Logo';
@@ -80,6 +80,7 @@ export default function SignUpPage() {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('invite');
 
+  const emailRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>('register');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -148,6 +149,15 @@ export default function SignUpPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChangeEmail = async () => {
+    await signOut();
+    setEmail('');
+    setOtp('');
+    setError('');
+    setStep('register');
+    setTimeout(() => emailRef.current?.focus(), 50);
   };
 
   const handleResendOtp = async () => {
@@ -296,7 +306,7 @@ export default function SignUpPage() {
           component={Link}
           href="/"
           variant="text"
-          startIcon={<ChevronLeft size={16} />}
+          startIcon={<CaretLeft size={16} />}
           sx={{
             position: 'absolute',
             top: 28,
@@ -378,7 +388,7 @@ export default function SignUpPage() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <User size={18} />
+                          <User size={18} weight="regular" />
                         </InputAdornment>
                       ),
                     }}
@@ -395,6 +405,7 @@ export default function SignUpPage() {
                   <TextField
                     id="email"
                     type="email"
+                    inputRef={emailRef}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your.email@company.com"
@@ -404,7 +415,7 @@ export default function SignUpPage() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Mail size={18} />
+                          <Envelope size={18} weight="regular" />
                         </InputAdornment>
                       ),
                     }}
@@ -430,7 +441,7 @@ export default function SignUpPage() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Lock size={18} />
+                          <Lock size={18} weight="regular" />
                         </InputAdornment>
                       ),
                       endAdornment: (
@@ -440,7 +451,7 @@ export default function SignUpPage() {
                             edge="end"
                             size="small"
                           >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
                           </IconButton>
                         </InputAdornment>
                       ),
@@ -467,7 +478,7 @@ export default function SignUpPage() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <KeyRound size={18} />
+                          <Key size={18} weight="regular" />
                         </InputAdornment>
                       ),
                     }}
@@ -535,7 +546,7 @@ export default function SignUpPage() {
                   {loading ? 'Verifying...' : 'Verify email'}
                 </Button>
 
-                <Box sx={{ textAlign: 'center' }}>
+                <Stack spacing={0.5} alignItems="center">
                   <Button
                     onClick={handleResendOtp}
                     disabled={resendCooldown > 0}
@@ -547,7 +558,15 @@ export default function SignUpPage() {
                       ? `Resend code in ${resendCooldown}s`
                       : "Didn't get the code? Resend"}
                   </Button>
-                </Box>
+                  <Button
+                    onClick={handleChangeEmail}
+                    variant="text"
+                    size="small"
+                    sx={{ color: 'text.secondary', textTransform: 'none', fontSize: '0.8125rem' }}
+                  >
+                    Wrong email? Go back
+                  </Button>
+                </Stack>
               </Stack>
             </Box>
           )}

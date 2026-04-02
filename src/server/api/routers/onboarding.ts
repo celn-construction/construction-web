@@ -59,6 +59,7 @@ export const onboardingRouter = createTRPCRouter({
             state: input.state,
             zip: input.zip,
             licenseNumber: input.licenseNumber,
+            logoUrl: input.logoUrl,
           },
         });
 

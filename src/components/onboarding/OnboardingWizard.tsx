@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { LogoIcon } from "@/components/ui/Logo";
 import { OnboardingProgress } from "./OnboardingProgress";
 import { StepIdentity } from "./steps/StepIdentity";
 import { StepContact } from "./steps/StepContact";
+import { StepLogo } from "./steps/StepLogo";
 import { StepReview } from "./steps/StepReview";
 import { api } from "@/trpc/react";
 import { Box, Typography, Paper } from "@mui/material";
@@ -17,6 +18,7 @@ import { useSnackbar } from "@/hooks/useSnackbar";
 const steps = [
   { label: "Company", subtitle: "Tell us about your company" },
   { label: "Contact", subtitle: "How can we reach you?" },
+  { label: "Logo", subtitle: "Add your company logo" },
   { label: "Review", subtitle: "Review and finalize" },
 ];
 
@@ -53,6 +55,7 @@ export function OnboardingWizard() {
     state: "",
     zip: "",
     licenseNumber: "",
+    logoUrl: "",
   });
 
   const completeMutation = api.onboarding.createOrganization.useMutation({
@@ -123,6 +126,7 @@ export function OnboardingWizard() {
       state: formData.state || undefined,
       zip: formData.zip || undefined,
       licenseNumber: formData.licenseNumber || undefined,
+      logoUrl: formData.logoUrl || undefined,
     });
   };
 
@@ -263,6 +267,12 @@ export function OnboardingWizard() {
                       />
                     )}
                     {currentStep === 2 && (
+                      <StepLogo
+                        logoUrl={formData.logoUrl}
+                        onLogoChange={(url) => updateField("logoUrl", url)}
+                      />
+                    )}
+                    {currentStep === 3 && (
                       <StepReview
                         formData={formData}
                         updateField={updateField}
@@ -320,7 +330,7 @@ export function OnboardingWizard() {
                   )}
                 </Box>
 
-                {currentStep === 1 && (
+                {(currentStep === 1 || currentStep === 2) && (
                   <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                     <Button
                       variant="text"

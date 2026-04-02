@@ -37,6 +37,7 @@ export const createOrganizationSchema = z.object({
       "ZIP code must be in format 12345 or 12345-6789"
     ),
   licenseNumber: z.string().optional(),
+  logoUrl: z.string().url().optional(),
 });
 
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { UserPlus, Trash, Warning } from '@phosphor-icons/react';
+import { Trash, Warning, PlusCircle } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Box, Typography, Tabs, Tab, Paper } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
@@ -79,18 +79,6 @@ export default function ManagePage() {
             {projectName}
           </Typography>
         </Box>
-        {canManage && (
-          <Button
-            variant="contained"
-            onClick={() => setInviteDialogOpen(true)}
-            startIcon={<UserPlus size={16} />}
-            sx={{
-              visibility: activeTab === 'settings' ? 'hidden' : 'visible',
-            }}
-          >
-            Invite
-          </Button>
-        )}
       </Box>
 
       {/* Tabs */}
@@ -138,6 +126,39 @@ export default function ManagePage() {
               transition={{ duration: 0.15 }}
               sx={{ p: 2 }}
             >
+              {canManage && (
+                <Box
+                  onClick={() => setInviteDialogOpen(true)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    p: 1.75,
+                    mb: 1.5,
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: '50%',
+                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <PlusCircle size={20} weight="light" color={theme.palette.primary.main} />
+                  </Box>
+                  <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
+                    Invite Member
+                  </Typography>
+                </Box>
+              )}
               <MembersList members={members} isLoading={membersLoading} />
             </Box>
           )}

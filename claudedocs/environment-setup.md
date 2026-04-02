@@ -34,7 +34,7 @@ Validation is defined in `src/env.js` using `@t3-oss/env-nextjs` and Zod. The bu
 **Prerequisites**
 - Node.js 24 (see `.nvmrc`; use `nvm use`)
 - npm 11.3+ (declared in `packageManager` field)
-- PostgreSQL 14+ running locally with `pg_trgm` and `vector` extensions
+- PostgreSQL 17 (`brew install postgresql@17`) running locally with `pg_trgm` and `vector` extensions
 - Vercel CLI (`npm i -g vercel`) — non-DB secrets are managed in Vercel
 
 **Setup**
@@ -46,6 +46,9 @@ nvm use
 npm install          # runs prisma generate via postinstall
 
 # 2. Create local database (if not already done)
+# Ensure PostgreSQL 17 binaries are on PATH:
+export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
+brew services start postgresql@17
 createdb construction
 psql -d construction -c "CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS vector;"
 

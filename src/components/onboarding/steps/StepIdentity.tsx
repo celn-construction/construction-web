@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Building2, Briefcase } from "lucide-react";
+import { Buildings, Briefcase } from "@phosphor-icons/react";
 import { OnboardingField } from "../OnboardingField";
 import { TextField, Select, MenuItem, FormControl, Box } from "@mui/material";
 
@@ -48,7 +48,7 @@ export function StepIdentity({
     >
       <OnboardingField
         label="Company Name"
-        icon={Building2}
+        icon={Buildings}
         error={errors.name}
       >
         <TextField

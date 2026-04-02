@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ChevronsUpDown, Search, Check, Plus } from 'lucide-react';
-import { getProjectIcon } from '@/lib/constants/projectIconComponents';
-import { Box, Typography, Menu, ButtonBase } from '@mui/material';
+import { CaretUpDown, MagnifyingGlass, Check, Plus } from '@phosphor-icons/react';
+import { Box, Typography, Menu, ButtonBase, alpha, useTheme } from '@mui/material';
+import ProjectAvatar from '@/components/ui/ProjectAvatar';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import AddProjectDialog from '@/components/projects/AddProjectDialog';
@@ -27,6 +27,7 @@ export default function ProjectSwitcher() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const params = useParams<{ projectSlug?: string }>();
   const { projectSlug } = params;
+  const theme = useTheme();
 
   const { orgSlug, activeOrganizationId } = useOrgFromUrl();
   const { projects, currentProject, switchProject } = useProjectSwitcher(activeOrganizationId, orgSlug);
@@ -63,14 +64,17 @@ export default function ProjectSwitcher() {
           '&:hover': { bgcolor: 'action.selected' },
         }}
       >
-        {(() => {
-          const CurrentIcon = getProjectIcon(currentProject?.icon);
-          return <CurrentIcon size={15} style={{ color: 'var(--mui-palette-text-secondary)', flexShrink: 0 }} />;
-        })()}
+        <ProjectAvatar
+          imageUrl={currentProject?.imageUrl}
+          icon={currentProject?.icon}
+          size={28}
+          borderRadius="6px"
+          color="var(--mui-palette-text-secondary)"
+        />
         <Typography sx={{ fontSize: 14, fontWeight: 500, color: 'text.secondary', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
           {projectSlug && currentProject ? currentProject.name : 'Select project'}
         </Typography>
-        <ChevronsUpDown style={{ width: 12, height: 12, flexShrink: 0, color: 'var(--mui-palette-text-disabled)' }} />
+        <CaretUpDown size={12} style={{ flexShrink: 0, color: 'var(--mui-palette-text-disabled)' }} />
       </ButtonBase>
 
       <Menu
@@ -81,7 +85,7 @@ export default function ProjectSwitcher() {
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
         slotProps={{
           paper: {
-            sx: { width: 240, p: 0, overflow: 'hidden', mt: 0.5 },
+            sx: { width: 280, p: 0, overflow: 'hidden', mt: 0.5, borderRadius: '12px' },
           },
         }}
       >
@@ -110,11 +114,11 @@ export default function ProjectSwitcher() {
               px: 1.25,
               py: 1,
               bgcolor: 'secondary.main',
-              borderRadius: '12px',
+              borderRadius: '10px',
               color: 'text.secondary',
             }}
           >
-            <Search style={{ width: 14, height: 14, color: 'inherit', flexShrink: 0 }} />
+            <MagnifyingGlass size={14} style={{ color: 'inherit', flexShrink: 0 }} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -137,9 +141,10 @@ export default function ProjectSwitcher() {
         <Box sx={{ height: '1px', bgcolor: 'divider' }} />
 
         {/* Project List */}
-        <Box sx={{ py: 0.5, px: 0.75, maxHeight: 220, overflowY: 'auto' }}>
+        <Box sx={{ py: 0.5, px: 0.75, maxHeight: 340, overflowY: 'auto' }}>
           {filtered.map((project) => {
             const isActive = project.slug === projectSlug;
+            const hasImage = !!project.imageUrl;
             return (
               <Box
                 key={project.id}
@@ -147,63 +152,117 @@ export default function ProjectSwitcher() {
                 onClick={() => handleSwitch(project.slug)}
                 sx={{
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.25,
+                  alignItems: 'stretch',
+                  gap: 0,
                   width: '100%',
-                  px: 1.25,
-                  py: 1,
-                  borderRadius: '12px',
-                  border: 'none',
+                  borderRadius: '10px',
+                  border: '1.5px solid',
+                  borderColor: isActive
+                    ? alpha(theme.palette.primary.main, 0.25)
+                    : 'transparent',
                   cursor: 'pointer',
-                  bgcolor: isActive ? 'secondary.main' : 'transparent',
+                  bgcolor: isActive
+                    ? alpha(theme.palette.primary.main, 0.04)
+                    : 'transparent',
                   textAlign: 'left',
-                  transition: 'background-color 0.15s',
-                  '&:hover': { bgcolor: 'action.hover' },
+                  overflow: 'hidden',
+                  transition: 'all 0.15s ease',
+                  mb: 0.5,
+                  p: 0,
+                  '&:hover': {
+                    bgcolor: isActive
+                      ? alpha(theme.palette.primary.main, 0.06)
+                      : 'action.hover',
+                    borderColor: isActive
+                      ? alpha(theme.palette.primary.main, 0.35)
+                      : alpha(theme.palette.divider, 0.5),
+                  },
                 }}
               >
-                {(() => {
-                  const ItemIcon = getProjectIcon(project.icon);
-                  return (
-                    <Box sx={{ flexShrink: 0, color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
-                      <ItemIcon size={14} />
-                    </Box>
-                  );
-                })()}
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                {/* Project image/icon thumbnail */}
+                <Box
+                  sx={{
+                    width: 56,
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: hasImage
+                      ? 'transparent'
+                      : alpha(theme.palette.divider, 0.06),
+                    overflow: 'hidden',
+                  }}
+                >
+                  {hasImage ? (
+                    <Box
+                      component="img"
+                      src={project.imageUrl!}
+                      alt=""
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  ) : (
+                    <ProjectAvatar
+                      icon={project.icon}
+                      size={22}
+                      borderRadius={0}
+                      color={theme.palette.text.disabled}
+                    />
+                  )}
+                </Box>
+
+                {/* Project info */}
+                <Box sx={{ flex: 1, minWidth: 0, py: 1, px: 1.25 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <Box
+                      sx={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        bgcolor: getStatusColor(project.status),
+                        flexShrink: 0,
+                      }}
+                    />
                     <Typography
                       sx={{
                         fontSize: '0.8125rem',
-                        fontWeight: isActive ? 500 : 400,
+                        fontWeight: isActive ? 600 : 500,
                         color: 'text.primary',
                         flex: 1,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
+                        lineHeight: 1.2,
                       }}
                     >
                       {project.name}
                     </Typography>
-                    <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', flexShrink: 0 }}>
+                    {isActive && (
+                      <Check size={13} weight="bold" style={{ flexShrink: 0, color: theme.palette.primary.main }} />
+                    )}
+                  </Box>
+
+                  {/* Progress bar */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.75 }}>
+                    <Box sx={{ flex: 1, height: 3, borderRadius: 2, bgcolor: alpha(theme.palette.divider, 0.15), overflow: 'hidden' }}>
+                      <Box
+                        sx={{
+                          height: '100%',
+                          width: `${project.completionPercent}%`,
+                          borderRadius: 2,
+                          bgcolor: isActive ? 'primary.main' : alpha(theme.palette.text.secondary, 0.35),
+                          transition: 'width 0.3s ease',
+                        }}
+                      />
+                    </Box>
+                    <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', flexShrink: 0, lineHeight: 1 }}>
                       {project.completionPercent}%
                     </Typography>
                   </Box>
-                  {/* Progress bar */}
-                  <Box sx={{ mt: 0.5, height: 3, borderRadius: 2, bgcolor: 'action.hover', overflow: 'hidden' }}>
-                    <Box
-                      sx={{
-                        height: '100%',
-                        width: `${project.completionPercent}%`,
-                        borderRadius: 2,
-                        bgcolor: 'primary.main',
-                        transition: 'width 0.3s ease',
-                      }}
-                    />
-                  </Box>
                 </Box>
-                {isActive && (
-                  <Check style={{ width: 14, height: 14, flexShrink: 0, color: 'inherit', alignSelf: 'flex-start', marginTop: 2 }} />
-                )}
               </Box>
             );
           })}
@@ -235,7 +294,7 @@ export default function ProjectSwitcher() {
             '&:hover': { bgcolor: 'action.hover' },
           }}
         >
-          <Plus style={{ width: 14, height: 14, color: 'inherit' }} />
+          <Plus size={14} style={{ color: 'inherit' }} />
           <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.secondary' }}>
             Create new project
           </Typography>
