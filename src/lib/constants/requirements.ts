@@ -1,0 +1,1 @@
+export const DEFAULT_REQUIRED_COUNT = 3;

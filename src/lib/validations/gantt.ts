@@ -95,6 +95,15 @@ export const ganttSyncInputSchema = z.object({
   timeRanges: storeChangesSchema(timeRangeRecordSchema).optional(),
 });
 
+// Requirement tracking schema
+export const updateRequirementSchema = z.object({
+  taskId: z.string(),
+  field: z.enum(['requiredSubmittals', 'requiredInspections']),
+  count: z.number().int().min(0).max(50).nullable(),
+});
+
+export type UpdateRequirementInput = z.infer<typeof updateRequirementSchema>;
+
 // Type exports
 export type GanttLoadInput = z.infer<typeof ganttLoadInputSchema>;
 export type GanttSyncInput = z.infer<typeof ganttSyncInputSchema>;

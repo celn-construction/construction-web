@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "../../../../generated/prisma";
 import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
-import { ganttLoadInputSchema, ganttSyncInputSchema } from "@/lib/validations/gantt";
+import { ganttLoadInputSchema, ganttSyncInputSchema, updateRequirementSchema } from "@/lib/validations/gantt";
 import { CSI_SUBDIVISION_MAP, CSI_DIVISION_MAP } from "@/lib/constants/csiCodes";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
 import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
@@ -64,6 +64,8 @@ export const ganttRouter = createTRPCRouter({
           durationUnit: true,
           coverImageUrl: true,
           csiCode: true,
+          requiredSubmittals: true,
+          requiredInspections: true,
           parentId: true,
           parent: {
             select: { name: true },
@@ -85,6 +87,8 @@ export const ganttRouter = createTRPCRouter({
         durationUnit: task.durationUnit,
         coverImageUrl: task.coverImageUrl,
         csiCode: task.csiCode,
+        requiredSubmittals: task.requiredSubmittals,
+        requiredInspections: task.requiredInspections,
         group: task.parent?.name ?? null,
       };
     }),
@@ -288,5 +292,123 @@ export const ganttRouter = createTRPCRouter({
         data: { csiCode },
         select: { id: true, csiCode: true },
       });
+    }),
+
+  /**
+   * Update a task's required submittal/inspection count
+   */
+  updateRequirement: orgProcedure
+    .input(z.object({ projectId: z.string() }).merge(updateRequirementSchema))
+    .mutation(async ({ ctx, input }) => {
+      const { projectId, taskId, field, count } = input;
+
+      if (ctx.membership.role !== "owner" && ctx.membership.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only owners and admins can set requirements" });
+      }
+
+      const task = await ctx.db.ganttTask.findFirst({
+        where: { id: taskId, projectId, project: { organizationId: ctx.organization.id } },
+        select: { id: true },
+      });
+
+      if (!task) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found in this project" });
+      }
+
+      return ctx.db.ganttTask.update({
+        where: { id: taskId },
+        data: { [field]: count },
+        select: { id: true, requiredSubmittals: true, requiredInspections: true },
+      });
+    }),
+
+  /**
+   * Project-wide requirement stats for the toolbar progress card.
+   * Returns total required and total uploaded across all tasks.
+   */
+  requirementStats: orgProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { projectId } = input;
+
+      const project = await ctx.db.project.findFirst({
+        where: { id: projectId, organizationId: ctx.organization.id },
+      });
+
+      if (!project) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
+      }
+
+      // Get all tasks that have requirements set
+      const tasksWithReqs = await ctx.db.ganttTask.findMany({
+        where: {
+          projectId,
+          OR: [
+            { requiredSubmittals: { not: null } },
+            { requiredInspections: { not: null } },
+          ],
+        },
+        select: {
+          id: true,
+          requiredSubmittals: true,
+          requiredInspections: true,
+        },
+      });
+
+      if (tasksWithReqs.length === 0) {
+        return { totalRequired: 0, totalUploaded: 0 };
+      }
+
+      // Sum all required counts
+      let totalRequired = 0;
+      for (const t of tasksWithReqs) {
+        totalRequired += t.requiredSubmittals ?? 0;
+        totalRequired += t.requiredInspections ?? 0;
+      }
+
+      // Count documents in submittal/inspection folders for these tasks
+      const taskIds = tasksWithReqs.map((t) => t.id);
+      const docCounts = await ctx.db.document.groupBy({
+        by: ["taskId", "folderId"],
+        where: {
+          projectId,
+          taskId: { in: taskIds },
+          folderId: {
+            startsWith: "submittals",
+          },
+        },
+        _count: { id: true },
+      });
+
+      const inspectionDocs = await ctx.db.document.groupBy({
+        by: ["taskId", "folderId"],
+        where: {
+          projectId,
+          taskId: { in: taskIds },
+          folderId: {
+            startsWith: "inspections",
+          },
+        },
+        _count: { id: true },
+      });
+
+      // Sum uploaded per task, capped by their requirement
+      let totalUploaded = 0;
+      for (const t of tasksWithReqs) {
+        if (t.requiredSubmittals != null) {
+          const uploaded = docCounts
+            .filter((d) => d.taskId === t.id)
+            .reduce((sum, d) => sum + d._count.id, 0);
+          totalUploaded += Math.min(uploaded, t.requiredSubmittals);
+        }
+        if (t.requiredInspections != null) {
+          const uploaded = inspectionDocs
+            .filter((d) => d.taskId === t.id)
+            .reduce((sum, d) => sum + d._count.id, 0);
+          totalUploaded += Math.min(uploaded, t.requiredInspections);
+        }
+      }
+
+      return { totalRequired, totalUploaded };
     }),
 });
