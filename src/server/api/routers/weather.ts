@@ -24,10 +24,19 @@ export const weatherRouter = createTRPCRouter({
 
       try {
         // Geocode location string to lat/lng
-        // Try full location first, then fall back to city-only (before first comma)
-        // because OpenWeatherMap geo doesn't handle "City, ST" format well
+        // Location may be "Street, City, State ZIP" — try progressively shorter segments
+        // to find one OpenWeatherMap can resolve (street addresses usually fail)
+        const parts = input.location.split(",").map((s) => s.trim());
+        const candidates = [input.location];
+        // Try "City, State" (skip street) — e.g. "Union City, NJ 07087"
+        if (parts.length >= 3) candidates.push(parts.slice(1).join(", "));
+        // Try just city name (second segment) — e.g. "Union City"
+        if (parts.length >= 2) candidates.push(parts[1]!);
+        // Try first segment as fallback — e.g. "New York Ave"
+        candidates.push(parts[0]!);
+
         let geoData: GeoResult[] = [];
-        for (const query of [input.location, input.location.split(",")[0]!.trim()]) {
+        for (const query of candidates) {
           const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${apiKey}`;
           const geoRes = await fetch(geoUrl, { cache: 'no-store' });
           if (!geoRes.ok) continue;

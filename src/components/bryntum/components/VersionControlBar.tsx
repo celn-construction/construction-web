@@ -43,7 +43,6 @@ export default function VersionControlBar() {
         sx={{
           display: 'flex',
           justifyContent: 'flex-end',
-          mb: 1.5,
           flexShrink: 0,
         }}
       >
