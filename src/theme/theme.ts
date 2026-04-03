@@ -75,6 +75,11 @@ export const lightTheme: Theme = createTheme({
           textTransform: 'none',
           boxShadow: 'none',
           '&:hover': { boxShadow: 'none' },
+          '&.Mui-disabled': {
+            backgroundColor: '#D9DBE1',
+            color: '#8D99AE',
+            opacity: 0.7,
+          },
           '& .MuiButton-startIcon svg, & .MuiButton-endIcon svg': { width: 16, height: 16 },
           '&.MuiButton-sizeLarge .MuiButton-startIcon svg, &.MuiButton-sizeLarge .MuiButton-endIcon svg': { width: 18, height: 18 },
           '&.MuiButton-sizeSmall .MuiButton-startIcon svg, &.MuiButton-sizeSmall .MuiButton-endIcon svg': { width: 14, height: 14 },

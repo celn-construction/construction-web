@@ -2,7 +2,7 @@
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, MapPin, Image as ImageIcon, Swatches, UploadSimple, X } from '@phosphor-icons/react';
+import { ArrowRight, CaretDown, MapPin, Image as ImageIcon, Swatches, UploadSimple, X } from '@phosphor-icons/react';
 import { api } from '@/trpc/react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
@@ -11,6 +11,7 @@ import {
   Box,
   CircularProgress,
   IconButton,
+  Popover,
   TextField,
   Tooltip,
   Typography,
@@ -27,6 +28,7 @@ import {
 } from '@/lib/validations/project';
 import {
   PROJECT_ICON_OPTIONS,
+  getProjectIcon,
 } from '@/lib/constants/projectIconComponents';
 import usePlacesAutocomplete, { getGeocode } from 'use-places-autocomplete';
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -242,6 +244,7 @@ export default function ProjectFormBody({
   const [pickerMode, setPickerMode] = useState<'icon' | 'photo'>('icon');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [iconAnchorEl, setIconAnchorEl] = useState<HTMLElement | null>(null);
   const uploadedUrlRef = useRef<string | null>(null);
 
   const {
@@ -262,6 +265,8 @@ export default function ProjectFormBody({
   });
 
   const selectedIcon = watch('icon') ?? 'building';
+  const SelectedIconComponent = getProjectIcon(selectedIcon);
+  const selectedIconLabel = PROJECT_ICON_OPTIONS.find(o => o.id === selectedIcon)?.label ?? 'Building';
   const imageUrl = watch('imageUrl');
 
   const cleanupUploadedImage = useCallback((url?: string) => {
@@ -557,64 +562,100 @@ export default function ProjectFormBody({
             </Box>
           </Box>
 
-          {/* Icon Picker */}
+          {/* Icon Picker (dropdown) */}
           {pickerMode === 'icon' && (
             <Controller
               name="icon"
               control={control}
               render={({ field }) => (
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(7, 1fr)',
-                    gap: 0.75,
-                    mb: 2.5,
-                  }}
-                >
-                  {PROJECT_ICON_OPTIONS.map(({ id, label, Icon }) => {
-                    const isSelected = (field.value ?? 'building') === id;
-                    return (
-                      <Tooltip key={id} title={label} arrow placement="top">
-                        <Box
-                          component="button"
-                          type="button"
-                          onClick={() => field.onChange(id)}
-                          sx={{
-                            width: '100%',
-                            aspectRatio: '1',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '10px',
-                            border: '1.5px solid',
-                            borderColor: isSelected
-                              ? theme.palette.primary.main
-                              : 'transparent',
-                            bgcolor: isSelected
-                              ? alpha(theme.palette.primary.main, 0.08)
-                              : 'transparent',
-                            color: isSelected
-                              ? theme.palette.primary.main
-                              : theme.palette.text.secondary,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            p: 0,
-                            '&:hover': {
-                              bgcolor: isSelected
-                                ? alpha(theme.palette.primary.main, 0.12)
-                                : alpha(theme.palette.divider, 0.12),
-                              color: isSelected
-                                ? theme.palette.primary.main
-                                : theme.palette.text.primary,
-                            },
-                          }}
-                        >
-                          <Icon size={20} weight={isSelected ? 'fill' : 'regular'} />
-                        </Box>
-                      </Tooltip>
-                    );
-                  })}
-                </Box>
+                <>
+                  <Box
+                    component="button"
+                    type="button"
+                    onClick={(e: React.MouseEvent<HTMLElement>) => setIconAnchorEl(e.currentTarget)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      px: 1.5,
+                      py: 1,
+                      mb: 2.5,
+                      borderRadius: '8px',
+                      border: '1.5px solid',
+                      borderColor: alpha(theme.palette.divider, 0.3),
+                      bgcolor: alpha(theme.palette.divider, 0.06),
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: '0.8125rem',
+                      fontWeight: 500,
+                      color: 'text.primary',
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        borderColor: alpha(theme.palette.primary.main, 0.4),
+                        bgcolor: alpha(theme.palette.divider, 0.1),
+                      },
+                    }}
+                  >
+                    <SelectedIconComponent size={18} weight="fill" />
+                    {selectedIconLabel}
+                    <CaretDown size={12} style={{ marginLeft: 'auto', color: theme.palette.text.secondary }} />
+                  </Box>
+                  <Popover
+                    open={!!iconAnchorEl}
+                    anchorEl={iconAnchorEl}
+                    onClose={() => setIconAnchorEl(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                    slotProps={{
+                      paper: {
+                        sx: {
+                          borderRadius: '10px',
+                          mt: 0.5,
+                          p: 1,
+                          boxShadow: `0 8px 24px ${alpha('#000', 0.12)}`,
+                        },
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5 }}>
+                      {PROJECT_ICON_OPTIONS.map(({ id, label, Icon }) => {
+                        const isSelected = (field.value ?? 'building') === id;
+                        return (
+                          <Tooltip key={id} title={label} arrow placement="top">
+                            <Box
+                              component="button"
+                              type="button"
+                              onClick={() => { field.onChange(id); setIconAnchorEl(null); }}
+                              sx={{
+                                width: 36,
+                                height: 36,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '8px',
+                                border: '1.5px solid',
+                                borderColor: isSelected ? theme.palette.primary.main : 'transparent',
+                                bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+                                color: isSelected ? theme.palette.primary.main : theme.palette.text.secondary,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                p: 0,
+                                '&:hover': {
+                                  bgcolor: isSelected
+                                    ? alpha(theme.palette.primary.main, 0.12)
+                                    : alpha(theme.palette.divider, 0.12),
+                                  color: isSelected ? theme.palette.primary.main : theme.palette.text.primary,
+                                },
+                              }}
+                            >
+                              <Icon size={18} weight={isSelected ? 'fill' : 'regular'} />
+                            </Box>
+                          </Tooltip>
+                        );
+                      })}
+                    </Box>
+                  </Popover>
+                </>
               )}
             />
           )}

@@ -2,8 +2,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { del } from "@vercel/blob";
 import { createTRPCRouter, protectedProcedure, projectProcedure } from "@/server/api/trpc";
-import { createProjectSchema, deleteProjectSchema } from "@/lib/validations/project";
-import { canDeleteProjects } from "@/lib/permissions";
+import { createProjectSchema, updateProjectSchema, deleteProjectSchema } from "@/lib/validations/project";
+import { canDeleteProjects, canManageProjects } from "@/lib/permissions";
 import { getActiveOrganizationId } from "@/server/api/helpers/getActiveOrganization";
 import { getActiveProjectId } from "@/server/api/helpers/getActiveProject";
 import { getTemplateData } from "@/server/gantt/templates";
@@ -364,6 +364,53 @@ export const projectRouter = createTRPCRouter({
       });
 
       return project;
+    }),
+
+  update: projectProcedure
+    .input(updateProjectSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!canManageProjects(ctx.projectMember.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Insufficient permissions to edit projects" });
+      }
+
+      const data: Record<string, unknown> = {};
+
+      // Handle name change → regenerate slug
+      if (input.name !== undefined && input.name !== ctx.project.name) {
+        data.name = input.name;
+        data.slug = await generateUniqueProjectSlug(input.name, ctx.organization.id, ctx.db);
+      }
+
+      if (input.location !== undefined) {
+        data.location = input.location;
+      }
+
+      if (input.icon !== undefined) {
+        data.icon = input.icon;
+      }
+
+      if (input.imageUrl !== undefined) {
+        // Clean up old image blob if replacing
+        if (ctx.project.imageUrl && ctx.project.imageUrl !== input.imageUrl) {
+          try {
+            await del(ctx.project.imageUrl);
+          } catch {
+            // Silent cleanup failure
+          }
+        }
+        data.imageUrl = input.imageUrl || null;
+      }
+
+      if (Object.keys(data).length === 0) {
+        return ctx.project;
+      }
+
+      const updated = await ctx.db.project.update({
+        where: { id: ctx.project.id },
+        data,
+      });
+
+      return updated;
     }),
 
   delete: projectProcedure

@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { User, Settings, CreditCard, LifeBuoy, LogOut } from 'lucide-react';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, CaretRight, CaretLineLeft, CaretLineRight, type Icon } from '@phosphor-icons/react';
+import { User, ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, CaretRight, CaretLineLeft, CaretLineRight, CreditCard, Lifebuoy, SignOut, type Icon } from '@phosphor-icons/react';
 import { Box, Typography, Tooltip } from '@mui/material';
 import {
   DropdownMenu,
@@ -32,9 +31,9 @@ const iconMap: Record<string, Icon> = {
 
 const profileMenuItems = [
   { icon: User, label: 'My Profile' },
-  { icon: Settings, label: 'Account Settings' },
+  { icon: GearSix, label: 'Account Settings' },
   { icon: CreditCard, label: 'Billing' },
-  { icon: LifeBuoy, label: 'Help & Support' },
+  { icon: Lifebuoy, label: 'Help & Support' },
 ];
 
 interface SidebarProps {
@@ -484,7 +483,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                 component="button"
                 onClick={() => {
                   setProfileOpen(false);
-                  if (item.label === 'Account Settings') {
+                  if (item.label === 'Account Settings' || item.label === 'My Profile') {
                     setSettingsOpen(true);
                   }
                 }}
@@ -503,7 +502,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                   '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
-                <item.icon style={{ width: 14, height: 14, color: 'inherit' }} />
+                <item.icon size={14} />
                 <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary' }}>
                   {item.label}
                 </Typography>
@@ -534,7 +533,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
               '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
             }}
           >
-            <LogOut style={{ width: 14, height: 14, color: 'inherit' }} />
+            <SignOut size={14} />
             <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'inherit' }}>
               Log out
             </Typography>
