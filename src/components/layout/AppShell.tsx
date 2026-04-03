@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, ViewTransition } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { ViewTransitions } from 'next-view-transitions';
 import { Box } from '@mui/material';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
@@ -27,6 +28,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [toggleSidebar]);
 
   return (
+    <ViewTransitions>
     <Box
       sx={{
         height: '100vh',
@@ -62,12 +64,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             overflowY: 'auto',
           }}
         >
-          <ViewTransition>{children}</ViewTransition>
+          {children}
         </Box>
       </Box>
 
       {/* Mobile Drawer Overlay */}
       <MobileDrawer isOpen={drawerOpen} onClose={closeDrawer} />
     </Box>
+    </ViewTransitions>
   );
 }
