@@ -105,39 +105,12 @@ body {
 }
 
 /* ============================================
-   View Transitions — fade + slide on navigation
-   Only the main content area animates.
-   Sidebar and header remain untouched.
+   Page Transitions — fade + slide on navigation
+   Applied only to the main content area via AppShell.
    ============================================ */
 
-/* Disable the default root transition entirely */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-/* Scope the transition to only the main content area */
-.app-main {
-  view-transition-name: main-content;
-  contain: layout;
-}
-
-::view-transition-old(main-content) {
-  animation: vt-leave 0.3s ease;
-}
-
-::view-transition-new(main-content) {
-  animation: vt-enter 0.3s ease;
-}
-
-@keyframes vt-leave {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(8px); }
-}
-
-@keyframes vt-enter {
-  from { opacity: 0; transform: translateY(-8px); }
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
