@@ -65,8 +65,6 @@ export const scheduleRouter = createTRPCRouter({
     .input(saveVersionSchema)
     .mutation(async ({ ctx, input }) => {
       const projectId = ctx.project.id;
-      const { name } = input;
-
       // Check version cap
       const versionCount = await ctx.db.scheduleVersion.count({
         where: { projectId },
@@ -84,13 +82,15 @@ export const scheduleRouter = createTRPCRouter({
       const result = await ctx.db.scheduleVersion.create({
         data: {
           projectId,
-          name,
+          name: input.name || null,
+          description: input.description || null,
           snapshot: snapshot as unknown as Prisma.InputJsonValue,
           createdById: ctx.session.user.id,
         },
         select: {
           id: true,
           name: true,
+          description: true,
           createdAt: true,
         },
       });
@@ -107,6 +107,7 @@ export const scheduleRouter = createTRPCRouter({
         select: {
           id: true,
           name: true,
+          description: true,
           createdAt: true,
           createdBy: {
             select: { id: true, name: true, email: true },
@@ -127,6 +128,7 @@ export const scheduleRouter = createTRPCRouter({
         select: {
           id: true,
           name: true,
+          description: true,
           snapshot: true,
           createdAt: true,
           projectId: true,

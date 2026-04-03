@@ -3,7 +3,9 @@
 import { useState, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Box, Typography } from '@mui/material';
+import { CalendarBlank, Clock } from '@phosphor-icons/react';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -20,16 +22,18 @@ export default function SaveVersionDialog({ open, onOpenChange, projectId }: Sav
   const { showSnackbar } = useSnackbar();
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const { control, handleSubmit, reset, formState: { errors } } = useForm<SaveVersionInput>({
+  const { control, handleSubmit, reset, formState: { errors }, watch } = useForm<SaveVersionInput>({
     resolver: zodResolver(saveVersionSchema),
-    defaultValues: { name: '' },
+    defaultValues: { name: '', description: '' },
   });
+
+  const nameValue = watch('name');
+  const now = new Date();
 
   const saveMutation = api.schedule.saveVersion.useMutation({
     onSuccess: (data) => {
       void utils.schedule.listVersions.invalidate({ projectId });
-      // Reset the frontend change tracker
-      window.dispatchEvent(new CustomEvent('gantt-version-saved', { detail: { name: data.name } }));
+      window.dispatchEvent(new CustomEvent('gantt-version-saved', { detail: { name: data.name, id: data.id } }));
       showSnackbar('Version saved', 'success');
       reset();
       onOpenChange(false);
@@ -59,7 +63,6 @@ export default function SaveVersionDialog({ open, onOpenChange, projectId }: Sav
     timeoutId = setTimeout(() => {
       cleanup();
       setIsSyncing(false);
-      // Proceed with save even if sync event was not received
       saveMutation.mutate({ ...data, projectId });
     }, SYNC_TIMEOUT_MS);
 
@@ -75,22 +78,70 @@ export default function SaveVersionDialog({ open, onOpenChange, projectId }: Sav
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
       <form onSubmit={handleSubmit(handleSave)}>
-        <DialogTitle sx={{ fontSize: 16, fontWeight: 600, pb: 1 }}>Save Version</DialogTitle>
-        <DialogContent>
+        <DialogTitle sx={{ fontSize: 16, fontWeight: 600, pb: 0.5 }}>Save Version</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Date & time pill */}
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1.5,
+              px: 1.5,
+              py: 1,
+              mt: 1,
+              borderRadius: '8px',
+              bgcolor: 'action.hover',
+              border: '1px solid',
+              borderColor: 'divider',
+              alignSelf: 'flex-start',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <CalendarBlank size={13} weight="bold" style={{ opacity: 0.5 }} />
+              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
+                {format(now, 'MMM d, yyyy')}
+              </Typography>
+            </Box>
+            <Box sx={{ width: '1px', height: 12, bgcolor: 'divider' }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Clock size={13} weight="bold" style={{ opacity: 0.5 }} />
+              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
+                {format(now, 'h:mm a')}
+              </Typography>
+            </Box>
+          </Box>
+
           <Controller
             name="name"
             control={control}
             render={({ field }) => (
               <TextField
                 {...field}
-                label="Version name"
+                label="Version name (optional)"
                 placeholder="e.g. Baseline v1 — March 31"
                 fullWidth
                 autoFocus
                 size="small"
                 error={!!errors.name}
-                helperText={errors.name?.message}
-                sx={{ mt: 1 }}
+                helperText={errors.name?.message ?? (!nameValue ? 'Date & time will be used as the label' : undefined)}
+              />
+            )}
+          />
+          <Controller
+            name="description"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Description (optional)"
+                placeholder="What changed in this version?"
+                fullWidth
+                multiline
+                minRows={2}
+                maxRows={4}
+                size="small"
+                error={!!errors.description}
+                helperText={errors.description?.message}
               />
             )}
           />
