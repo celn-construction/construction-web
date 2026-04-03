@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Box, Typography, Popover } from '@mui/material';
+import { Box, Typography, Popover, Tooltip } from '@mui/material';
 import { ClockCounterClockwise, FloppyDisk, GitDiff, CheckCircle } from '@phosphor-icons/react';
 import { useGanttChangesStore, useGanttChangesListener } from '@/store/ganttChangesStore';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
@@ -163,34 +163,44 @@ export default function VersionControlBar() {
             <Box sx={{ width: '1px', height: 14, bgcolor: 'divider', flexShrink: 0 }} />
 
             {/* Save button */}
-            <Box
-              component="button"
-              onClick={() => setSaveVersionOpen(true)}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                px: 1.25,
-                height: '100%',
-                border: 'none',
-                borderRadius: '0 9px 9px 0',
-                bgcolor: hasChanges ? 'var(--accent-primary)' : 'transparent',
-                color: hasChanges ? '#fff' : 'text.secondary',
-                cursor: 'pointer',
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                fontFamily: 'inherit',
-                letterSpacing: '-0.01em',
-                transition: 'background-color 0.2s, color 0.2s, filter 0.2s',
-                '&:hover': {
-                  bgcolor: hasChanges ? 'var(--accent-primary)' : 'action.hover',
-                  filter: hasChanges ? 'brightness(0.85)' : 'none',
-                },
-              }}
+            <Tooltip
+              title={hasChanges ? 'Save a new version' : 'No unsaved changes'}
+              arrow
+              placement="bottom"
             >
-              <FloppyDisk size={12} weight={hasChanges ? 'fill' : 'regular'} />
-              Save
-            </Box>
+              <Box
+                component="button"
+                onClick={hasChanges ? () => setSaveVersionOpen(true) : undefined}
+                disabled={!hasChanges}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  px: 1.25,
+                  height: '100%',
+                  border: 'none',
+                  borderRadius: '0 9px 9px 0',
+                  bgcolor: hasChanges ? 'var(--accent-primary)' : 'transparent',
+                  color: hasChanges ? '#fff' : 'text.secondary',
+                  cursor: hasChanges ? 'pointer' : 'default',
+                  opacity: hasChanges ? 1 : 0.5,
+                  fontSize: '0.6875rem',
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  letterSpacing: '-0.01em',
+                  transition: 'background-color 0.2s, color 0.2s, filter 0.2s, opacity 0.2s',
+                  ...(hasChanges && {
+                    '&:hover': {
+                      bgcolor: 'var(--accent-primary)',
+                      filter: 'brightness(0.85)',
+                    },
+                  }),
+                }}
+              >
+                <FloppyDisk size={12} weight={hasChanges ? 'fill' : 'regular'} />
+                Save
+              </Box>
+            </Tooltip>
           </Box>
         </Box>
       </Box>

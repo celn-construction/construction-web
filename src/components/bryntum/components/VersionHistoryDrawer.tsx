@@ -12,6 +12,7 @@ import {
   DialogContentText,
   DialogActions,
   Divider,
+  Tooltip,
 } from '@mui/material';
 import { X, DotsThreeVertical, ClockCounterClockwise, Trash } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
@@ -103,9 +104,11 @@ export default function VersionHistoryDrawer({
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, py: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
             <Typography sx={{ fontSize: 15, fontWeight: 600 }}>Version History</Typography>
-            <Typography sx={{ fontSize: 11, color: 'text.disabled', fontWeight: 500 }}>
-              {versions.length}/50
-            </Typography>
+            <Tooltip title={`${versions.length} of 50 saved versions used`} arrow placement="bottom">
+              <Typography sx={{ fontSize: 11, color: 'text.disabled', fontWeight: 500, cursor: 'default' }}>
+                {versions.length}/50
+              </Typography>
+            </Tooltip>
           </Box>
           <IconButton size="small" onClick={() => onOpenChange(false)} sx={{ p: 0.5 }}>
             <X size={16} />

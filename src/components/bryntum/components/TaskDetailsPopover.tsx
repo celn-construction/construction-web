@@ -13,6 +13,7 @@ import { api } from '@/trpc/react';
 import type { PopoverPlacement } from '../types';
 import type { PreviewDoc, DocumentItem } from './task-popover/types';
 
+import { ArrowsInSimple, ArrowsOutSimple } from '@phosphor-icons/react';
 import TaskHeader from './task-popover/TaskHeader';
 import CoverImageBanner from './task-popover/CoverImageBanner';
 import FolderRow from './task-popover/FolderRow';
@@ -108,6 +109,14 @@ export function TaskDetailsPopover({
       else next.add(folderId);
       return next;
     });
+  }, []);
+
+  const expandAll = useCallback(() => {
+    setExpandedFolders(new Set(folderData.map((f) => f.id)));
+  }, []);
+
+  const collapseAll = useCallback(() => {
+    setExpandedFolders(new Set());
   }, []);
 
   const handleUploadComplete = useCallback(() => {
@@ -219,6 +228,58 @@ export function TaskDetailsPopover({
                 >
                   Files
                 </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box
+                    component="button"
+                    onClick={expandAll}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      color: 'text.secondary',
+                      opacity: 0.6,
+                      p: 0,
+                      fontSize: '0.5625rem',
+                      fontWeight: 500,
+                      letterSpacing: '0.05em',
+                      lineHeight: 1,
+                      transition: 'opacity 0.15s',
+                      '&:hover': { opacity: 1 },
+                    }}
+                  >
+                    <ArrowsOutSimple size={10} weight="bold" />
+                    Expand
+                  </Box>
+                  {expandedFolders.size > 0 && (
+                    <Box
+                      component="button"
+                      onClick={collapseAll}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        border: 'none',
+                        background: 'none',
+                        cursor: 'pointer',
+                        color: 'text.secondary',
+                        opacity: 0.6,
+                        p: 0,
+                        fontSize: '0.5625rem',
+                        fontWeight: 500,
+                        letterSpacing: '0.05em',
+                        lineHeight: 1,
+                        transition: 'opacity 0.15s',
+                        '&:hover': { opacity: 1 },
+                      }}
+                    >
+                      <ArrowsInSimple size={10} weight="bold" />
+                      Collapse
+                    </Box>
+                  )}
+                </Box>
               </Box>
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>

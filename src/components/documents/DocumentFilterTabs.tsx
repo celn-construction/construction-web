@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Typography, Skeleton, useTheme } from '@mui/material';
+import { Box, Typography, useTheme } from '@mui/material';
 import { SlidersHorizontal, X, SquareCheck, CircleDashed } from 'lucide-react';
 import type { LinkFilter } from '@/components/documents/DocumentFilterPopup';
 
@@ -33,16 +33,7 @@ export default function DocumentFilterTabs({
   const activeCount = selectedTypes.length + (linkFilter !== 'all' ? 1 : 0);
 
   if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Skeleton
-          variant="rectangular"
-          width={94}
-          height={32}
-          sx={{ borderRadius: '999px', bgcolor: 'action.disabled' }}
-        />
-      </Box>
-    );
+    return <Box sx={{ mb: 2 }} />;
   }
 
   const activeChipSx = {
