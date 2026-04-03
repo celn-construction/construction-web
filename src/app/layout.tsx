@@ -1,7 +1,7 @@
 import "@/styles/globals.css";
 
 import { type Metadata } from "next";
-import { Geist, JetBrains_Mono } from "next/font/google";
+import { Geist, Inter, Instrument_Serif, JetBrains_Mono, Playfair_Display } from "next/font/google";
 
 import { TRPCReactProvider } from "@/trpc/react";
 import { LoadingProvider } from "@/components/providers/LoadingProvider";
@@ -28,11 +28,29 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
 });
 
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  style: ["normal", "italic"],
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-instrument-serif",
+  weight: "400",
+  style: ["normal", "italic"],
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${inter.variable} ${instrumentSerif.variable}`}>
       <body>
         <TRPCReactProvider>
           <ThemeRegistry>
