@@ -11,6 +11,14 @@ export const createProjectSchema = z.object({
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 
+export const updateProjectSchema = createProjectSchema
+  .pick({ name: true, location: true, icon: true, imageUrl: true })
+  .partial()
+  .extend({ location: z.string().max(200).trim().optional() })
+  .strict();
+
+export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+
 export const deleteProjectSchema = z.object({
   confirmName: z.string().min(1, "Please type the project name to confirm"),
 });

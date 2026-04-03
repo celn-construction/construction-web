@@ -287,8 +287,17 @@ export const ganttRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
       }
 
-      return ctx.db.ganttTask.update({
+      const task = await ctx.db.ganttTask.findFirst({
         where: { id: taskId, projectId },
+        select: { id: true },
+      });
+
+      if (!task) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found in this project" });
+      }
+
+      return ctx.db.ganttTask.update({
+        where: { id: taskId },
         data: { csiCode },
         select: { id: true, csiCode: true },
       });

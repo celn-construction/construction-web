@@ -6,6 +6,9 @@ interface ProjectContextValue {
   projectId: string;
   projectSlug: string;
   projectName: string;
+  projectIcon: string;
+  projectImageUrl: string | null;
+  projectLocation: string;
   organizationId: string;
 }
 

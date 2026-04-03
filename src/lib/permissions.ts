@@ -69,6 +69,10 @@ export function canDeleteProjects(role: string): boolean {
   return hasPermission(role, "DELETE_PROJECTS");
 }
 
+export function canManageProjects(role: string): boolean {
+  return hasPermission(role, "MANAGE_PROJECTS");
+}
+
 // Role rank for hierarchy enforcement (higher = more privileged)
 const ROLE_RANK: Record<Role, number> = {
   owner: 4,

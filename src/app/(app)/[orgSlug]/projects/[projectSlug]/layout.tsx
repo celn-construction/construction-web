@@ -47,7 +47,7 @@ export default async function ProjectLayout({
         slug: projectSlug,
       },
     },
-    select: { id: true, slug: true, name: true, organizationId: true },
+    select: { id: true, slug: true, name: true, icon: true, imageUrl: true, location: true, organizationId: true },
   });
 
   // Project not found - redirect to org home
@@ -69,6 +69,9 @@ export default async function ProjectLayout({
         projectId: project.id,
         projectSlug: project.slug,
         projectName: project.name,
+        projectIcon: project.icon,
+        projectImageUrl: project.imageUrl,
+        projectLocation: project.location,
         organizationId: project.organizationId,
       }}
     >

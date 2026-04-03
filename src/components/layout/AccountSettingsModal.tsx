@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { X, User, Settings, CreditCard, LifeBuoy } from 'lucide-react';
+import { X, User, GearSix, CreditCard, Lifebuoy } from '@phosphor-icons/react';
 import { Dialog, Box, IconButton, Typography } from '@mui/material';
+import ProfileTabContent from './ProfileTabContent';
 
 const tabs = [
   { id: 'profile', label: 'Profile', icon: User },
-  { id: 'account', label: 'Account', icon: Settings },
+  { id: 'account', label: 'Account', icon: GearSix },
   { id: 'billing', label: 'Billing', icon: CreditCard },
-  { id: 'help', label: 'Help & Support', icon: LifeBuoy },
+  { id: 'help', label: 'Help & Support', icon: Lifebuoy },
 ] as const;
 
 type TabId = (typeof tabs)[number]['id'];
@@ -96,7 +97,7 @@ export default function AccountSettingsModal({ open, onOpenChange }: AccountSett
                   },
                 }}
               >
-                <tab.icon style={{ width: 15, height: 15 }} />
+                <tab.icon size={15} />
                 <Typography
                   sx={{
                     fontSize: '0.8125rem',
@@ -134,15 +135,19 @@ export default function AccountSettingsModal({ open, onOpenChange }: AccountSett
             size="small"
             sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
           >
-            <X style={{ width: 18, height: 18 }} />
+            <X size={18} />
           </IconButton>
         </Box>
 
         {/* Content */}
         <Box sx={{ flex: 1, px: 3, py: 3, overflow: 'auto' }}>
-          <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-            {tabs.find((t) => t.id === activeTab)?.label} settings will appear here.
-          </Typography>
+          {activeTab === 'profile' ? (
+            <ProfileTabContent />
+          ) : (
+            <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+              {tabs.find((t) => t.id === activeTab)?.label} settings will appear here.
+            </Typography>
+          )}
         </Box>
       </Box>
     </Dialog>
