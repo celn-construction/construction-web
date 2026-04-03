@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, Fragment, useMemo, useEffect } from 'react';
+import { useState, useCallback, Fragment, useMemo, useEffect } from 'react';
 import {
   FolderSimple,
   FolderOpen,
   FileText,
   Plus,
   CalendarBlank,
+  ArrowsInSimple,
+  ArrowsOutSimple,
+  MagnifyingGlass,
+  X,
 
   Question,
   PaperPlaneTilt,
@@ -18,7 +22,7 @@ import {
 } from '@phosphor-icons/react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
-import { Box, IconButton, Skeleton, Typography } from '@mui/material';
+import { Box, IconButton, InputBase, Skeleton, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/react';
@@ -330,6 +334,75 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
     });
   }, [groups]);
 
+  const expandAll = useCallback(() => {
+    const allIds: string[] = [];
+    for (const group of groups) {
+      const groupId = `group-${group.id}`;
+      allIds.push(groupId);
+      const tasks = grouped[group.id] ?? [];
+      if (tasks.length === 0) {
+        // Group has no child tasks — folders hang directly off the group
+        for (const folder of folderData) {
+          allIds.push(`task-${group.id}-${folder.id}`);
+        }
+      } else {
+        for (const task of tasks) {
+          const taskId = `task-${task.id}`;
+          allIds.push(taskId);
+          for (const folder of folderData) {
+            allIds.push(`${taskId}-${folder.id}`);
+          }
+        }
+      }
+    }
+    setExpandedItems(allIds);
+  }, [groups, grouped]);
+
+  const collapseAll = useCallback(() => {
+    setExpandedItems([]);
+  }, []);
+
+  // ── Search ──
+  const [searchQuery, setSearchQuery] = useState('');
+  const queryLower = searchQuery.toLowerCase();
+
+  const { filteredGroups, filteredGrouped, searchExpandedIds } = useMemo(() => {
+    if (!queryLower) {
+      return { filteredGroups: groups, filteredGrouped: grouped, searchExpandedIds: null };
+    }
+
+    const fGroups: typeof groups = [];
+    const fGrouped: typeof grouped = {};
+    const expandIds: string[] = [];
+
+    for (const group of groups) {
+      const groupMatches = group.name.toLowerCase().includes(queryLower);
+      const tasks = grouped[group.id] ?? [];
+      const matchingTasks = tasks.filter((t) => t.name.toLowerCase().includes(queryLower));
+
+      if (groupMatches || matchingTasks.length > 0) {
+        const groupId = `group-${group.id}`;
+        fGroups.push(group);
+        fGrouped[group.id] = groupMatches ? tasks : matchingTasks;
+        expandIds.push(groupId);
+
+        // Auto-expand matching tasks
+        const visibleTasks = groupMatches ? tasks : matchingTasks;
+        for (const task of visibleTasks) {
+          expandIds.push(`task-${task.id}`);
+        }
+      }
+    }
+
+    return { filteredGroups: fGroups, filteredGrouped: fGrouped, searchExpandedIds: expandIds };
+  }, [queryLower, groups, grouped]);
+
+  // When searching, override expanded items to show matches
+  const effectiveExpandedItems = searchExpandedIds ?? expandedItems;
+  const handleExpandedItemsChange = useCallback((_: React.SyntheticEvent | null, items: string[]) => {
+    if (!searchQuery) setExpandedItems(items);
+  }, [searchQuery]);
+
   // Handle selection change
   const handleSelectedItemsChange = (_event: React.SyntheticEvent | null, itemIds: string | null) => {
     const nodeId = itemIds;
@@ -433,6 +506,106 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
       >
         File Tree
       </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box
+          component="button"
+          onClick={expandAll}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            color: 'text.secondary',
+            opacity: 0.6,
+            p: 0,
+            fontSize: '0.5625rem',
+            fontWeight: 500,
+            letterSpacing: '0.05em',
+            lineHeight: 1,
+            transition: 'opacity 0.15s',
+            '&:hover': { opacity: 1 },
+          }}
+        >
+          <ArrowsOutSimple size={10} weight="bold" />
+          Expand
+        </Box>
+        {expandedItems.length > 0 && (
+          <Box
+            component="button"
+            onClick={collapseAll}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              color: 'text.secondary',
+              opacity: 0.6,
+              p: 0,
+              fontSize: '0.5625rem',
+              fontWeight: 500,
+              letterSpacing: '0.05em',
+              lineHeight: 1,
+              transition: 'opacity 0.15s',
+              '&:hover': { opacity: 1 },
+            }}
+          >
+            <ArrowsInSimple size={10} weight="bold" />
+            Collapse
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+
+  const searchBar = (
+    <Box
+      sx={{
+        px: 1.5,
+        py: 1,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          px: 1.5,
+          py: 0.75,
+          borderRadius: '8px',
+          border: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          transition: 'border-color 0.15s',
+          '&:focus-within': { borderColor: 'primary.main' },
+        }}
+      >
+        <MagnifyingGlass size={14} style={{ flexShrink: 0, opacity: 0.5 }} />
+        <InputBase
+          placeholder="Search tasks..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{
+            flex: 1,
+            fontSize: '0.8125rem',
+            '& .MuiInputBase-input': { p: 0 },
+          }}
+        />
+        {searchQuery && (
+          <IconButton
+            size="small"
+            onClick={() => setSearchQuery('')}
+            sx={{ p: 0.25, color: 'text.secondary' }}
+          >
+            <X size={12} weight="bold" />
+          </IconButton>
+        )}
+      </Box>
     </Box>
   );
 
@@ -574,9 +747,17 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
   return (
     <Box sx={{ width: '100%' }}>
       {headerBar}
+      {searchBar}
+      {searchQuery && filteredGroups.length === 0 ? (
+        <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
+          <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+            No tasks matching &ldquo;{searchQuery}&rdquo;
+          </Typography>
+        </Box>
+      ) : (
       <SimpleTreeView
-        expandedItems={expandedItems}
-        onExpandedItemsChange={(_, items) => setExpandedItems(items)}
+        expandedItems={effectiveExpandedItems}
+        onExpandedItemsChange={handleExpandedItemsChange}
         selectedItems={selectedNodeId}
         onSelectedItemsChange={handleSelectedItemsChange}
         sx={{
@@ -598,8 +779,8 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
           },
         }}
       >
-        {groups.map((group) => {
-          const tasks = grouped[group.id] || [];
+        {filteredGroups.map((group) => {
+          const tasks = filteredGrouped[group.id] || [];
           const groupId = `group-${group.id}`;
 
           return (
@@ -608,7 +789,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
               itemId={groupId}
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.375 }}>
-                  {expandedItems.includes(groupId) && tasks.length > 0 ? (
+                  {effectiveExpandedItems.includes(groupId) && tasks.length > 0 ? (
                     <FolderOpen size={16} />
                   ) : (
                     <FolderSimple size={16} />
@@ -688,6 +869,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
           );
         })}
       </SimpleTreeView>
+      )}
     </Box>
   );
 }

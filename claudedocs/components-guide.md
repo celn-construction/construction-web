@@ -121,6 +121,28 @@ MUI `sx` prop is the primary styling mechanism. Do not use CSS modules or Tailwi
 
 ---
 
+## Page Transitions
+
+Page transitions are handled with a simple CSS animation in `AppShell.tsx` — no third-party libraries. The main content `<Box>` uses `key={pathname}` to force a remount on route changes, which replays a `page-enter` keyframe animation defined in `globals.css`.
+
+**How it works:**
+- `AppShell` reads `usePathname()` and passes it as `key` to the main content wrapper
+- On route change, React unmounts/remounts the main `<Box>`, triggering the CSS animation
+- The sidebar and header are outside the keyed element, so they stay completely stable
+
+**Key files:**
+- `src/components/layout/AppShell.tsx` — `key={pathname}` on the main content `<Box>`
+- `src/styles/globals.css` — `@keyframes page-enter` definition
+
+**Rules:**
+- Do **not** use the View Transitions API (`document.startViewTransition`) — it causes timeout errors with this app's data fetching and Suspense boundaries
+- Do **not** use `next-view-transitions` package — same timeout issue
+- Do **not** give the header or sidebar a `view-transition-name` — it pulls them out of flow and causes layout shift
+- Keep the animation scoped to the main content area only
+- The `key={pathname}` approach is intentional — state-based animation toggling doesn't reliably re-trigger CSS animations
+
+---
+
 ## Data Fetching
 
 Components fetch their own data via tRPC — do not thread props through multiple layers.

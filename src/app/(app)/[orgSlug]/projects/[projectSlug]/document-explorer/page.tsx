@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, Skeleton, Tooltip, useTheme } from '@mui/material';
+import { Box, Typography, CircularProgress, Tooltip, useTheme } from '@mui/material';
 import Pagination from '@/components/documents/Pagination';
 import { FileText, ChevronDown, Sparkles, Search, AlignJustify, Table2 } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
@@ -226,47 +226,11 @@ export default function DocumentExplorerPage() {
         const isAiLoader = aiEnabled && !!aiSearchQuery;
         const activeSearchText = isAiLoader ? aiSearchQuery : debouncedQuery;
 
-        // Initial browse (no search query) → skeleton cards
+        // Initial browse (no search query) → loading spinner
         if (!activeSearchText) {
-          return viewMode === 'detail' ? (
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, 260px)', gap: 2, alignItems: 'start' }}>
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Box key={i} sx={{ borderRadius: '12px', border: '1px solid', borderColor: 'divider', overflow: 'hidden', bgcolor: 'background.paper' }}>
-                  {/* Header */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: '16px', pt: '16px', pb: '12px' }}>
-                    <Skeleton variant="rounded" width={40} height={40} sx={{ borderRadius: '8px' }} />
-                    <Skeleton variant="rectangular" width="60%" height={13} sx={{ borderRadius: '4px' }} />
-                  </Box>
-                  <Box sx={{ height: '1px', bgcolor: 'divider', mx: '16px' }} />
-                  {/* Meta rows */}
-                  <Box sx={{ px: '16px', py: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <Box key={j} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Skeleton variant="circular" width={12} height={12} />
-                        <Skeleton variant="rectangular" width={50} height={11} sx={{ borderRadius: '4px' }} />
-                        <Skeleton variant="rectangular" width={80} height={11} sx={{ borderRadius: '4px' }} />
-                      </Box>
-                    ))}
-                  </Box>
-                  <Box sx={{ height: '1px', bgcolor: 'divider' }} />
-                  <Box sx={{ px: '16px', py: '10px', display: 'flex', gap: 1 }}>
-                    <Skeleton variant="rounded" width={80} height={24} sx={{ borderRadius: '6px' }} />
-                    <Skeleton variant="rounded" width={60} height={24} sx={{ borderRadius: '6px' }} />
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: '14px', py: '10px', borderRadius: '10px', border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
-                  <Skeleton variant="rounded" width={48} height={48} sx={{ borderRadius: '8px', flexShrink: 0 }} />
-                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <Skeleton variant="rectangular" width="55%" height={13} sx={{ borderRadius: '4px' }} />
-                    <Skeleton variant="rectangular" width="80%" height={11} sx={{ borderRadius: '4px' }} />
-                  </Box>
-                </Box>
-              ))}
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, py: 8 }}>
+              <CircularProgress size={32} />
             </Box>
           );
         }

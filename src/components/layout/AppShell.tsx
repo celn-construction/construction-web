@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Box } from '@mui/material';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
@@ -9,6 +10,7 @@ import MobileDrawer from '@/components/layout/MobileDrawer';
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const pathname = usePathname();
 
   const openDrawer = useCallback(() => setDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
@@ -53,6 +55,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         <Header onMenuOpen={openDrawer} />
         <Box
+          key={pathname}
           component="main"
           sx={{
             flex: 1,
@@ -60,6 +63,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             flexDirection: 'column',
             overflowX: 'hidden',
             overflowY: 'auto',
+            animation: 'page-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
           }}
         >
           {children}
