@@ -80,7 +80,6 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   return (
     <Box
       component="aside"
-      className="sidebar"
       sx={{
         height: '100vh',
         width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
