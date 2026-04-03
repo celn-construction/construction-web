@@ -56,6 +56,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <Header onMenuOpen={openDrawer} />
         <Box
           component="main"
+          className="app-main"
           sx={{
             flex: 1,
             display: 'flex',

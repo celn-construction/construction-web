@@ -106,13 +106,26 @@ body {
 
 /* ============================================
    View Transitions — fade + slide on navigation
+   Only the main content area animates.
+   Sidebar and header stay pinned (no animation).
    ============================================ */
 
-::view-transition-old(root) {
+/* Disable animation on root so the full page doesn't shift */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* Animate only the main content area */
+.app-main {
+  view-transition-name: main-content;
+}
+
+::view-transition-old(main-content) {
   animation: vt-leave 0.3s ease;
 }
 
-::view-transition-new(root) {
+::view-transition-new(main-content) {
   animation: vt-enter 0.3s ease;
 }
 
@@ -126,7 +139,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Pin sidebar and header so they don't participate in the cross-fade */
+/* Pin sidebar and header so they don't participate in the transition */
 .sidebar {
   view-transition-name: sidebar;
 }
