@@ -105,25 +105,25 @@ body {
 }
 
 /* ============================================
-   View Transitions — cross-fade on navigation
+   View Transitions — fade + slide on navigation
    ============================================ */
 
 ::view-transition-old(root) {
-  animation: fade-out 0.15s ease;
+  animation: vt-leave 0.3s ease;
 }
 
 ::view-transition-new(root) {
-  animation: fade-in 0.15s ease;
+  animation: vt-enter 0.3s ease;
 }
 
-@keyframes fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+@keyframes vt-leave {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(8px); }
 }
 
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes vt-enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Pin sidebar and header so they don't participate in the cross-fade */
