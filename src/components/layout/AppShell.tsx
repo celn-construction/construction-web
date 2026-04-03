@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, ViewTransition } from 'react';
 import { Box } from '@mui/material';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
@@ -62,7 +62,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             overflowY: 'auto',
           }}
         >
-          {children}
+          <ViewTransition>{children}</ViewTransition>
         </Box>
       </Box>
 
