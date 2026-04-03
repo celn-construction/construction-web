@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Box } from '@mui/material';
 import Header from '@/components/layout/Header';
@@ -10,23 +10,11 @@ import MobileDrawer from '@/components/layout/MobileDrawer';
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
   const pathname = usePathname();
-  const prevPathname = useRef(pathname);
 
   const openDrawer = useCallback(() => setDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarCollapsed((prev) => !prev), []);
-
-  // Trigger fade animation on route change
-  useEffect(() => {
-    if (prevPathname.current !== pathname) {
-      prevPathname.current = pathname;
-      setTransitioning(true);
-      const timer = setTimeout(() => setTransitioning(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [pathname]);
 
   // Cmd+B (Mac) / Ctrl+B (Windows/Linux) to toggle sidebar
   useEffect(() => {
@@ -67,6 +55,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         <Header onMenuOpen={openDrawer} />
         <Box
+          key={pathname}
           component="main"
           sx={{
             flex: 1,
@@ -74,7 +63,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             flexDirection: 'column',
             overflowX: 'hidden',
             overflowY: 'auto',
-            animation: transitioning ? 'page-enter 0.3s ease' : 'none',
+            animation: 'page-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
           }}
         >
           {children}
