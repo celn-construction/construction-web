@@ -7,6 +7,7 @@ import { Box, Menu, MenuItem, Typography, Divider, Avatar } from '@mui/material'
 import { ImageWithFallback } from '@/components/ui/image-with-fallback';
 import { signOut, useSession } from '@/lib/auth-client';
 import LoadingSpinner from '@/components/ui/loading-spinner';
+import { useLoading } from '@/components/providers/LoadingProvider';
 
 export default function UserMenu() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -14,6 +15,7 @@ export default function UserMenu() {
   const open = Boolean(anchorEl);
   const router = useRouter();
   const { data: session } = useSession();
+  const { showLoading, hideLoading } = useLoading();
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -25,6 +27,7 @@ export default function UserMenu() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    showLoading('Logging out...');
     try {
       await signOut({
         fetchOptions: {
@@ -38,6 +41,7 @@ export default function UserMenu() {
     } catch (error) {
       console.error('Logout failed:', error);
       setIsLoggingOut(false);
+      hideLoading();
     }
   };
 
@@ -136,10 +140,6 @@ export default function UserMenu() {
         </MenuItem>
       </Menu>
 
-      {/* Full-screen loading overlay during logout */}
-      {isLoggingOut && (
-        <LoadingSpinner size="lg" fullScreen text="Logging out..." />
-      )}
     </>
   );
 }

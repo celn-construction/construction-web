@@ -18,6 +18,7 @@ import OrgSwitcher from './OrgSwitcher';
 import { authClient, signOut } from '@/lib/auth-client';
 import { getInitials } from '@/lib/utils/formatting';
 import LoadingSpinner from '@/components/ui/loading-spinner';
+import { useLoading } from '@/components/providers/LoadingProvider';
 import AccountSettingsModal from './AccountSettingsModal';
 
 const iconMap: Record<string, Icon> = {
@@ -47,6 +48,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
   const { data: session } = authClient.useSession();
   const user = session?.user;
+  const { showLoading, hideLoading } = useLoading();
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -58,6 +60,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    showLoading('Logging out...');
     try {
       await signOut({
         fetchOptions: {
@@ -71,6 +74,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
     } catch (error) {
       console.error('Logout failed:', error);
       setIsLoggingOut(false);
+      hideLoading();
     }
   };
 
@@ -435,8 +439,6 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
           </Box>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      {isLoggingOut && <LoadingSpinner size="lg" fullScreen text="Logging out..." />}
 
       <AccountSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </Drawer>
