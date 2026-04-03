@@ -105,6 +105,44 @@ body {
 }
 
 /* ============================================
+   View Transitions — cross-fade on navigation
+   ============================================ */
+
+::view-transition-old(root) {
+  animation: fade-out 0.15s ease;
+}
+
+::view-transition-new(root) {
+  animation: fade-in 0.15s ease;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Pin sidebar and header so they don't participate in the cross-fade */
+.sidebar {
+  view-transition-name: sidebar;
+}
+
+.app-header {
+  view-transition-name: header;
+}
+
+::view-transition-old(sidebar),
+::view-transition-new(sidebar),
+::view-transition-old(header),
+::view-transition-new(header) {
+  animation: none;
+}
+
+/* ============================================
    Gantt Chart Custom Scrollbar Styles
    Native scroll physics + gutter-based custom scrollbars
    ============================================ */

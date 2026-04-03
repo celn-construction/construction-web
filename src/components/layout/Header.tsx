@@ -50,6 +50,7 @@ export default function Header({ onMenuOpen }: HeaderProps) {
   return (
     <Box
       component="header"
+      className="app-header"
       sx={{
         px: 3,
         pt: 1.5,

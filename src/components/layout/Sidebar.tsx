@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { Link } from 'next-view-transitions';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { User, ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, CaretRight, CaretLineLeft, CaretLineRight, CreditCard, Lifebuoy, SignOut, type Icon } from '@phosphor-icons/react';
@@ -80,6 +80,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   return (
     <Box
       component="aside"
+      className="sidebar"
       sx={{
         height: '100vh',
         width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
