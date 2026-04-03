@@ -3,7 +3,6 @@ import "@/styles/globals.css";
 import { type Metadata } from "next";
 import { Geist, JetBrains_Mono } from "next/font/google";
 
-import { ViewTransitions } from "next-view-transitions";
 import { TRPCReactProvider } from "@/trpc/react";
 import { LoadingProvider } from "@/components/providers/LoadingProvider";
 import ThemeRegistry from "@/components/providers/ThemeRegistry";
@@ -33,18 +32,16 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <ViewTransitions>
-      <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable}`}>
-        <body>
-          <TRPCReactProvider>
-            <ThemeRegistry>
-              <SnackbarProvider>
-                <LoadingProvider>{children}</LoadingProvider>
-              </SnackbarProvider>
-            </ThemeRegistry>
-          </TRPCReactProvider>
-        </body>
-      </html>
-    </ViewTransitions>
+    <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable}`}>
+      <body>
+        <TRPCReactProvider>
+          <ThemeRegistry>
+            <SnackbarProvider>
+              <LoadingProvider>{children}</LoadingProvider>
+            </SnackbarProvider>
+          </ThemeRegistry>
+        </TRPCReactProvider>
+      </body>
+    </html>
   );
 }
