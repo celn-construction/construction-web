@@ -1,485 +1,690 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LogIn } from 'lucide-react';
 import { useSession } from '@/lib/auth-client';
-import { Box, Stack, Typography, Button, InputBase } from '@mui/material';
+import { motion } from 'framer-motion';
+import { CaretDown, Play, MagnifyingGlass, Bell, House, ListChecks, ArrowsLeftRight, CreditCard, Bank, Buildings, Gear, Path, BellRinging, CaretRight, Check, ChartBar, BookOpen, UsersThree, Rocket } from '@phosphor-icons/react';
 
-const monoFont = 'var(--font-jetbrains-mono)';
-const bodyFont = 'var(--font-geist-sans)';
+const interFont = 'var(--font-inter)';
+const instrumentSerifFont = 'var(--font-instrument-serif)';
 
-function ThreeBackground() {
-  const mountRef = useRef<HTMLDivElement>(null);
+/* Design tokens */
+const t = {
+  bg: '#ffffff',
+  fg: 'hsl(210 14% 17%)',
+  mutedFg: 'hsl(184 5% 55%)',
+  secondary: 'hsl(0 0% 96%)',
+  secondaryFg: 'hsl(0 0% 9%)',
+  accent: 'hsl(239 84% 67%)',
+  border: 'hsl(0 0% 90%)',
+  shadow: '0 25px 80px -12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06)',
+};
 
-  useEffect(() => {
-    let cleanup: (() => void) | undefined;
+/* ══════════════════════════════════════════════════════════════
+   BLOCK 1 — Nexora Hero (h-screen, no scroll)
+   ══════════════════════════════════════════════════════════════ */
 
-    (async () => {
-      const THREE = await import('three');
-      const mount = mountRef.current;
-      if (!mount) return;
+/* ── Dashboard Preview (fully coded) ──────────────────────── */
 
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(
-        60,
-        mount.clientWidth / mount.clientHeight,
-        0.1,
-        100
-      );
-      camera.position.z = 6;
+function DashboardPreview() {
+  const sidebarItems = [
+    { label: 'Home', icon: House, active: true },
+    { label: 'Tasks', icon: ListChecks, badge: '10' },
+    { label: 'Transactions', icon: ArrowsLeftRight },
+    { label: 'Payments', icon: CreditCard, chevron: true },
+    { label: 'Cards', icon: CreditCard },
+    { label: 'Capital', icon: Bank },
+    { label: 'Accounts', icon: Buildings, chevron: true },
+  ];
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(mount.clientWidth, mount.clientHeight);
-      renderer.setClearColor(0x000000, 0);
-      mount.appendChild(renderer.domElement);
+  const workflowItems = [
+    { label: 'Trade routes', icon: Path },
+    { label: 'Payments', icon: CreditCard },
+    { label: 'Notifications', icon: BellRinging },
+    { label: 'Settings', icon: Gear },
+  ];
 
-      // Theme-derived colors: accent-primary #2B2D42, text-secondary #737373, text-muted #a3a3a3, border #e5e5e5
-      const colors = [0x2b2d42, 0x737373, 0xa3a3a3, 0xe5e5e5];
-      const beamDefs = Array.from({ length: 14 }, (_, i) => ({
-        color: colors[i % colors.length]!,
-        y: -3.5 + i * 0.55,
-        radius: 0.015 + (i % 3) * 0.005,
-        opacity: 0.08 + (i % 4) * 0.03,
-      }));
+  const actions = ['Send', 'Request', 'Transfer', 'Deposit', 'Pay Bill', 'Create Invoice'];
 
-      const beams: InstanceType<typeof THREE.Mesh>[] = [];
+  const accounts = [
+    { name: 'Credit', amount: '$98,125.50' },
+    { name: 'Treasury', amount: '$6,750,200.00' },
+    { name: 'Operations', amount: '$1,592,864.82' },
+  ];
 
-      // Smooth sine-wave curves spanning the full viewport width
-      beamDefs.forEach(({ color, y, radius, opacity }) => {
-        const points: InstanceType<typeof THREE.Vector3>[] = [];
-        const segments = 80;
-        for (let i = 0; i <= segments; i++) {
-          const t = i / segments;
-          const x = -10 + t * 20;           // span -10 to +10
-          const wave = Math.sin(t * Math.PI * 2) * 0.8; // one full sine period
-          points.push(new THREE.Vector3(x, y + wave, 0));
-        }
-        const curve = new THREE.CatmullRomCurve3(points);
-        const geo = new THREE.TubeGeometry(curve, 200, radius, 8, false);
-        const mat = new THREE.MeshBasicMaterial({
-          color,
-          transparent: true,
-          opacity,
-          depthWrite: false,
-        });
-        const mesh = new THREE.Mesh(geo, mat);
-        scene.add(mesh);
-        beams.push(mesh);
-      });
+  const transactions = [
+    { date: 'Mar 28', desc: 'AWS', amount: '-$5,200', status: 'Pending', statusColor: '#d97706' },
+    { date: 'Mar 27', desc: 'Client Payment', amount: '+$125,000', status: 'Completed', statusColor: '#16a34a' },
+    { date: 'Mar 26', desc: 'Payroll', amount: '-$85,450', status: 'Completed', statusColor: '#16a34a' },
+    { date: 'Mar 25', desc: 'Office Supplies', amount: '-$1,200', status: 'Completed', statusColor: '#16a34a' },
+  ];
 
-      const onResize = () => {
-        if (!mount) return;
-        camera.aspect = mount.clientWidth / mount.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(mount.clientWidth, mount.clientHeight);
-      };
-      window.addEventListener('resize', onResize);
-
-      let animId: number;
-      const animate = () => {
-        animId = requestAnimationFrame(animate);
-        const t = Date.now() * 0.00015;
-        beams.forEach((beam, i) => {
-          // Gentle uniform vertical drift
-          beam.position.y = Math.sin(t + i * 0.8) * 0.15;
-          beam.rotation.z = Math.sin(t * 0.7 + i * 0.6) * 0.03;
-        });
-        renderer.render(scene, camera);
-      };
-      animate();
-
-      cleanup = () => {
-        cancelAnimationFrame(animId);
-        window.removeEventListener('resize', onResize);
-        renderer.dispose();
-        if (mount.contains(renderer.domElement)) {
-          mount.removeChild(renderer.domElement);
-        }
-      };
-    })();
-
-    return () => cleanup?.();
-  }, []);
+  const fs = { fontSize: 11, fontFamily: interFont };
 
   return (
-    <div
-      ref={mountRef}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-      }}
-    />
+    <div style={{ ...fs, userSelect: 'none', pointerEvents: 'none', display: 'flex', flexDirection: 'column', height: '100%', borderRadius: 12, overflow: 'hidden', background: t.bg, border: `1px solid ${t.border}` }}>
+      {/* Top bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderBottom: `1px solid ${t.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 20, height: 20, borderRadius: 4, background: t.fg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>N</span>
+          </div>
+          <span style={{ fontSize: 11, fontWeight: 600, color: t.fg }}>Nexora</span>
+          <CaretDown size={10} style={{ color: t.mutedFg }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.secondary, borderRadius: 6, padding: '4px 10px' }}>
+          <MagnifyingGlass size={10} style={{ color: t.mutedFg }} />
+          <span style={{ fontSize: 10, color: t.mutedFg }}>Search...</span>
+          <span style={{ fontSize: 9, color: t.mutedFg, marginLeft: 12, background: t.bg, borderRadius: 3, padding: '1px 4px', border: `1px solid ${t.border}` }}>⌘K</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 10, fontWeight: 500, color: t.fg, background: t.secondary, borderRadius: 6, padding: '4px 8px' }}>Move Money</span>
+          <Bell size={12} style={{ color: t.mutedFg }} weight="regular" />
+          <div style={{ width: 20, height: 20, borderRadius: '50%', background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 8, fontWeight: 600, color: '#fff' }}>JB</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        {/* Sidebar */}
+        <div style={{ width: 140, borderRight: `1px solid ${t.border}`, padding: '8px 6px', display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {sidebarItems.map((item) => (
+            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 6px', borderRadius: 6, fontSize: 10, color: item.active ? t.fg : t.mutedFg, fontWeight: item.active ? 500 : 400, background: item.active ? t.secondary : 'transparent' }}>
+              <item.icon size={12} />
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.badge && <span style={{ fontSize: 8, background: t.accent, color: '#fff', borderRadius: 4, padding: '1px 4px' }}>{item.badge}</span>}
+              {item.chevron && <CaretRight size={8} style={{ color: t.mutedFg }} />}
+            </div>
+          ))}
+          <div style={{ fontSize: 9, fontWeight: 500, color: t.mutedFg, padding: '10px 6px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Workflows</div>
+          {workflowItems.map((item) => (
+            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 6px', borderRadius: 6, fontSize: 10, color: t.mutedFg }}>
+              <item.icon size={12} />
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Main content */}
+        <div style={{ flex: 1, padding: 12, background: 'rgba(0,0,0,0.015)', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
+          {/* Greeting */}
+          <p style={{ fontSize: 12, fontWeight: 600, color: t.fg, margin: 0 }}>Welcome, Jane</p>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+            {actions.map((a, i) => (
+              <span key={a} style={{ fontSize: 10, padding: '4px 10px', borderRadius: 999, fontWeight: 500, ...(i === 0 ? { background: t.accent, color: '#fff' } : { background: t.bg, color: t.fg, border: `1px solid ${t.border}` }) }}>{a}</span>
+            ))}
+            <span style={{ fontSize: 10, color: t.mutedFg, marginLeft: 4 }}>Customize</span>
+          </div>
+
+          {/* Cards row */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {/* Balance card */}
+            <div style={{ flex: '1 1 0', background: t.bg, borderRadius: 8, padding: 10, border: `1px solid ${t.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                <span style={{ fontSize: 10, color: t.mutedFg }}>Mercury Balance</span>
+                <Check size={10} style={{ color: '#16a34a' }} />
+              </div>
+              <p style={{ fontSize: 20, fontWeight: 600, color: t.fg, margin: '0 0 4px' }}>
+                $8,450,190<span style={{ fontSize: 12, color: t.mutedFg }}>.32</span>
+              </p>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 8, fontSize: 9 }}>
+                <span style={{ color: t.mutedFg }}>Last 30 Days</span>
+                <span style={{ color: '#16a34a' }}>+$1.8M</span>
+                <span style={{ color: '#dc2626' }}>-$900K</span>
+              </div>
+              {/* SVG chart */}
+              <svg viewBox="0 0 280 60" style={{ width: '100%', height: 50 }}>
+                <defs>
+                  <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={t.accent} stopOpacity="0.15" />
+                    <stop offset="100%" stopColor={t.accent} stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d="M0,45 C30,40 50,35 80,28 C110,20 130,38 160,25 C190,12 210,18 240,8 C260,4 275,6 280,5 L280,60 L0,60 Z" fill="url(#chartFill)" />
+                <path d="M0,45 C30,40 50,35 80,28 C110,20 130,38 160,25 C190,12 210,18 240,8 C260,4 275,6 280,5" fill="none" stroke={t.accent} strokeWidth="1.5" />
+              </svg>
+            </div>
+
+            {/* Accounts card */}
+            <div style={{ flex: '1 1 0', background: t.bg, borderRadius: 8, padding: 10, border: `1px solid ${t.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 500, color: t.fg }}>Accounts</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <span style={{ fontSize: 12, color: t.mutedFg }}>+</span>
+                  <span style={{ fontSize: 12, color: t.mutedFg }}>⋮</span>
+                </div>
+              </div>
+              {accounts.map((acc) => (
+                <div key={acc.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 10 }}>
+                  <span style={{ color: t.mutedFg }}>{acc.name}</span>
+                  <span style={{ fontWeight: 500, color: t.fg }}>{acc.amount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Transactions */}
+          <div style={{ background: t.bg, borderRadius: 8, padding: 10, border: `1px solid ${t.border}` }}>
+            <p style={{ fontSize: 10, fontWeight: 500, color: t.fg, margin: '0 0 6px' }}>Recent Transactions</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 80px 70px', gap: '4px 8px', fontSize: 10 }}>
+              <span style={{ color: t.mutedFg, fontWeight: 500 }}>Date</span>
+              <span style={{ color: t.mutedFg, fontWeight: 500 }}>Description</span>
+              <span style={{ color: t.mutedFg, fontWeight: 500, textAlign: 'right' }}>Amount</span>
+              <span style={{ color: t.mutedFg, fontWeight: 500, textAlign: 'right' }}>Status</span>
+              {transactions.map((tx) => (
+                <div key={tx.desc} style={{ display: 'contents' }}>
+                  <span style={{ color: t.mutedFg }}>{tx.date}</span>
+                  <span style={{ color: t.fg }}>{tx.desc}</span>
+                  <span style={{ color: tx.amount.startsWith('+') ? '#16a34a' : t.fg, textAlign: 'right', fontWeight: 500 }}>{tx.amount}</span>
+                  <span style={{ color: tx.statusColor, textAlign: 'right' }}>{tx.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
-export default function Home() {
-  const { data: session } = useSession();
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'joined' | 'already'>('idle');
-  const [error, setError] = useState('');
+/* ── Nexora Section ───────────────────────────────────────── */
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) return;
-
-    setStatus('loading');
-    setError('');
-
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json() as { error?: string };
-        setError(data.error ?? 'Something went wrong');
-        setStatus('idle');
-        return;
-      }
-
-      const data = await res.json() as { ok: boolean; alreadySignedUp?: boolean };
-      setStatus(data.alreadySignedUp ? 'already' : 'joined');
-    } catch {
-      setError('Something went wrong');
-      setStatus('idle');
-    }
-  }
-
+function NexoraSection({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        minHeight: '100vh',
-        bgcolor: 'var(--lp-bg)',
+    <section
+      style={{
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: t.bg,
         overflow: 'hidden',
+        fontFamily: interFont,
+        position: 'relative',
       }}
     >
-      {/* Three.js animated background */}
-      <ThreeBackground />
+      {/* Background video */}
+      <video
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260319_015952_e1deeb12-8fb7-4071-a42a-60779fc64ab6.mp4"
+        autoPlay loop muted playsInline
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+      />
 
-      {/* Floating pill navbar */}
-      <Box
-        sx={{
-          position: 'fixed',
-          top: 20,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 100,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 3,
-          px: 3,
-          py: 1.25,
-          bgcolor: 'var(--lp-glass)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
-          borderRadius: '999px',
-          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.09)',
-          border: '1px solid var(--lp-glass-border)',
-          minWidth: 280,
-        }}
-      >
-        <Typography
-          sx={{
-            fontFamily: monoFont,
-            fontWeight: 700,
-            fontSize: 14,
-            color: 'var(--lp-fg)',
-            letterSpacing: '-0.3px',
+      {/* ── Navbar ── */}
+      <nav style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="3" height="18" rx="0.5" fill={t.fg} />
+            <rect x="3" y="3" width="18" height="3" rx="0.5" fill={t.fg} />
+            <rect x="18" y="3" width="3" height="10" rx="0.5" fill={t.fg} />
+            <rect x="10" y="9" width="2.5" height="12" rx="0.5" fill={t.fg} />
+          </svg>
+          <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', color: t.fg }}>BuildTrack Pro</span>
+        </div>
+        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 32 }}>
+          {['Home', 'Pricing', 'About', 'Contact'].map((link) => (
+            <a key={link} href="#" style={{ fontSize: 14, color: t.mutedFg, textDecoration: 'none', transition: 'color 0.2s' }}>{link}</a>
+          ))}
+        </div>
+        <Link href={isLoggedIn ? '/api/resolve-redirect?redirect=true' : '/sign-up'} style={{ background: t.fg, color: '#fff', padding: '8px 20px', borderRadius: 999, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
+          {isLoggedIn ? 'Dashboard' : 'Get Started'}
+        </Link>
+      </nav>
+
+      {/* ── Hero Content ── */}
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', flex: 1, minHeight: 0 }}>
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          style={{ marginBottom: 24 }}
+        >
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 999, border: `1px solid ${t.border}`, background: t.bg, padding: '6px 16px', fontSize: 14, color: t.mutedFg, fontFamily: interFont }}>
+            Now with GPT-5 support ✨
+          </div>
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          style={{
+            fontFamily: instrumentSerifFont,
+            fontSize: 'clamp(3rem, 6vw, 5rem)',
+            lineHeight: 0.95,
+            letterSpacing: '-0.02em',
+            textAlign: 'center',
+            color: t.fg,
+            maxWidth: 576,
+            margin: '0 0 0',
+            fontWeight: 400,
           }}
         >
-          BuildTrack Pro
-        </Typography>
+          The Future of{' '}
+          <span style={{ fontStyle: 'italic' }}>Smarter</span>{' '}
+          Automation
+        </motion.h1>
 
-        {session ? (
-          <Button
-            component={Link}
-            href="/api/resolve-redirect?redirect=true"
-            sx={{
-              fontFamily: bodyFont,
-              fontSize: 13,
-              fontWeight: 500,
-              color: 'var(--lp-fg)',
-              bgcolor: 'var(--lp-nav-btn)',
-              textTransform: 'none',
-              px: 2,
-              py: 0.5,
-              borderRadius: '999px',
-              minHeight: 'unset',
-              '&:hover': { bgcolor: 'var(--lp-nav-btn-hover)' },
-            }}
-          >
-            Dashboard
-          </Button>
-        ) : (
-          <Button
-            component={Link}
-            href="/sign-in"
-            startIcon={<LogIn size={13} />}
-            sx={{
-              fontFamily: bodyFont,
-              fontSize: 13,
-              fontWeight: 500,
-              color: 'var(--lp-fg)',
-              bgcolor: 'var(--lp-nav-btn)',
-              textTransform: 'none',
-              px: 2,
-              py: 0.5,
-              borderRadius: '999px',
-              minHeight: 'unset',
-              '&:hover': { bgcolor: 'var(--lp-nav-btn-hover)' },
-            }}
-          >
-            Beta Login
-          </Button>
-        )}
-      </Box>
-
-      {/* Main content — centered */}
-      <Stack
-        alignItems="center"
-        justifyContent="center"
-        sx={{ position: 'relative', zIndex: 10, minHeight: '100vh', px: 2 }}
-      >
-        {/* Soft radial glow behind card */}
-        <Box
-          sx={{
-            position: 'absolute',
-            width: 560,
-            height: 560,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(43,45,66,0.08) 0%, transparent 70%)',
-            pointerEvents: 'none',
+        {/* Subheadline */}
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          style={{
+            marginTop: 16,
+            textAlign: 'center',
+            fontSize: 'clamp(16px, 1.3vw, 18px)',
+            color: t.mutedFg,
+            maxWidth: 650,
+            lineHeight: 1.6,
+            fontFamily: interFont,
+            padding: '0 16px',
           }}
-        />
+        >
+          Automate your busywork with intelligent agents that learn, adapt, and execute—so your team can focus on what matters most.
+        </motion.p>
 
-        {/* Frosted glass card */}
-        <Box
-          sx={{
-            position: 'relative',
-            zIndex: 1,
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            bgcolor: 'var(--lp-glass-card)',
-            border: '1px solid var(--lp-glass-card-border)',
-            borderRadius: '16px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.18)',
-            px: { xs: 4, sm: 5 },
-            py: 5.5,
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 12 }}
+        >
+          <a href="#" style={{ background: t.fg, color: '#fff', padding: '14px 24px', borderRadius: 999, fontSize: 14, fontWeight: 500, textDecoration: 'none', fontFamily: interFont }}>
+            Book a demo
+          </a>
+          <button
+            type="button"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              border: 'none',
+              background: t.bg,
+              boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <Play size={16} weight="fill" style={{ color: t.fg }} />
+          </button>
+        </motion.div>
+
+        {/* Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          style={{
+            marginTop: 32,
             width: '100%',
-            maxWidth: 440,
+            maxWidth: 1024,
+            padding: '0 16px',
+            flex: 1,
+            minHeight: 0,
           }}
         >
-          {/* Subtle inner gradient */}
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, rgba(248,250,252,0.65) 0%, transparent 60%)',
-              pointerEvents: 'none',
+          <div
+            style={{
+              borderRadius: 16,
+              overflow: 'hidden',
+              padding: 12,
+              height: '100%',
+              background: 'rgba(255, 255, 255, 0.4)',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              boxShadow: t.shadow,
             }}
+          >
+            <DashboardPreview />
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BLOCK 2 — Stellar.ai
+   ══════════════════════════════════════════════════════════════ */
+
+const stellarTabs = [
+  { id: 'analyse', label: 'Analyse', icon: ChartBar },
+  { id: 'train', label: 'Train', icon: BookOpen },
+  { id: 'testing', label: 'Testing', icon: UsersThree },
+  { id: 'deploy', label: 'Deploy', icon: Rocket },
+] as const;
+
+type StellarTabId = (typeof stellarTabs)[number]['id'];
+
+function AnalyseOverlay() {
+  return (
+    <div className="animate-fade-in-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+      <div className="animate-slide-up-overlay" style={{ position: 'absolute', top: '50%', left: '50%', background: '#fff', borderRadius: 16, padding: 32, width: 380, maxWidth: '90%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+        <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 4 }}>Set Up Your AI Workspace</p>
+        <p style={{ fontFamily: interFont, fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Configure your environment to get started</p>
+        <div style={{ height: 4, background: '#e5e7eb', borderRadius: 2, marginBottom: 20, overflow: 'hidden' }}>
+          <div style={{ width: '25%', height: '100%', background: '#8b5cf6', borderRadius: 2 }} />
+        </div>
+        {['Connect data source', 'Select AI model', 'Configure parameters', 'Review & launch'].map((step, i) => (
+          <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid #f3f4f6' : undefined }}>
+            <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, fontFamily: interFont, ...(i === 0 ? { background: '#8b5cf6', color: '#fff' } : { background: '#f3f4f6', color: '#9ca3af' }) }}>
+              {i === 0 ? <Check size={12} /> : i + 1}
+            </div>
+            <span style={{ fontFamily: interFont, fontSize: 13, color: i === 0 ? '#111' : '#6b7280' }}>{step}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TrainOverlay() {
+  return (
+    <div className="animate-fade-in-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+      <div className="animate-slide-up-overlay" style={{ position: 'absolute', top: '50%', left: '50%', background: '#fff', borderRadius: 16, padding: 32, width: 380, maxWidth: '90%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+        <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 4 }}>AI Model Training</p>
+        <p style={{ fontFamily: interFont, fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Training in progress...</p>
+        <div style={{ height: 4, background: '#e5e7eb', borderRadius: 2, marginBottom: 20, overflow: 'hidden' }}>
+          <div style={{ width: '67%', height: '100%', background: '#f59e0b', borderRadius: 2 }} />
+        </div>
+        {[
+          { label: 'Epoch', value: '67 / 100' },
+          { label: 'Loss', value: '0.0234' },
+          { label: 'Accuracy', value: '94.7%' },
+          { label: 'Time remaining', value: '~12 min' },
+        ].map((item) => (
+          <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+            <span style={{ fontFamily: interFont, fontSize: 13, color: '#6b7280' }}>{item.label}</span>
+            <span style={{ fontFamily: interFont, fontSize: 13, fontWeight: 600, color: '#111' }}>{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TestingOverlay() {
+  return (
+    <div className="animate-fade-in-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+      <div className="animate-slide-up-overlay" style={{ position: 'absolute', top: '50%', left: '50%', background: '#fff', borderRadius: 16, padding: 32, width: 380, maxWidth: '90%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Check size={14} style={{ color: '#16a34a' }} />
+          </div>
+          <div>
+            <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', margin: 0 }}>Test Suite Results</p>
+            <p style={{ fontFamily: interFont, fontSize: 12, color: '#16a34a', margin: 0 }}>All tests passed</p>
+          </div>
+        </div>
+        <div style={{ background: '#f9fafb', borderRadius: 8, padding: 16, marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontFamily: interFont, fontSize: 24, fontWeight: 700, color: '#111' }}>127/127</span>
+            <span style={{ fontFamily: interFont, fontSize: 12, fontWeight: 500, color: '#16a34a', background: '#dcfce7', borderRadius: 999, padding: '2px 10px', display: 'flex', alignItems: 'center' }}>100%</span>
+          </div>
+          <div style={{ height: 4, background: '#dcfce7', borderRadius: 2 }}>
+            <div style={{ width: '100%', height: '100%', background: '#16a34a', borderRadius: 2 }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          {[
+            { label: 'Unit', count: 89, color: '#16a34a' },
+            { label: 'Integration', count: 28, color: '#2563eb' },
+            { label: 'E2E', count: 10, color: '#7c3aed' },
+          ].map((tt) => (
+            <div key={tt.label} style={{ flex: 1, textAlign: 'center', padding: '8px 0', background: '#f9fafb', borderRadius: 8 }}>
+              <p style={{ fontFamily: interFont, fontSize: 16, fontWeight: 700, color: tt.color, margin: 0 }}>{tt.count}</p>
+              <p style={{ fontFamily: interFont, fontSize: 11, color: '#6b7280', margin: 0 }}>{tt.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeployOverlay() {
+  return (
+    <div className="animate-fade-in-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+      <div className="animate-slide-up-overlay" style={{ position: 'absolute', top: '50%', left: '50%', background: '#fff', borderRadius: 16, padding: 32, width: 380, maxWidth: '90%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+        <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 4 }}>Deploy to Production</p>
+        <p style={{ fontFamily: interFont, fontSize: 12, color: '#6b7280', marginBottom: 20 }}>Pre-flight checks complete</p>
+        {['Model validation passed', 'API endpoints verified', 'Load testing complete', 'Rollback plan configured'].map((item, i) => (
+          <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid #f3f4f6' : undefined }}>
+            <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Check size={11} style={{ color: '#16a34a' }} />
+            </div>
+            <span style={{ fontFamily: interFont, fontSize: 13, color: '#111' }}>{item}</span>
+          </div>
+        ))}
+        <button type="button" style={{ width: '100%', marginTop: 20, padding: '10px 0', background: '#111', color: '#fff', border: 'none', borderRadius: 999, fontFamily: interFont, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+          Deploy Now
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StellarSection() {
+  const [activeTab, setActiveTab] = useState<StellarTabId>('analyse');
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveTab((prev) => {
+        const idx = stellarTabs.findIndex((tt) => tt.id === prev);
+        return stellarTabs[(idx + 1) % stellarTabs.length]!.id;
+      });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <section style={{ background: '#fff', fontFamily: interFont }}>
+      {/* Hero */}
+      <div style={{ padding: '96px 24px 128px', maxWidth: 1280, margin: '0 auto', textAlign: 'center' }}>
+        {/* Heading */}
+        <h1 className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.3s', fontSize: 'clamp(3rem, 6vw, 80px)', fontWeight: 400, lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: 20, color: '#000' }}>
+          Work Smarter. Move Faster.
+          <br />
+          <span style={{ background: 'linear-gradient(to right, #000, #6b7280, #9ca3af)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            AI Powers You Up.
+          </span>
+        </h1>
+
+        {/* Subheading */}
+        <p className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.4s', fontSize: 'clamp(16px, 1.5vw, 20px)', color: '#4b5563', maxWidth: 672, margin: '0 auto 32px', lineHeight: 1.6 }}>
+          Intelligent automation syncs with the tools you love to streamline tasks, boost output, and save time.
+        </p>
+
+        {/* CTA */}
+        <div className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.5s', marginBottom: 48 }}>
+          <a href="#" style={{ display: 'inline-block', background: '#000', color: '#fff', padding: '12px 32px', borderRadius: 999, fontSize: 16, fontWeight: 500, textDecoration: 'none' }}>Begin Free Trial</a>
+        </div>
+
+        {/* Tab bar */}
+        <div className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.6s', display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, background: '#f3f4f6', borderRadius: 8, padding: 4 }}>
+            {stellarTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 20px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500, fontFamily: interFont, transition: 'all 0.2s', ...(isActive ? { background: '#fff', color: '#000', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' } : { background: 'transparent', color: '#4b5563' }) }}
+                >
+                  <Icon size={16} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Video + overlay */}
+        <div className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.7s', position: 'relative', borderRadius: 24, overflow: 'hidden', height: 'clamp(400px, 50vw, 500px)' }}>
+          <video
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260302_085844_21a8f4b3-dea5-4ede-be16-d53f6973bb14.mp4"
+            autoPlay loop muted playsInline
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
+          {activeTab === 'analyse' && <AnalyseOverlay />}
+          {activeTab === 'train' && <TrainOverlay />}
+          {activeTab === 'testing' && <TestingOverlay />}
+          {activeTab === 'deploy' && <DeployOverlay />}
+        </div>
 
-          <Stack alignItems="center" gap={3} sx={{ position: 'relative', zIndex: 1 }}>
-            {/* Badge */}
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 1,
-                bgcolor: 'var(--lp-badge-bg)',
-                border: '1px solid var(--lp-badge-border)',
-                borderRadius: '999px',
-                px: 1.75,
-                py: 0.5,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 6,
-                  height: 6,
+        {/* Company logos */}
+        <div className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.8s', marginTop: 96, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 48, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: interFont, fontSize: 14, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9ca3af' }}>INTERSCOPE</span>
+          <span style={{ fontFamily: interFont, fontSize: 14, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9ca3af' }}>SPOTIFY</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <circle cx="3" cy="3" r="2" fill="#9ca3af" /><circle cx="9" cy="3" r="2" fill="#9ca3af" /><circle cx="15" cy="3" r="2" fill="#9ca3af" />
+              <circle cx="3" cy="9" r="2" fill="#9ca3af" /><circle cx="9" cy="9" r="2" fill="#9ca3af" /><circle cx="15" cy="9" r="2" fill="#9ca3af" />
+            </svg>
+            <span style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#9ca3af' }}>Nexera</span>
+          </div>
+          <span style={{ fontFamily: 'Georgia, serif', fontSize: 18, fontWeight: 700, fontStyle: 'italic', color: '#9ca3af' }}>M3</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 22, height: 22, borderRadius: '50%', border: '1.5px solid #9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontFamily: interFont, fontSize: 9, fontWeight: 700, color: '#9ca3af' }}>LC</span>
+            </div>
+            <span style={{ fontFamily: interFont, fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9ca3af' }}>Laura Cole</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="3" cy="7" r="2.5" fill="#9ca3af" /><circle cx="11" cy="7" r="2.5" fill="#9ca3af" /><circle cx="7" cy="3" r="2.5" fill="#9ca3af" />
+            </svg>
+            <span style={{ fontFamily: interFont, fontSize: 14, fontWeight: 500, color: '#9ca3af' }}>vertex</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FOOTER
+   ══════════════════════════════════════════════════════════════ */
+
+function Footer() {
+  const socialLinks = [
+    { label: 'X', href: '#', icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg> },
+    { label: 'LinkedIn', href: '#', icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg> },
+  ];
+
+  const mainLinks = [
+    { href: '#', label: 'Features' },
+    { href: '#', label: 'Pricing' },
+    { href: '#', label: 'About' },
+    { href: '#', label: 'Contact' },
+    { href: '#', label: 'Blog' },
+  ];
+
+  const legalLinks = [
+    { href: '#', label: 'Privacy Policy' },
+    { href: '#', label: 'Terms of Service' },
+  ];
+
+  return (
+    <footer style={{ fontFamily: interFont, paddingTop: 64, paddingBottom: 24, background: '#fff' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px' }}>
+        {/* Top: Logo + Social */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+            <svg width={28} height={28} viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="3" height="18" rx="0.5" fill="#111" />
+              <rect x="3" y="3" width="18" height="3" rx="0.5" fill="#111" />
+              <rect x="18" y="3" width="3" height="10" rx="0.5" fill="#111" />
+              <rect x="10" y="9" width="2.5" height="12" rx="0.5" fill="#111" />
+            </svg>
+            <span style={{ fontSize: 20, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>BuildTrack Pro</span>
+          </a>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {socialLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                aria-label={link.label}
+                style={{
+                  width: 40,
+                  height: 40,
                   borderRadius: '50%',
-                  bgcolor: 'var(--lp-dot)',
-                  flexShrink: 0,
+                  background: '#f5f5f5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#374151',
+                  textDecoration: 'none',
+                  transition: 'background 0.2s',
                 }}
-              />
-              <Typography
-                sx={{ fontFamily: bodyFont, fontSize: 11, fontWeight: 500, color: 'var(--lp-subtle)' }}
               >
-                Early Access
-              </Typography>
-            </Box>
+                {link.icon}
+              </a>
+            ))}
+          </div>
+        </div>
 
-            {/* Heading + subtitle */}
-            <Stack alignItems="center" gap={1.5}>
-              <Typography
-                sx={{
-                  fontFamily: monoFont,
-                  fontSize: { xs: 28, sm: 34 },
-                  fontWeight: 700,
-                  color: 'var(--lp-fg)',
-                  letterSpacing: '-1.5px',
-                  lineHeight: 1.05,
-                  textAlign: 'center',
-                }}
-              >
-                Join the waitlist
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: bodyFont,
-                  fontSize: 14,
-                  color: 'var(--lp-muted)',
-                  lineHeight: 1.65,
-                  textAlign: 'center',
-                  maxWidth: 340,
-                }}
-              >
-                BuildTrack Pro brings Gantt scheduling, document control, and team
-                coordination to your job sites. Be first in line for early access.
-              </Typography>
-            </Stack>
+        {/* Divider + Links */}
+        <div style={{ borderTop: '1px solid #e6e6e6', marginTop: 24, paddingTop: 24 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
+            {/* Copyright */}
+            <div style={{ fontSize: 14, lineHeight: 1.6, color: '#858e8e', whiteSpace: 'nowrap' }}>
+              <div>&copy; {new Date().getFullYear()} BuildTrack Pro</div>
+              <div>All rights reserved</div>
+            </div>
 
-            {/* Form or success state */}
-            {status === 'joined' || status === 'already' ? (
-              <Stack alignItems="center" gap={1.5}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    bgcolor: status === 'already'
-                      ? 'rgba(59, 130, 246, 0.12)'
-                      : 'rgba(34, 197, 94, 0.12)',
-                    border: `1px solid ${status === 'already'
-                      ? 'rgba(59, 130, 246, 0.3)'
-                      : 'rgba(34, 197, 94, 0.3)'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={status === 'already' ? 'var(--status-blue)' : 'var(--status-green)'}
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                </Box>
-                <Typography
-                  sx={{
-                    fontFamily: monoFont,
-                    fontSize: 15,
-                    fontWeight: 600,
-                    color: 'var(--lp-fg)',
-                  }}
-                >
-                  {status === 'already'
-                    ? 'You\u2019re already on the list!'
-                    : 'You\u2019re on the list!'}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontFamily: bodyFont,
-                    fontSize: 13,
-                    color: 'var(--lp-muted)',
-                    textAlign: 'center',
-                  }}
-                >
-                  {status === 'already'
-                    ? 'This email is already signed up. We\u2019ll be in touch when early access is ready.'
-                    : 'Check your inbox for a confirmation. We\u2019ll reach out before we launch.'}
-                </Typography>
-              </Stack>
-            ) : (
-              <Box
-                component="form"
-                onSubmit={handleSubmit}
-                sx={{ width: '100%' }}
-              >
-                <Stack direction="row" gap={1.5}>
-                  <Box
-                    sx={{
-                      flex: 1,
-                      height: 44,
-                      bgcolor: 'var(--lp-input-bg)',
-                      border: '1px solid var(--lp-input-border)',
-                      borderRadius: '8px',
-                      px: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  >
-                    <InputBase
-                      type="email"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      sx={{
-                        fontFamily: bodyFont,
-                        fontSize: 14,
-                        color: 'var(--lp-fg)',
-                        width: '100%',
-                        '& input::placeholder': { color: 'var(--lp-placeholder)' },
-                      }}
-                    />
-                  </Box>
-                  <Button
-                    type="submit"
-                    disabled={status === 'loading'}
-                    sx={{
-                      fontFamily: bodyFont,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      bgcolor: 'var(--lp-cta)',
-                      color: '#ffffff',
-                      textTransform: 'none',
-                      px: 2.5,
-                      height: 44,
-                      borderRadius: '8px',
-                      flexShrink: 0,
-                      '&:hover': { bgcolor: 'var(--lp-cta-hover)' },
-                      '&:disabled': { opacity: 0.6 },
-                    }}
-                  >
-                    {status === 'loading' ? 'Joining...' : 'Join Waitlist'}
-                  </Button>
-                </Stack>
-                {error && (
-                  <Typography
-                    sx={{
-                      fontFamily: bodyFont,
-                      fontSize: 12,
-                      color: 'var(--status-red)',
-                      mt: 1,
-                      textAlign: 'center',
-                    }}
-                  >
-                    {error}
-                  </Typography>
-                )}
-              </Box>
-            )}
-          </Stack>
-        </Box>
-      </Stack>
-    </Box>
+            {/* Right links */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
+              {/* Main links */}
+              <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+                {mainLinks.map((link) => (
+                  <a key={link.label} href={link.href} style={{ fontSize: 14, color: '#111', textDecoration: 'none' }}>
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
+              {/* Legal links */}
+              <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
+                {legalLinks.map((link) => (
+                  <a key={link.label} href={link.href} style={{ fontSize: 14, color: '#858e8e', textDecoration: 'none' }}>
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PAGE EXPORT
+   ══════════════════════════════════════════════════════════════ */
+
+export default function Home() {
+  const { data: session } = useSession();
+  const isLoggedIn = !!session;
+
+  return (
+    <div>
+      {/* Block 1: Nexora */}
+      <NexoraSection isLoggedIn={isLoggedIn} />
+
+      {/* Block 2: Stellar.ai */}
+      <StellarSection />
+
+      {/* Footer */}
+      <Footer />
+    </div>
   );
 }
