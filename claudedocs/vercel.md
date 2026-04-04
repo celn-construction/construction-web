@@ -51,7 +51,7 @@ These must be set correctly per environment via Vercel CLI:
 
 `construction_POSTGRES_PRISMA_URL` and related `construction_POSTGRES_*` vars are managed by the Vercel-Neon integration for preview and production environments. `BLOB_READ_WRITE_TOKEN` and all `POSTGRES_*` / `PG*` vars are also managed by Vercel integrations. Do not overwrite these manually in Vercel.
 
-**Local dev overrides**: The `conductor.json` setup script and manual setup both override `construction_POSTGRES_PRISMA_URL` and `construction_POSTGRES_URL_NON_POOLING` in `.env.local` to point to a local PostgreSQL instance (`postgresql://$USER@localhost:5432/construction`) for faster development.
+**Local dev overrides**: The `conductor.json` setup script and manual setup both override `construction_POSTGRES_PRISMA_URL` and `construction_POSTGRES_URL_NON_POOLING` in `.env.local` to point to a local PostgreSQL instance (`postgresql://$USER@localhost:5433/construction`) for faster development.
 
 ## Database Branching
 
