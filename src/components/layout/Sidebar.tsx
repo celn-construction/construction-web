@@ -68,6 +68,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
       await signOut({
         fetchOptions: {
           onSuccess: () => {
+            hideLoading();
             setProfileOpen(false);
             router.push('/sign-in');
             router.refresh();

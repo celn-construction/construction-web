@@ -65,6 +65,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       await signOut({
         fetchOptions: {
           onSuccess: () => {
+            hideLoading();
             setProfileOpen(false);
             router.push('/sign-in');
             router.refresh();

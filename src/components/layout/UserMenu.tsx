@@ -32,6 +32,7 @@ export default function UserMenu() {
       await signOut({
         fetchOptions: {
           onSuccess: () => {
+            hideLoading();
             handleClose();
             router.push('/sign-in');
             router.refresh();
