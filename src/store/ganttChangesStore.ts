@@ -111,14 +111,14 @@ export function useGanttChangesListener() {
 
     const onVersionSaved = (e: Event) => {
       const detail = (e as CustomEvent<{ name?: string; id?: string }>).detail;
-      if (detail?.name) setActiveVersionName(detail.name);
+      setActiveVersionName(detail?.name ?? null);
       if (detail?.id) setActiveVersionId(detail.id);
       reset();
     };
 
     const onVersionRestored = (e: Event) => {
       const detail = (e as CustomEvent<{ name?: string; id?: string }>).detail;
-      if (detail?.name) setActiveVersionName(detail.name);
+      setActiveVersionName(detail?.name ?? null);
       if (detail?.id) setActiveVersionId(detail.id);
       reset();
     };
