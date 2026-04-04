@@ -21,7 +21,9 @@ interface GanttChangesStore {
   modified: string[];
   removed: string[];
   activeVersionName: string | null;
+  activeVersionId: string | null;
   setActiveVersionName: (name: string | null) => void;
+  setActiveVersionId: (id: string | null) => void;
   handleTaskChange: (type: 'add' | 'remove' | 'update', tasks: TaskEntry[]) => void;
   reset: () => void;
 }
@@ -48,8 +50,10 @@ export const useGanttChangesStore = create<GanttChangesStore>((set) => {
     modified: [],
     removed: [],
     activeVersionName: null,
+    activeVersionId: null,
 
     setActiveVersionName: (name) => set({ activeVersionName: name }),
+    setActiveVersionId: (id) => set({ activeVersionId: id }),
 
     handleTaskChange: (type, tasks) => {
       const added = new Map(internal.added);
@@ -94,7 +98,7 @@ export const useGanttChangesStore = create<GanttChangesStore>((set) => {
  * Call this once in a component that mounts early (e.g., the app layout).
  */
 export function useGanttChangesListener() {
-  const { handleTaskChange, reset, setActiveVersionName } = useGanttChangesStore();
+  const { handleTaskChange, reset, setActiveVersionName, setActiveVersionId } = useGanttChangesStore();
 
   useEffect(() => {
     const onTaskChange = (e: Event) => {
@@ -106,14 +110,16 @@ export function useGanttChangesListener() {
     };
 
     const onVersionSaved = (e: Event) => {
-      const name = (e as CustomEvent<{ name?: string }>).detail?.name;
-      if (name) setActiveVersionName(name);
+      const detail = (e as CustomEvent<{ name?: string; id?: string }>).detail;
+      setActiveVersionName(detail?.name ?? null);
+      if (detail?.id) setActiveVersionId(detail.id);
       reset();
     };
 
     const onVersionRestored = (e: Event) => {
-      const name = (e as CustomEvent<{ name?: string }>).detail?.name;
-      if (name) setActiveVersionName(name);
+      const detail = (e as CustomEvent<{ name?: string; id?: string }>).detail;
+      setActiveVersionName(detail?.name ?? null);
+      if (detail?.id) setActiveVersionId(detail.id);
       reset();
     };
 
@@ -129,5 +135,5 @@ export function useGanttChangesListener() {
       window.removeEventListener('gantt-version-restored', onVersionRestored);
       window.removeEventListener('gantt-reload', onReload);
     };
-  }, [handleTaskChange, reset, setActiveVersionName]);
+  }, [handleTaskChange, reset, setActiveVersionName, setActiveVersionId]);
 }

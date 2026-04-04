@@ -358,7 +358,8 @@ model GanttTimeRange {
 model ScheduleVersion {
     id          String   @id @default(cuid())
     projectId   String
-    name        String
+    name        String?
+    description String?
     snapshot    Json
     createdById String
     createdAt   DateTime @default(now())
