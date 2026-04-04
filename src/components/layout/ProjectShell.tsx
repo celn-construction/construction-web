@@ -3,7 +3,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Tooltip } from '@mui/material';
 import { CalendarDots } from '@phosphor-icons/react';
 import { differenceInCalendarDays } from 'date-fns';
 import FilesContent from '@/components/files/FilesContent';
@@ -32,28 +32,32 @@ interface ProjectShellProps {
   projectName: string;
 }
 
+const SCHEDULE_TOOLTIP = 'Based on the latest task end date in your schedule';
+
 function SchedulePill({ endDate }: { endDate: string | null }) {
   if (!endDate) {
     return (
-      <Box
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.625,
-          height: 34,
-          px: 1.25,
-          borderRadius: '10px',
-          bgcolor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
-          flexShrink: 0,
-        }}
-      >
-        <CalendarDots size={13} style={{ flexShrink: 0, opacity: 0.4 }} />
-        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1, whiteSpace: 'nowrap' }}>
-          No end date
-        </Typography>
-      </Box>
+      <Tooltip title="Add tasks with end dates to track your project timeline" arrow placement="bottom">
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.625,
+            height: 34,
+            px: 1.25,
+            borderRadius: '10px',
+            bgcolor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+            flexShrink: 0,
+          }}
+        >
+          <CalendarDots size={13} style={{ flexShrink: 0, opacity: 0.4 }} />
+          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1, whiteSpace: 'nowrap' }}>
+            No end date
+          </Typography>
+        </Box>
+      </Tooltip>
     );
   }
 
@@ -68,25 +72,27 @@ function SchedulePill({ endDate }: { endDate: string | null }) {
     daysLeft > 0 ? 'text.secondary' : daysLeft === 0 ? 'var(--status-amber)' : 'var(--status-red)';
 
   return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.625,
-        height: 34,
-        px: 1.25,
-        borderRadius: '10px',
-        bgcolor: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
-        flexShrink: 0,
-      }}
-    >
-      <CalendarDots size={13} style={{ flexShrink: 0, opacity: 0.5 }} />
-      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color, lineHeight: 1, whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
-        {label}
-      </Typography>
-    </Box>
+    <Tooltip title={SCHEDULE_TOOLTIP} arrow placement="bottom">
+      <Box
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.625,
+          height: 34,
+          px: 1.25,
+          borderRadius: '10px',
+          bgcolor: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+          flexShrink: 0,
+        }}
+      >
+        <CalendarDots size={13} style={{ flexShrink: 0, opacity: 0.5 }} />
+        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color, lineHeight: 1, whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+          {label}
+        </Typography>
+      </Box>
+    </Tooltip>
   );
 }
 
@@ -136,7 +142,7 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
                   uploaded={reqStats?.totalUploaded ?? 0}
                   required={reqStats?.totalRequired ?? 0}
                 />
-                <SchedulePill endDate={currentProject.endDate as string | null} />
+                <SchedulePill endDate={reqStats?.latestEndDate ? String(reqStats.latestEndDate) : null} />
               </>
             )}
             <Box sx={{ flex: 1 }}>

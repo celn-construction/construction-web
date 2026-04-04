@@ -5,7 +5,7 @@ import { useDrag } from '@use-gesture/react';
 import { Box, Popover, Typography, Divider } from '@mui/material';
 
 import { POPOVER_WIDTH, POPOVER_EXPANDED_WIDTH } from '../constants';
-import { folderData, expandFolderIds } from '@/lib/folders';
+import { folderData, expandFolderIds, type Folder } from '@/lib/folders';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { useOrgContext } from '@/components/providers/OrgProvider';
 import UploadDialog from '@/components/documents/UploadDialog';
@@ -18,6 +18,9 @@ import TaskHeader from './task-popover/TaskHeader';
 import CoverImageBanner from './task-popover/CoverImageBanner';
 import FolderRow from './task-popover/FolderRow';
 import FilePreviewPanel from './task-popover/FilePreviewPanel';
+import CsiCodePanel from './task-popover/CsiCodePanel';
+
+type RightPanel = { type: 'preview'; doc: PreviewDoc } | { type: 'csi' } | null;
 
 type TaskDetailsPopoverProps = {
   open: boolean;
@@ -40,7 +43,7 @@ export function TaskDetailsPopover({
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [uploadFolder, setUploadFolder] = useState<{ id: string; name: string } | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
+  const [rightPanel, setRightPanel] = useState<RightPanel>(null);
 
   // ── Drag state ──
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -101,6 +104,19 @@ export function TaskDetailsPopover({
     [taskId, organizationId, projectId, updateRequirementMutation]
   );
 
+  // ── Right panel helpers ──
+  const openCsiPanel = useCallback(() => {
+    setRightPanel({ type: 'csi' });
+  }, []);
+
+  const openPreview = useCallback((doc: PreviewDoc) => {
+    setRightPanel({ type: 'preview', doc });
+  }, []);
+
+  const closeRightPanel = useCallback(() => {
+    setRightPanel(null);
+  }, []);
+
   // ── Callbacks ──
   const toggleFolder = useCallback((folderId: string) => {
     setExpandedFolders((prev) => {
@@ -128,11 +144,24 @@ export function TaskDetailsPopover({
 
   const handleClose = () => {
     setExpandedFolders(new Set());
-    setPreviewDoc(null);
+    setRightPanel(null);
     onClose();
   };
 
+  // Compute current upload counts for trackable folders (submittals & inspections)
+  const getTrackableCount = (folder: Folder) => {
+    const allIds = expandFolderIds(folder.id);
+    return allIds.reduce((sum, id) => sum + (counts?.[id] ?? 0), 0);
+  };
+  const submittalsFolder = folderData.find((f) => f.id === 'submittals');
+  const inspectionsFolder = folderData.find((f) => f.id === 'inspections');
+  const submittalsCurrent = submittalsFolder ? getTrackableCount(submittalsFolder) : 0;
+  const inspectionsCurrent = inspectionsFolder ? getTrackableCount(inspectionsFolder) : 0;
+
   const coverImageUrl = taskDetail?.coverImageUrl ?? null;
+  const hasRightPanel = rightPanel !== null;
+  const previewDoc = rightPanel?.type === 'preview' ? rightPanel.doc : null;
+  const selectedDocId = previewDoc?.id ?? null;
 
   return (
     <>
@@ -154,7 +183,7 @@ export function TaskDetailsPopover({
               borderColor: 'divider',
               boxShadow: '0 24px 64px -12px rgba(0,0,0,0.12), 0 8px 20px -8px rgba(0,0,0,0.04)',
               maxHeight: '85vh',
-              width: previewDoc ? POPOVER_EXPANDED_WIDTH : POPOVER_WIDTH,
+              width: hasRightPanel ? POPOVER_EXPANDED_WIDTH : POPOVER_WIDTH,
               transition: isDragging ? 'none' : 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
               marginLeft: `${dragOffset.x}px`,
               marginTop: `${dragOffset.y}px`,
@@ -195,12 +224,12 @@ export function TaskDetailsPopover({
 
             <TaskHeader
               taskName={taskName}
-              taskId={taskId}
-              organizationId={organizationId}
-              projectId={projectId}
               taskDetail={taskDetail}
               taskDetailLoading={taskDetailLoading}
               onClose={handleClose}
+              onOpenCsiPanel={openCsiPanel}
+              submittalsCurrent={submittalsCurrent}
+              inspectionsCurrent={inspectionsCurrent}
             />
 
             <CoverImageBanner
@@ -213,7 +242,7 @@ export function TaskDetailsPopover({
             <Divider sx={{ mx: 2 }} />
 
             {/* ── DOCUMENTS SECTION ── */}
-            <Box sx={{ p: '12px 16px 14px 16px', display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ p: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography
                   sx={{
@@ -282,7 +311,7 @@ export function TaskDetailsPopover({
                 </Box>
               </Box>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 {folderData.map((folder) => {
                   const count = counts?.[folder.id] ?? 0;
                   const folderDocs = ((allDocs ?? []) as DocumentItem[]).filter(
@@ -307,8 +336,8 @@ export function TaskDetailsPopover({
                       count={count}
                       docs={folderDocs}
                       onUpload={setUploadFolder}
-                      onSelectDoc={setPreviewDoc}
-                      selectedDocId={previewDoc?.id ?? null}
+                      onSelectDoc={openPreview}
+                      selectedDocId={selectedDocId}
                       // Tracking props
                       required={trackingRequired}
                       current={trackingCurrent}
@@ -326,11 +355,21 @@ export function TaskDetailsPopover({
             </Box>
           </Box>
 
-          {/* ── RIGHT PREVIEW PANEL ── */}
-          {previewDoc && (
+          {/* ── RIGHT PANEL ── */}
+          {rightPanel && (
             <>
               <Divider orientation="vertical" flexItem />
-              <FilePreviewPanel previewDoc={previewDoc} />
+              {rightPanel.type === 'preview' ? (
+                <FilePreviewPanel previewDoc={rightPanel.doc} />
+              ) : (
+                <CsiCodePanel
+                  csiCode={taskDetail?.csiCode}
+                  organizationId={organizationId}
+                  projectId={projectId}
+                  taskId={taskId!}
+                  onClose={closeRightPanel}
+                />
+              )}
             </>
           )}
         </Box>

@@ -348,24 +348,30 @@ export const ganttRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
       }
 
-      // Get all tasks that have requirements set
-      const tasksWithReqs = await ctx.db.ganttTask.findMany({
-        where: {
-          projectId,
-          OR: [
-            { requiredSubmittals: { not: null } },
-            { requiredInspections: { not: null } },
-          ],
-        },
-        select: {
-          id: true,
-          requiredSubmittals: true,
-          requiredInspections: true,
-        },
-      });
+      // Get the latest task end date and all tasks with requirements in parallel
+      const [latestEndDate, tasksWithReqs] = await Promise.all([
+        ctx.db.ganttTask.aggregate({
+          where: { projectId, endDate: { not: null } },
+          _max: { endDate: true },
+        }),
+        ctx.db.ganttTask.findMany({
+          where: {
+            projectId,
+            OR: [
+              { requiredSubmittals: { not: null } },
+              { requiredInspections: { not: null } },
+            ],
+          },
+          select: {
+            id: true,
+            requiredSubmittals: true,
+            requiredInspections: true,
+          },
+        }),
+      ]);
 
       if (tasksWithReqs.length === 0) {
-        return { totalRequired: 0, totalUploaded: 0 };
+        return { totalRequired: 0, totalUploaded: 0, latestEndDate: latestEndDate._max.endDate ?? null };
       }
 
       // Sum all required counts
@@ -418,6 +424,6 @@ export const ganttRouter = createTRPCRouter({
         }
       }
 
-      return { totalRequired, totalUploaded };
+      return { totalRequired, totalUploaded, latestEndDate: latestEndDate._max.endDate ?? null };
     }),
 });
