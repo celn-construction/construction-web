@@ -131,21 +131,63 @@ screen.getByTestId("submit-btn")   // fragile, not meaningful to users
 
 ## E2E Tests (Playwright)
 
-E2E tests live in `tests/` (currently empty). The dev server starts automatically on `localhost:5050`.
+E2E tests live in `tests/`. The dev server must be running on `localhost:3000` (or set `BASE_URL` env var). Playwright config will auto-start it if not running.
 
 Auth bypass for tests: middleware skips session checks when the `x-playwright-test: true` header is present (non-production only). This is set automatically via `playwright.config.ts` `extraHTTPHeaders`.
 
-```ts
-// tests/example.spec.ts
-import { test, expect } from "@playwright/test";
+### Directory structure
 
-test("user can sign in and reach dashboard", async ({ page }) => {
-  await page.goto("/sign-in");
-  await page.getByLabel(/email/i).fill("user@example.com");
-  await page.getByLabel(/password/i).fill("password");
-  await page.getByRole("button", { name: /sign in/i }).click();
-  await expect(page).toHaveURL(/\/[\w-]+/); // org slug route
+```
+tests/
+  fixtures/
+    db.ts              # Standalone Prisma client for test DB
+    otp.ts             # OTP code reader from verification table
+    test-user.ts       # User seeding (createTestUser, createVerifiedUser, createUserWithOrg) and cleanup
+    auth.ts            # signInTestUser() — signs in via Better Auth API
+  helpers/
+    otp-input.ts       # MUI OTP input filler (fills 6 individual <input> elements)
+  smoke/
+    full-journey.spec.ts   # Golden path: sign-up → OTP → onboarding → dashboard
+  auth/
+    sign-up.spec.ts
+    sign-in.spec.ts
+    forgot-password.spec.ts
+    verify-email.spec.ts
+  onboarding/
+    wizard.spec.ts
+```
+
+### Key patterns
+
+**Test user isolation**: Each test generates unique emails (`test-{uuid}@e2e.local`). Cleanup in `afterAll` deletes users and cascaded records.
+
+**OTP codes**: Read directly from the `verification` table (identifier: `email-verification-otp-{email}`, value format: `{otp}:{attemptCount}`). The `getOtpForEmail()` helper polls with retries.
+
+**Authenticated tests**: Use `signInTestUser(page, email, password)` to sign in via the Better Auth API endpoint. This creates a real signed session cookie. Do NOT inject raw session tokens — Better Auth signs cookies and will reject unsigned values.
+
+**Password reset tokens**: Read from `verification` table (identifier: `password-reset:{userId}`).
+
+```ts
+// Example: test requiring authenticated user
+import { createVerifiedUser, cleanupUser } from "../fixtures/test-user";
+import { signInTestUser } from "../fixtures/auth";
+
+test("authenticated user can access onboarding", async ({ page }) => {
+  const user = await createVerifiedUser({ onboardingComplete: false });
+  await signInTestUser(page, user.email, user.password);
+  await page.goto("/onboarding");
+  await expect(page.getByText("Welcome to BuildTrack Pro")).toBeVisible();
+  // cleanup in afterAll
 });
+```
+
+### Running E2E tests
+
+```bash
+npx playwright test                    # all E2E tests
+npx playwright test tests/smoke/      # smoke tests only
+npx playwright test --ui               # interactive UI mode
+npx playwright show-report             # view last HTML report
 ```
 
 ---
@@ -154,14 +196,16 @@ test("user can sign in and reach dashboard", async ({ page }) => {
 
 | Area | Unit | E2E |
 |------|------|-----|
-| Auth forms (sign-in, sign-up, forgot/reset password) | ✅ | ❌ |
-| Middleware routing | ✅ | ❌ |
+| Auth forms (sign-in, sign-up, forgot/reset password) | ✅ | ✅ |
+| Middleware routing | ✅ | ✅ (via auth flow tests) |
+| Email verification (OTP) | ❌ | ✅ |
+| Onboarding flow | ❌ | ✅ |
+| Password reset (full flow) | ❌ | ✅ |
 | tRPC routers | ❌ | ❌ |
-| Onboarding flow | ❌ | ❌ |
-| Org / project creation | ❌ | ❌ |
+| Org / project creation | ❌ | ✅ (via onboarding) |
 | Invitation accept flow | ❌ | ❌ |
 | Gantt sync | ❌ | ❌ |
 | Document upload | ❌ | ❌ |
 | Permissions enforcement | ❌ | ❌ |
 
-**Priority gaps:** E2E for the invite→join flow, org creation, and Gantt sync are the highest-value additions given zero current coverage of those paths.
+**Priority gaps:** E2E for the invite→join flow, Gantt sync, and document upload are the highest-value additions.
