@@ -245,6 +245,7 @@ bryntum/
       TrackableFolderContent.tsx
       RequirementCounter.tsx
       FilePreviewPanel.tsx
+      CsiCodePanel.tsx
   hooks/
     useTaskPopover.ts
     useBryntumThemeAssets.ts

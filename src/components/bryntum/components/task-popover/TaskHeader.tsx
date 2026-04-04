@@ -1,7 +1,7 @@
 'use client';
 
 import { Box, Typography, Skeleton } from '@mui/material';
-import { X, CalendarBlank, Timer } from '@phosphor-icons/react';
+import { X, CalendarBlank, Timer, CircleDashed } from '@phosphor-icons/react';
 import type { Theme } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
 import CsiCodeSelector from '@/components/bryntum/components/CsiCodeSelector';
@@ -30,9 +30,6 @@ function formatDuration(duration: number | null | undefined, unit: string): stri
 
 interface TaskHeaderProps {
   taskName: string;
-  taskId?: string;
-  organizationId: string;
-  projectId: string;
   taskDetail: {
     startDate?: Date | string | null;
     endDate?: Date | string | null;
@@ -40,22 +37,36 @@ interface TaskHeaderProps {
     durationUnit?: string;
     csiCode?: string | null;
     percentDone?: number;
+    requiredSubmittals?: number | null;
+    requiredInspections?: number | null;
   } | null | undefined;
   taskDetailLoading: boolean;
   onClose: () => void;
+  onOpenCsiPanel: () => void;
+  /** Number of documents uploaded across all submittal folders */
+  submittalsCurrent?: number;
+  /** Number of documents uploaded across all inspection folders */
+  inspectionsCurrent?: number;
 }
 
 export default function TaskHeader({
   taskName,
-  taskId,
-  organizationId,
-  projectId,
   taskDetail,
   taskDetailLoading,
   onClose,
+  onOpenCsiPanel,
+  submittalsCurrent = 0,
+  inspectionsCurrent = 0,
 }: TaskHeaderProps) {
   const theme = useTheme();
-  const percentDone = taskDetail?.percentDone ?? 0;
+
+  // Calculate progress from submittals + inspections requirements
+  const requiredSubmittals = taskDetail?.requiredSubmittals ?? 0;
+  const requiredInspections = taskDetail?.requiredInspections ?? 0;
+  const totalRequired = requiredSubmittals + requiredInspections;
+  const hasRequirements = totalRequired > 0;
+  const totalUploaded = Math.min(submittalsCurrent, requiredSubmittals) + Math.min(inspectionsCurrent, requiredInspections);
+  const percentDone = hasRequirements ? Math.round((totalUploaded / totalRequired) * 100) : 0;
   const statusInfo = getStatusInfo(percentDone, theme.palette);
 
   const metaDateRange = [
@@ -71,10 +82,10 @@ export default function TaskHeader({
   );
 
   return (
-    <Box sx={{ p: '8px 14px 12px', display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+    <Box sx={{ p: '12px 16px 14px', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {/* Title row */}
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
           <Typography
             sx={{
               fontWeight: 600,
@@ -117,12 +128,10 @@ export default function TaskHeader({
                   )}
                 </Box>
               )}
-              {taskId && (
+              {taskDetail && (
                 <CsiCodeSelector
-                  csiCode={taskDetail?.csiCode}
-                  organizationId={organizationId}
-                  projectId={projectId}
-                  taskId={taskId}
+                  csiCode={taskDetail.csiCode}
+                  onOpen={onOpenCsiPanel}
                 />
               )}
             </>
@@ -172,7 +181,7 @@ export default function TaskHeader({
           </Typography>
           {taskDetailLoading ? (
             <Skeleton variant="text" width={24} height={12} sx={{ borderRadius: '3px' }} />
-          ) : (
+          ) : hasRequirements ? (
             <Typography
               sx={{
                 fontSize: '0.625rem',
@@ -184,11 +193,11 @@ export default function TaskHeader({
             >
               {Math.round(percentDone)}%
             </Typography>
-          )}
+          ) : null}
         </Box>
         {taskDetailLoading ? (
           <Skeleton variant="rounded" width="100%" height={4} sx={{ borderRadius: '999px' }} />
-        ) : (
+        ) : hasRequirements ? (
           <Box
             sx={{
               width: '100%',
@@ -207,6 +216,31 @@ export default function TaskHeader({
                 transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             />
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              py: '2px',
+            }}
+          >
+            <CircleDashed
+              size={11}
+              color="var(--mui-palette-text-disabled)"
+              style={{ flexShrink: 0 }}
+            />
+            <Typography
+              sx={{
+                fontSize: '0.625rem',
+                fontWeight: 500,
+                color: 'text.disabled',
+                lineHeight: 1,
+              }}
+            >
+              Set submittal or inspection requirements to track progress
+            </Typography>
           </Box>
         )}
       </Box>

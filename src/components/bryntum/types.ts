@@ -176,6 +176,7 @@ export type GanttConfig = {
   project: {
     autoLoad: boolean;
     autoSync?: boolean;
+    writeAllFields?: boolean;
     taskModelClass?: typeof TaskModel;
     delayCalculation?: boolean;
     transport: {
