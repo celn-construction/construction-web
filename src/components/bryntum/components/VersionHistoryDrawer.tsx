@@ -22,11 +22,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { hasPermission } from '@/lib/permissions';
 import type { Role } from '@/lib/permissions';
+import { useGanttChangesStore } from '@/store/ganttChangesStore';
+
+/** Format a date for display as a version label */
+function formatVersionDate(date: Date): string {
+  return format(date, 'MMM d, yyyy · h:mm a');
+}
+
+/** Get the display label for a version (name or formatted date) */
+function getVersionLabel(version: { name: string | null; createdAt: Date | string }): string {
+  if (version.name) return version.name;
+  return formatVersionDate(new Date(version.createdAt));
+}
 
 interface VersionHistoryDrawerProps {
   open: boolean;
@@ -46,8 +58,9 @@ export default function VersionHistoryDrawer({
   const utils = api.useUtils();
   const { showSnackbar } = useSnackbar();
   const canManage = hasPermission(memberRole, 'MANAGE_PROJECTS');
+  const { activeVersionId } = useGanttChangesStore();
 
-  const [confirmAction, setConfirmAction] = useState<{ type: 'restore' | 'delete'; versionId: string; versionName: string } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'restore' | 'delete'; versionId: string; versionLabel: string } | null>(null);
 
   const { data: versions = [], isLoading } = api.schedule.listVersions.useQuery(
     { projectId },
@@ -69,11 +82,12 @@ export default function VersionHistoryDrawer({
     onSuccess: () => {
       void utils.schedule.listVersions.invalidate({ projectId });
       showSnackbar('Version restored', 'success');
-      const restoredName = confirmAction?.versionName ?? '';
+      const restoredLabel = confirmAction?.versionLabel ?? '';
+      const restoredId = confirmAction?.versionId ?? '';
       setConfirmAction(null);
       onOpenChange(false);
-      // Trigger Gantt reload and notify store of restored version name
-      window.dispatchEvent(new CustomEvent('gantt-version-restored', { detail: { name: restoredName } }));
+      // Trigger Gantt reload and notify store of restored version
+      window.dispatchEvent(new CustomEvent('gantt-version-restored', { detail: { name: restoredLabel, id: restoredId } }));
       window.dispatchEvent(new Event('gantt-reload'));
       onRestore?.();
     },
@@ -141,61 +155,126 @@ export default function VersionHistoryDrawer({
             </Box>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              {versions.map((version) => (
-                <Box
-                  key={version.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    px: 1.5,
-                    py: 1.25,
-                    borderRadius: '8px',
-                    '&:hover': { bgcolor: 'action.hover' },
-                  }}
-                >
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography
-                      sx={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {version.name}
-                    </Typography>
-                    <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.25 }}>
-                      {version.createdBy.name ?? version.createdBy.email} · {formatDistanceToNow(new Date(version.createdAt), { addSuffix: true })}
-                    </Typography>
-                  </Box>
+              {versions.map((version, index) => {
+                const label = getVersionLabel(version);
+                // Active = explicitly tracked version, or latest (first) by default
+                const isActive = activeVersionId ? version.id === activeVersionId : index === 0;
+                return (
+                  <Box
+                    key={version.id}
+                    sx={{
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 1,
+                      px: 1.5,
+                      py: 1.25,
+                      borderRadius: '8px',
+                      bgcolor: isActive ? 'action.selected' : 'transparent',
+                      '&:hover': { bgcolor: isActive ? 'action.selected' : 'action.hover' },
+                    }}
+                  >
+                    {/* Active indicator bar */}
+                    {isActive && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: 0,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '2.5px',
+                          height: 16,
+                          borderRadius: '0 2px 2px 0',
+                          bgcolor: 'primary.main',
+                        }}
+                      />
+                    )}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                        <Typography
+                          sx={{
+                            fontSize: 13,
+                            fontWeight: isActive ? 600 : 500,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            minWidth: 0,
+                          }}
+                        >
+                          {label}
+                        </Typography>
+                        {isActive && (
+                          <Typography
+                            sx={{
+                              fontSize: 9,
+                              fontWeight: 600,
+                              color: 'primary.main',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.08em',
+                              lineHeight: 1,
+                              flexShrink: 0,
+                              px: 0.75,
+                              py: 0.25,
+                              borderRadius: '4px',
+                              bgcolor: 'rgba(43, 45, 66, 0.08)',
+                            }}
+                          >
+                            Current
+                          </Typography>
+                        )}
+                      </Box>
+                      <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.25, lineHeight: 1.2 }}>
+                        {version.createdBy.name ?? version.createdBy.email} · {formatDistanceToNow(new Date(version.createdAt), { addSuffix: true })}
+                      </Typography>
+                      {/* Always show the full date & time */}
+                      <Typography sx={{ fontSize: 10, color: 'text.disabled', mt: 0.25, lineHeight: 1 }}>
+                        {formatVersionDate(new Date(version.createdAt))}
+                      </Typography>
+                      {version.description && (
+                        <Typography
+                          sx={{
+                            fontSize: 11,
+                            color: 'text.disabled',
+                            mt: 0.5,
+                            lineHeight: 1.3,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                          }}
+                        >
+                          {version.description}
+                        </Typography>
+                      )}
+                    </Box>
 
-                  {canManage && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <IconButton size="small" sx={{ p: 0.5, flexShrink: 0 }}>
-                          <DotsThreeVertical size={16} weight="bold" />
-                        </IconButton>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => setConfirmAction({ type: 'restore', versionId: version.id, versionName: version.name })}
-                        >
-                          <ClockCounterClockwise size={14} style={{ marginRight: 8 }} />
-                          Restore
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setConfirmAction({ type: 'delete', versionId: version.id, versionName: version.name })}
-                        >
-                          <Trash size={14} style={{ marginRight: 8 }} />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </Box>
-              ))}
+                    {canManage && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <IconButton size="small" sx={{ p: 0.5, flexShrink: 0, mt: 0.25 }}>
+                            <DotsThreeVertical size={16} weight="bold" />
+                          </IconButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => setConfirmAction({ type: 'restore', versionId: version.id, versionLabel: label })}
+                          >
+                            <ClockCounterClockwise size={14} style={{ marginRight: 8 }} />
+                            Restore
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setConfirmAction({ type: 'delete', versionId: version.id, versionLabel: label })}
+                          >
+                            <Trash size={14} style={{ marginRight: 8 }} />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </Box>
+                );
+              })}
             </Box>
           )}
         </Box>
@@ -209,8 +288,8 @@ export default function VersionHistoryDrawer({
         <DialogContent>
           <DialogContentText sx={{ fontSize: 13 }}>
             {confirmAction?.type === 'restore'
-              ? `This will replace your current schedule with "${confirmAction.versionName}". This cannot be undone.`
-              : `Are you sure you want to delete "${confirmAction?.versionName}"? This cannot be undone.`}
+              ? `This will replace your current schedule with "${confirmAction.versionLabel}". This cannot be undone.`
+              : `Are you sure you want to delete "${confirmAction?.versionLabel}"? This cannot be undone.`}
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

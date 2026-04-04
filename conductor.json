@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "setup": "vercel link --project construction-web --scope celn --yes && vercel env pull .env.local --environment development --scope celn --yes && sed -i '' \"s|^construction_POSTGRES_PRISMA_URL=.*|construction_POSTGRES_PRISMA_URL=\\\"postgresql://$USER@localhost:5432/construction\\\"|\" .env.local && sed -i '' \"s|^construction_POSTGRES_URL_NON_POOLING=.*|construction_POSTGRES_URL_NON_POOLING=\\\"postgresql://$USER@localhost:5432/construction\\\"|\" .env.local && sed -i '' 's|\\\\n\"|\"| ' .env.local && (grep -q '^NODE_OPTIONS=' .env.local || echo 'NODE_OPTIONS=\"--max-old-space-size=8192\"' >> .env.local) && npm install",
+    "setup": "vercel link --project construction-web --scope celn --yes && vercel env pull .env.local --environment development --scope celn --yes && PG_PORT=$(sed -n '4p' \"$(brew --prefix)/var/postgresql@17/postmaster.pid\" 2>/dev/null); PG_PORT=${PG_PORT:-5432} && sed -i '' \"s|^construction_POSTGRES_PRISMA_URL=.*|construction_POSTGRES_PRISMA_URL=\\\"postgresql://$USER@localhost:${PG_PORT}/construction\\\"|\" .env.local && sed -i '' \"s|^construction_POSTGRES_URL_NON_POOLING=.*|construction_POSTGRES_URL_NON_POOLING=\\\"postgresql://$USER@localhost:${PG_PORT}/construction\\\"|\" .env.local && sed -i '' 's|\\\\n\"|\"| ' .env.local && (grep -q '^NODE_OPTIONS=' .env.local || echo 'NODE_OPTIONS=\"--max-old-space-size=8192\"' >> .env.local) && npm install",
     "run": "npm run dev",
     "archive": "rm -f .env.local && rm -rf .vercel && rm -rf node_modules && rm -rf .next"
   }

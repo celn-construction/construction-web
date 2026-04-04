@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 export const saveVersionSchema = z.object({
-  name: z.string().min(1, "Version name is required").max(100).trim(),
+  name: z.string().max(100).trim().optional(),
+  description: z.string().max(500).trim().optional(),
 });
 
 export type SaveVersionInput = z.infer<typeof saveVersionSchema>;

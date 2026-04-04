@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Box, Typography, Popover, Tooltip } from '@mui/material';
 import { ClockCounterClockwise, FloppyDisk, GitDiff, CheckCircle } from '@phosphor-icons/react';
+import { format } from 'date-fns';
 import { useGanttChangesStore, useGanttChangesListener } from '@/store/ganttChangesStore';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
@@ -28,8 +29,12 @@ export default function VersionControlBar() {
     { projectId },
     { enabled: !!projectId },
   );
-  // Use context's activeVersionName (set on save/restore) if available, else fall back to latest from query
-  const displayVersionName = activeVersionName ?? versions?.[0]?.name ?? null;
+  // Use context's activeVersionName (set on save/restore) if available, else fall back to latest version
+  const latestVersion = versions?.[0];
+  const latestLabel = latestVersion
+    ? latestVersion.name ?? format(new Date(latestVersion.createdAt), 'MMM d · h:mm a')
+    : null;
+  const displayVersionName = activeVersionName ?? latestLabel;
 
   const handleChangesClick = () => {
     if (hasChanges && changesRef.current) {
