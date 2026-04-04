@@ -1,8 +1,10 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
-import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion';
-import { ChevronDown, Play, Search, Bell, Home as HomeIcon, ListTodo, ArrowLeftRight, CreditCard, Landmark, Building2, Settings, Route, BellRing, ChevronRight, Check as CheckIcon, Star, BarChart3, BookOpen, Users, Rocket } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useSession } from '@/lib/auth-client';
+import { motion } from 'framer-motion';
+import { CaretDown, Play, MagnifyingGlass, Bell, House, ListChecks, ArrowsLeftRight, CreditCard, Bank, Buildings, Gear, Path, BellRinging, CaretRight, Check, ChartBar, BookOpen, UsersThree, Rocket } from '@phosphor-icons/react';
 
 const interFont = 'var(--font-inter)';
 const instrumentSerifFont = 'var(--font-instrument-serif)';
@@ -27,20 +29,20 @@ const t = {
 
 function DashboardPreview() {
   const sidebarItems = [
-    { label: 'Home', icon: HomeIcon, active: true },
-    { label: 'Tasks', icon: ListTodo, badge: '10' },
-    { label: 'Transactions', icon: ArrowLeftRight },
+    { label: 'Home', icon: House, active: true },
+    { label: 'Tasks', icon: ListChecks, badge: '10' },
+    { label: 'Transactions', icon: ArrowsLeftRight },
     { label: 'Payments', icon: CreditCard, chevron: true },
     { label: 'Cards', icon: CreditCard },
-    { label: 'Capital', icon: Landmark },
-    { label: 'Accounts', icon: Building2, chevron: true },
+    { label: 'Capital', icon: Bank },
+    { label: 'Accounts', icon: Buildings, chevron: true },
   ];
 
   const workflowItems = [
-    { label: 'Trade routes', icon: Route },
+    { label: 'Trade routes', icon: Path },
     { label: 'Payments', icon: CreditCard },
-    { label: 'Notifications', icon: BellRing },
-    { label: 'Settings', icon: Settings },
+    { label: 'Notifications', icon: BellRinging },
+    { label: 'Settings', icon: Gear },
   ];
 
   const actions = ['Send', 'Request', 'Transfer', 'Deposit', 'Pay Bill', 'Create Invoice'];
@@ -69,16 +71,16 @@ function DashboardPreview() {
             <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>N</span>
           </div>
           <span style={{ fontSize: 11, fontWeight: 600, color: t.fg }}>Nexora</span>
-          <ChevronDown size={10} style={{ color: t.mutedFg }} />
+          <CaretDown size={10} style={{ color: t.mutedFg }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.secondary, borderRadius: 6, padding: '4px 10px' }}>
-          <Search size={10} style={{ color: t.mutedFg }} />
+          <MagnifyingGlass size={10} style={{ color: t.mutedFg }} />
           <span style={{ fontSize: 10, color: t.mutedFg }}>Search...</span>
           <span style={{ fontSize: 9, color: t.mutedFg, marginLeft: 12, background: t.bg, borderRadius: 3, padding: '1px 4px', border: `1px solid ${t.border}` }}>⌘K</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 10, fontWeight: 500, color: t.fg, background: t.secondary, borderRadius: 6, padding: '4px 8px' }}>Move Money</span>
-          <Bell size={12} style={{ color: t.mutedFg }} />
+          <Bell size={12} style={{ color: t.mutedFg }} weight="regular" />
           <div style={{ width: 20, height: 20, borderRadius: '50%', background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: 8, fontWeight: 600, color: '#fff' }}>JB</span>
           </div>
@@ -94,7 +96,7 @@ function DashboardPreview() {
               <item.icon size={12} />
               <span style={{ flex: 1 }}>{item.label}</span>
               {item.badge && <span style={{ fontSize: 8, background: t.accent, color: '#fff', borderRadius: 4, padding: '1px 4px' }}>{item.badge}</span>}
-              {item.chevron && <ChevronRight size={8} style={{ color: t.mutedFg }} />}
+              {item.chevron && <CaretRight size={8} style={{ color: t.mutedFg }} />}
             </div>
           ))}
           <div style={{ fontSize: 9, fontWeight: 500, color: t.mutedFg, padding: '10px 6px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Workflows</div>
@@ -125,7 +127,7 @@ function DashboardPreview() {
             <div style={{ flex: '1 1 0', background: t.bg, borderRadius: 8, padding: 10, border: `1px solid ${t.border}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
                 <span style={{ fontSize: 10, color: t.mutedFg }}>Mercury Balance</span>
-                <CheckIcon size={10} style={{ color: '#16a34a' }} />
+                <Check size={10} style={{ color: '#16a34a' }} />
               </div>
               <p style={{ fontSize: 20, fontWeight: 600, color: t.fg, margin: '0 0 4px' }}>
                 $8,450,190<span style={{ fontSize: 12, color: t.mutedFg }}>.32</span>
@@ -192,7 +194,7 @@ function DashboardPreview() {
 
 /* ── Nexora Section ───────────────────────────────────────── */
 
-function NexoraSection() {
+function NexoraSection({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <section
       style={{
@@ -228,7 +230,9 @@ function NexoraSection() {
             <a key={link} href="#" style={{ fontSize: 14, color: t.mutedFg, textDecoration: 'none', transition: 'color 0.2s' }}>{link}</a>
           ))}
         </div>
-        <a href="#" style={{ background: t.fg, color: '#fff', padding: '8px 20px', borderRadius: 999, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>Get Started</a>
+        <Link href={isLoggedIn ? '/api/resolve-redirect?redirect=true' : '/sign-up'} style={{ background: t.fg, color: '#fff', padding: '8px 20px', borderRadius: 999, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
+          {isLoggedIn ? 'Dashboard' : 'Get Started'}
+        </Link>
       </nav>
 
       {/* ── Hero Content ── */}
@@ -311,7 +315,7 @@ function NexoraSection() {
               cursor: 'pointer',
             }}
           >
-            <Play size={16} fill={t.fg} style={{ color: t.fg }} />
+            <Play size={16} weight="fill" style={{ color: t.fg }} />
           </button>
         </motion.div>
 
@@ -353,9 +357,9 @@ function NexoraSection() {
    ══════════════════════════════════════════════════════════════ */
 
 const stellarTabs = [
-  { id: 'analyse', label: 'Analyse', icon: BarChart3 },
+  { id: 'analyse', label: 'Analyse', icon: ChartBar },
   { id: 'train', label: 'Train', icon: BookOpen },
-  { id: 'testing', label: 'Testing', icon: Users },
+  { id: 'testing', label: 'Testing', icon: UsersThree },
   { id: 'deploy', label: 'Deploy', icon: Rocket },
 ] as const;
 
@@ -373,7 +377,7 @@ function AnalyseOverlay() {
         {['Connect data source', 'Select AI model', 'Configure parameters', 'Review & launch'].map((step, i) => (
           <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid #f3f4f6' : undefined }}>
             <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, fontFamily: interFont, ...(i === 0 ? { background: '#8b5cf6', color: '#fff' } : { background: '#f3f4f6', color: '#9ca3af' }) }}>
-              {i === 0 ? <CheckIcon size={12} /> : i + 1}
+              {i === 0 ? <Check size={12} /> : i + 1}
             </div>
             <span style={{ fontFamily: interFont, fontSize: 13, color: i === 0 ? '#111' : '#6b7280' }}>{step}</span>
           </div>
@@ -414,7 +418,7 @@ function TestingOverlay() {
       <div className="animate-slide-up-overlay" style={{ position: 'absolute', top: '50%', left: '50%', background: '#fff', borderRadius: 16, padding: 32, width: 380, maxWidth: '90%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CheckIcon size={14} style={{ color: '#16a34a' }} />
+            <Check size={14} style={{ color: '#16a34a' }} />
           </div>
           <div>
             <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', margin: 0 }}>Test Suite Results</p>
@@ -456,7 +460,7 @@ function DeployOverlay() {
         {['Model validation passed', 'API endpoints verified', 'Load testing complete', 'Rollback plan configured'].map((item, i) => (
           <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid #f3f4f6' : undefined }}>
             <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckIcon size={11} style={{ color: '#16a34a' }} />
+              <Check size={11} style={{ color: '#16a34a' }} />
             </div>
             <span style={{ fontFamily: interFont, fontSize: 13, color: '#111' }}>{item}</span>
           </div>
@@ -567,17 +571,120 @@ function StellarSection() {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   FOOTER
+   ══════════════════════════════════════════════════════════════ */
+
+function Footer() {
+  const socialLinks = [
+    { label: 'X', href: '#', icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg> },
+    { label: 'LinkedIn', href: '#', icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg> },
+  ];
+
+  const mainLinks = [
+    { href: '#', label: 'Features' },
+    { href: '#', label: 'Pricing' },
+    { href: '#', label: 'About' },
+    { href: '#', label: 'Contact' },
+    { href: '#', label: 'Blog' },
+  ];
+
+  const legalLinks = [
+    { href: '#', label: 'Privacy Policy' },
+    { href: '#', label: 'Terms of Service' },
+  ];
+
+  return (
+    <footer style={{ fontFamily: interFont, paddingTop: 64, paddingBottom: 24, background: '#fff' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px' }}>
+        {/* Top: Logo + Social */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+            <svg width={28} height={28} viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="3" height="18" rx="0.5" fill="#111" />
+              <rect x="3" y="3" width="18" height="3" rx="0.5" fill="#111" />
+              <rect x="18" y="3" width="3" height="10" rx="0.5" fill="#111" />
+              <rect x="10" y="9" width="2.5" height="12" rx="0.5" fill="#111" />
+            </svg>
+            <span style={{ fontSize: 20, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>BuildTrack Pro</span>
+          </a>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {socialLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                aria-label={link.label}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  background: '#f5f5f5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#374151',
+                  textDecoration: 'none',
+                  transition: 'background 0.2s',
+                }}
+              >
+                {link.icon}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Divider + Links */}
+        <div style={{ borderTop: '1px solid #e6e6e6', marginTop: 24, paddingTop: 24 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
+            {/* Copyright */}
+            <div style={{ fontSize: 14, lineHeight: 1.6, color: '#858e8e', whiteSpace: 'nowrap' }}>
+              <div>&copy; {new Date().getFullYear()} BuildTrack Pro</div>
+              <div>All rights reserved</div>
+            </div>
+
+            {/* Right links */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
+              {/* Main links */}
+              <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+                {mainLinks.map((link) => (
+                  <a key={link.label} href={link.href} style={{ fontSize: 14, color: '#111', textDecoration: 'none' }}>
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
+              {/* Legal links */}
+              <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
+                {legalLinks.map((link) => (
+                  <a key={link.label} href={link.href} style={{ fontSize: 14, color: '#858e8e', textDecoration: 'none' }}>
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
    PAGE EXPORT
    ══════════════════════════════════════════════════════════════ */
 
 export default function Home() {
+  const { data: session } = useSession();
+  const isLoggedIn = !!session;
+
   return (
     <div>
       {/* Block 1: Nexora */}
-      <NexoraSection />
+      <NexoraSection isLoggedIn={isLoggedIn} />
 
       {/* Block 2: Stellar.ai */}
       <StellarSection />
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
