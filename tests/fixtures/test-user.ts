@@ -137,12 +137,20 @@ export async function cleanupUser(email: string): Promise<void> {
 }
 
 /**
- * Cleans up any verification records for an email (OTP codes).
+ * Cleans up any verification records for an email (OTP codes and password reset tokens).
  */
 export async function cleanupVerifications(email: string): Promise<void> {
+  const user = await testDb.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
   await testDb.verification.deleteMany({
     where: {
-      identifier: { contains: email },
+      OR: [
+        { identifier: { contains: email } },
+        ...(user ? [{ identifier: `password-reset:${user.id}` }] : []),
+      ],
     },
   });
 }

@@ -5,7 +5,7 @@
 | Layer | Tool | Location |
 |-------|------|----------|
 | Unit / component | Vitest + React Testing Library | `src/**/*.test.{ts,tsx}` |
-| E2E | Playwright (Chromium) | `tests/` *(currently empty)* |
+| E2E | Playwright (Chromium) | `tests/` |
 | Type checking | `tsc --noEmit` | — |
 
 ---
