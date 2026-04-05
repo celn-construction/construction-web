@@ -92,7 +92,7 @@ jobs:
         env:
           construction_POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/construction_test
           construction_POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
-          BETTER_AUTH_SECRET: test-secret-for-ci-only
+          BETTER_AUTH_SECRET: test-secret-for-ci-e2e-runner-only-0123456789
           APP_URL: http://localhost:3000
           SKIP_ENV_VALIDATION: true
           BASE_URL: http://localhost:3000

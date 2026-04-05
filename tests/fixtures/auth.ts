@@ -12,10 +12,16 @@ export async function signInTestUser(
   email: string,
   password: string
 ): Promise<void> {
-  // Call Better Auth's sign-in endpoint directly via page.request
-  // This sets the session cookie on the browser context automatically
+  // Call Better Auth's sign-in endpoint directly via page.request.
+  // Must include Origin header — page.request.post() doesn't send it
+  // automatically, and Better Auth rejects POST requests without Origin
+  // when cookies are present (CSRF protection).
+  const origin = process.env.BASE_URL ?? "http://localhost:3000";
   const response = await page.request.post("/api/auth/sign-in/email", {
     data: { email, password },
+    headers: {
+      Origin: origin,
+    },
   });
 
   if (!response.ok()) {
