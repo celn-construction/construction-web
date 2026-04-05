@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  typecheck-and-unit:
+    name: Typecheck & Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -17,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
@@ -26,11 +27,8 @@ jobs:
       - name: Run type check
         run: npm run typecheck
 
-      - name: Run tests
+      - name: Run unit tests
         run: npm run test
-        env:
-          construction_POSTGRES_PRISMA_URL: file:./test.db
-          construction_POSTGRES_URL_NON_POOLING: file:./test.db
 
       - name: Build
         run: npx prisma generate && npx next build
@@ -39,3 +37,72 @@ jobs:
           construction_POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/test
           NODE_ENV: production
           SKIP_ENV_VALIDATION: true
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: construction_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Enable pgvector and pg_trgm extensions
+        run: |
+          psql -h localhost -U postgres -d construction_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          psql -h localhost -U postgres -d construction_test -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+        env:
+          PGPASSWORD: postgres
+
+      - name: Push database schema
+        run: npx prisma db push
+        env:
+          construction_POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/construction_test
+          construction_POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: npx playwright test --reporter=github,html
+        env:
+          construction_POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/construction_test
+          construction_POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
+          BETTER_AUTH_SECRET: test-secret-for-ci-e2e-runner-only-0123456789
+          APP_URL: http://localhost:3000
+          SKIP_ENV_VALIDATION: true
+          BASE_URL: http://localhost:3000
+          BETA_ACCESS_CODE: buildtrack-beta-2026
+          CI: true
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

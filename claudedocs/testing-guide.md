@@ -5,7 +5,7 @@
 | Layer | Tool | Location |
 |-------|------|----------|
 | Unit / component | Vitest + React Testing Library | `src/**/*.test.{ts,tsx}` |
-| E2E | Playwright (Chromium) | `tests/` *(currently empty)* |
+| E2E | Playwright (Chromium) | `tests/` |
 | Type checking | `tsc --noEmit` | — |
 
 ---
@@ -131,21 +131,73 @@ screen.getByTestId("submit-btn")   // fragile, not meaningful to users
 
 ## E2E Tests (Playwright)
 
-E2E tests live in `tests/` (currently empty). The dev server starts automatically on `localhost:5050`.
+E2E tests live in `tests/`. The dev server must be running on `localhost:3000` (or set `BASE_URL` env var). Playwright config will auto-start it if not running.
 
 Auth bypass for tests: middleware skips session checks when the `x-playwright-test: true` header is present (non-production only). This is set automatically via `playwright.config.ts` `extraHTTPHeaders`.
 
-```ts
-// tests/example.spec.ts
-import { test, expect } from "@playwright/test";
+### Directory structure
 
-test("user can sign in and reach dashboard", async ({ page }) => {
-  await page.goto("/sign-in");
-  await page.getByLabel(/email/i).fill("user@example.com");
-  await page.getByLabel(/password/i).fill("password");
-  await page.getByRole("button", { name: /sign in/i }).click();
-  await expect(page).toHaveURL(/\/[\w-]+/); // org slug route
+```
+tests/
+  fixtures/
+    index.ts           # Custom `test` with auto-cleanup fixtures and POM injection
+    db.ts              # Standalone Prisma client for test DB
+    otp.ts             # OTP code reader from verification table
+    test-user.ts       # User seeding (createTestUser, createVerifiedUser, createUserWithOrg) and cleanup
+    auth.ts            # signInTestUser() — signs in via Better Auth API
+  helpers/
+    otp-input.ts       # MUI OTP input filler (fills 6 individual <input> elements)
+  pages/               # Page Object Models — centralized selectors and actions
+    sign-up.page.ts
+    sign-in.page.ts
+    onboarding.page.ts
+    verify-email.page.ts
+    forgot-password.page.ts  # includes ResetPasswordPage
+  global-teardown.ts   # Safety-net cleanup of @e2e.local users after all tests
+  smoke/
+    full-journey.spec.ts   # Golden path: sign-up → OTP → onboarding → dashboard
+  auth/
+    sign-up.spec.ts
+    sign-in.spec.ts
+    forgot-password.spec.ts
+    verify-email.spec.ts
+  onboarding/
+    wizard.spec.ts
+```
+
+### Key patterns
+
+**Custom fixtures (import from `../fixtures`)**: All spec files import `{ test, expect }` from `tests/fixtures/index.ts` instead of `@playwright/test`. This provides auto-cleanup user fixtures (`testUser`, `verifiedUser`, `userWithOrg`) and auto-instantiated Page Object Models (`signUpPage`, `signInPage`, `onboardingPage`, etc.). Fixture teardown is guaranteed even when tests throw.
+
+**Page Object Models**: Selectors and common actions live in `tests/pages/*.page.ts`. Tests use POM methods instead of inline selectors — one UI change only requires one update.
+
+**Test user isolation**: Each test generates unique emails (`test-{uuid}@e2e.local`). Fixture teardown deletes users and cascaded records. A `global-teardown.ts` safety net removes any orphaned `@e2e.local` users after the entire suite.
+
+**OTP codes**: Read directly from the `verification` table (identifier: `email-verification-otp-{email}`, value format: `{otp}:{attemptCount}`). The `getOtpForEmail()` helper polls with retries.
+
+**Authenticated tests**: Use `signInTestUser(page, email, password)` to sign in via the Better Auth API endpoint. This creates a real signed session cookie. Do NOT inject raw session tokens — Better Auth signs cookies and will reject unsigned values.
+
+**Password reset tokens**: Read from `verification` table (identifier: `password-reset:{userId}`).
+
+```ts
+// Example: test with auto-cleanup fixtures and POMs
+import { test, expect, signInTestUser } from "../fixtures";
+
+test("verified user sees onboarding", async ({ verifiedUser, page, onboardingPage }) => {
+  await signInTestUser(page, verifiedUser.email, verifiedUser.password);
+  await onboardingPage.goto();
+  await expect(onboardingPage.heading).toBeVisible();
+  // cleanup is automatic via fixture teardown
 });
+```
+
+### Running E2E tests
+
+```bash
+npx playwright test                    # all E2E tests
+npx playwright test tests/smoke/      # smoke tests only
+npx playwright test --ui               # interactive UI mode
+npx playwright show-report             # view last HTML report
 ```
 
 ---
@@ -154,14 +206,16 @@ test("user can sign in and reach dashboard", async ({ page }) => {
 
 | Area | Unit | E2E |
 |------|------|-----|
-| Auth forms (sign-in, sign-up, forgot/reset password) | ✅ | ❌ |
-| Middleware routing | ✅ | ❌ |
+| Auth forms (sign-in, sign-up, forgot/reset password) | ✅ | ✅ |
+| Middleware routing | ✅ | ✅ (via auth flow tests) |
+| Email verification (OTP) | ❌ | ✅ |
+| Onboarding flow | ❌ | ✅ |
+| Password reset (full flow) | ❌ | ✅ |
 | tRPC routers | ❌ | ❌ |
-| Onboarding flow | ❌ | ❌ |
-| Org / project creation | ❌ | ❌ |
+| Org / project creation | ❌ | ✅ (via onboarding) |
 | Invitation accept flow | ❌ | ❌ |
 | Gantt sync | ❌ | ❌ |
 | Document upload | ❌ | ❌ |
 | Permissions enforcement | ❌ | ❌ |
 
-**Priority gaps:** E2E for the invite→join flow, org creation, and Gantt sync are the highest-value additions given zero current coverage of those paths.
+**Priority gaps:** E2E for the invite→join flow, Gantt sync, and document upload are the highest-value additions.
