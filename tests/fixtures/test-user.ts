@@ -10,11 +10,16 @@ interface CreateTestUserOptions {
   onboardingComplete?: boolean;
 }
 
-interface TestUser {
+export interface TestUser {
   id: string;
   name: string;
   email: string;
   password: string;
+}
+
+export interface TestUserWithOrg {
+  user: TestUser;
+  organization: { id: string; name: string; slug: string };
 }
 
 /**

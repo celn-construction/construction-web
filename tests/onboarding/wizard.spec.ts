@@ -1,146 +1,100 @@
-import { test, expect } from "@playwright/test";
-import {
-  createVerifiedUser,
-  createUserWithOrg,
-  cleanupUser,
-  cleanupVerifications,
-} from "../fixtures/test-user";
-import { signInTestUser } from "../fixtures/auth";
+import { test, expect, signInTestUser } from "../fixtures";
 
 test.describe("Onboarding wizard", () => {
-  const emails: string[] = [];
-
-  test.afterAll(async () => {
-    for (const email of emails) {
-      await cleanupUser(email);
-      await cleanupVerifications(email);
-    }
-  });
-
-  test("Step 0 validation: cannot proceed without required fields", async ({ page }) => {
-    const user = await createVerifiedUser({ onboardingComplete: false });
-    emails.push(user.email);
-
-    await signInTestUser(page, user.email, user.password);
-    await page.goto("/onboarding");
-
-    await expect(page.getByText("Welcome to BuildTrack Pro")).toBeVisible({ timeout: 15000 });
+  test("Step 0 validation: cannot proceed without required fields", async ({
+    verifiedUser,
+    page,
+    onboardingPage,
+  }) => {
+    await signInTestUser(page, verifiedUser.email, verifiedUser.password);
+    await onboardingPage.goto();
+    await expect(onboardingPage.heading).toBeVisible({ timeout: 15000 });
 
     // Try to continue without filling anything
-    await page.getByRole("button", { name: "Continue" }).click();
+    await onboardingPage.continueButton.click();
 
-    // Should show validation errors
     await expect(page.getByText("Company name is required")).toBeVisible();
     await expect(page.getByText("Company type is required")).toBeVisible();
 
     // Fill only name, try again
-    await page.getByPlaceholder("Enter your company name").fill("Test Company");
-    await page.getByRole("button", { name: "Continue" }).click();
+    await onboardingPage.companyNameInput.fill("Test Company");
+    await onboardingPage.continueButton.click();
 
-    // Company type still required
     await expect(page.getByText("Company type is required")).toBeVisible();
   });
 
-  test("forward/back navigation works", async ({ page }) => {
-    const user = await createVerifiedUser({ onboardingComplete: false });
-    emails.push(user.email);
-
-    await signInTestUser(page, user.email, user.password);
-    await page.goto("/onboarding");
-
+  test("forward/back navigation works", async ({
+    verifiedUser,
+    page,
+    onboardingPage,
+  }) => {
+    await signInTestUser(page, verifiedUser.email, verifiedUser.password);
+    await onboardingPage.goto();
     await expect(page.getByText("Tell us about your company")).toBeVisible({ timeout: 15000 });
 
-    // Fill required fields to proceed
-    await page.getByPlaceholder("Enter your company name").fill("Nav Test Co");
-    await page.getByText("Select company type").click();
-    await page.getByRole("option", { name: "General Contractor" }).click();
+    await onboardingPage.fillCompanyIdentity("Nav Test Co", "General Contractor");
 
     // Go to Step 1
-    await page.getByRole("button", { name: "Continue" }).click();
+    await onboardingPage.continueButton.click();
     await expect(page.getByText("How can we reach you?")).toBeVisible();
 
     // Go back to Step 0
-    await page.getByRole("button", { name: "Back" }).click();
+    await onboardingPage.backButton.click();
     await expect(page.getByText("Tell us about your company")).toBeVisible();
 
     // Company name should be preserved
-    await expect(page.getByPlaceholder("Enter your company name")).toHaveValue("Nav Test Co");
+    await expect(onboardingPage.companyNameInput).toHaveValue("Nav Test Co");
   });
 
-  test("skip buttons work on steps 1 and 2", async ({ page }) => {
-    const user = await createVerifiedUser({ onboardingComplete: false });
-    emails.push(user.email);
+  test("skip buttons work on steps 1 and 2", async ({
+    verifiedUser,
+    page,
+    onboardingPage,
+  }) => {
+    await signInTestUser(page, verifiedUser.email, verifiedUser.password);
+    await onboardingPage.goto();
+    await expect(onboardingPage.heading).toBeVisible({ timeout: 15000 });
 
-    await signInTestUser(page, user.email, user.password);
-    await page.goto("/onboarding");
-
-    await expect(page.getByText("Welcome to BuildTrack Pro")).toBeVisible({ timeout: 15000 });
-
-    // Fill Step 0
-    await page.getByPlaceholder("Enter your company name").fill("Skip Test Co");
-    await page.getByText("Select company type").click();
-    await page.getByRole("option", { name: "Subcontractor" }).click();
-    await page.getByRole("button", { name: "Continue" }).click();
+    await onboardingPage.fillCompanyIdentity("Skip Test Co", "Subcontractor");
+    await onboardingPage.continueButton.click();
 
     // Step 1: Skip
     await expect(page.getByText("How can we reach you?")).toBeVisible();
-    await page.getByRole("button", { name: "Skip for now" }).click();
+    await onboardingPage.skipButton.click();
 
     // Step 2: Skip
     await expect(page.getByText("Add your company logo")).toBeVisible();
-    await page.getByRole("button", { name: "Skip for now" }).click();
+    await onboardingPage.skipButton.click();
 
     // Should be on Step 3 (Review)
     await expect(page.getByText("Review and finalize")).toBeVisible();
   });
 
-  test("complete onboarding creates org and redirects to dashboard", async ({ page }) => {
-    const user = await createVerifiedUser({ onboardingComplete: false });
-    emails.push(user.email);
+  test("complete onboarding creates org and redirects to dashboard", async ({
+    verifiedUser,
+    page,
+    onboardingPage,
+  }) => {
     const companyName = `Onboard Co ${Date.now()}`;
 
-    await signInTestUser(page, user.email, user.password);
-    await page.goto("/onboarding");
+    await signInTestUser(page, verifiedUser.email, verifiedUser.password);
+    await onboardingPage.goto();
+    await expect(onboardingPage.heading).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByText("Welcome to BuildTrack Pro")).toBeVisible({ timeout: 15000 });
+    await onboardingPage.completeOnboarding(companyName, "Developer");
 
-    // Step 0: Company Identity
-    await page.getByPlaceholder("Enter your company name").fill(companyName);
-    await page.getByText("Select company type").click();
-    await page.getByRole("option", { name: "Developer" }).click();
-    await page.getByRole("button", { name: "Continue" }).click();
-
-    // Step 1: Skip
-    await page.getByRole("button", { name: "Skip for now" }).click();
-
-    // Step 2: Skip
-    await page.getByRole("button", { name: "Skip for now" }).click();
-
-    // Step 3: Review - submit
-    await expect(page.getByText("Review and finalize")).toBeVisible();
-    await page.getByRole("button", { name: "Launch BuildTrack Pro" }).click();
-
-    // Success state
-    await expect(page.getByText("You're all set!")).toBeVisible({ timeout: 10000 });
-
-    // Wait for redirect away from onboarding (1.5s delay in app + navigation)
-    await page.waitForURL(
-      (url) => !url.pathname.includes("/onboarding"),
-      { timeout: 15000 }
-    );
+    await expect(onboardingPage.successHeading).toBeVisible({ timeout: 10000 });
+    await onboardingPage.waitForRedirect();
   });
 
-  test("user with existing org is redirected away from onboarding", async ({ page }) => {
-    const { user, organization } = await createUserWithOrg();
-    emails.push(user.email);
+  test("user with existing org is redirected away from onboarding", async ({
+    userWithOrg,
+    page,
+    onboardingPage,
+  }) => {
+    await signInTestUser(page, userWithOrg.user.email, userWithOrg.user.password);
+    await onboardingPage.goto();
 
-    await signInTestUser(page, user.email, user.password);
-    await page.goto("/onboarding");
-
-    // Should redirect to org dashboard (server-side check in onboarding page)
-    await page.waitForURL(
-      (url) => !url.pathname.includes("/onboarding"),
-      { timeout: 15000 }
-    );
+    await onboardingPage.waitForRedirect();
   });
 });

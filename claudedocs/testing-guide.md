@@ -140,12 +140,20 @@ Auth bypass for tests: middleware skips session checks when the `x-playwright-te
 ```
 tests/
   fixtures/
+    index.ts           # Custom `test` with auto-cleanup fixtures and POM injection
     db.ts              # Standalone Prisma client for test DB
     otp.ts             # OTP code reader from verification table
     test-user.ts       # User seeding (createTestUser, createVerifiedUser, createUserWithOrg) and cleanup
     auth.ts            # signInTestUser() — signs in via Better Auth API
   helpers/
     otp-input.ts       # MUI OTP input filler (fills 6 individual <input> elements)
+  pages/               # Page Object Models — centralized selectors and actions
+    sign-up.page.ts
+    sign-in.page.ts
+    onboarding.page.ts
+    verify-email.page.ts
+    forgot-password.page.ts  # includes ResetPasswordPage
+  global-teardown.ts   # Safety-net cleanup of @e2e.local users after all tests
   smoke/
     full-journey.spec.ts   # Golden path: sign-up → OTP → onboarding → dashboard
   auth/
@@ -159,7 +167,11 @@ tests/
 
 ### Key patterns
 
-**Test user isolation**: Each test generates unique emails (`test-{uuid}@e2e.local`). Cleanup in `afterAll` deletes users and cascaded records.
+**Custom fixtures (import from `../fixtures`)**: All spec files import `{ test, expect }` from `tests/fixtures/index.ts` instead of `@playwright/test`. This provides auto-cleanup user fixtures (`testUser`, `verifiedUser`, `userWithOrg`) and auto-instantiated Page Object Models (`signUpPage`, `signInPage`, `onboardingPage`, etc.). Fixture teardown is guaranteed even when tests throw.
+
+**Page Object Models**: Selectors and common actions live in `tests/pages/*.page.ts`. Tests use POM methods instead of inline selectors — one UI change only requires one update.
+
+**Test user isolation**: Each test generates unique emails (`test-{uuid}@e2e.local`). Fixture teardown deletes users and cascaded records. A `global-teardown.ts` safety net removes any orphaned `@e2e.local` users after the entire suite.
 
 **OTP codes**: Read directly from the `verification` table (identifier: `email-verification-otp-{email}`, value format: `{otp}:{attemptCount}`). The `getOtpForEmail()` helper polls with retries.
 
@@ -168,16 +180,14 @@ tests/
 **Password reset tokens**: Read from `verification` table (identifier: `password-reset:{userId}`).
 
 ```ts
-// Example: test requiring authenticated user
-import { createVerifiedUser, cleanupUser } from "../fixtures/test-user";
-import { signInTestUser } from "../fixtures/auth";
+// Example: test with auto-cleanup fixtures and POMs
+import { test, expect, signInTestUser } from "../fixtures";
 
-test("authenticated user can access onboarding", async ({ page }) => {
-  const user = await createVerifiedUser({ onboardingComplete: false });
-  await signInTestUser(page, user.email, user.password);
-  await page.goto("/onboarding");
-  await expect(page.getByText("Welcome to BuildTrack Pro")).toBeVisible();
-  // cleanup in afterAll
+test("verified user sees onboarding", async ({ verifiedUser, page, onboardingPage }) => {
+  await signInTestUser(page, verifiedUser.email, verifiedUser.password);
+  await onboardingPage.goto();
+  await expect(onboardingPage.heading).toBeVisible();
+  // cleanup is automatic via fixture teardown
 });
 ```
 

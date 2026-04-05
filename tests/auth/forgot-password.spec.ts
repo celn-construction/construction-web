@@ -1,80 +1,61 @@
-import { test, expect } from "@playwright/test";
-import {
-  createVerifiedUser,
-  cleanupUser,
-  cleanupVerifications,
-} from "../fixtures/test-user";
+import { test, expect } from "../fixtures";
+import { createVerifiedUser, cleanupUser, cleanupVerifications } from "../fixtures/test-user";
 import { getPasswordResetToken } from "../fixtures/otp";
 
 test.describe("Forgot / Reset password flow", () => {
-  const emails: string[] = [];
-
-  test.afterAll(async () => {
-    for (const email of emails) {
-      await cleanupUser(email);
-      await cleanupVerifications(email);
-    }
+  test("submit forgot password shows success message", async ({
+    verifiedUser,
+    forgotPasswordPage,
+  }) => {
+    await forgotPasswordPage.goto();
+    await forgotPasswordPage.requestReset(verifiedUser.email);
+    await expect(forgotPasswordPage.successHeading).toBeVisible({ timeout: 10000 });
   });
 
-  test("submit forgot password shows success message", async ({ page }) => {
-    const user = await createVerifiedUser();
-    emails.push(user.email);
-
-    await page.goto("/forgot-password");
-
-    await page.getByLabel("Email address").fill(user.email);
-    await page.getByRole("button", { name: "Send reset link" }).click();
-
-    await expect(page.getByText("Check your email")).toBeVisible({ timeout: 10000 });
+  test("non-existent email still shows success (no enumeration)", async ({
+    forgotPasswordPage,
+  }) => {
+    await forgotPasswordPage.goto();
+    await forgotPasswordPage.requestReset("nonexistent@example.com");
+    await expect(forgotPasswordPage.successHeading).toBeVisible({ timeout: 10000 });
   });
 
-  test("non-existent email still shows success (no enumeration)", async ({ page }) => {
-    await page.goto("/forgot-password");
-
-    await page.getByLabel("Email address").fill("nonexistent@example.com");
-    await page.getByRole("button", { name: "Send reset link" }).click();
-
-    await expect(page.getByText("Check your email")).toBeVisible({ timeout: 10000 });
-  });
-
-  test("full reset flow: request → token → new password → sign in", async ({ page }) => {
+  test("full reset flow: request → token → new password → sign in", async ({
+    page,
+    forgotPasswordPage,
+    resetPasswordPage,
+    signInPage,
+  }) => {
     const user = await createVerifiedUser({ onboardingComplete: true });
-    emails.push(user.email);
     const newPassword = "NewSecurePass456!";
 
-    // Step 1: Request password reset
-    await page.goto("/forgot-password");
-    await page.getByLabel("Email address").fill(user.email);
-    await page.getByRole("button", { name: "Send reset link" }).click();
+    try {
+      // Step 1: Request password reset
+      await forgotPasswordPage.goto();
+      await forgotPasswordPage.requestReset(user.email);
+      await expect(forgotPasswordPage.successHeading).toBeVisible({ timeout: 10000 });
 
-    await expect(page.getByText("Check your email")).toBeVisible({ timeout: 10000 });
+      // Step 2: Get reset token from DB
+      const token = await getPasswordResetToken(user.id);
 
-    // Step 2: Get reset token from DB
-    const token = await getPasswordResetToken(user.id);
+      // Step 3: Visit reset page with token and reset password
+      await resetPasswordPage.goto(token);
+      await resetPasswordPage.resetPassword(newPassword);
+      await expect(resetPasswordPage.successHeading).toBeVisible({ timeout: 10000 });
 
-    // Step 3: Visit reset page with token
-    await page.goto(`/reset-password?token=${token}`);
+      // Step 4: Navigate to sign-in
+      await resetPasswordPage.continueToSignInButton.click();
+      await page.waitForURL("**/sign-in", { timeout: 15000 });
 
-    await page.getByLabel("New password", { exact: true }).fill(newPassword);
-    await page.getByLabel("Confirm new password").fill(newPassword);
-    await page.getByRole("button", { name: "Reset password" }).click();
-
-    // Should show success state
-    await expect(page.getByText("Password reset!")).toBeVisible({ timeout: 10000 });
-
-    // Click the button/link to go to sign-in
-    await page.getByRole("button", { name: /continue to sign in/i }).click();
-    await page.waitForURL("**/sign-in", { timeout: 15000 });
-
-    // Step 4: Sign in with new password
-    await page.getByLabel("Email address").fill(user.email);
-    await page.getByLabel("Password").fill(newPassword);
-    await page.getByRole("button", { name: "Sign in" }).click();
-
-    // Should navigate away from sign-in (to onboarding or dashboard)
-    await page.waitForURL(
-      (url) => !url.pathname.includes("/sign-in"),
-      { timeout: 15000 }
-    );
+      // Step 5: Sign in with new password
+      await signInPage.signIn(user.email, newPassword);
+      await page.waitForURL(
+        (url) => !url.pathname.includes("/sign-in"),
+        { timeout: 15000 }
+      );
+    } finally {
+      await cleanupUser(user.email);
+      await cleanupVerifications(user.email);
+    }
   });
 });
