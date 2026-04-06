@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { del } from "@vercel/blob";
 import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 import { embedQuery, toVectorSql } from "@/server/services/embeddings";
+import { expandAcronyms } from "@/lib/constants/constructionAcronyms";
 
 interface RawDocumentRow {
   id: string;
@@ -255,60 +256,25 @@ export const documentRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const project = await ctx.db.project.findFirst({
-        where: {
-          id: input.projectId,
-          organizationId: ctx.organization.id,
-        },
+        where: { id: input.projectId, organizationId: ctx.organization.id },
       });
+      if (!project) return { results: [], total: 0 };
 
-      if (!project) {
-        return { results: [], total: 0 };
-      }
-
-      // Embed the user's query
       const queryEmbedding = await embedQuery(input.query);
       const vectorSql = toVectorSql(queryEmbedding);
+      const keywordQuery = expandAcronyms(input.query);
 
-      // Two branches for folderIds to avoid Prisma.empty (which breaks $queryRaw parameter numbering).
-      // linkFilter is passed as a parameterized value — PostgreSQL evaluates the matching branch.
-      const rows = input.folderIds?.length
-        ? await ctx.db.$queryRaw<RawDocumentRow[]>`
-            SELECT
-              d.id, d.name, d."blobUrl", d."mimeType", d.size, d.tags,
-              d.description, d."taskId", d."folderId", d."projectId",
-              d."uploadedById", d."createdAt",
-              (1 - (d.embedding <=> ${vectorSql}::vector))::float AS rank,
-              COUNT(*) OVER () AS total_count,
-              u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email
-            FROM "Document" d
-              JOIN "User" u ON u.id = d."uploadedById"
-            WHERE d."projectId" = ${input.projectId}
-              AND d.embedding IS NOT NULL
-              AND d."folderId" = ANY(${input.folderIds})
-              AND (${input.linkFilter} = 'all'
-                OR (${input.linkFilter} = 'linked' AND d."taskId" != '')
-                OR (${input.linkFilter} = 'unlinked' AND d."taskId" = ''))
-            ORDER BY d.embedding <=> ${vectorSql}::vector
-            LIMIT ${input.limit} OFFSET ${input.offset}
-          `
-        : await ctx.db.$queryRaw<RawDocumentRow[]>`
-            SELECT
-              d.id, d.name, d."blobUrl", d."mimeType", d.size, d.tags,
-              d.description, d."taskId", d."folderId", d."projectId",
-              d."uploadedById", d."createdAt",
-              (1 - (d.embedding <=> ${vectorSql}::vector))::float AS rank,
-              COUNT(*) OVER () AS total_count,
-              u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email
-            FROM "Document" d
-              JOIN "User" u ON u.id = d."uploadedById"
-            WHERE d."projectId" = ${input.projectId}
-              AND d.embedding IS NOT NULL
-              AND (${input.linkFilter} = 'all'
-                OR (${input.linkFilter} = 'linked' AND d."taskId" != '')
-                OR (${input.linkFilter} = 'unlinked' AND d."taskId" = ''))
-            ORDER BY d.embedding <=> ${vectorSql}::vector
-            LIMIT ${input.limit} OFFSET ${input.offset}
-          `;
+      const rows = await ctx.db.$queryRaw<RawDocumentRow[]>`
+        SELECT * FROM hybrid_document_search(
+          ${vectorSql}::vector,
+          ${keywordQuery},
+          ${input.projectId},
+          ${input.folderIds ?? null},
+          ${input.linkFilter},
+          ${input.limit},
+          ${input.offset}
+        )
+      `;
 
       const total = Number(rows[0]?.total_count ?? 0);
       return { results: shapeResults(rows), total };

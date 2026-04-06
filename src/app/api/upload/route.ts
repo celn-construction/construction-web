@@ -155,7 +155,9 @@ export async function POST(req: NextRequest) {
     if (env.OPENAI_API_KEY && analysis.description) {
       try {
         const cleanName = file.name.replace(/\.[^.]+$/, '').replace(/[\s_\-]+/g, ' ');
-        const textToEmbed = [cleanName, analysis.description, `Tags: ${analysis.tags.join(', ')}`].join('. ');
+        const lastDot = file.name.lastIndexOf('.');
+        const ext = lastDot > 0 ? file.name.slice(lastDot + 1).toUpperCase() : '';
+        const textToEmbed = [cleanName, analysis.description, `Tags: ${analysis.tags.join(', ')}`, `File type: ${ext}`].join('. ');
         const [embedding] = await embedDocuments([textToEmbed]);
         if (embedding) {
           const vectorSql = toVectorSql(embedding);
