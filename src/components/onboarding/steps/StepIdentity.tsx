@@ -24,14 +24,9 @@ const containerVariants = {
   },
 };
 
-const companyTypes = [
-  "General Contractor",
-  "Subcontractor",
-  "Developer",
-  "Architecture Firm",
-  "Engineering Firm",
-  "Owner/Builder",
-];
+import { COMPANY_TYPES } from "@/lib/constants/companyTypes";
+
+const companyTypes = COMPANY_TYPES;
 
 export function StepIdentity({
   formData,

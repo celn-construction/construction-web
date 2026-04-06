@@ -306,17 +306,25 @@ export default function ProjectFormBody({
 
   const createProject = api.project.create.useMutation({
     onSuccess: (newProject) => {
-      showSnackbar('Project created successfully', 'success');
       void utils.project.list.invalidate();
       void utils.project.getActive.invalidate();
       uploadedUrlRef.current = null; // Don't clean up — project owns it now
       handleReset();
-      if (replaceOnNavigate) {
-        router.replace(`/${orgSlug}/projects/${newProject.slug}/gantt`);
+
+      if (onSuccess) {
+        // Modal mode — show toast, let user switch manually via project dropdown
+        hideLoading();
+        showSnackbar(`"${newProject.name}" created — switch to it in the project dropdown`, 'success');
+        onSuccess();
       } else {
-        router.push(`/${orgSlug}/projects/${newProject.slug}/gantt`);
+        // Standalone mode — navigate to the new project
+        showSnackbar('Project created successfully', 'success');
+        if (replaceOnNavigate) {
+          router.replace(`/${orgSlug}/projects/${newProject.slug}/gantt`);
+        } else {
+          router.push(`/${orgSlug}/projects/${newProject.slug}/gantt`);
+        }
       }
-      // Don't hide loading — let the navigation transition handle it
     },
     onError: (error) => {
       hideLoading();
@@ -325,9 +333,11 @@ export default function ProjectFormBody({
   });
 
   const onSubmit = (data: CreateProjectInput) => {
-    // Close dialog immediately and show global loading overlay
-    onCancel?.();
-    showLoading('Creating your project...');
+    if (!onSuccess) {
+      // Standalone mode — close and show loading overlay
+      onCancel?.();
+      showLoading('Creating your project...');
+    }
     createProject.mutate({
       ...data,
       location: data.location,
