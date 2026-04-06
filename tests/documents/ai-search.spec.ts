@@ -6,11 +6,13 @@ test.describe("Document explorer AI search", () => {
   let orgSlug: string;
   let projectSlug: string;
   let projectId: string;
+  let userId: string;
   let documentExplorerPage: DocumentExplorerPage;
 
   test.beforeEach(async ({ page, userWithOrg }) => {
     const { user, organization } = userWithOrg;
     orgSlug = organization.slug;
+    userId = user.id;
 
     // Create a project for the test
     const project = await testDb.project.create({
@@ -93,13 +95,9 @@ test.describe("Document explorer AI search", () => {
     await searchInput.press("Enter");
 
     // Verify the API call was made (may fail if OPENAI_API_KEY not set, which is OK)
-    try {
-      const request = await aiSearchRequest;
+    const request = await aiSearchRequest.catch(() => null);
+    if (request) {
       expect(request.url()).toContain("document.aiSearch");
-    } catch {
-      // If the request times out, it means the API call wasn't made
-      // (likely because OPENAI_API_KEY is not set in test env)
-      // That's acceptable — we've verified the UI submission works
     }
   });
 
@@ -112,12 +110,7 @@ test.describe("Document explorer AI search", () => {
   });
 
   test("fuzzy search filters documents by name", async ({ page }) => {
-    // Seed a document directly in the DB
-    const user = await testDb.user.findFirst({
-      where: { email: { contains: "@e2e.local" } },
-    });
-    if (!user) return;
-
+    // Seed documents using the fixture user from beforeEach
     await testDb.document.create({
       data: {
         name: "Foundation Inspection Report.pdf",
@@ -129,7 +122,7 @@ test.describe("Document explorer AI search", () => {
         taskId: "",
         folderId: "inspections-structural",
         projectId,
-        uploadedById: user.id,
+        uploadedById: userId,
       },
     });
 
@@ -144,7 +137,7 @@ test.describe("Document explorer AI search", () => {
         taskId: "",
         folderId: "photos",
         projectId,
-        uploadedById: user.id,
+        uploadedById: userId,
       },
     });
 

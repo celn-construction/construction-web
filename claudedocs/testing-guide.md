@@ -153,6 +153,7 @@ tests/
     onboarding.page.ts
     verify-email.page.ts
     forgot-password.page.ts  # includes ResetPasswordPage
+    document-explorer.page.ts
   global-teardown.ts   # Safety-net cleanup of @e2e.local users after all tests
   smoke/
     full-journey.spec.ts   # Golden path: sign-up → OTP → onboarding → dashboard
@@ -163,6 +164,8 @@ tests/
     verify-email.spec.ts
   onboarding/
     wizard.spec.ts
+  documents/
+    ai-search.spec.ts    # AI search toggle, submission, fuzzy search filtering
 ```
 
 ### Key patterns
@@ -215,6 +218,7 @@ npx playwright show-report             # view last HTML report
 | Org / project creation | ❌ | ✅ (via onboarding) |
 | Invitation accept flow | ❌ | ❌ |
 | Gantt sync | ❌ | ❌ |
+| Document explorer AI search | ✅ | ✅ |
 | Document upload | ❌ | ❌ |
 | Permissions enforcement | ❌ | ❌ |
 

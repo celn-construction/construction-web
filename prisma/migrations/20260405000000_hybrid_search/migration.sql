@@ -48,6 +48,7 @@ RETURNS TABLE (
     SELECT d.id, ROW_NUMBER() OVER (ORDER BY d.embedding <=> p_query_vector) AS vrank
     FROM "Document" d
     WHERE d.id IN (SELECT id FROM base_ids) AND d.embedding IS NOT NULL
+    ORDER BY d.embedding <=> p_query_vector
     LIMIT 100
   ),
   kw AS (
@@ -57,6 +58,7 @@ RETURNS TABLE (
     FROM "Document" d
     WHERE d.id IN (SELECT id FROM base_ids)
       AND d."searchVector" @@ websearch_to_tsquery('english', p_query_text)
+    ORDER BY ts_rank(d."searchVector", websearch_to_tsquery('english', p_query_text)) DESC
     LIMIT 100
   ),
   merged AS (
