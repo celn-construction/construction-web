@@ -85,7 +85,7 @@ describe("aiSearch procedure", () => {
     // Dynamic import to pick up mocks
     const mod = await import("@/server/api/routers/document");
     const router = mod.documentRouter as unknown as Record<string, typeof aiSearch>;
-    aiSearch = router.aiSearch;
+    aiSearch = router.aiSearch!;
   });
 
   it("returns empty results when project is not found", async () => {
@@ -126,9 +126,7 @@ describe("aiSearch procedure", () => {
 
     // The $queryRaw template string includes the expanded acronyms
     expect(ctx.db.$queryRaw).toHaveBeenCalled();
-    const callArgs = ctx.db.$queryRaw.mock.calls[0];
-    // Template literal call — the values array contains the expanded keyword query
-    const values = Array.isArray(callArgs[0]) ? callArgs.slice(1) : [];
+    const callArgs = ctx.db.$queryRaw.mock.calls[0]!;
     // The expanded query should be passed as a parameter
     const allArgs = JSON.stringify(callArgs);
     expect(allArgs).toContain("MEP mechanical electrical plumbing RFI request for information");
