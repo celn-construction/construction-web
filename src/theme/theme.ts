@@ -42,8 +42,8 @@ export const lightTheme: Theme = createTheme({
     },
     text: {
       primary: '#1A1A2E',  // $--foreground
-      secondary: '#8D99AE', // $--muted-foreground
-      disabled: '#B0B8C4',
+      secondary: '#6B7280', // $--muted-foreground (darkened for contrast)
+      disabled: '#9CA3AF',
     },
     divider: '#D9DBE1', // $--border
     action: {

@@ -43,15 +43,17 @@ The final JSON was validated against the AGC Austin PDF (official MasterFormat 2
 |------|---------|
 | `src/lib/constants/csiCodes.json` | Raw data: `[{ code, name, subdivisions: [{ code, name }] }]` |
 | `src/lib/constants/csiCodes.ts` | TypeScript layer: exports `CSI_MASTERFORMAT`, `CSI_DIVISIONS`, `CSI_DIVISION_MAP`, `CSI_SUBDIVISION_MAP`, `formatCsiCode()` |
-| `src/components/bryntum/components/CsiCodeSelector.tsx` | React UI: accordion menu with search, optimistic updates |
+| `src/components/bryntum/components/CsiCodeSelector.tsx` | Display-only trigger button showing current CSI code; calls `onOpen` to open the panel |
+| `src/components/bryntum/components/task-popover/CsiCodePanel.tsx` | Slide-in panel: accordion menu with search, optimistic updates, code selection |
 | `src/server/api/routers/gantt.ts` | tRPC mutation `updateCsiCode` with Zod `.refine()` validation |
 
 ### Data flow
 
 1. **Static JSON** loaded at module init, TypeScript builds O(1) lookup Maps
-2. **UI**: `CsiCodeSelector` reads from `CSI_MASTERFORMAT`, filters client-side, shows accordion by division
-3. **Save**: User selects code -> optimistic update -> `gantt.updateCsiCode` mutation -> validates code exists in `CSI_SUBDIVISION_MAP` or `CSI_DIVISION_MAP` -> saves string to `GanttTask.csiCode`
-4. **Display**: `formatCsiCode(code)` resolves `"03 30 00"` -> `"03 30 00 - Cast-in-Place Concrete"`
+2. **Trigger**: `CsiCodeSelector` displays the current code and opens the `CsiCodePanel` slide-in panel
+3. **Selection**: `CsiCodePanel` reads from `CSI_MASTERFORMAT`, filters client-side, shows accordion by division
+4. **Save**: User selects code -> optimistic update -> `gantt.updateCsiCode` mutation -> validates code exists in `CSI_SUBDIVISION_MAP` or `CSI_DIVISION_MAP` -> saves string to `GanttTask.csiCode`
+5. **Display**: `formatCsiCode(code)` resolves `"03 30 00"` -> `"03 30 00 - Cast-in-Place Concrete"`
 
 ### Why static JSON (not database)
 
@@ -68,10 +70,10 @@ Move to a database table only if: tenants need custom code lists, you need usage
 | Optimization | Where | What it prevents |
 |------|-------|-----------------|
 | **Pre-lowercased names** | `csiCodes.ts` — `nameLower` field on divisions and subdivisions | 1,482 `.toLowerCase()` string allocations per keystroke during search |
-| **`useMemo` filtering** | `CsiCodeSelector.tsx` — `displayDivisions` keyed on `query` | Full `.map()` + `.filter()` recomputation on unrelated state changes (expand toggle, anchor, optimistic code) |
-| **`React.memo` SubdivisionItem** | `CsiCodeSelector.tsx` — extracted memoized component | Re-rendering every visible MenuItem when only one item's `isSelected` changes |
-| **Stable `useCallback`** | `CsiCodeSelector.tsx` — `handleSelectSubdivision` | New closure per subdivision per render (breaks `React.memo`) |
-| **Search result cap (15/div)** | `CsiCodeSelector.tsx` — `displayDivisions` slice | Rendering 500+ MUI MenuItems during broad searches |
+| **`useMemo` filtering** | `CsiCodePanel.tsx` — `displayDivisions` keyed on `query` | Full `.map()` + `.filter()` recomputation on unrelated state changes (expand toggle, optimistic code) |
+| **`React.memo` SubdivisionItem** | `CsiCodePanel.tsx` — extracted memoized component | Re-rendering every visible MenuItem when only one item's `isSelected` changes |
+| **Stable `useCallback`** | `CsiCodePanel.tsx` — `handleSelectSubdivision` | New closure per subdivision per render (breaks `React.memo`) |
+| **Search result cap (15/div)** | `CsiCodePanel.tsx` — `displayDivisions` slice | Rendering 500+ MUI MenuItems during broad searches |
 | **O(1) lookup Maps** | `csiCodes.ts` — `CSI_DIVISION_MAP`, `CSI_SUBDIVISION_MAP` | Linear scans for code display and validation |
 
 **Not needed at this scale** (1,482 items): debouncing (filtering is sub-ms), virtualization (accordion caps visible items), Web Workers (serialization overhead exceeds compute), dynamic imports (15KB gzipped is noise).

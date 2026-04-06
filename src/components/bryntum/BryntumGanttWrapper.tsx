@@ -450,6 +450,22 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onCellClick = ({ record, column, event }: { record: any; column: { type: string }; event: MouseEvent }) => {
       const target = event.target as HTMLElement;
+
+      // Scroll-to-task button — centers the timeline on the task's start date.
+      // NOTE: scrollTaskIntoView corrupts the time axis header virtual renderer,
+      // so we use the timeAxis subgrid's scrollable to scroll horizontally instead.
+      const scrollBtn = target.closest('.gantt-row-scroll-btn') as HTMLElement | null;
+      if (scrollBtn && column.type === 'name') {
+        event.stopPropagation();
+        const taskRecord = record as BryntumTaskRecord;
+        const startDate = taskRecord.startDate as Date | undefined;
+        if (startDate) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+          (gantt as any).scrollToDate(startDate, { block: 'center', animate: 300 });
+        }
+        return;
+      }
+
       const btn = target.closest('.gantt-row-actions-btn') as HTMLElement | null;
       if (!btn || column.type !== 'name') return;
 
@@ -586,6 +602,24 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         }
         .gantt-row-actions-btn:hover {
           background: rgba(0, 0, 0, 0.04);
+        }
+        /* Scroll-to-task button — left of the ⋮ button, uses FA crosshairs icon */
+        .gantt-row-scroll-btn {
+          flex-shrink: 0;
+          background: none;
+          border: none;
+          box-shadow: none;
+          min-width: 0;
+          padding: 4px 4px;
+          cursor: pointer;
+          border-radius: 4px;
+          color: var(--text-secondary, #8D99AE);
+          font-size: 13px;
+          line-height: 1;
+        }
+        .gantt-row-scroll-btn:hover {
+          background: rgba(0, 0, 0, 0.04);
+          color: var(--text-primary, #2B2D42);
         }
         /* Row actions dropdown menu — clean card style */
         .b-menu:has(.gantt-action-danger) {

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { FileText, Plus } from '@phosphor-icons/react';
+import { FileText, CloudArrowUp } from '@phosphor-icons/react';
 import type { FolderContentProps, PreviewDoc } from './types';
 
 function BaseFolderContentInner({
@@ -20,26 +20,47 @@ function BaseFolderContentInner({
           ml: '36px',
           mr: 0.75,
           my: 0.75,
-          py: 1.5,
+          py: 2.5,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 0.5,
+          gap: 1,
           border: '1.5px dashed',
           borderColor: 'divider',
-          borderRadius: '8px',
+          borderRadius: '10px',
+          bgcolor: 'rgba(0,0,0,0.015)',
           cursor: 'pointer',
-          transition: 'border-color 0.15s, background-color 0.15s',
+          transition: 'border-color 0.2s, background-color 0.2s',
           '&:hover': {
             borderColor: 'primary.main',
-            bgcolor: 'rgba(0,0,0,0.02)',
+            bgcolor: 'rgba(43, 45, 66, 0.05)',
+            '& .dropzone-icon': {
+              transform: 'translateY(-2px)',
+              bgcolor: 'rgba(43, 45, 66, 0.12)',
+            },
           },
         }}
       >
-        <Plus size={16} color="var(--mui-palette-text-disabled)" />
-        <Typography sx={{ fontSize: 11, color: 'text.disabled' }}>
-          Drop files or click to upload
-        </Typography>
+        <Box
+          className="dropzone-icon"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            bgcolor: 'rgba(0,0,0,0.06)',
+            transition: 'transform 0.2s, background-color 0.2s',
+          }}
+        >
+          <CloudArrowUp size={20} weight="bold" color="var(--mui-palette-text-secondary)" />
+        </Box>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', lineHeight: 1.2 }}>
+            Drop files or click to upload
+          </Typography>
+        </Box>
       </Box>
     );
   }
@@ -102,7 +123,6 @@ function BaseFolderContentInner({
                   fontSize: 11,
                   color: 'text.secondary',
                   flexShrink: 0,
-                  opacity: 0.7,
                 }}
               >
                 {new Date(doc.createdAt).toLocaleDateString(
