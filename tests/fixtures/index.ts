@@ -14,6 +14,8 @@ import { SignInPage } from "../pages/sign-in.page";
 import { OnboardingPage } from "../pages/onboarding.page";
 import { VerifyEmailPage } from "../pages/verify-email.page";
 import { ForgotPasswordPage, ResetPasswordPage } from "../pages/forgot-password.page";
+import { GanttPage } from "../pages/gantt.page";
+import { ProjectCreatePage } from "../pages/project-create.page";
 
 type TestFixtures = {
   // Data fixtures — auto-seed and auto-cleanup
@@ -28,6 +30,8 @@ type TestFixtures = {
   verifyEmailPage: VerifyEmailPage;
   forgotPasswordPage: ForgotPasswordPage;
   resetPasswordPage: ResetPasswordPage;
+  ganttPage: GanttPage;
+  projectCreatePage: ProjectCreatePage;
 };
 
 /**
@@ -89,6 +93,14 @@ export const test = base.extend<TestFixtures>({
 
   resetPasswordPage: async ({ page }, use) => {
     await use(new ResetPasswordPage(page));
+  },
+
+  ganttPage: async ({ page }, use) => {
+    await use(new GanttPage(page));
+  },
+
+  projectCreatePage: async ({ page }, use) => {
+    await use(new ProjectCreatePage(page));
   },
 });
 
