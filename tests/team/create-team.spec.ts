@@ -33,10 +33,11 @@ test.describe("Create Team (Settings > Team tab)", () => {
     // Switch to Team tab
     await page.getByRole("button", { name: "Team" }).click();
 
-    // Verify org is listed
-    await expect(page.getByText("Your Teams")).toBeVisible();
-    await expect(page.getByText(userWithOrg.organization.name)).toBeVisible();
-    await expect(page.getByText("Owner")).toBeVisible();
+    // Verify org is listed inside the settings dialog
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText("Your Teams")).toBeVisible();
+    await expect(dialog.getByText(userWithOrg.organization.name)).toBeVisible();
+    await expect(dialog.getByText("Owner")).toBeVisible();
   });
 
   test("Create New Team button navigates to onboarding", async ({

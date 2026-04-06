@@ -34,15 +34,15 @@ test.describe("No project prompt (inline)", () => {
     await expect(page.getByText("Set up a new construction project")).toBeVisible();
   });
 
-  test("/new-project route returns 404", async ({
+  test("no redirect to /new-project when org has no projects", async ({
     userWithOrg,
     page,
   }) => {
     await signInTestUser(page, userWithOrg.user.email, userWithOrg.user.password);
+    await page.goto(`/${userWithOrg.organization.slug}`);
 
-    const response = await page.goto(`/new-project?org=${userWithOrg.organization.slug}`);
-
-    // Route was removed — should 404
-    expect(response?.status()).toBe(404);
+    // Should stay on the org page showing the prompt, not redirect to /new-project
+    await expect(page.getByText("Create Your First Project")).toBeVisible({ timeout: 15000 });
+    expect(page.url()).not.toContain("/new-project");
   });
 });
