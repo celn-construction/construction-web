@@ -79,7 +79,7 @@ async function resolveUrl(): Promise<string> {
     return `/${org.slug}/projects/${project.slug}/gantt`;
   }
 
-  return `/new-project?org=${org.slug}`;
+  return `/${org.slug}`;
 }
 
 async function resolveProject(
