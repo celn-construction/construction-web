@@ -14,6 +14,7 @@ import { SignInPage } from "../pages/sign-in.page";
 import { OnboardingPage } from "../pages/onboarding.page";
 import { VerifyEmailPage } from "../pages/verify-email.page";
 import { ForgotPasswordPage, ResetPasswordPage } from "../pages/forgot-password.page";
+import { DocumentExplorerPage } from "../pages/document-explorer.page";
 
 type TestFixtures = {
   // Data fixtures — auto-seed and auto-cleanup
@@ -28,6 +29,7 @@ type TestFixtures = {
   verifyEmailPage: VerifyEmailPage;
   forgotPasswordPage: ForgotPasswordPage;
   resetPasswordPage: ResetPasswordPage;
+  documentExplorerPage: DocumentExplorerPage;
 };
 
 /**
@@ -89,6 +91,10 @@ export const test = base.extend<TestFixtures>({
 
   resetPasswordPage: async ({ page }, use) => {
     await use(new ResetPasswordPage(page));
+  },
+
+  documentExplorerPage: async ({ page }, use) => {
+    await use(new DocumentExplorerPage(page));
   },
 });
 
