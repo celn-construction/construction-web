@@ -11,12 +11,10 @@ import GanttToolbar from './components/GanttToolbar';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
 import ConflictDialog from './components/ConflictDialog';
 import TaskInfoDialog from './components/TaskInfoDialog';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
 import { useTaskPopover } from './hooks/useTaskPopover';
 import { useGanttControls } from './hooks/useGanttControls';
 import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
-import { validateParentDuration } from './utils/ganttValidation';
 import GanttLoadingSpinner from './components/GanttLoadingSpinner';
 
 const WRAPPER_STYLE: CSSProperties = {
@@ -71,11 +69,8 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   const [conflictOpen, setConflictOpen] = useState(false);
   const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
-  const isRevertingRef = useRef(false);
   const isReloadingRef = useRef(false);
   const skipVersionRef = useRef(false);
-
-  const { showSnackbar } = useSnackbar();
 
   const { selectedTask, popoverPlacement, handleTaskClick, closeTaskPopover, isTaskPopoverOpen } =
     useTaskPopover();
@@ -226,52 +221,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       gantt.project?.taskStore?.un('update', onTaskUpdate);
     };
   }, [isLoading, getGanttInstance, utils]);
-
-  // Validate parent task duration: revert and warn if shortened below subtask span
-  useEffect(() => {
-    if (isLoading) return;
-    const gantt = getGanttInstance();
-    if (!gantt?.project?.taskStore) return;
-
-    const onTaskUpdate = ({ record, changes }: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      record: any;
-      changes: Record<string, { oldValue: unknown; value: unknown }>;
-    }) => {
-      if (isRevertingRef.current) return;
-
-      const schedulingFields = ['duration', 'startDate', 'endDate'];
-      const hasSchedulingChange = schedulingFields.some(f => f in changes);
-      if (!hasSchedulingChange) return;
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      const error = validateParentDuration(record);
-      if (!error) return;
-
-      isRevertingRef.current = true;
-      try {
-        const revertData: Record<string, unknown> = {};
-        for (const field of schedulingFields) {
-          if (field in changes) {
-            revertData[field] = changes[field]!.oldValue;
-          }
-        }
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        record.set(revertData);
-      } finally {
-        isRevertingRef.current = false;
-      }
-
-      showSnackbar(error, 'warning');
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    gantt.project.taskStore.on('update', onTaskUpdate);
-    return () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.project?.taskStore?.un('update', onTaskUpdate);
-    };
-  }, [isLoading, getGanttInstance, showSnackbar]);
 
   // Close the task popover when the selected task is removed (e.g. parent deletion cascades)
   useEffect(() => {
