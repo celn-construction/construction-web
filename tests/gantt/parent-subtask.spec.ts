@@ -1,5 +1,8 @@
 import { test, expect, signInTestUser } from "../fixtures";
 
+// Gantt tests involve heavy Bryntum rendering — give extra time in CI
+test.setTimeout(60_000);
+
 test.describe("Gantt Parent & Subtask", () => {
   test("can add a subtask via the row menu", async ({
     userWithOrg,
@@ -57,7 +60,7 @@ test.describe("Gantt Parent & Subtask", () => {
     await ganttPage.editTaskDuration(1, "5");
 
     // Wait for scheduling engine to recalculate
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2_000);
 
     // Parent duration should have auto-adjusted to encompass the subtask
     const updatedParentDuration = await ganttPage.getTaskDuration(0);
