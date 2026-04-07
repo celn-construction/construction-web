@@ -5,6 +5,11 @@ import type { Page, Locator } from "@playwright/test";
  *
  * Bryntum renders its own DOM — standard getByRole selectors don't work
  * inside the grid. This POM encapsulates Bryntum-specific selectors.
+ *
+ * IMPORTANT: Never use `force: true` on Bryntum elements. Bryntum uses its own
+ * internal event routing — forced events bypass it and Bryntum won't respond
+ * (editors won't open, menus won't appear). Instead, wait for overlays to
+ * fully detach from the DOM before interacting.
  */
 export class GanttPage {
   readonly page: Page;
@@ -26,30 +31,31 @@ export class GanttPage {
   async waitForLoad() {
     // Wait for Bryntum grid to appear
     await this.ganttContainer.waitFor({ state: "visible", timeout: 30_000 });
-    // Wait for ALL MUI overlay boxes inside the gantt container to disappear.
-    // These are the loading spinner and error overlays that sit on top with position:absolute.
+
+    // Wait for the loading/error overlay MuiBox elements to be completely
+    // removed from the DOM (not just hidden — React unmounts them when
+    // isLoading becomes false). These sit inside .bryntum-gantt-container
+    // with position:absolute and block all pointer events.
     await this.page
-      .locator(".bryntum-gantt-container > div.MuiBox-root")
+      .locator(".bryntum-gantt-container > .MuiBox-root")
       .first()
-      .waitFor({ state: "hidden", timeout: 30_000 })
+      .waitFor({ state: "detached", timeout: 30_000 })
       .catch(() => {
-        // No overlay present — that's fine
+        // No overlay was ever present (fast load) — that's fine
       });
-    // Wait for the Bryntum grid body to have rendered rows
+
+    // Wait for the Bryntum grid body to have rendered at least the grid structure
     await this.page
-      .locator(".b-grid-subgrid .b-grid-row")
+      .locator(".b-grid-subgrid")
       .first()
-      .waitFor({ state: "attached", timeout: 10_000 })
-      .catch(() => {
-        // Empty project — no rows expected
-      });
-    // Let the scheduling engine settle
-    await this.page.waitForTimeout(1_000);
+      .waitFor({ state: "visible", timeout: 10_000 });
+
+    // Let the scheduling engine settle after initial load
+    await this.page.waitForTimeout(2_000);
   }
 
   /** Click the "Add Task" toolbar button and wait for the row to appear. */
   async addTask() {
-    const countBefore = await this.getTaskCount();
     await this.addTaskButton.click();
     // Wait for a new task row to actually appear in the DOM
     await this.page
@@ -62,7 +68,6 @@ export class GanttPage {
 
   /** Get all visible task rows (excludes the Bryntum virtual root row). */
   getTaskRows(): Locator {
-    // Bryntum uses data-id on rows. The internal root has a special _generated id.
     // Task rows have .b-tree-cell (name column rendered by TreeColumn).
     return this.page.locator(".b-grid-row:has(.b-tree-cell)");
   }
@@ -83,32 +88,47 @@ export class GanttPage {
     return ((await durationCell.textContent()) ?? "").trim();
   }
 
-  /** Double-click a task's name cell to start inline editing, type, and confirm. */
+  /**
+   * Edit a task's name by clicking the cell and using F2 to start editing.
+   * Avoids dblclick which is unreliable with Bryntum in headless CI.
+   */
   async editTaskName(rowIndex: number, name: string) {
     const row = this.getTaskRows().nth(rowIndex);
     const nameCell = row.locator(".b-tree-cell");
-    // Use force:true to bypass any overlay that might still be fading out
-    await nameCell.dblclick({ force: true });
-    // Bryntum's inline editor: it creates a floating editor widget.
-    // The input could be .b-textfield input, .b-editor input, or similar.
-    const editor = this.page.locator(".b-editor .b-textfield input").first();
+    await nameCell.waitFor({ state: "visible", timeout: 5_000 });
+
+    // Single-click to select the cell, then F2 to start editing.
+    // This is more reliable than dblclick in headless environments.
+    await nameCell.click();
+    await this.page.waitForTimeout(300);
+    await this.page.keyboard.press("F2");
+
+    // Wait for any Bryntum editor input to appear.
+    // Bryntum's editor structure varies — use broad selector.
+    const editor = this.page.locator(".b-editor input").first();
     await editor.waitFor({ state: "visible", timeout: 10_000 });
     await editor.fill(name);
     await this.page.keyboard.press("Enter");
     await this.page.waitForTimeout(500);
   }
 
-  /** Double-click a task's duration cell to edit it, type, and confirm. */
+  /**
+   * Edit a task's duration by clicking the cell and using F2 to start editing.
+   */
   async editTaskDuration(rowIndex: number, duration: string) {
     const row = this.getTaskRows().nth(rowIndex);
     const durationCell = row.locator("[data-column='duration']");
-    await durationCell.dblclick({ force: true });
-    // Bryntum duration editor uses a DurationField widget
-    const editor = this.page.locator(".b-editor .b-durationfield input").first();
+    await durationCell.waitFor({ state: "visible", timeout: 5_000 });
+
+    await durationCell.click();
+    await this.page.waitForTimeout(300);
+    await this.page.keyboard.press("F2");
+
+    const editor = this.page.locator(".b-editor input").first();
     await editor.waitFor({ state: "visible", timeout: 10_000 });
-    // Select all existing text and replace
+    // Triple-click to select all existing text, then type new value
     await editor.click({ clickCount: 3 });
-    await editor.fill(duration);
+    await this.page.keyboard.type(duration);
     await this.page.keyboard.press("Enter");
     await this.page.waitForTimeout(1_000);
   }
@@ -118,10 +138,10 @@ export class GanttPage {
     const row = this.getTaskRows().nth(rowIndex);
     const actionsBtn = row.locator(".gantt-row-actions-btn");
     await actionsBtn.waitFor({ state: "visible", timeout: 5_000 });
-    await actionsBtn.click({ force: true });
-    // Wait for Bryntum Menu widget to appear
+    await actionsBtn.click();
+    // Wait for Bryntum Menu widget to appear — use broad selector
     const menuItem = this.page
-      .locator(".b-menu .b-menuitem")
+      .locator(".b-menuitem")
       .filter({ hasText: new RegExp(actionText, "i") });
     await menuItem.waitFor({ state: "visible", timeout: 10_000 });
     await menuItem.click();
@@ -131,7 +151,6 @@ export class GanttPage {
   /** Add a subtask via the ⋮ menu on a task row. */
   async addSubtaskViaMenu(rowIndex: number) {
     await this.clickRowAction(rowIndex, "Add Subtask");
-    // Wait for the new subtask row to appear
     await this.page.waitForTimeout(1_000);
   }
 
@@ -148,7 +167,6 @@ export class GanttPage {
 
   /** Wait for Bryntum auto-sync to complete (watches network). */
   async waitForSync() {
-    // Wait for the sync POST to complete
     await Promise.race([
       this.page.waitForResponse(
         (resp) =>
@@ -157,7 +175,6 @@ export class GanttPage {
       ),
       this.page.waitForTimeout(5_000),
     ]);
-    // Extra buffer for the response to be applied
     await this.page.waitForTimeout(1_000);
   }
 }
