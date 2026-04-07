@@ -128,6 +128,13 @@ export function createGanttConfig(
         resizable: true,
       },
       {
+        type: 'enddate',
+        field: 'endDate',
+        text: 'End',
+        width: 120,
+        resizable: true,
+      },
+      {
         type: 'duration',
         text: 'Duration',
         width: 100,
