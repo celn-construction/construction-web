@@ -1,7 +1,7 @@
 import { test, expect, signInTestUser } from "../fixtures";
 
 test.describe("Onboarding wizard", () => {
-  test("Step 0 validation: cannot proceed without required fields", async ({
+  test("Step 1 validation: cannot proceed without required fields", async ({
     verifiedUser,
     page,
     onboardingPage,
@@ -9,6 +9,9 @@ test.describe("Onboarding wizard", () => {
     await signInTestUser(page, verifiedUser.email, verifiedUser.password);
     await onboardingPage.goto();
     await expect(onboardingPage.heading).toBeVisible({ timeout: 15000 });
+
+    // Skip avatar step to reach company step
+    await onboardingPage.skipAvatar();
 
     // Try to continue without filling anything
     await onboardingPage.continueButton.click();
@@ -30,15 +33,19 @@ test.describe("Onboarding wizard", () => {
   }) => {
     await signInTestUser(page, verifiedUser.email, verifiedUser.password);
     await onboardingPage.goto();
-    await expect(page.getByText("Tell us about your company")).toBeVisible({ timeout: 15000 });
+    await expect(onboardingPage.heading).toBeVisible({ timeout: 15000 });
+
+    // Skip avatar step to reach company step
+    await onboardingPage.skipAvatar();
+    await expect(page.getByText("Tell us about your company")).toBeVisible();
 
     await onboardingPage.fillCompanyIdentity("Nav Test Co", "General Contractor");
 
-    // Go to Step 1
+    // Go to Step 2 (Contact)
     await onboardingPage.continueButton.click();
     await expect(page.getByText("How can we reach you?")).toBeVisible();
 
-    // Go back to Step 0
+    // Go back to Step 1 (Company)
     await onboardingPage.backButton.click();
     await expect(page.getByText("Tell us about your company")).toBeVisible();
 
@@ -46,7 +53,7 @@ test.describe("Onboarding wizard", () => {
     await expect(onboardingPage.companyNameInput).toHaveValue("Nav Test Co");
   });
 
-  test("skip buttons work on steps 1 and 2", async ({
+  test("skip buttons work on optional steps", async ({
     verifiedUser,
     page,
     onboardingPage,
@@ -55,18 +62,21 @@ test.describe("Onboarding wizard", () => {
     await onboardingPage.goto();
     await expect(onboardingPage.heading).toBeVisible({ timeout: 15000 });
 
+    // Skip avatar step
+    await onboardingPage.skipAvatar();
+
     await onboardingPage.fillCompanyIdentity("Skip Test Co", "Subcontractor");
     await onboardingPage.continueButton.click();
 
-    // Step 1: Skip
+    // Step 2 (Contact): Skip
     await expect(page.getByText("How can we reach you?")).toBeVisible();
     await onboardingPage.skipButton.click();
 
-    // Step 2: Skip
+    // Step 3 (Logo): Skip
     await expect(page.getByText("Add your company logo")).toBeVisible();
     await onboardingPage.skipButton.click();
 
-    // Should be on Step 3 (Review)
+    // Should be on Step 4 (Review)
     await expect(page.getByText("Review and finalize")).toBeVisible();
   });
 

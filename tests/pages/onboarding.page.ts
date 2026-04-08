@@ -27,6 +27,10 @@ export class OnboardingPage {
     await this.page.goto("/onboarding");
   }
 
+  async skipAvatar() {
+    await this.skipButton.click(); // Skip Avatar step
+  }
+
   async fillCompanyIdentity(companyName: string, companyType: string) {
     await this.companyNameInput.fill(companyName);
     await this.companyTypeSelect.click();
@@ -39,6 +43,7 @@ export class OnboardingPage {
   }
 
   async completeOnboarding(companyName: string, companyType = "General Contractor") {
+    await this.skipAvatar();
     await this.fillCompanyIdentity(companyName, companyType);
     await this.continueButton.click();
     await this.skipToReview();
