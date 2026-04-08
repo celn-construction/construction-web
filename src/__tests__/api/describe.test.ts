@@ -18,7 +18,7 @@ vi.mock("@/server/services/tagging", () => ({
 import { auth } from "@/lib/auth";
 import { analyzeDocument } from "@/server/services/tagging";
 
-const mockGetSession = auth.api.getSession as ReturnType<typeof vi.fn>;
+const mockGetSession = auth.api.getSession as unknown as ReturnType<typeof vi.fn>;
 const mockAnalyzeDocument = analyzeDocument as ReturnType<typeof vi.fn>;
 
 function makeRequest(file?: File) {
