@@ -94,7 +94,7 @@ describe("aiSearch procedure", () => {
 
     const result = await aiSearch._handler({
       ctx,
-      input: { projectId: "proj-1", query: "foundation", limit: 20, offset: 0, linkFilter: "all" },
+      input: { projectId: "proj-1", query: "foundation", limit: 20, offset: 0, linkFilter: "all", sortBy: "relevance" },
     });
 
     expect(result).toEqual({ results: [], total: 0 });
@@ -108,7 +108,7 @@ describe("aiSearch procedure", () => {
 
     await aiSearch._handler({
       ctx,
-      input: { projectId: "proj-1", query: "foundation photos", limit: 20, offset: 0, linkFilter: "all" },
+      input: { projectId: "proj-1", query: "foundation photos", limit: 20, offset: 0, linkFilter: "all", sortBy: "relevance" },
     });
 
     expect(mockEmbedQuery).toHaveBeenCalledWith("foundation photos");
@@ -121,7 +121,7 @@ describe("aiSearch procedure", () => {
 
     await aiSearch._handler({
       ctx,
-      input: { projectId: "proj-1", query: "MEP RFI", limit: 20, offset: 0, linkFilter: "all" },
+      input: { projectId: "proj-1", query: "MEP RFI", limit: 20, offset: 0, linkFilter: "all", sortBy: "relevance" },
     });
 
     // The $queryRaw template string includes the expanded acronyms
@@ -139,7 +139,7 @@ describe("aiSearch procedure", () => {
 
     await aiSearch._handler({
       ctx,
-      input: { projectId: "proj-1", query: "test", limit: 20, offset: 0, linkFilter: "all" },
+      input: { projectId: "proj-1", query: "test", limit: 20, offset: 0, linkFilter: "all", sortBy: "relevance" },
     });
 
     const callArgs = ctx.db.$queryRaw.mock.calls[0];
@@ -161,6 +161,7 @@ describe("aiSearch procedure", () => {
         offset: 0,
         folderIds: ["rfi", "photos"],
         linkFilter: "all",
+        sortBy: "relevance",
       },
     });
 
@@ -177,7 +178,7 @@ describe("aiSearch procedure", () => {
 
     const result = await aiSearch._handler({
       ctx,
-      input: { projectId: "proj-1", query: "foundation", limit: 20, offset: 0, linkFilter: "all" },
+      input: { projectId: "proj-1", query: "foundation", limit: 20, offset: 0, linkFilter: "all", sortBy: "relevance" },
     }) as { results: Array<{ uploadedBy: { id: string; name: string | null; email: string } }>; total: number };
 
     expect(result.results).toHaveLength(1);
@@ -198,7 +199,7 @@ describe("aiSearch procedure", () => {
 
     const result = await aiSearch._handler({
       ctx,
-      input: { projectId: "proj-1", query: "test", limit: 20, offset: 0, linkFilter: "all" },
+      input: { projectId: "proj-1", query: "test", limit: 20, offset: 0, linkFilter: "all", sortBy: "relevance" },
     }) as { total: number };
 
     expect(result.total).toBe(42);
@@ -211,7 +212,7 @@ describe("aiSearch procedure", () => {
 
     const result = await aiSearch._handler({
       ctx,
-      input: { projectId: "proj-1", query: "nonexistent", limit: 20, offset: 0, linkFilter: "all" },
+      input: { projectId: "proj-1", query: "nonexistent", limit: 20, offset: 0, linkFilter: "all", sortBy: "relevance" },
     }) as { total: number };
 
     expect(result.total).toBe(0);
@@ -224,7 +225,7 @@ describe("aiSearch procedure", () => {
 
     const result = await aiSearch._handler({
       ctx,
-      input: { projectId: "proj-1", query: "test", limit: 20, offset: 0, linkFilter: "all" },
+      input: { projectId: "proj-1", query: "test", limit: 20, offset: 0, linkFilter: "all", sortBy: "relevance" },
     }) as { results: Array<Record<string, unknown>> };
 
     const doc = result.results[0]!;
