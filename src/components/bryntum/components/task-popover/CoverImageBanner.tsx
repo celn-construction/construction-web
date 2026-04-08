@@ -49,12 +49,25 @@ export default function CoverImageBanner({
         formData.append('file', file);
         formData.append('projectId', projectId);
         formData.append('taskId', taskId);
-        const res = await fetch('/api/gantt/cover-image', { method: 'POST', body: formData });
+        let res: Response;
+        try {
+          res = await fetch('/api/gantt/cover-image', { method: 'POST', body: formData });
+        } catch {
+          showSnackbar('Network error — check your connection and try again', 'error');
+          return;
+        }
         if (res.ok) {
           void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
         } else {
-          const body = await res.json().catch(() => ({ error: 'Upload failed' }));
-          showSnackbar((body as { error?: string }).error ?? 'Upload failed', 'error');
+          const body = await res.json().catch(() => null);
+          const message = (body as { error?: string } | null)?.error;
+          if (res.status === 401) {
+            showSnackbar('You must be signed in to upload images', 'error');
+          } else if (res.status === 403) {
+            showSnackbar(message ?? "You don't have permission to upload images", 'error');
+          } else {
+            showSnackbar(message ?? 'Upload failed', 'error');
+          }
         }
       } finally {
         setCoverUploading(false);
@@ -70,19 +83,29 @@ export default function CoverImageBanner({
     setCoverUploading(true);
     setCoverDeleting(true);
     try {
-      const res = await fetch('/api/gantt/cover-image', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, taskId }),
-      });
+      let res: Response;
+      try {
+        res = await fetch('/api/gantt/cover-image', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId, taskId }),
+        });
+      } catch {
+        showSnackbar('Network error — check your connection and try again', 'error');
+        return;
+      }
       if (res.ok) {
         void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
+      } else {
+        const body = await res.json().catch(() => null);
+        const message = (body as { error?: string } | null)?.error;
+        showSnackbar(message ?? 'Failed to remove cover image', 'error');
       }
     } finally {
       setCoverUploading(false);
       setCoverDeleting(false);
     }
-  }, [taskId, projectId, organizationId, utils]);
+  }, [taskId, projectId, organizationId, utils, showSnackbar]);
 
   const { getRootProps, getInputProps, isDragActive, open: openFilePicker } = useDropzone({
     onDrop: (files) => {

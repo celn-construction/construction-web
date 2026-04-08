@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { put, del } from "@vercel/blob";
 import { db } from "@/server/db";
 import { auth } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -14,13 +13,17 @@ const ALLOWED_IMAGE_TYPES = [
   "image/webp",
 ];
 
-async function verifyAccess(userId: string, projectId: string, taskId: string) {
+type VerifyResult =
+  | { ok: true; task: { id: string; coverImageUrl: string | null } }
+  | { ok: false; status: number; error: string };
+
+async function verifyAccess(userId: string, projectId: string, taskId: string): Promise<VerifyResult> {
   const project = await db.project.findUnique({
     where: { id: projectId },
     select: { organizationId: true },
   });
 
-  if (!project) return null;
+  if (!project) return { ok: false, status: 404, error: "Project not found" };
 
   const membership = await db.membership.findUnique({
     where: {
@@ -32,15 +35,16 @@ async function verifyAccess(userId: string, projectId: string, taskId: string) {
     select: { role: true },
   });
 
-  if (!membership) return null;
-  if (!hasPermission(membership.role, 'MANAGE_PROJECTS')) return null;
+  if (!membership) return { ok: false, status: 403, error: "You don't have access to this project" };
 
   const task = await db.ganttTask.findFirst({
     where: { id: taskId, projectId },
     select: { id: true, coverImageUrl: true },
   });
 
-  return task;
+  if (!task) return { ok: false, status: 404, error: "Task not found" };
+
+  return { ok: true, task };
 }
 
 export async function POST(req: NextRequest) {
@@ -67,15 +71,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only image files are allowed" }, { status: 400 });
     }
 
-    const task = await verifyAccess(session.user.id, projectId, taskId);
-    if (!task) {
-      return NextResponse.json({ error: "Task not found or access denied" }, { status: 404 });
+    const result = await verifyAccess(session.user.id, projectId, taskId);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
     // Delete old cover image if one exists
-    if (task.coverImageUrl) {
+    if (result.task.coverImageUrl) {
       try {
-        await del(task.coverImageUrl);
+        await del(result.task.coverImageUrl);
       } catch {
         // Old blob may already be gone — continue
       }
@@ -115,14 +119,14 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const task = await verifyAccess(session.user.id, projectId, taskId);
-    if (!task) {
-      return NextResponse.json({ error: "Task not found or access denied" }, { status: 404 });
+    const result = await verifyAccess(session.user.id, projectId, taskId);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
-    if (task.coverImageUrl) {
+    if (result.task.coverImageUrl) {
       try {
-        await del(task.coverImageUrl);
+        await del(result.task.coverImageUrl);
       } catch {
         // Blob may already be gone
       }
