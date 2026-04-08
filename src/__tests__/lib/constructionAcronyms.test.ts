@@ -29,8 +29,8 @@ describe("expandAcronyms", () => {
     expect(expandAcronyms("CO2 emissions")).toBe("CO2 emissions");
   });
 
-  it("does not expand lowercase versions", () => {
-    expect(expandAcronyms("rfi inspection")).toBe("rfi inspection");
+  it("expands lowercase versions (case-insensitive)", () => {
+    expect(expandAcronyms("rfi inspection")).toBe("rfi request for information inspection");
   });
 
   it("handles empty string", () => {

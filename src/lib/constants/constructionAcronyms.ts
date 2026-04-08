@@ -17,7 +17,7 @@ export function expandAcronyms(query: string): string {
   return query
     .split(/\s+/)
     .map((token) => {
-      const expansion = CONSTRUCTION_ACRONYMS[token];
+      const expansion = CONSTRUCTION_ACRONYMS[token.toUpperCase()];
       return expansion ? `${token} ${expansion}` : token;
     })
     .join(' ');

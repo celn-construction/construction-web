@@ -50,6 +50,35 @@ function shapeResults(rows: RawDocumentRow[]) {
 
 const linkFilterSchema = z.enum(["all", "linked", "unlinked"]).default("all");
 
+const sortBySchema = z
+  .enum([
+    "createdAt_desc",
+    "createdAt_asc",
+    "name_asc",
+    "name_desc",
+    "size_desc",
+    "size_asc",
+    "relevance",
+  ])
+  .default("createdAt_desc");
+
+function buildOrderBy(sortBy: z.infer<typeof sortBySchema>) {
+  switch (sortBy) {
+    case "createdAt_asc":
+      return { createdAt: "asc" as const };
+    case "name_asc":
+      return { name: "asc" as const };
+    case "name_desc":
+      return { name: "desc" as const };
+    case "size_desc":
+      return { size: "desc" as const };
+    case "size_asc":
+      return { size: "asc" as const };
+    default:
+      return { createdAt: "desc" as const };
+  }
+}
+
 function buildLinkCondition(linkFilter: z.infer<typeof linkFilterSchema>) {
   if (linkFilter === "linked") return { taskId: { not: "" } };
   if (linkFilter === "unlinked") return { taskId: "" };
@@ -177,6 +206,7 @@ export const documentRouter = createTRPCRouter({
         offset: z.number().min(0).default(0),
         folderIds: z.array(z.string()).optional(),
         linkFilter: linkFilterSchema,
+        sortBy: sortBySchema,
       })
     )
     .query(async ({ ctx, input }) => {
@@ -196,6 +226,7 @@ export const documentRouter = createTRPCRouter({
         ? { folderId: { in: input.folderIds } }
         : {};
       const linkCondition = buildLinkCondition(input.linkFilter);
+      const orderBy = buildOrderBy(input.sortBy);
 
       // Empty query: return recent documents
       if (!trimmed) {
@@ -208,7 +239,7 @@ export const documentRouter = createTRPCRouter({
                 select: { id: true, name: true, email: true },
               },
             },
-            orderBy: { createdAt: "desc" },
+            orderBy,
             take: input.limit,
             skip: input.offset,
           }),
@@ -233,7 +264,7 @@ export const documentRouter = createTRPCRouter({
               select: { id: true, name: true, email: true },
             },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy,
           take: input.limit,
           skip: input.offset,
         }),
@@ -252,6 +283,7 @@ export const documentRouter = createTRPCRouter({
         offset: z.number().min(0).default(0),
         folderIds: z.array(z.string()).optional(),
         linkFilter: linkFilterSchema,
+        sortBy: sortBySchema,
       })
     )
     .query(async ({ ctx, input }) => {
@@ -259,6 +291,34 @@ export const documentRouter = createTRPCRouter({
         where: { id: input.projectId, organizationId: ctx.organization.id },
       });
       if (!project) return { results: [], total: 0 };
+
+      // Non-relevance sort: fall back to standard Prisma query (avoids modifying the SQL function)
+      if (input.sortBy !== "relevance" && input.sortBy !== "createdAt_desc") {
+        const folderFilter = input.folderIds?.length
+          ? { folderId: { in: input.folderIds } }
+          : {};
+        const linkCondition = buildLinkCondition(input.linkFilter);
+        const where = {
+          projectId: input.projectId,
+          ...folderFilter,
+          ...linkCondition,
+          OR: [
+            { name: { contains: input.query, mode: "insensitive" as const } },
+            { description: { contains: input.query, mode: "insensitive" as const } },
+          ],
+        };
+        const [results, total] = await Promise.all([
+          ctx.db.document.findMany({
+            where,
+            include: { uploadedBy: { select: { id: true, name: true, email: true } } },
+            orderBy: buildOrderBy(input.sortBy),
+            take: input.limit,
+            skip: input.offset,
+          }),
+          ctx.db.document.count({ where }),
+        ]);
+        return { results, total };
+      }
 
       const queryEmbedding = await embedQuery(input.query);
       const vectorSql = toVectorSql(queryEmbedding);
@@ -271,8 +331,8 @@ export const documentRouter = createTRPCRouter({
           ${input.projectId},
           ${input.folderIds ?? null},
           ${input.linkFilter},
-          ${input.limit},
-          ${input.offset}
+          ${input.limit}::int,
+          ${input.offset}::int
         )
       `;
 

@@ -26,7 +26,8 @@ CREATE OR REPLACE FUNCTION hybrid_document_search(
   p_folder_ids text[] DEFAULT NULL,
   p_link_filter text DEFAULT 'all',
   p_limit int DEFAULT 20,
-  p_offset int DEFAULT 0
+  p_offset int DEFAULT 0,
+  p_min_score float DEFAULT 0.015
 )
 RETURNS TABLE (
   id text, name text, "blobUrl" text, "mimeType" text, size int,
@@ -68,10 +69,16 @@ RETURNS TABLE (
     FROM vec v
     FULL OUTER JOIN kw k ON v.id = k.id
   ),
-  ranked AS (
-    SELECT m.id, m.rrf_score, COUNT(*) OVER() AS total_count
+  filtered AS (
+    SELECT m.id, m.rrf_score
     FROM merged m
-    ORDER BY m.rrf_score DESC
+    WHERE m.rrf_score >= p_min_score
+      AND m.rrf_score >= (SELECT MAX(rrf_score) FROM merged) * 0.5
+  ),
+  ranked AS (
+    SELECT f.id, f.rrf_score, COUNT(*) OVER() AS total_count
+    FROM filtered f
+    ORDER BY f.rrf_score DESC
     LIMIT p_limit OFFSET p_offset
   )
   SELECT

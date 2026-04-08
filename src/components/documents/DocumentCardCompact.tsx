@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { Box, Typography, useTheme, alpha } from '@mui/material';
 import {
-  Download,
-  Trash2,
-  Ellipsis,
+  DownloadSimple,
+  Trash,
+  DotsThree,
   FileText,
-  FileSpreadsheet,
-  SquareCheck,
+  FileXls,
+  CheckSquare,
   CircleDashed,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { format } from 'date-fns';
 import { formatFileSize } from '@/lib/utils/formatting';
 import { getCategoryLabel } from '@/lib/constants/documentCategories';
@@ -80,8 +80,8 @@ export default function DocumentCardCompact({ doc, organizationId }: DocumentCar
           />
         ) : (
           doc.mimeType.includes('spreadsheet') || doc.mimeType.includes('excel') || doc.mimeType === 'text/csv'
-            ? <FileSpreadsheet size={20} style={{ color: theme.palette.text.disabled }} />
-            : <FileText size={20} style={{ color: theme.palette.text.disabled }} />
+            ? <FileXls size={20} color={theme.palette.text.disabled} />
+            : <FileText size={20} color={theme.palette.text.disabled} />
         )}
       </Box>
 
@@ -141,20 +141,36 @@ export default function DocumentCardCompact({ doc, organizationId }: DocumentCar
           <Typography sx={{ fontSize: 11, lineHeight: 1, color: 'text.disabled' }}>·</Typography>
           {doc.taskId ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <SquareCheck size={10} style={{ color: theme.palette.docExplorer.linkedGreen }} />
+              <CheckSquare size={10} color={theme.palette.docExplorer.linkedGreen} />
               <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'docExplorer.linkedGreen' }}>
                 Linked
               </Typography>
             </Box>
           ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <CircleDashed size={10} style={{ color: theme.palette.text.disabled }} />
+              <CircleDashed size={10} color={theme.palette.text.disabled} />
               <Typography sx={{ fontSize: 11, lineHeight: 1, color: 'text.disabled' }}>
                 Unlinked
               </Typography>
             </Box>
           )}
         </Box>
+
+        {/* Row 3: description / notes */}
+        {doc.description && (
+          <Typography
+            sx={{
+              fontSize: 11,
+              lineHeight: 1.4,
+              color: 'text.disabled',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {doc.description}
+          </Typography>
+        )}
       </Box>
 
       {/* Hover actions */}
@@ -185,7 +201,7 @@ export default function DocumentCardCompact({ doc, organizationId }: DocumentCar
             '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
           }}
         >
-          <Download size={14} />
+          <DownloadSimple size={14} />
         </Box>
         <Box
           component="button"
@@ -204,7 +220,7 @@ export default function DocumentCardCompact({ doc, organizationId }: DocumentCar
             '&:hover': { bgcolor: 'action.hover', color: 'docExplorer.destructiveMain' },
           }}
         >
-          <Trash2 size={14} />
+          <Trash size={14} />
         </Box>
         <Box
           component="button"
@@ -222,7 +238,7 @@ export default function DocumentCardCompact({ doc, organizationId }: DocumentCar
             '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
           }}
         >
-          <Ellipsis size={14} />
+          <DotsThree size={14} />
         </Box>
       </Box>
 

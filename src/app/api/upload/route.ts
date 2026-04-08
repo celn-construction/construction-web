@@ -15,6 +15,10 @@ const ALLOWED_MIME_TYPES = [
   "image/png",
   "image/gif",
   "image/webp",
+  "image/avif",
+  "image/heic",
+  "image/heif",
+  "image/tiff",
   // PDFs
   "application/pdf",
   // Spreadsheets
