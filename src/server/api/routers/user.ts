@@ -25,6 +25,7 @@ export const userRouter = createTRPCRouter({
         data: {
           name: input.name,
           phone: input.phone || null,
+          image: input.image || null,
         },
       });
     }),

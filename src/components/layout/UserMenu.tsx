@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, User, Settings } from 'lucide-react';
-import { Box, Menu, MenuItem, Typography, Divider, Avatar } from '@mui/material';
-import { ImageWithFallback } from '@/components/ui/image-with-fallback';
+import { Box, Menu, MenuItem, Typography, Divider } from '@mui/material';
 import { signOut, useSession } from '@/lib/auth-client';
+import UserAvatar from '@/components/ui/UserAvatar';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { useLoading } from '@/components/providers/LoadingProvider';
 
@@ -68,10 +68,12 @@ export default function UserMenu() {
           },
         }}
       >
-        <ImageWithFallback
-          src="/images/avatar-1.jpg"
-          alt="User"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        <UserAvatar
+          image={session?.user?.image}
+          name={session?.user?.name}
+          size={36}
+          borderRadius="50%"
+          fontSize="0.8125rem"
         />
       </Box>
 

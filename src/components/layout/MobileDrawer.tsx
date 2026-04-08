@@ -19,6 +19,7 @@ import { authClient, signOut } from '@/lib/auth-client';
 import { getInitials } from '@/lib/utils/formatting';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { useLoading } from '@/components/providers/LoadingProvider';
+import UserAvatar from '@/components/ui/UserAvatar';
 import AccountSettingsModal from './AccountSettingsModal';
 
 const iconMap: Record<string, Icon> = {
@@ -263,26 +264,8 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               },
             }}
           >
-            {/* Avatar with accent ring */}
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                color: 'common.white',
-                letterSpacing: '0.02em',
-              }}
-            >
-              {getInitials(user?.name)}
-            </Box>
+            {/* Avatar */}
+            <UserAvatar image={user?.image} name={user?.name} size={32} borderRadius="8px" fontSize="0.6875rem" />
 
             <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '2px' }}>
               <Typography
@@ -325,24 +308,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         >
           {/* Profile Header */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: '14px' }}>
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: '8px',
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color: 'common.white',
-              }}
-            >
-              {getInitials(user?.name)}
-            </Box>
+            <UserAvatar image={user?.image} name={user?.name} size={36} borderRadius="8px" fontSize="0.75rem" />
             <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
               <Typography
                 sx={{

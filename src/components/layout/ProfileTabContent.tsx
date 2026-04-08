@@ -1,33 +1,39 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, TextField, Typography, CircularProgress } from '@mui/material';
+import { Box, TextField, Typography, CircularProgress, Collapse } from '@mui/material';
 import { Button } from '@/components/ui/button';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { updateProfileSchema, type UpdateProfileInput } from '@/lib/validations/user';
-import { getInitials } from '@/lib/utils/formatting';
+import UserAvatar from '@/components/ui/UserAvatar';
+import AvatarPicker from '@/components/ui/AvatarPicker';
 
 export default function ProfileTabContent() {
   const { showSnackbar } = useSnackbar();
   const utils = api.useUtils();
   const { data: user, isLoading } = api.user.me.useQuery();
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
   const {
     control,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isDirty },
   } = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
-    defaultValues: { name: '', phone: '' },
+    defaultValues: { name: '', phone: '', image: '' },
   });
+
+  const watchedImage = watch('image');
 
   useEffect(() => {
     if (user) {
-      reset({ name: user.name ?? '', phone: user.phone ?? '' });
+      reset({ name: user.name ?? '', phone: user.phone ?? '', image: user.image ?? '' });
     }
   }, [user, reset]);
 
@@ -54,23 +60,16 @@ export default function ProfileTabContent() {
       {/* Avatar + identity */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <Box
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: '14px',
-            background: (theme) =>
-              `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            fontSize: '1.125rem',
-            fontWeight: 600,
-            color: 'common.white',
-            letterSpacing: '0.02em',
-          }}
+          onClick={() => setShowAvatarPicker((prev) => !prev)}
+          sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 }, transition: 'opacity 0.15s' }}
         >
-          {getInitials(user?.name)}
+          <UserAvatar
+            image={watchedImage || user?.image}
+            name={user?.name}
+            size={64}
+            borderRadius="14px"
+            fontSize="1.125rem"
+          />
         </Box>
         <Box>
           <Typography sx={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.3 }}>
@@ -79,8 +78,31 @@ export default function ProfileTabContent() {
           <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.3, mt: 0.25 }}>
             {user?.email}
           </Typography>
+          <Typography
+            onClick={() => setShowAvatarPicker((prev) => !prev)}
+            sx={{
+              fontSize: '0.75rem',
+              color: 'primary.main',
+              cursor: 'pointer',
+              mt: 0.5,
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {showAvatarPicker ? 'Hide avatars' : 'Change avatar'}
+          </Typography>
         </Box>
       </Box>
+
+      <Collapse in={showAvatarPicker}>
+        <Box sx={{ pb: 1 }}>
+          <AvatarPicker
+            value={watchedImage || undefined}
+            onChange={(url) => {
+              setValue('image', url, { shouldDirty: true });
+            }}
+          />
+        </Box>
+      </Collapse>
 
       {/* Form */}
       <form

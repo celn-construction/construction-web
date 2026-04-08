@@ -6,6 +6,7 @@ import { ArrowRight, Check } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { LogoIcon } from "@/components/ui/Logo";
 import { OnboardingProgress } from "./OnboardingProgress";
+import { StepAvatar } from "./steps/StepAvatar";
 import { StepIdentity } from "./steps/StepIdentity";
 import { StepContact } from "./steps/StepContact";
 import { StepLogo } from "./steps/StepLogo";
@@ -16,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { useSnackbar } from "@/hooks/useSnackbar";
 
 const steps = [
+  { label: "Avatar", subtitle: "Choose your profile picture" },
   { label: "Company", subtitle: "Tell us about your company" },
   { label: "Contact", subtitle: "How can we reach you?" },
   { label: "Logo", subtitle: "Add your company logo" },
@@ -56,10 +58,20 @@ export function OnboardingWizard() {
     zip: "",
     licenseNumber: "",
     logoUrl: "",
+    avatarUrl: "",
   });
 
+  const { data: currentUser } = api.user.me.useQuery();
+  const updateUserMutation = api.user.update.useMutation();
+
   const completeMutation = api.onboarding.createOrganization.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      if (formData.avatarUrl && currentUser?.name) {
+        await updateUserMutation.mutateAsync({
+          name: currentUser.name,
+          image: formData.avatarUrl,
+        }).catch(() => {/* avatar save is best-effort */});
+      }
       setShowSuccess(true);
       showSnackbar("Welcome to BuildTrack Pro!", "success");
       setTimeout(() => {
@@ -84,7 +96,7 @@ export function OnboardingWizard() {
   };
 
   const validateStep = () => {
-    if (currentStep === 0) {
+    if (currentStep === 1) {
       const newErrors: Record<string, string> = {};
       if (!formData.name.trim()) {
         newErrors.name = "Company name is required";
@@ -254,25 +266,31 @@ export function OnboardingWizard() {
                     }}
                   >
                     {currentStep === 0 && (
+                      <StepAvatar
+                        avatarUrl={formData.avatarUrl}
+                        onAvatarChange={(url) => updateField("avatarUrl", url)}
+                      />
+                    )}
+                    {currentStep === 1 && (
                       <StepIdentity
                         formData={formData}
                         updateField={updateField}
                         errors={errors}
                       />
                     )}
-                    {currentStep === 1 && (
+                    {currentStep === 2 && (
                       <StepContact
                         formData={formData}
                         updateField={updateField}
                       />
                     )}
-                    {currentStep === 2 && (
+                    {currentStep === 3 && (
                       <StepLogo
                         logoUrl={formData.logoUrl}
                         onLogoChange={(url) => updateField("logoUrl", url)}
                       />
                     )}
-                    {currentStep === 3 && (
+                    {currentStep === 4 && (
                       <StepReview
                         formData={formData}
                         updateField={updateField}
@@ -330,7 +348,7 @@ export function OnboardingWizard() {
                   )}
                 </Box>
 
-                {(currentStep === 1 || currentStep === 2) && (
+                {(currentStep === 0 || currentStep === 2 || currentStep === 3) && (
                   <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                     <Button
                       variant="text"
