@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronsUpDown, Check } from 'lucide-react';
+import { CaretUpDown, Check } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams, usePathname } from 'next/navigation';
@@ -111,7 +111,7 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
         transition={{ duration: 0.15 }}
         style={{ flexShrink: 0 }}
       >
-        <ChevronsUpDown style={{ width: 14, height: 14, color: 'inherit' }} />
+        <CaretUpDown size={14} weight="bold" />
       </motion.div>
     </>
   );
@@ -205,7 +205,7 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
                     {org.role}
                   </Typography>
                 </Box>
-                {isActive && <Check style={{ width: 16, height: 16, color: 'inherit', flexShrink: 0 }} />}
+                {isActive && <Check size={16} weight="bold" style={{ flexShrink: 0 }} />}
               </Box>
             </DropdownMenuItem>
           );

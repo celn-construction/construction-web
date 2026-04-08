@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { X, User, GearSix, CreditCard, Lifebuoy } from '@phosphor-icons/react';
+import { X, User, UsersThree, CreditCard, Lifebuoy } from '@phosphor-icons/react';
 import { Dialog, Box, IconButton, Typography } from '@mui/material';
 import ProfileTabContent from './ProfileTabContent';
+import AccountTabContent from './AccountTabContent';
 
 const tabs = [
   { id: 'profile', label: 'Profile', icon: User },
-  { id: 'account', label: 'Account', icon: GearSix },
+  { id: 'team', label: 'Team', icon: UsersThree },
   { id: 'billing', label: 'Billing', icon: CreditCard },
   { id: 'help', label: 'Help & Support', icon: Lifebuoy },
 ] as const;
@@ -143,6 +144,8 @@ export default function AccountSettingsModal({ open, onOpenChange }: AccountSett
         <Box sx={{ flex: 1, px: 3, py: 3, overflow: 'auto' }}>
           {activeTab === 'profile' ? (
             <ProfileTabContent />
+          ) : activeTab === 'team' ? (
+            <AccountTabContent onCloseModal={handleClose} />
           ) : (
             <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
               {tabs.find((t) => t.id === activeTab)?.label} settings will appear here.

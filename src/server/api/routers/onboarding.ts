@@ -1,30 +1,6 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { createOrganizationSchema } from "@/lib/validations/onboarding";
-import { generateSlug } from "@/lib/utils/slug";
-
-async function generateUniqueSlug(
-  name: string,
-  db: any,
-): Promise<string> {
-  const baseSlug = generateSlug(name);
-  let slug = baseSlug;
-  let counter = 1;
-
-  // Keep trying until we find a unique slug
-  while (true) {
-    const existing = await db.organization.findUnique({
-      where: { slug },
-      select: { id: true },
-    });
-
-    if (!existing) {
-      return slug;
-    }
-
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-}
+import { generateUniqueSlug } from "@/server/api/helpers/slug";
 
 export const onboardingRouter = createTRPCRouter({
   getStatus: protectedProcedure.query(async ({ ctx }) => {

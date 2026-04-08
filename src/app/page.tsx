@@ -230,8 +230,8 @@ function NexoraSection({ isLoggedIn }: { isLoggedIn: boolean }) {
             <a key={link} href="#" style={{ fontSize: 14, color: t.mutedFg, textDecoration: 'none', transition: 'color 0.2s' }}>{link}</a>
           ))}
         </div>
-        <Link href={isLoggedIn ? '/api/resolve-redirect?redirect=true' : '/sign-up'} style={{ background: t.fg, color: '#fff', padding: '8px 20px', borderRadius: 999, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
-          {isLoggedIn ? 'Dashboard' : 'Get Started'}
+        <Link href={isLoggedIn ? '/api/resolve-redirect?redirect=true' : '/sign-in'} style={{ background: t.fg, color: '#fff', padding: '8px 20px', borderRadius: 999, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
+          {isLoggedIn ? 'Dashboard' : 'Sign In'}
         </Link>
       </nav>
 

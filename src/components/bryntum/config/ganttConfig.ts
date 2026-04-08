@@ -50,6 +50,7 @@ export function createGanttConfig(
     project: {
       autoLoad: true,
       autoSync: false,
+      writeAllFields: true,
       taskModelClass: VersionedTaskModel,
 
       transport: projectId
@@ -101,10 +102,17 @@ export function createGanttConfig(
               { tag: 'span', class: 'gantt-name-text', text: String(value ?? '') },
               {
                 tag: 'button',
+                class: 'gantt-row-scroll-btn',
+                type: 'button',
+                dataset: { taskId: String(record.id) },
+                html: '<i class="fa-solid fa-arrow-right-to-bracket"></i>',
+              },
+              {
+                tag: 'button',
                 class: 'gantt-row-actions-btn',
                 type: 'button',
                 dataset: { taskId: String(record.id) },
-                text: '⋮',
+                html: '<i class="fa-solid fa-ellipsis-vertical"></i>',
               },
             ],
           };
@@ -158,16 +166,6 @@ export function createGanttConfig(
     },
 
     listeners: {
-      // Bryntum blocks the duration cell editor for parent tasks before
-      // beforeCellEditStart ever fires (checked internally in DurationColumn).
-      // cellDblClick fires first, so we can set manuallyScheduled: true here —
-      // telling the scheduling engine to stop auto-deriving duration from children
-      // — before Bryntum decides whether to open the editor.
-      cellDblClick({ record, column }) {
-        if (column.type === 'duration' && record.isParent && !record.get('manuallyScheduled')) {
-          record.set('manuallyScheduled', true);
-        }
-      },
       // scrollTaskIntoView removed — it corrupts the time axis header
       // virtual renderer, causing all date labels to disappear after scroll.
     },

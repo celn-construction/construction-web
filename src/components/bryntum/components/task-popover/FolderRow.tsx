@@ -19,6 +19,7 @@ import type { Folder } from '@/lib/folders';
 import type { DocumentItem, PreviewDoc, FolderContentProps } from './types';
 import BaseFolderContent from './BaseFolderContent';
 import PhotosFolderContent from './PhotosFolderContent';
+import TrackableFolderContent from './TrackableFolderContent';
 import RequirementCounter from './RequirementCounter';
 
 const folderIconMap: Record<string, PhosphorIcon> = {
@@ -79,6 +80,17 @@ function FolderRowInner({
   const renderContent = () => {
     if (!isExpanded) return null;
 
+    // Trackable folders (submittals, inspections) get numbered slot dropzones
+    if (isTrackable) {
+      return (
+        <TrackableFolderContent
+          {...contentProps}
+          required={required ?? null}
+          folderColor={folder.color}
+        />
+      );
+    }
+
     const SpecificContent = FOLDER_CONTENT_MAP[folder.id];
     if (SpecificContent) {
       return <SpecificContent {...contentProps} />;
@@ -106,9 +118,9 @@ function FolderRowInner({
         onClick={onToggle}
       >
         {isExpanded ? (
-          <CaretDown size={14} color="var(--mui-palette-text-disabled)" style={{ flexShrink: 0 }} />
+          <CaretDown size={14} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
         ) : (
-          <CaretRight size={14} color="var(--mui-palette-text-disabled)" style={{ flexShrink: 0 }} />
+          <CaretRight size={14} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
         )}
         <FolderIcon size={14} color={folder.color} style={{ flexShrink: 0 }} />
         <Typography

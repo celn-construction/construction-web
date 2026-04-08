@@ -64,14 +64,14 @@ export default function RequirementCounter({
       >
         <CircleDashed
           size={11}
-          color="var(--mui-palette-text-disabled)"
+          color="var(--mui-palette-text-secondary)"
           style={{ flexShrink: 0 }}
         />
         <Typography
           sx={{
             fontSize: '0.5625rem',
             fontWeight: 500,
-            color: 'text.disabled',
+            color: 'text.secondary',
             lineHeight: 1,
           }}
         >
@@ -170,7 +170,7 @@ export default function RequirementCounter({
                 width: 18,
                 height: 18,
                 borderRadius: 0,
-                color: 'text.disabled',
+                color: 'text.secondary',
                 '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
                 '&.Mui-disabled': { color: 'action.disabled' },
               }}
@@ -188,7 +188,7 @@ export default function RequirementCounter({
                 width: 18,
                 height: 18,
                 borderRadius: 0,
-                color: 'text.disabled',
+                color: 'text.secondary',
                 '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
                 '&.Mui-disabled': { color: 'action.disabled' },
               }}
