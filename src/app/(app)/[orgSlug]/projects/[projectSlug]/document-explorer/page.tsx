@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Tooltip, useTheme } from '@mui/material';
+import { Box, Typography, CircularProgress, Tooltip, Menu, MenuItem, useTheme } from '@mui/material';
 import Pagination from '@/components/documents/Pagination';
-import { FileText, ChevronDown, Sparkles, Search, AlignJustify, Table2 } from 'lucide-react';
+import { FileText, ChevronDown, Sparkles, Search, AlignJustify, Table2, LayoutGrid } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/react';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
@@ -14,9 +14,23 @@ import DocumentFilterPopup from '@/components/documents/DocumentFilterPopup';
 import type { LinkFilter } from '@/components/documents/DocumentFilterPopup';
 import DocumentCardCompact from '@/components/documents/DocumentCardCompact';
 import DocumentCardDetail from '@/components/documents/DocumentCardDetail';
+import DocumentCardGallery from '@/components/documents/DocumentCardGallery';
 import type { DocumentResult } from '@/components/documents/types';
 
 const LIMIT = 20;
+
+type SortBy = 'createdAt_desc' | 'createdAt_asc' | 'name_asc' | 'name_desc' | 'size_desc' | 'size_asc' | 'relevance';
+
+const SORT_OPTIONS: { value: SortBy; label: string }[] = [
+  { value: 'createdAt_desc', label: 'Date added (newest)' },
+  { value: 'createdAt_asc', label: 'Date added (oldest)' },
+  { value: 'name_asc', label: 'Name (A–Z)' },
+  { value: 'name_desc', label: 'Name (Z–A)' },
+  { value: 'size_desc', label: 'Size (largest)' },
+  { value: 'size_asc', label: 'Size (smallest)' },
+];
+
+const RELEVANCE_OPTION: { value: SortBy; label: string } = { value: 'relevance', label: 'Relevance' };
 
 export default function DocumentExplorerPage() {
   const theme = useTheme();
@@ -26,7 +40,9 @@ export default function DocumentExplorerPage() {
   const [page, setPage] = useState(1);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiSearchQuery, setAiSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'compact' | 'detail'>('compact');
+  const [viewMode, setViewMode] = useState<'compact' | 'detail' | 'gallery'>('compact');
+  const [sortBy, setSortBy] = useState<SortBy>('createdAt_desc');
+  const [sortAnchorEl, setSortAnchorEl] = useState<HTMLElement | null>(null);
 
   // Filter state
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -57,8 +73,10 @@ export default function DocumentExplorerPage() {
       if (!next) {
         setAiSearchQuery('');
         setDebouncedQuery(query);
+        if (sortBy === 'relevance') setSortBy('createdAt_desc');
       } else {
         setDebouncedQuery('');
+        setSortBy('relevance');
       }
       setPage(1);
       return next;
@@ -97,19 +115,19 @@ export default function DocumentExplorerPage() {
 
   // Fuzzy search (AI OFF)
   const fuzzyQuery = api.document.search.useQuery(
-    { organizationId, projectId, query: debouncedQuery, limit: LIMIT, offset, folderIds, linkFilter },
+    { organizationId, projectId, query: debouncedQuery, limit: LIMIT, offset, folderIds, linkFilter, sortBy },
     { enabled: !aiEnabled && !!organizationId && !!projectId, placeholderData: keepPreviousData },
   );
 
   // AI semantic search (AI ON + query submitted)
   const aiQuery = api.document.aiSearch.useQuery(
-    { organizationId, projectId, query: aiSearchQuery, limit: LIMIT, offset, folderIds, linkFilter },
+    { organizationId, projectId, query: aiSearchQuery, limit: LIMIT, offset, folderIds, linkFilter, sortBy },
     { enabled: aiEnabled && !!aiSearchQuery && !!organizationId && !!projectId, staleTime: 60_000, retry: 1 },
   );
 
   // All docs fallback (AI ON, no search submitted)
   const allDocsQuery = api.document.search.useQuery(
-    { organizationId, projectId, query: '', limit: LIMIT, offset, folderIds, linkFilter },
+    { organizationId, projectId, query: '', limit: LIMIT, offset, folderIds, linkFilter, sortBy },
     { enabled: aiEnabled && !aiSearchQuery && !!organizationId && !!projectId, placeholderData: keepPreviousData },
   );
 
@@ -177,21 +195,51 @@ export default function DocumentExplorerPage() {
           {/* Right group: sort + view toggle */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {/* Sort control */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'text.secondary' }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 400, color: 'text.secondary' }}>
-                Sort by:
-              </Typography>
-              <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'text.primary' }}>
-                Date added
-              </Typography>
-              <ChevronDown style={{ width: 14, height: 14, color: 'currentColor' }} />
-            </Box>
+            {(() => {
+              const showRelevance = aiEnabled && !!aiSearchQuery;
+              const options = showRelevance ? [RELEVANCE_OPTION, ...SORT_OPTIONS] : [...SORT_OPTIONS];
+              const currentLabel = options.find((o) => o.value === sortBy)?.label ?? 'Date added (newest)';
+              return (
+                <>
+                  <Box
+                    component="button"
+                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => setSortAnchorEl(e.currentTarget)}
+                    sx={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'text.secondary', background: 'none', border: 'none', cursor: 'pointer', p: 0 }}
+                  >
+                    <Typography sx={{ fontSize: 12, fontWeight: 400, color: 'text.secondary' }}>
+                      Sort by:
+                    </Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'text.primary' }}>
+                      {currentLabel}
+                    </Typography>
+                    <ChevronDown style={{ width: 14, height: 14, color: 'currentColor' }} />
+                  </Box>
+                  <Menu
+                    anchorEl={sortAnchorEl}
+                    open={Boolean(sortAnchorEl)}
+                    onClose={() => setSortAnchorEl(null)}
+                  >
+                    {options.map((opt) => (
+                      <MenuItem
+                        key={opt.value}
+                        selected={sortBy === opt.value}
+                        onClick={() => { setSortBy(opt.value); setSortAnchorEl(null); setPage(1); }}
+                        sx={{ fontSize: 13 }}
+                      >
+                        {opt.label}
+                      </MenuItem>
+                    ))}
+                  </Menu>
+                </>
+              );
+            })()}
 
             {/* View toggle */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px', bgcolor: 'background.paper', borderRadius: '8px', border: '1px solid', borderColor: 'divider', p: '2px' }}>
               {([
                 { mode: 'compact' as const, icon: <AlignJustify size={14} />, label: 'Compact' },
                 { mode: 'detail' as const, icon: <Table2 size={14} />, label: 'Detail' },
+                { mode: 'gallery' as const, icon: <LayoutGrid size={14} />, label: 'Gallery' },
               ]).map(({ mode, icon, label }) => (
                 <Tooltip key={mode} title={label}>
                   <Box
@@ -338,6 +386,23 @@ export default function DocumentExplorerPage() {
       {/* Results */}
       {!isLoading && !showFuzzyLoader && rawResults.length > 0 && (() => {
         const opacitySx = { opacity: isBackgroundFetching ? 0.6 : 1, transition: 'opacity 0.2s' };
+
+        if (viewMode === 'gallery') {
+          return (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                gap: 1.5,
+                ...opacitySx,
+              }}
+            >
+              {rawResults.map((doc) => (
+                <DocumentCardGallery key={doc.id} doc={doc} organizationId={organizationId} />
+              ))}
+            </Box>
+          );
+        }
 
         if (viewMode === 'detail') {
           return (

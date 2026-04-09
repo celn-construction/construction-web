@@ -16,7 +16,7 @@ export async function signInTestUser(
   // Must include Origin header — page.request.post() doesn't send it
   // automatically, and Better Auth rejects POST requests without Origin
   // when cookies are present (CSRF protection).
-  const origin = process.env.BASE_URL ?? "http://localhost:3000";
+  const origin = process.env.BASE_URL ?? "http://localhost:5050";
   const response = await page.request.post("/api/auth/sign-in/email", {
     data: { email, password },
     headers: {

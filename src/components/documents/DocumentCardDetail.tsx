@@ -3,18 +3,18 @@
 import { useState } from 'react';
 import { Box, Typography, useTheme, alpha } from '@mui/material';
 import {
-  Download,
-  Trash2,
+  DownloadSimple,
+  Trash,
   FileText,
-  FileSpreadsheet,
+  FileXls,
   FileImage,
-  SquareCheck,
+  CheckSquare,
   CircleDashed,
   Folder,
   Calendar,
   HardDrive,
   User,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { format } from 'date-fns';
 import { formatFileSize } from '@/lib/utils/formatting';
 import { getCategoryLabel } from '@/lib/constants/documentCategories';
@@ -27,10 +27,10 @@ interface DocumentCardDetailProps {
 }
 
 function getDetailFileIcon(mimeType: string, color: string) {
-  if (mimeType.startsWith('image/')) return <FileImage size={22} style={{ color }} />;
+  if (mimeType.startsWith('image/')) return <FileImage size={22} color={color} />;
   if (mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType === 'text/csv')
-    return <FileSpreadsheet size={22} style={{ color }} />;
-  return <FileText size={22} style={{ color }} />;
+    return <FileXls size={22} color={color} />;
+  return <FileText size={22} color={color} />;
 }
 
 /**
@@ -45,10 +45,10 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
   const categoryLabel = getCategoryLabel(doc.folderId);
 
   const metaRows = [
-    { icon: <Folder size={12} style={{ color: theme.palette.text.disabled }} />, label: 'Category', value: categoryLabel },
-    { icon: <Calendar size={12} style={{ color: theme.palette.text.disabled }} />, label: 'Uploaded', value: format(new Date(doc.createdAt), 'MMM d, yyyy') },
-    { icon: <HardDrive size={12} style={{ color: theme.palette.text.disabled }} />, label: 'Size', value: formatFileSize(doc.size) },
-    { icon: <User size={12} style={{ color: theme.palette.text.disabled }} />, label: 'By', value: doc.uploadedBy.name ?? doc.uploadedBy.email },
+    { icon: <Folder size={12} color={theme.palette.text.disabled} />, label: 'Category', value: categoryLabel },
+    { icon: <Calendar size={12} color={theme.palette.text.disabled} />, label: 'Uploaded', value: format(new Date(doc.createdAt), 'MMM d, yyyy') },
+    { icon: <HardDrive size={12} color={theme.palette.text.disabled} />, label: 'Size', value: formatFileSize(doc.size) },
+    { icon: <User size={12} color={theme.palette.text.disabled} />, label: 'By', value: doc.uploadedBy.name ?? doc.uploadedBy.email },
   ];
 
   return (
@@ -141,9 +141,9 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
         {/* Task row */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {doc.taskId ? (
-            <SquareCheck size={12} style={{ color: theme.palette.docExplorer.linkedGreen }} />
+            <CheckSquare size={12} color={theme.palette.docExplorer.linkedGreen} />
           ) : (
-            <CircleDashed size={12} style={{ color: theme.palette.text.disabled }} />
+            <CircleDashed size={12} color={theme.palette.text.disabled} />
           )}
           <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.disabled', width: 60, flexShrink: 0 }}>
             Task
@@ -188,7 +188,7 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
             '&:hover': { bgcolor: 'action.hover' },
           }}
         >
-          <Download size={12} style={{ color: theme.palette.text.secondary }} />
+          <DownloadSimple size={12} color={theme.palette.text.secondary} />
           <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.secondary' }}>
             Download
           </Typography>
@@ -211,7 +211,7 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
             '&:hover': { bgcolor: 'docExplorer.destructiveLight', borderColor: 'docExplorer.destructiveMain' },
           }}
         >
-          <Trash2 size={12} style={{ color: theme.palette.text.secondary }} />
+          <Trash size={12} color={theme.palette.text.secondary} />
           <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.secondary' }}>
             Delete
           </Typography>

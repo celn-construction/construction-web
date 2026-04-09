@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { del } from "@vercel/blob";
 import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 import { embedQuery, toVectorSql } from "@/server/services/embeddings";
+import { expandAcronyms } from "@/lib/constants/constructionAcronyms";
 
 interface RawDocumentRow {
   id: string;
@@ -48,6 +49,35 @@ function shapeResults(rows: RawDocumentRow[]) {
 }
 
 const linkFilterSchema = z.enum(["all", "linked", "unlinked"]).default("all");
+
+const sortBySchema = z
+  .enum([
+    "createdAt_desc",
+    "createdAt_asc",
+    "name_asc",
+    "name_desc",
+    "size_desc",
+    "size_asc",
+    "relevance",
+  ])
+  .default("createdAt_desc");
+
+function buildOrderBy(sortBy: z.infer<typeof sortBySchema>) {
+  switch (sortBy) {
+    case "createdAt_asc":
+      return { createdAt: "asc" as const };
+    case "name_asc":
+      return { name: "asc" as const };
+    case "name_desc":
+      return { name: "desc" as const };
+    case "size_desc":
+      return { size: "desc" as const };
+    case "size_asc":
+      return { size: "asc" as const };
+    default:
+      return { createdAt: "desc" as const };
+  }
+}
 
 function buildLinkCondition(linkFilter: z.infer<typeof linkFilterSchema>) {
   if (linkFilter === "linked") return { taskId: { not: "" } };
@@ -176,6 +206,7 @@ export const documentRouter = createTRPCRouter({
         offset: z.number().min(0).default(0),
         folderIds: z.array(z.string()).optional(),
         linkFilter: linkFilterSchema,
+        sortBy: sortBySchema,
       })
     )
     .query(async ({ ctx, input }) => {
@@ -195,6 +226,7 @@ export const documentRouter = createTRPCRouter({
         ? { folderId: { in: input.folderIds } }
         : {};
       const linkCondition = buildLinkCondition(input.linkFilter);
+      const orderBy = buildOrderBy(input.sortBy);
 
       // Empty query: return recent documents
       if (!trimmed) {
@@ -207,7 +239,7 @@ export const documentRouter = createTRPCRouter({
                 select: { id: true, name: true, email: true },
               },
             },
-            orderBy: { createdAt: "desc" },
+            orderBy,
             take: input.limit,
             skip: input.offset,
           }),
@@ -232,7 +264,7 @@ export const documentRouter = createTRPCRouter({
               select: { id: true, name: true, email: true },
             },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy,
           take: input.limit,
           skip: input.offset,
         }),
@@ -251,64 +283,58 @@ export const documentRouter = createTRPCRouter({
         offset: z.number().min(0).default(0),
         folderIds: z.array(z.string()).optional(),
         linkFilter: linkFilterSchema,
+        sortBy: sortBySchema,
       })
     )
     .query(async ({ ctx, input }) => {
       const project = await ctx.db.project.findFirst({
-        where: {
-          id: input.projectId,
-          organizationId: ctx.organization.id,
-        },
+        where: { id: input.projectId, organizationId: ctx.organization.id },
       });
+      if (!project) return { results: [], total: 0 };
 
-      if (!project) {
-        return { results: [], total: 0 };
+      // Non-relevance sort: fall back to standard Prisma query (avoids modifying the SQL function)
+      if (input.sortBy !== "relevance" && input.sortBy !== "createdAt_desc") {
+        const folderFilter = input.folderIds?.length
+          ? { folderId: { in: input.folderIds } }
+          : {};
+        const linkCondition = buildLinkCondition(input.linkFilter);
+        const where = {
+          projectId: input.projectId,
+          ...folderFilter,
+          ...linkCondition,
+          OR: [
+            { name: { contains: input.query, mode: "insensitive" as const } },
+            { description: { contains: input.query, mode: "insensitive" as const } },
+          ],
+        };
+        const [results, total] = await Promise.all([
+          ctx.db.document.findMany({
+            where,
+            include: { uploadedBy: { select: { id: true, name: true, email: true } } },
+            orderBy: buildOrderBy(input.sortBy),
+            take: input.limit,
+            skip: input.offset,
+          }),
+          ctx.db.document.count({ where }),
+        ]);
+        return { results, total };
       }
 
-      // Embed the user's query
       const queryEmbedding = await embedQuery(input.query);
       const vectorSql = toVectorSql(queryEmbedding);
+      const keywordQuery = expandAcronyms(input.query);
 
-      // Two branches for folderIds to avoid Prisma.empty (which breaks $queryRaw parameter numbering).
-      // linkFilter is passed as a parameterized value — PostgreSQL evaluates the matching branch.
-      const rows = input.folderIds?.length
-        ? await ctx.db.$queryRaw<RawDocumentRow[]>`
-            SELECT
-              d.id, d.name, d."blobUrl", d."mimeType", d.size, d.tags,
-              d.description, d."taskId", d."folderId", d."projectId",
-              d."uploadedById", d."createdAt",
-              (1 - (d.embedding <=> ${vectorSql}::vector))::float AS rank,
-              COUNT(*) OVER () AS total_count,
-              u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email
-            FROM "Document" d
-              JOIN "User" u ON u.id = d."uploadedById"
-            WHERE d."projectId" = ${input.projectId}
-              AND d.embedding IS NOT NULL
-              AND d."folderId" = ANY(${input.folderIds})
-              AND (${input.linkFilter} = 'all'
-                OR (${input.linkFilter} = 'linked' AND d."taskId" != '')
-                OR (${input.linkFilter} = 'unlinked' AND d."taskId" = ''))
-            ORDER BY d.embedding <=> ${vectorSql}::vector
-            LIMIT ${input.limit} OFFSET ${input.offset}
-          `
-        : await ctx.db.$queryRaw<RawDocumentRow[]>`
-            SELECT
-              d.id, d.name, d."blobUrl", d."mimeType", d.size, d.tags,
-              d.description, d."taskId", d."folderId", d."projectId",
-              d."uploadedById", d."createdAt",
-              (1 - (d.embedding <=> ${vectorSql}::vector))::float AS rank,
-              COUNT(*) OVER () AS total_count,
-              u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email
-            FROM "Document" d
-              JOIN "User" u ON u.id = d."uploadedById"
-            WHERE d."projectId" = ${input.projectId}
-              AND d.embedding IS NOT NULL
-              AND (${input.linkFilter} = 'all'
-                OR (${input.linkFilter} = 'linked' AND d."taskId" != '')
-                OR (${input.linkFilter} = 'unlinked' AND d."taskId" = ''))
-            ORDER BY d.embedding <=> ${vectorSql}::vector
-            LIMIT ${input.limit} OFFSET ${input.offset}
-          `;
+      const rows = await ctx.db.$queryRaw<RawDocumentRow[]>`
+        SELECT * FROM hybrid_document_search(
+          ${vectorSql}::vector,
+          ${keywordQuery},
+          ${input.projectId},
+          ${input.folderIds ?? null},
+          ${input.linkFilter},
+          ${input.limit}::int,
+          ${input.offset}::int
+        )
+      `;
 
       const total = Number(rows[0]?.total_count ?? 0);
       return { results: shapeResults(rows), total };

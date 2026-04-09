@@ -1,6 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
+import sharp from "sharp";
 
 const IMAGE_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+
+// AVIF/HEIC are valid image uploads but Claude's vision API doesn't accept them directly.
+// These get converted to WebP via sharp before analysis.
+const CONVERTIBLE_IMAGE_TYPES = ["image/avif", "image/heic", "image/heif", "image/tiff"];
 
 // TODO: Add AI analysis for Word docs, spreadsheets, and CSV files (requires text extraction libraries)
 
@@ -22,6 +27,9 @@ export async function analyzeDocument(
     if (IMAGE_MIME_TYPES.includes(mimeType)) {
       return await analyzeImage(blobUrl, mimeType);
     }
+    if (CONVERTIBLE_IMAGE_TYPES.includes(mimeType)) {
+      return await analyzeImage(blobUrl, mimeType);
+    }
     if (mimeType === "application/pdf") {
       return await analyzePdf(blobUrl, name);
     }
@@ -40,8 +48,20 @@ async function analyzeImage(
 ): Promise<DocumentAnalysis> {
   const client = createClient();
   const response = await fetch(blobUrl);
-  const buffer = await response.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
+  const rawBuffer = Buffer.from(await response.arrayBuffer());
+
+  // Convert unsupported formats (AVIF, HEIC, TIFF) to WebP for Claude's vision API
+  let imageBuffer: Buffer;
+  let apiMimeType: "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+  if (CONVERTIBLE_IMAGE_TYPES.includes(mimeType)) {
+    imageBuffer = await sharp(rawBuffer).webp().toBuffer();
+    apiMimeType = "image/webp";
+  } else {
+    imageBuffer = rawBuffer;
+    apiMimeType = mimeType as typeof apiMimeType;
+  }
+
+  const base64 = imageBuffer.toString("base64");
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
@@ -54,7 +74,7 @@ async function analyzeImage(
             type: "image",
             source: {
               type: "base64",
-              media_type: mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+              media_type: apiMimeType,
               data: base64,
             },
           },

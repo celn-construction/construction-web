@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadSimple, X } from '@phosphor-icons/react';
+import { UploadSimple, X, Sparkle } from '@phosphor-icons/react';
 import {
   Box,
   Dialog,
@@ -41,21 +41,29 @@ export default function UploadDialog({
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { showSnackbar } = useSnackbar();
   const theme = useTheme();
+
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const f = acceptedFiles[0];
     if (f) {
       setFile(f);
       if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''));
+      if (f.type.startsWith('image/')) {
+        setPreviewUrl(URL.createObjectURL(f));
+      } else {
+        setPreviewUrl(null);
+      }
     }
   }, [title]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.heic', '.heif', '.tiff'],
       'application/pdf': ['.pdf'],
       'application/vnd.ms-excel': ['.xls'],
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
@@ -72,14 +80,40 @@ export default function UploadDialog({
 
   const handleClose = () => {
     if (isUploading) return;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(null);
+    setPreviewUrl(null);
     setTitle('');
     setNotes('');
     onOpenChange(false);
   };
 
   const handleRemoveFile = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(null);
+    setPreviewUrl(null);
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!file || isGenerating) return;
+    setIsGenerating(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/describe', { method: 'POST', body: formData });
+      const data = await response.json() as { description?: string; error?: string };
+      if (!response.ok) {
+        showSnackbar(data.error ?? 'Could not generate description', 'error');
+        return;
+      }
+      if (data.description) {
+        setNotes(data.description);
+      }
+    } catch {
+      showSnackbar('Could not generate description', 'error');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleUpload = async () => {
@@ -106,7 +140,9 @@ export default function UploadDialog({
       }
 
       showSnackbar('File uploaded successfully', 'success');
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
       setFile(null);
+      setPreviewUrl(null);
       setTitle('');
       setNotes('');
       onUploadComplete();
@@ -251,9 +287,19 @@ export default function UploadDialog({
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
+                overflow: 'hidden',
               }}
             >
-              <UploadSimple size={16} style={{ color: theme.palette.success.main }} />
+              {previewUrl ? (
+                <Box
+                  component="img"
+                  src={previewUrl}
+                  alt={file.name}
+                  sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <UploadSimple size={16} style={{ color: theme.palette.success.main }} />
+              )}
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography
@@ -334,9 +380,42 @@ export default function UploadDialog({
             >
               Notes
             </Typography>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 400 }}>
-              Optional
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {file && (
+                <Box
+                  component="button"
+                  onClick={handleGenerateDescription}
+                  disabled={isGenerating || isUploading}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1,
+                    py: 0.375,
+                    borderRadius: '6px',
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.25)}`,
+                    bgcolor: alpha(theme.palette.primary.main, 0.06),
+                    color: 'primary.main',
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    opacity: isGenerating ? 0.6 : 1,
+                    '&:hover:not(:disabled)': {
+                      bgcolor: alpha(theme.palette.primary.main, 0.12),
+                      borderColor: alpha(theme.palette.primary.main, 0.4),
+                    },
+                    '&:disabled': { cursor: 'default' },
+                  }}
+                >
+                  <Sparkle size={11} weight="fill" />
+                  {isGenerating ? 'Generating...' : 'Describe with AI'}
+                </Box>
+              )}
+              <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 400 }}>
+                Optional
+              </Typography>
+            </Box>
           </Box>
           <Box
             component="textarea"
