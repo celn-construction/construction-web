@@ -61,13 +61,7 @@ export default function CoverImageBanner({
         } else {
           const body = await res.json().catch(() => null);
           const message = (body as { error?: string } | null)?.error;
-          if (res.status === 401) {
-            showSnackbar('You must be signed in to upload images', 'error');
-          } else if (res.status === 403) {
-            showSnackbar(message ?? "You don't have permission to upload images", 'error');
-          } else {
-            showSnackbar(message ?? 'Upload failed', 'error');
-          }
+          showSnackbar(message ?? 'Upload failed', 'error');
         }
       } finally {
         setCoverUploading(false);
