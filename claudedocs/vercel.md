@@ -47,11 +47,17 @@ These must be set correctly per environment via Vercel CLI:
 
 `APP_URL` is the single source of truth — it drives Better Auth's base URL, trusted origins, invite email links, and password reset links.
 
-## Auto-Provisioned (do not manage manually)
+## Database Environment Variables
 
-`construction_POSTGRES_PRISMA_URL` and related `construction_POSTGRES_*` vars are managed by the Vercel-Neon integration for preview and production environments. `BLOB_READ_WRITE_TOKEN` and all `POSTGRES_*` / `PG*` vars are also managed by Vercel integrations. Do not overwrite these manually in Vercel.
+Only two DB vars exist in Vercel — `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING` — set per environment:
 
-**Local dev overrides**: The `conductor.json` setup script and manual setup both override `construction_POSTGRES_PRISMA_URL` and `construction_POSTGRES_URL_NON_POOLING` in `.env.local` to point to a local PostgreSQL instance (`postgresql://$USER@localhost:5433/construction`) for faster development.
+| Environment | Value | Notes |
+|---|---|---|
+| Development | `postgresql://construction:construction@localhost:5432/construction` | Local Docker container shared across Conductor workspaces |
+| Preview | Neon pooler/direct URLs | Neon integration |
+| Production | Neon pooler/direct URLs | Neon integration |
+
+All other Neon `construction_*` / `PG*` vars have been removed from the Development environment to keep `.env.local` clean. `BLOB_READ_WRITE_TOKEN` is auto-provisioned by the Vercel Blob integration.
 
 ## Database Branching
 
@@ -59,7 +65,7 @@ Each environment uses an isolated Neon database branch via the Vercel-Neon integ
 - **Production** → `main` Neon branch
 - **Preview deployments** → auto-created `preview/...` Neon branch (forked from `main` at deploy time)
 
-The integration injects the correct `construction_POSTGRES_PRISMA_URL` per deployment automatically — no manual configuration needed. On the free Neon plan branches are limited (10 max), so delete old preview branches from closed PRs as needed.
+The integration injects the correct `POSTGRES_PRISMA_URL` per deployment automatically — no manual configuration needed. On the free Neon plan branches are limited (10 max), so delete old preview branches from closed PRs as needed.
 
 ## Local Env Files
 

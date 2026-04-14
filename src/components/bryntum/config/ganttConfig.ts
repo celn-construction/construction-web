@@ -52,6 +52,11 @@ export function createGanttConfig(
       autoSync: false,
       writeAllFields: true,
       taskModelClass: VersionedTaskModel,
+      resetUndoRedoQueuesAfterLoad: true,
+
+      stm: {
+        autoRecord: true,
+      },
 
       transport: projectId
         ? {

@@ -68,8 +68,8 @@ Cross-reference Vercel env vars against the T3 validation schema in `src/env.js`
 **Required vars** (build will fail without these):
 | Variable | Validation | Notes |
 |---|---|---|
-| `construction_POSTGRES_PRISMA_URL` | `z.string().url()` | Auto-provisioned by Vercel-Neon integration (DO NOT set manually) |
-| `construction_POSTGRES_URL_NON_POOLING` | `z.string().url()` | Auto-provisioned by Vercel-Neon integration (DO NOT set manually) |
+| `POSTGRES_PRISMA_URL` | `z.string().url()` | Auto-provisioned by Vercel-Neon integration (DO NOT set manually) |
+| `POSTGRES_URL_NON_POOLING` | `z.string().url()` | Auto-provisioned by Vercel-Neon integration (DO NOT set manually) |
 | `APP_URL` | `z.string().url()` | MUST match environment: `https://celn.app` (prod), `https://preview.celn.app` (preview) |
 | `BETTER_AUTH_SECRET` | Must exist | Signing secret for sessions |
 
@@ -175,7 +175,7 @@ printf 'value' | vercel env add VAR_NAME preview --scope celn --force
 **Fix**: Verify `APP_URL` is `https://preview.celn.app` for preview environment. The `VERCEL_URL` and `VERCEL_BRANCH_URL` are auto-injected by Vercel and should be handled by `src/lib/auth.ts` trusted origins logic.
 
 ### 3. Prisma migration fails during build
-**Cause**: `construction_POSTGRES_PRISMA_URL` not set, Neon branch doesn't exist, or migration files not committed
+**Cause**: `POSTGRES_PRISMA_URL` not set, Neon branch doesn't exist, or migration files not committed
 **Fix**:
 ```bash
 # Check if DB URL is set

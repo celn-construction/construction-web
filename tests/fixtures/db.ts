@@ -8,8 +8,8 @@ export const testDb = new PrismaClient({
   datasources: {
     db: {
       url:
-        process.env.construction_POSTGRES_PRISMA_URL ??
-        `postgresql://${process.env.USER}@localhost:5433/construction`,
+        process.env.POSTGRES_PRISMA_URL ??
+        "postgresql://construction:construction@localhost:5432/construction",
     },
   },
 });

@@ -61,6 +61,11 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     handleShiftPrevious,
     handleShiftNext,
     handlePresetChange,
+    handleUndo,
+    handleRedo,
+    canUndo,
+    canRedo,
+    enableStm,
   } = ganttControls;
 
   const errorColor = '#D93C15';
@@ -79,14 +84,22 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
 
   // After data loads, finalize the project so the scheduling engine is ready.
   // delayCalculation defers the initial engine run — commitAsync triggers it.
+  // Then enable STM so undo/redo starts tracking from this clean state.
   // Do NOT call scrollToDate here — it corrupts the time axis header.
+  const stmCleanupRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    void gantt.project.commitAsync();
-  }, [isLoading, getGanttInstance]);
+    void gantt.project.commitAsync().then(() => {
+      stmCleanupRef.current = enableStm();
+    });
+    return () => {
+      stmCleanupRef.current?.();
+      stmCleanupRef.current = null;
+    };
+  }, [isLoading, getGanttInstance, enableStm]);
 
   // Invalidate tRPC cache when Bryntum syncs so sibling components (e.g. file tree) refetch
   const utils = api.useUtils();
@@ -302,54 +315,135 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   }, [getGanttInstance]);
 
   // Listen for force-sync requests (e.g. before saving a version).
-  // Per Bryntum docs: commitAsync() ensures the scheduling engine finishes calculating,
-  // then sync() persists all pending CRUD changes. sync() queues if one is already in-flight.
-  // We loop until crudStoreHasChanges() returns false (max 3 attempts) to handle the case
-  // where new changes appear during an in-flight sync.
+  // We read ALL data from Bryntum's stores via project.toJSON() instead of relying
+  // on project.sync(), because Bryntum's scheduling engine internally commits store
+  // dirty state during deferred calculations — causing records added between engine
+  // cycles to fall out of the CrudManager's "added" bag and never sync to the server.
+  // Reading inlineData/toJSON captures ALL records regardless of dirty tracking.
   useEffect(() => {
     const handleForceSync = () => {
       const gantt = getGanttInstance();
       if (!gantt?.project) {
-        window.dispatchEvent(new Event('gantt-sync-done'));
+        window.dispatchEvent(new CustomEvent('gantt-sync-done', { detail: { inlineData: null } }));
         return;
       }
 
-      const syncUntilClean = async (attempt = 1): Promise<void> => {
-        const MAX_ATTEMPTS = 3;
+      void (async () => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          await gantt.project.commitAsync();
 
-        // 1. Commit pending scheduling engine calculations
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        await gantt.project.commitAsync();
+          // 2. Read ALL data from Bryntum's individual stores and serialize to plain objects.
+          //    We can't use project.inlineData directly because it contains Bryntum record
+          //    instances with circular parent↔children references that break JSON serialization.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const taskStore = gantt.project.taskStore;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const allTasks = (taskStore?.allRecords as Array<{ isRoot?: boolean; toJSON?: () => Record<string, unknown>; data?: Record<string, unknown> }>) ?? [];
+          // Pick only DB-relevant fields. Do NOT use toJSON() — it includes
+          // `children` arrays (tree structure) that create massive nested duplicates.
+          const pickTaskFields = (r: Record<string, unknown>) => ({
+            id: r.id, name: r.name, parentId: r.parentId ?? null,
+            startDate: r.startDate, endDate: r.endDate,
+            duration: r.duration, durationUnit: r.durationUnit,
+            percentDone: r.percentDone, effort: r.effort, effortUnit: r.effortUnit,
+            expanded: r.expanded, manuallyScheduled: r.manuallyScheduled,
+            constraintType: r.constraintType, constraintDate: r.constraintDate,
+            rollup: r.rollup, cls: r.cls, iconCls: r.iconCls,
+            note: r.note, csiCode: r.csiCode, baselines: r.baselines,
+            orderIndex: r.parentIndex ?? r.orderedParentIndex, version: r.version,
+            coverImageUrl: r.coverImageUrl,
+          });
+          const serializedTasks = allTasks
+            .filter(r => !r.isRoot)
+            .map(r => pickTaskFields(r.data ?? r as unknown as Record<string, unknown>));
 
-        // 2. Check if there are CRUD changes to persist
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const dirty = gantt.project.crudStoreHasChanges() as boolean;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const depStore = gantt.project.dependencyStore;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const allDeps = (depStore?.allRecords as Array<{ toJSON?: () => Record<string, unknown>; data?: Record<string, unknown> }>) ?? [];
+          const pickFields = (r: { data?: Record<string, unknown> }) => ({ ...(r.data ?? r) });
+          const serializedDeps = allDeps.map(pickFields);
 
-        if (!dirty) {
-          return;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const resStore = gantt.project.resourceStore;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const allResources = (resStore?.allRecords as Array<{ data?: Record<string, unknown> }>) ?? [];
+          const serializedResources = allResources.map(pickFields);
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const assignStore = gantt.project.assignmentStore;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const allAssignments = (assignStore?.allRecords as Array<{ data?: Record<string, unknown> }>) ?? [];
+          const serializedAssignments = allAssignments.map(pickFields);
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const trStore = gantt.project.timeRangeStore;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const allTimeRanges = (trStore?.allRecords as Array<{ data?: Record<string, unknown> }>) ?? [];
+          const serializedTimeRanges = allTimeRanges.map(pickFields);
+
+          // JSON round-trip to strip any remaining class instances, circular refs,
+          // or non-serializable values (Dates become ISO strings, etc.)
+          let inlineData: Record<string, unknown>;
+          try {
+            inlineData = JSON.parse(JSON.stringify({
+              tasks: serializedTasks,
+              dependencies: serializedDeps,
+              resources: serializedResources,
+              assignments: serializedAssignments,
+              timeRanges: serializedTimeRanges,
+            })) as Record<string, unknown>;
+          } catch (jsonErr) {
+            console.error('[ForceSync] JSON serialization failed:', jsonErr);
+            inlineData = { tasks: [], dependencies: [], resources: [], assignments: [], timeRanges: [] };
+          }
+
+          // 3. Also attempt CrudManager sync for best-effort DB persistence
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          if (gantt.project.crudStoreHasChanges()) {
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              await gantt.project.sync();
+            } catch {
+              // Non-fatal — the inlineData snapshot will still have all data
+            }
+          }
+          window.dispatchEvent(new CustomEvent('gantt-sync-done', { detail: { inlineData } }));
+        } catch {
+          window.dispatchEvent(new CustomEvent('gantt-sync-done', { detail: { inlineData: null } }));
         }
-
-        // 3. Sync — this queues behind any in-flight sync per Bryntum docs
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        await gantt.project.sync();
-
-        // 4. Check again — new changes may have appeared during in-flight sync
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const stillDirty = gantt.project.crudStoreHasChanges() as boolean;
-        if (stillDirty && attempt < MAX_ATTEMPTS) {
-          return syncUntilClean(attempt + 1);
-        }
-      };
-
-      void syncUntilClean().then(() => {
-        window.dispatchEvent(new Event('gantt-sync-done'));
-      }).catch(() => {
-        window.dispatchEvent(new Event('gantt-sync-done'));
-      });
+      })();
     };
     window.addEventListener('gantt-force-sync', handleForceSync);
     return () => window.removeEventListener('gantt-force-sync', handleForceSync);
   }, [getGanttInstance]);
+
+  // Keyboard shortcuts for undo/redo (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (!isMod) return;
+
+      // Don't intercept when typing in an input/textarea
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
+
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if (e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        handleRedo();
+      } else if (e.key === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   // Listen for external reload requests (e.g. after restoring a version)
   useEffect(() => {
@@ -508,6 +602,10 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         onZoomToFit={handleZoomToFit}
         onShiftPrevious={handleShiftPrevious}
         onShiftNext={handleShiftNext}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
 
       {/* Bryntum must always render in a visible container so its internal layout

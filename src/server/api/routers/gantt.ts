@@ -6,6 +6,8 @@ import { ganttLoadInputSchema, ganttSyncInputSchema, updateRequirementSchema } f
 import { CSI_SUBDIVISION_MAP, CSI_DIVISION_MAP } from "@/lib/constants/csiCodes";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
 import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
+import { recordRevision } from "@/server/api/helpers/ganttRevision";
+import type { RevisionChanges } from "@/server/api/helpers/ganttRevision";
 
 export const ganttRouter = createTRPCRouter({
   /**
@@ -244,6 +246,15 @@ export const ganttRouter = createTRPCRouter({
           },
           { isolationLevel: 'RepeatableRead' },
         );
+
+        // Record a revision delta (fire-and-forget, non-blocking).
+        // This runs outside the RepeatableRead transaction so it doesn't
+        // hold locks or affect sync latency.
+        const syncPayload: RevisionChanges = {
+          tasks, dependencies, resources, assignments, timeRanges,
+        };
+        void recordRevision(ctx.db, projectId, ctx.session.user.id, syncPayload)
+          .catch((err) => console.error("Failed to record revision:", err));
 
         return result;
       } catch (error) {
