@@ -154,6 +154,20 @@ export function createGanttConfig(
       cellTooltip: {
         tooltipRenderer: ({ record, column }) => formatTooltipText(record, column.field),
       },
+      // Show the proposed end date in a tooltip while the user drags the
+      // end-side resize handle. Bryntum's TaskResize is end-only by design;
+      // this gives live feedback during the drag.
+      taskResize: {
+        showTooltip: true,
+        tooltipTemplate: ({ endDate }) => {
+          if (!endDate) return '';
+          return endDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          });
+        },
+      },
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     viewPreset: 'weekAndDayLetter',

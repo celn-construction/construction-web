@@ -214,6 +214,18 @@ export type GanttConfig = {
       tooltipRenderer: (args: TooltipRendererArgs) => string;
     };
     tree?: { toggleTreeNode?: boolean };
+    taskResize?: boolean | {
+      showTooltip?: boolean;
+      allowResizeToZero?: boolean;
+      leftHandle?: boolean;
+      rightHandle?: boolean;
+      tooltipTemplate?: (data: {
+        record: TaskModel;
+        startDate: Date | null;
+        endDate: Date | null;
+        duration: number | null;
+      }) => string;
+    };
   };
   emptyText?: string;
   viewPreset: string;

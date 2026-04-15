@@ -332,10 +332,20 @@ body {
   pointer-events: none !important;
 }
 
-/* Task bar hover — slight lift */
+/* Task bar hover — slight lift, plus an inset right-edge cue so users know
+   the end of the bar is grabbable as soon as they hover (before reaching the
+   14px handle zone). The crisp white pill from .b-over-end-handle (further
+   below) covers this hint once the cursor enters the handle. */
 .bryntum-gantt-container .b-gantt-task:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset -3px 0 0 rgba(255, 255, 255, 0.4) !important;
   transform: translateY(-0.5px) !important;
+}
+
+/* Parent/summary bars aren't user-resizable (Bryntum derives their duration
+   from children), so don't show the right-edge cue on them. */
+.bryntum-gantt-container .b-gantt-task.gantt-parent-bar:hover,
+.bryntum-gantt-container .b-gantt-task.b-gantt-task-parent:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Task bar text — clean font */
@@ -377,6 +387,30 @@ body {
 .bryntum-gantt-container .b-gantt-task.gantt-parent-bar .b-gantt-task-percent,
 .bryntum-gantt-container .b-gantt-task.b-gantt-task-parent .b-gantt-task-percent {
   background-color: var(--gantt-summary-fill) !important;
+}
+
+/* ── Task Resize Handles ────────────────────────────────────── */
+
+/* Widen the invisible hit zone from 6px → 14px so handles are easy to grab,
+   and keep it wide on hover (default would shrink it). The handle is
+   transparent at rest, then shows a crisp white indicator once the cursor
+   enters the zone so users immediately see the grabbable area.
+   Handles are ::before/::after on .b-gantt-task-wrap (no conflict with the
+   frosted glass ::before on .b-gantt-task). */
+.bryntum-gantt-container .b-gantt.b-task-resize {
+  --b-event-resize-handle-other-size: 14px;
+  --b-event-resize-handle-hover-other-size: 14px;
+  --b-event-resize-handle-size: 70%;
+  --b-event-resize-handle-hover-size: 80%;
+  --b-event-resize-handle-background: transparent;
+  --b-event-resize-handle-hover-background: rgba(255, 255, 255, 0.9);
+  --b-event-resize-handle-border-radius: 3px;
+}
+
+/* Ensure ew-resize cursor shows on task bar when over a handle */
+.bryntum-gantt-container .b-gantt-task-wrap.b-over-start-handle .b-gantt-task,
+.bryntum-gantt-container .b-gantt-task-wrap.b-over-end-handle .b-gantt-task {
+  cursor: ew-resize !important;
 }
 
 /* ── Splitter ────────────────────────────────────────────────── */
