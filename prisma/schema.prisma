@@ -9,8 +9,8 @@ generator client {
 
 datasource db {
     provider   = "postgresql"
-    url        = env("construction_POSTGRES_PRISMA_URL")
-    directUrl  = env("construction_POSTGRES_URL_NON_POOLING")
+    url        = env("POSTGRES_PRISMA_URL")
+    directUrl  = env("POSTGRES_URL_NON_POOLING")
     extensions = [pg_trgm, vector]
 }
 
@@ -38,6 +38,7 @@ model User {
     activeOrganization Organization?    @relation("ActiveOrganization", fields: [activeOrganizationId], references: [id], onDelete: SetNull)
     activeProject      Project?         @relation("ActiveProject", fields: [activeProjectId], references: [id], onDelete: SetNull)
     scheduleVersions   ScheduleVersion[]
+    scheduleRevisions  ScheduleRevision[]
 }
 
 model Session {
@@ -147,7 +148,8 @@ model Project {
     ganttAssignments GanttAssignment[]
     ganttTimeRanges GanttTimeRange[]
     activeUsers     User[]           @relation("ActiveProject")
-    scheduleVersions ScheduleVersion[]
+    scheduleVersions  ScheduleVersion[]
+    scheduleRevisions ScheduleRevision[]
 
     @@unique([organizationId, slug])
     @@index([organizationId])
@@ -364,9 +366,30 @@ model ScheduleVersion {
     snapshot    Json
     createdById String
     createdAt   DateTime @default(now())
+    revisionId  String?
 
-    project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-    createdBy User    @relation(fields: [createdById], references: [id], onDelete: Cascade)
+    project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    createdBy User               @relation(fields: [createdById], references: [id], onDelete: Cascade)
+    revision  ScheduleRevision?  @relation(fields: [revisionId], references: [id], onDelete: SetNull)
+
+    @@index([projectId, createdAt])
+}
+
+model ScheduleRevision {
+    id          String   @id @default(cuid())
+    projectId   String
+    createdById String
+    createdAt   DateTime @default(now())
+
+    /// Compact delta: { tasks?: { added?, updated?, removed? }, dependencies?: ..., ... }
+    changes     Json
+
+    /// Summary counts for display: { tasksAdded: 2, tasksModified: 5, ... }
+    summary     Json?
+
+    project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    createdBy User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
+    versions  ScheduleVersion[]
 
     @@index([projectId, createdAt])
 }

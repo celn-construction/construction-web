@@ -13,8 +13,10 @@ import {
   DialogActions,
   Divider,
   Tooltip,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { X, DotsThreeVertical, ClockCounterClockwise, Trash } from '@phosphor-icons/react';
+import { X, DotsThreeVertical, ClockCounterClockwise, Trash, GitCommit, Plus, PencilSimple, MinusCircle } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -28,6 +30,7 @@ import { useSnackbar } from '@/hooks/useSnackbar';
 import { hasPermission } from '@/lib/permissions';
 import type { Role } from '@/lib/permissions';
 import { useGanttChangesStore } from '@/store/ganttChangesStore';
+import type { RevisionSummary } from '@/lib/types/schedule';
 
 /** Format a date for display as a version label */
 function formatVersionDate(date: Date): string {
@@ -60,12 +63,19 @@ export default function VersionHistoryDrawer({
   const canManage = hasPermission(memberRole, 'MANAGE_PROJECTS');
   const { activeVersionId } = useGanttChangesStore();
 
+  const [activeTab, setActiveTab] = useState(0);
   const [confirmAction, setConfirmAction] = useState<{ type: 'restore' | 'delete'; versionId: string; versionLabel: string } | null>(null);
 
   const { data: versions = [], isLoading } = api.schedule.listVersions.useQuery(
     { projectId },
     { enabled: open },
   );
+
+  const { data: revisionsData, isLoading: isLoadingRevisions } = api.schedule.listRevisions.useQuery(
+    { projectId },
+    { enabled: open && activeTab === 1 },
+  );
+  const revisions = revisionsData?.revisions ?? [];
 
   const deleteMutation = api.schedule.deleteVersion.useMutation({
     onSuccess: () => {
@@ -137,9 +147,30 @@ export default function VersionHistoryDrawer({
             </Typography>
           </Box>
         )}
+        <Tabs
+          value={activeTab}
+          onChange={(_, v: number) => setActiveTab(v)}
+          sx={{
+            minHeight: 36,
+            px: 2.5,
+            '& .MuiTab-root': {
+              minHeight: 36,
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              textTransform: 'none',
+              py: 0,
+              px: 1.5,
+              minWidth: 0,
+            },
+          }}
+        >
+          <Tab label="Versions" />
+          <Tab label="Change Log" />
+        </Tabs>
         <Divider />
 
-        <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, py: 1.5 }}>
+        {/* ── Tab 0: Versions (existing) ── */}
+        <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, py: 1.5, display: activeTab === 0 ? 'block' : 'none' }}>
           {isLoading ? (
             <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center', py: 4 }}>
               Loading...
@@ -272,6 +303,77 @@ export default function VersionHistoryDrawer({
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+        </Box>
+
+        {/* ── Tab 1: Change Log (revisions) ── */}
+        <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, py: 1.5, display: activeTab === 1 ? 'block' : 'none' }}>
+          {isLoadingRevisions ? (
+            <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center', py: 4 }}>
+              Loading...
+            </Typography>
+          ) : revisions.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                No changes recorded yet
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.5 }}>
+                Changes are automatically logged when the schedule is synced
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {revisions.map((revision) => {
+                const s = revision.summary;
+                return (
+                  <Box
+                    key={revision.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 1,
+                      px: 1.5,
+                      py: 1.25,
+                      borderRadius: '8px',
+                      '&:hover': { bgcolor: 'action.hover' },
+                    }}
+                  >
+                    <GitCommit size={14} weight="bold" style={{ flexShrink: 0, marginTop: 2, opacity: 0.4 }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      {/* Change summary chips */}
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
+                        {s && s.tasksAdded > 0 && (
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, fontSize: '0.625rem', fontWeight: 600, color: 'var(--status-green)' }}>
+                            <Plus size={9} weight="bold" /> {s.tasksAdded} task{s.tasksAdded !== 1 ? 's' : ''}
+                          </Box>
+                        )}
+                        {s && s.tasksModified > 0 && (
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, fontSize: '0.625rem', fontWeight: 600, color: 'var(--status-amber)' }}>
+                            <PencilSimple size={9} weight="bold" /> {s.tasksModified} modified
+                          </Box>
+                        )}
+                        {s && s.tasksRemoved > 0 && (
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, fontSize: '0.625rem', fontWeight: 600, color: 'var(--status-red)' }}>
+                            <MinusCircle size={9} weight="bold" /> {s.tasksRemoved} removed
+                          </Box>
+                        )}
+                        {s && (s.dependenciesAdded + s.dependenciesModified + s.dependenciesRemoved) > 0 && (
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled' }}>
+                            {s.dependenciesAdded + s.dependenciesModified + s.dependenciesRemoved} dep{(s.dependenciesAdded + s.dependenciesModified + s.dependenciesRemoved) !== 1 ? 's' : ''}
+                          </Box>
+                        )}
+                      </Box>
+                      <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.2 }}>
+                        {revision.createdBy.name ?? revision.createdBy.email} · {formatDistanceToNow(new Date(revision.createdAt), { addSuffix: true })}
+                      </Typography>
+                      <Typography sx={{ fontSize: 10, color: 'text.disabled', mt: 0.25, lineHeight: 1 }}>
+                        {format(new Date(revision.createdAt), 'MMM d, yyyy · h:mm a')}
+                      </Typography>
+                    </Box>
                   </Box>
                 );
               })}

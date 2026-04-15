@@ -33,8 +33,8 @@ jobs:
       - name: Build
         run: npx prisma generate && npx next build
         env:
-          construction_POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/test
-          construction_POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/test
+          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/test
+          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/test
           NODE_ENV: production
           SKIP_ENV_VALIDATION: true
 
@@ -81,8 +81,8 @@ jobs:
       - name: Push database schema
         run: npx prisma db push
         env:
-          construction_POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/construction_test
-          construction_POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
+          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/construction_test
+          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
@@ -90,8 +90,8 @@ jobs:
       - name: Run E2E tests
         run: npx playwright test --reporter=github,html
         env:
-          construction_POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/construction_test
-          construction_POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
+          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/construction_test
+          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
           BETTER_AUTH_SECRET: test-secret-for-ci-e2e-runner-only-0123456789
           APP_URL: http://localhost:3000
           SKIP_ENV_VALIDATION: true

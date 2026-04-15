@@ -54,15 +54,17 @@ export default function SaveVersionDialog({ open, onOpenChange, projectId }: Sav
       clearTimeout(timeoutId);
     };
 
-    const onSyncDone = () => {
+    const onSyncDone = (e: Event) => {
       cleanup();
       setIsSyncing(false);
-      saveMutation.mutate({ ...data, projectId });
+      const inlineData = (e as CustomEvent<{ inlineData: SaveVersionInput["clientSnapshot"] | null }>).detail?.inlineData;
+      saveMutation.mutate({ ...data, projectId, clientSnapshot: inlineData ?? undefined });
     };
 
     timeoutId = setTimeout(() => {
       cleanup();
       setIsSyncing(false);
+      // Timeout fallback — save without client data (falls back to DB snapshot)
       saveMutation.mutate({ ...data, projectId });
     }, SYNC_TIMEOUT_MS);
 

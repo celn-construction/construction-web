@@ -179,6 +179,12 @@ export type GanttConfig = {
     writeAllFields?: boolean;
     taskModelClass?: typeof TaskModel;
     delayCalculation?: boolean;
+    resetUndoRedoQueuesAfterLoad?: boolean;
+    stm?: {
+      autoRecord?: boolean;
+      autoRecordTransactionStopTimeout?: number;
+      disabled?: boolean;
+    };
     transport: {
       load: {
         url: string;

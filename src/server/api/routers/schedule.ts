@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "../../../../generated/prisma";
 import { createTRPCRouter, projectProcedure } from "@/server/api/trpc";
@@ -5,6 +6,8 @@ import { saveVersionSchema, versionIdSchema } from "@/lib/validations/schedule";
 import { hasPermission } from "@/lib/permissions";
 import { captureGanttSnapshot } from "@/server/api/helpers/ganttSnapshot";
 import type { GanttSnapshot } from "@/server/api/helpers/ganttSnapshot";
+import { buildSnapshotFromInlineData, reconcileDbFromSnapshot } from "@/server/api/helpers/ganttInlineSync";
+import type { RevisionSummary } from "@/lib/types/schedule";
 
 const MAX_VERSIONS_PER_PROJECT = 50;
 
@@ -77,7 +80,23 @@ export const scheduleRouter = createTRPCRouter({
         });
       }
 
-      const snapshot = await captureGanttSnapshot(ctx.db, projectId);
+      // Build snapshot from client inlineData if available (captures ALL Bryntum data).
+      // Falls back to DB snapshot if client data is missing (timeout fallback).
+      let snapshot: GanttSnapshot;
+      if (input.clientSnapshot) {
+        snapshot = buildSnapshotFromInlineData(input.clientSnapshot);
+        // Reconcile the DB so it matches the client state (upsert all, delete missing)
+        await reconcileDbFromSnapshot(ctx.db, projectId, snapshot);
+      } else {
+        snapshot = await captureGanttSnapshot(ctx.db, projectId);
+      }
+
+      // Link to the most recent revision so we know which revision this version was saved at
+      const latestRevision = await ctx.db.scheduleRevision.findFirst({
+        where: { projectId },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
 
       const result = await ctx.db.scheduleVersion.create({
         data: {
@@ -86,6 +105,7 @@ export const scheduleRouter = createTRPCRouter({
           description: input.description || null,
           snapshot: snapshot as unknown as Prisma.InputJsonValue,
           createdById: ctx.session.user.id,
+          revisionId: latestRevision?.id ?? null,
         },
         select: {
           id: true,
@@ -292,5 +312,172 @@ export const scheduleRouter = createTRPCRouter({
       });
 
       return { success: true };
+    }),
+
+  /**
+   * List revisions (change history) for a project.
+   * Returns compact summaries, not full change data.
+   */
+  listRevisions: projectProcedure
+    .input(z.object({
+      cursor: z.string().datetime().optional(),
+      limit: z.number().min(1).max(100).default(50),
+    }).optional().default({}))
+    .query(async ({ ctx, input }) => {
+      const projectId = ctx.project.id;
+      const { cursor, limit } = input;
+
+      const revisions = await ctx.db.scheduleRevision.findMany({
+        where: {
+          projectId,
+          ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit + 1, // Fetch one extra to detect hasMore
+        select: {
+          id: true,
+          createdAt: true,
+          summary: true,
+          createdBy: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
+
+      const hasMore = revisions.length > limit;
+      if (hasMore) revisions.pop();
+
+      return {
+        revisions: revisions.map((r) => ({
+          ...r,
+          summary: r.summary as unknown as RevisionSummary | null,
+        })),
+        nextCursor: hasMore ? revisions[revisions.length - 1]?.createdAt.toISOString() : undefined,
+      };
+    }),
+
+  /**
+   * Get full change details for a specific revision.
+   */
+  getRevision: projectProcedure
+    .input(z.object({ revisionId: z.string().cuid() }))
+    .query(async ({ ctx, input }) => {
+      const projectId = ctx.project.id;
+
+      const revision = await ctx.db.scheduleRevision.findUnique({
+        where: { id: input.revisionId },
+        select: {
+          id: true,
+          projectId: true,
+          createdAt: true,
+          changes: true,
+          summary: true,
+          createdBy: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
+
+      if (!revision || revision.projectId !== projectId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Revision not found" });
+      }
+
+      return {
+        id: revision.id,
+        createdAt: revision.createdAt,
+        changes: revision.changes,
+        summary: revision.summary as unknown as RevisionSummary | null,
+        createdBy: revision.createdBy,
+      };
+    }),
+
+  /**
+   * Diff between two versions: returns all revisions between them.
+   * Useful for answering "what changed between v3 and v5?"
+   */
+  diffVersions: projectProcedure
+    .input(z.object({
+      fromVersionId: z.string().cuid(),
+      toVersionId: z.string().cuid(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const projectId = ctx.project.id;
+
+      // Fetch both versions to get their timestamps
+      const [fromVersion, toVersion] = await Promise.all([
+        ctx.db.scheduleVersion.findUnique({
+          where: { id: input.fromVersionId },
+          select: { id: true, projectId: true, createdAt: true, name: true },
+        }),
+        ctx.db.scheduleVersion.findUnique({
+          where: { id: input.toVersionId },
+          select: { id: true, projectId: true, createdAt: true, name: true },
+        }),
+      ]);
+
+      if (!fromVersion || fromVersion.projectId !== projectId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Source version not found" });
+      }
+      if (!toVersion || toVersion.projectId !== projectId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Target version not found" });
+      }
+
+      // Ensure from < to chronologically
+      const [earlier, later] = fromVersion.createdAt <= toVersion.createdAt
+        ? [fromVersion, toVersion]
+        : [toVersion, fromVersion];
+
+      // Get all revisions between the two version timestamps
+      const revisions = await ctx.db.scheduleRevision.findMany({
+        where: {
+          projectId,
+          createdAt: {
+            gt: earlier.createdAt,
+            lte: later.createdAt,
+          },
+        },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          createdAt: true,
+          summary: true,
+          createdBy: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
+
+      // Aggregate totals across all revisions
+      let totalTasksAdded = 0, totalTasksModified = 0, totalTasksRemoved = 0;
+      let totalDepsAdded = 0, totalDepsModified = 0, totalDepsRemoved = 0;
+
+      for (const rev of revisions) {
+        const s = rev.summary as unknown as RevisionSummary | null;
+        if (!s) continue;
+        totalTasksAdded += s.tasksAdded;
+        totalTasksModified += s.tasksModified;
+        totalTasksRemoved += s.tasksRemoved;
+        totalDepsAdded += s.dependenciesAdded;
+        totalDepsModified += s.dependenciesModified;
+        totalDepsRemoved += s.dependenciesRemoved;
+      }
+
+      return {
+        from: { id: earlier.id, name: earlier.name, createdAt: earlier.createdAt },
+        to: { id: later.id, name: later.name, createdAt: later.createdAt },
+        revisionCount: revisions.length,
+        summary: {
+          tasksAdded: totalTasksAdded,
+          tasksModified: totalTasksModified,
+          tasksRemoved: totalTasksRemoved,
+          dependenciesAdded: totalDepsAdded,
+          dependenciesModified: totalDepsModified,
+          dependenciesRemoved: totalDepsRemoved,
+        },
+        revisions: revisions.map((r) => ({
+          ...r,
+          summary: r.summary as unknown as RevisionSummary | null,
+        })),
+      };
     }),
 });

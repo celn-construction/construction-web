@@ -5,6 +5,8 @@ import { Box, Stack } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Button } from '@/components/ui/button';
 import {
+  ArrowUUpLeft,
+  ArrowUUpRight,
   CaretDoubleLeft,
   CaretDoubleRight,
   DownloadSimple,
@@ -77,6 +79,10 @@ type GanttToolbarProps = {
   onExport?: () => void;
   onColumnsClick?: () => void;
   onMoreClick?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -91,6 +97,10 @@ export default function GanttToolbar({
   onExport,
   onColumnsClick,
   onMoreClick,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
 }: GanttToolbarProps) {
   const [activePreset, setActivePreset] = useState('weekAndDayLetter');
   const theme = useTheme();
@@ -198,6 +208,27 @@ export default function GanttToolbar({
         <Box sx={cardDividerSx} />
         <Box component="button" sx={cardItemSx} onClick={onShiftNext} title="Next time span">
           <CaretDoubleRight size={12} weight="bold" />
+        </Box>
+      </Box>
+
+      {/* ── Undo / Redo ───────────────────────────────────────────────── */}
+      <Box sx={cardContainerSx}>
+        <Box
+          component="button"
+          sx={{ ...cardItemSx, opacity: canUndo ? 1 : 0.35, cursor: canUndo ? 'pointer' : 'default' }}
+          onClick={canUndo ? onUndo : undefined}
+          title="Undo (Ctrl+Z)"
+        >
+          <ArrowUUpLeft size={13} weight="bold" />
+        </Box>
+        <Box sx={cardDividerSx} />
+        <Box
+          component="button"
+          sx={{ ...cardItemSx, opacity: canRedo ? 1 : 0.35, cursor: canRedo ? 'pointer' : 'default' }}
+          onClick={canRedo ? onRedo : undefined}
+          title="Redo (Ctrl+Y)"
+        >
+          <ArrowUUpRight size={13} weight="bold" />
         </Box>
       </Box>
 

@@ -6,8 +6,8 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 
 | Variable | Purpose | Required | Example |
 |---|---|---|---|
-| `construction_POSTGRES_PRISMA_URL` | PostgreSQL connection string (local in dev, Neon on Vercel) | Yes | `postgresql://USER@localhost:5433/construction` |
-| `construction_POSTGRES_URL_NON_POOLING` | Direct (non-pooled) PostgreSQL connection for Prisma migrations | Yes | `postgresql://USER@localhost:5433/construction` |
+| `POSTGRES_PRISMA_URL` | PostgreSQL connection string (local in dev, Neon on Vercel) | Yes | `postgresql://construction:construction@localhost:5432/construction` |
+| `POSTGRES_URL_NON_POOLING` | Direct (non-pooled) PostgreSQL connection for Prisma migrations | Yes | `postgresql://construction:construction@localhost:5432/construction` |
 | `BETTER_AUTH_SECRET` | Signing secret for Better Auth sessions | Yes | Any strong random string |
 | `APP_URL` | Base URL for Better Auth callbacks, trusted origins, invite links, and password reset links. Must be set per-environment — see `claudedocs/vercel.md`. | Yes (defaults to `http://localhost:3000`) | `https://celn.app` |
 | `RESEND_API_KEY` | Resend transactional email API key | Optional | `re_...` (omit for dev console logging) |
@@ -34,7 +34,7 @@ Validation is defined in `src/env.js` using `@t3-oss/env-nextjs` and Zod. The bu
 **Prerequisites**
 - Node.js 24 (see `.nvmrc`; use `nvm use`)
 - npm 11.3+ (declared in `packageManager` field)
-- PostgreSQL 17 (`brew install postgresql@17`) running locally on **port 5433** with `pg_trgm` and `vector` extensions (port 5432 is reserved for OrbStack)
+- Docker (via OrbStack recommended) — PostgreSQL 17 runs in a container with `pg_trgm` and `vector` extensions
 - Vercel CLI (`npm i -g vercel`) — non-DB secrets are managed in Vercel
 
 **Setup**
@@ -45,21 +45,28 @@ git clone <repo-url> && cd providence
 nvm use
 npm install          # runs prisma generate via postinstall
 
-# 2. Create local database (if not already done)
-# Ensure PostgreSQL 17 binaries are on PATH:
-export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
-# Start on port 5433 (port 5432 is used by OrbStack)
-/opt/homebrew/opt/postgresql@17/bin/pg_ctl -D /opt/homebrew/var/postgresql@17 -o "-p 5433" start
-createdb -p 5433 construction
-psql -p 5433 -d construction -c "CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS vector;"
+# 2. Start local database (Docker via OrbStack)
+# Starts existing container, or creates one if first time
+docker start construction-postgres 2>/dev/null || \
+  docker run -d --name construction-postgres --restart unless-stopped \
+    -p 5432:5432 \
+    -e POSTGRES_USER=construction \
+    -e POSTGRES_PASSWORD=construction \
+    -e POSTGRES_DB=construction \
+    -v construction-pgdata:/var/lib/postgresql/data \
+    pgvector/pgvector:pg17
+# Ensure extensions (idempotent)
+sleep 2 && docker exec construction-postgres \
+  psql -U construction -d construction \
+  -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS vector;'
 
 # 3. Pull env vars from Vercel (for non-DB secrets)
 vercel env pull .env.local --environment development --scope celn --yes
 
 # 4. Override DB URLs to use local PostgreSQL
-# Replace the Neon URLs with local ones:
-sed -i '' "s|^construction_POSTGRES_PRISMA_URL=.*|construction_POSTGRES_PRISMA_URL=\"postgresql://$USER@localhost:5433/construction\"|" .env.local
-sed -i '' "s|^construction_POSTGRES_URL_NON_POOLING=.*|construction_POSTGRES_URL_NON_POOLING=\"postgresql://$USER@localhost:5433/construction\"|" .env.local
+# Replace the Neon URLs with local Docker ones:
+sed -i '' "s|^POSTGRES_PRISMA_URL=.*|POSTGRES_PRISMA_URL=\"postgresql://construction:construction@localhost:5432/construction\"|" .env.local
+sed -i '' "s|^POSTGRES_URL_NON_POOLING=.*|POSTGRES_URL_NON_POOLING=\"postgresql://construction:construction@localhost:5432/construction\"|" .env.local
 
 # APP_URL must be set manually since it depends on your local port:
 echo 'APP_URL="http://localhost:3000"' >> .env.local
@@ -72,10 +79,10 @@ npm run dev          # http://localhost:3000
 ```
 
 **Notes**
-- Local dev uses a local PostgreSQL database on **port 5433** for speed (port 5432 is occupied by OrbStack). Vercel deployments (preview/production) use Neon via the Vercel-Neon integration.
+- Local dev uses a shared PostgreSQL 17 Docker container (`construction-postgres`) on **port 5432** with `pgvector/pgvector:pg17` image. The container is shared across all Conductor workspaces via a named container and volume (`construction-pgdata`). Vercel deployments (preview/production) use Neon via the Vercel-Neon integration.
 - Email functionality falls back to console logging when `RESEND_API_KEY` is not set.
 - Better Auth trusts any localhost origin in development, and `APP_URL` in production (see `src/lib/auth.ts`).
-- In Conductor, `conductor.json` handles setup automatically — `APP_URL` and local DB URLs are set automatically.
+- In Conductor, `conductor.json` handles setup automatically — starts Docker, pulls env vars, overrides DB URLs, and installs dependencies.
 
 ## Available Scripts
 
@@ -104,4 +111,4 @@ npm run dev          # http://localhost:3000
 - **Build command** (vercel.json): `npx prisma migrate deploy && npx prisma generate && npx next build`
 - **Install command**: `npm install`
 
-Database migrations run automatically on every Vercel build. Set `construction_POSTGRES_PRISMA_URL`, `BETTER_AUTH_SECRET`, `APP_URL`, and `RESEND_API_KEY` in the Vercel project environment settings per environment. `BLOB_READ_WRITE_TOKEN` is auto-provisioned by the Vercel Blob integration. See `claudedocs/vercel.md` for CLI commands.
+Database migrations run automatically on every Vercel build. Set `POSTGRES_PRISMA_URL`, `BETTER_AUTH_SECRET`, `APP_URL`, and `RESEND_API_KEY` in the Vercel project environment settings per environment. `BLOB_READ_WRITE_TOKEN` is auto-provisioned by the Vercel Blob integration. See `claudedocs/vercel.md` for CLI commands.
