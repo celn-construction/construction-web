@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from '@/lib/auth-client';
 import { motion } from 'framer-motion';
-import { CaretDown, Play, MagnifyingGlass, Bell, House, ListChecks, ArrowsLeftRight, CreditCard, Bank, Buildings, Gear, Path, BellRinging, CaretRight, Check, ChartBar, BookOpen, UsersThree, Rocket } from '@phosphor-icons/react';
+import { CaretDown, Play, MagnifyingGlass, Bell, House, ListChecks, Buildings, Gear, FolderOpen, CloudSun, CalendarBlank, MapPin, ClockCounterClockwise, CaretRight, Check, ChartBar, BookOpen, UsersThree } from '@phosphor-icons/react';
 
 const interFont = 'var(--font-inter)';
 const instrumentSerifFont = 'var(--font-instrument-serif)';
@@ -29,35 +29,32 @@ const t = {
 
 function DashboardPreview() {
   const sidebarItems = [
-    { label: 'Home', icon: House, active: true },
-    { label: 'Tasks', icon: ListChecks, badge: '10' },
-    { label: 'Transactions', icon: ArrowsLeftRight },
-    { label: 'Payments', icon: CreditCard, chevron: true },
-    { label: 'Cards', icon: CreditCard },
-    { label: 'Capital', icon: Bank },
-    { label: 'Accounts', icon: Buildings, chevron: true },
-  ];
-
-  const workflowItems = [
-    { label: 'Trade routes', icon: Path },
-    { label: 'Payments', icon: CreditCard },
-    { label: 'Notifications', icon: BellRinging },
+    { label: 'Dashboard', icon: House, active: true },
+    { label: 'Gantt', icon: ChartBar, badge: '14' },
+    { label: 'File Tree', icon: FolderOpen },
+    { label: 'Documents', icon: BookOpen, chevron: true },
+    { label: 'Team', icon: UsersThree },
     { label: 'Settings', icon: Gear },
   ];
 
-  const actions = ['Send', 'Request', 'Transfer', 'Deposit', 'Pay Bill', 'Create Invoice'];
-
-  const accounts = [
-    { name: 'Credit', amount: '$98,125.50' },
-    { name: 'Treasury', amount: '$6,750,200.00' },
-    { name: 'Operations', amount: '$1,592,864.82' },
+  const projectItems = [
+    { label: 'Weather', icon: CloudSun },
+    { label: 'Notifications', icon: Bell },
   ];
 
-  const transactions = [
-    { date: 'Mar 28', desc: 'AWS', amount: '-$5,200', status: 'Pending', statusColor: '#d97706' },
-    { date: 'Mar 27', desc: 'Client Payment', amount: '+$125,000', status: 'Completed', statusColor: '#16a34a' },
-    { date: 'Mar 26', desc: 'Payroll', amount: '-$85,450', status: 'Completed', statusColor: '#16a34a' },
-    { date: 'Mar 25', desc: 'Office Supplies', amount: '-$1,200', status: 'Completed', statusColor: '#16a34a' },
+  const actions = ['New Task', 'Upload File', 'Invite Member', 'Save Snapshot'];
+
+  const scheduleSummary = [
+    { name: 'Tasks Due', amount: '14' },
+    { name: 'In Progress', amount: '8' },
+    { name: 'Completed', amount: '23' },
+  ];
+
+  const activity = [
+    { date: 'Apr 14', desc: 'Foundation Pour', project: 'Phase 2', status: 'In Progress', statusColor: '#d97706' },
+    { date: 'Apr 13', desc: 'Plans Uploaded', project: 'Phase 1', status: 'Complete', statusColor: '#16a34a' },
+    { date: 'Apr 12', desc: 'Framing Inspection', project: 'Phase 2', status: 'Scheduled', statusColor: '#2563eb' },
+    { date: 'Apr 11', desc: 'RFI Submitted', project: 'Phase 1', status: 'Complete', statusColor: '#16a34a' },
   ];
 
   const fs = { fontSize: 11, fontFamily: interFont };
@@ -68,9 +65,9 @@ function DashboardPreview() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderBottom: `1px solid ${t.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 20, height: 20, borderRadius: 4, background: t.fg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>N</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>B</span>
           </div>
-          <span style={{ fontSize: 11, fontWeight: 600, color: t.fg }}>Nexora</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: t.fg }}>BuildTrack Pro</span>
           <CaretDown size={10} style={{ color: t.mutedFg }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.secondary, borderRadius: 6, padding: '4px 10px' }}>
@@ -79,10 +76,10 @@ function DashboardPreview() {
           <span style={{ fontSize: 9, color: t.mutedFg, marginLeft: 12, background: t.bg, borderRadius: 3, padding: '1px 4px', border: `1px solid ${t.border}` }}>⌘K</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 500, color: t.fg, background: t.secondary, borderRadius: 6, padding: '4px 8px' }}>Move Money</span>
+          <span style={{ fontSize: 10, fontWeight: 500, color: t.fg, background: t.secondary, borderRadius: 6, padding: '4px 8px' }}>New Task</span>
           <Bell size={12} style={{ color: t.mutedFg }} weight="regular" />
           <div style={{ width: 20, height: 20, borderRadius: '50%', background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: 8, fontWeight: 600, color: '#fff' }}>JB</span>
+            <span style={{ fontSize: 8, fontWeight: 600, color: '#fff' }}>PM</span>
           </div>
         </div>
       </div>
@@ -99,8 +96,8 @@ function DashboardPreview() {
               {item.chevron && <CaretRight size={8} style={{ color: t.mutedFg }} />}
             </div>
           ))}
-          <div style={{ fontSize: 9, fontWeight: 500, color: t.mutedFg, padding: '10px 6px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Workflows</div>
-          {workflowItems.map((item) => (
+          <div style={{ fontSize: 9, fontWeight: 500, color: t.mutedFg, padding: '10px 6px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Project</div>
+          {projectItems.map((item) => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 6px', borderRadius: 6, fontSize: 10, color: t.mutedFg }}>
               <item.icon size={12} />
               <span>{item.label}</span>
@@ -111,7 +108,7 @@ function DashboardPreview() {
         {/* Main content */}
         <div style={{ flex: 1, padding: 12, background: 'rgba(0,0,0,0.015)', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
           {/* Greeting */}
-          <p style={{ fontSize: 12, fontWeight: 600, color: t.fg, margin: 0 }}>Welcome, Jane</p>
+          <p style={{ fontSize: 12, fontWeight: 600, color: t.fg, margin: 0 }}>Welcome, Project Manager</p>
 
           {/* Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
@@ -123,19 +120,19 @@ function DashboardPreview() {
 
           {/* Cards row */}
           <div style={{ display: 'flex', gap: 8 }}>
-            {/* Balance card */}
+            {/* Active projects card */}
             <div style={{ flex: '1 1 0', background: t.bg, borderRadius: 8, padding: 10, border: `1px solid ${t.border}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
-                <span style={{ fontSize: 10, color: t.mutedFg }}>Mercury Balance</span>
+                <span style={{ fontSize: 10, color: t.mutedFg }}>Active Projects</span>
                 <Check size={10} style={{ color: '#16a34a' }} />
               </div>
               <p style={{ fontSize: 20, fontWeight: 600, color: t.fg, margin: '0 0 4px' }}>
-                $8,450,190<span style={{ fontSize: 12, color: t.mutedFg }}>.32</span>
+                12<span style={{ fontSize: 12, color: t.mutedFg, marginLeft: 4 }}>total</span>
               </p>
               <div style={{ display: 'flex', gap: 12, marginBottom: 8, fontSize: 9 }}>
-                <span style={{ color: t.mutedFg }}>Last 30 Days</span>
-                <span style={{ color: '#16a34a' }}>+$1.8M</span>
-                <span style={{ color: '#dc2626' }}>-$900K</span>
+                <span style={{ color: '#16a34a' }}>3 On Track</span>
+                <span style={{ color: '#d97706' }}>2 At Risk</span>
+                <span style={{ color: '#dc2626' }}>1 Delayed</span>
               </div>
               {/* SVG chart */}
               <svg viewBox="0 0 280 60" style={{ width: '100%', height: 50 }}>
@@ -150,38 +147,35 @@ function DashboardPreview() {
               </svg>
             </div>
 
-            {/* Accounts card */}
+            {/* Schedule summary card */}
             <div style={{ flex: '1 1 0', background: t.bg, borderRadius: 8, padding: 10, border: `1px solid ${t.border}` }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 500, color: t.fg }}>Accounts</span>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <span style={{ fontSize: 12, color: t.mutedFg }}>+</span>
-                  <span style={{ fontSize: 12, color: t.mutedFg }}>⋮</span>
-                </div>
+                <span style={{ fontSize: 10, fontWeight: 500, color: t.fg }}>This Week</span>
+                <CalendarBlank size={11} style={{ color: t.mutedFg }} />
               </div>
-              {accounts.map((acc) => (
-                <div key={acc.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 10 }}>
-                  <span style={{ color: t.mutedFg }}>{acc.name}</span>
-                  <span style={{ fontWeight: 500, color: t.fg }}>{acc.amount}</span>
+              {scheduleSummary.map((item) => (
+                <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 10 }}>
+                  <span style={{ color: t.mutedFg }}>{item.name}</span>
+                  <span style={{ fontWeight: 500, color: t.fg }}>{item.amount}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Transactions */}
+          {/* Recent activity */}
           <div style={{ background: t.bg, borderRadius: 8, padding: 10, border: `1px solid ${t.border}` }}>
-            <p style={{ fontSize: 10, fontWeight: 500, color: t.fg, margin: '0 0 6px' }}>Recent Transactions</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 80px 70px', gap: '4px 8px', fontSize: 10 }}>
+            <p style={{ fontSize: 10, fontWeight: 500, color: t.fg, margin: '0 0 6px' }}>Recent Activity</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 80px 80px', gap: '4px 8px', fontSize: 10 }}>
               <span style={{ color: t.mutedFg, fontWeight: 500 }}>Date</span>
-              <span style={{ color: t.mutedFg, fontWeight: 500 }}>Description</span>
-              <span style={{ color: t.mutedFg, fontWeight: 500, textAlign: 'right' }}>Amount</span>
+              <span style={{ color: t.mutedFg, fontWeight: 500 }}>Activity</span>
+              <span style={{ color: t.mutedFg, fontWeight: 500, textAlign: 'right' }}>Project</span>
               <span style={{ color: t.mutedFg, fontWeight: 500, textAlign: 'right' }}>Status</span>
-              {transactions.map((tx) => (
-                <div key={tx.desc} style={{ display: 'contents' }}>
-                  <span style={{ color: t.mutedFg }}>{tx.date}</span>
-                  <span style={{ color: t.fg }}>{tx.desc}</span>
-                  <span style={{ color: tx.amount.startsWith('+') ? '#16a34a' : t.fg, textAlign: 'right', fontWeight: 500 }}>{tx.amount}</span>
-                  <span style={{ color: tx.statusColor, textAlign: 'right' }}>{tx.status}</span>
+              {activity.map((item) => (
+                <div key={item.desc} style={{ display: 'contents' }}>
+                  <span style={{ color: t.mutedFg }}>{item.date}</span>
+                  <span style={{ color: t.fg }}>{item.desc}</span>
+                  <span style={{ color: t.mutedFg, textAlign: 'right' }}>{item.project}</span>
+                  <span style={{ color: item.statusColor, textAlign: 'right' }}>{item.status}</span>
                 </div>
               ))}
             </div>
@@ -226,9 +220,7 @@ function NexoraSection({ isLoggedIn }: { isLoggedIn: boolean }) {
           <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', color: t.fg }}>BuildTrack Pro</span>
         </div>
         <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 32 }}>
-          {['Home', 'Pricing', 'About', 'Contact'].map((link) => (
-            <a key={link} href="#" style={{ fontSize: 14, color: t.mutedFg, textDecoration: 'none', transition: 'color 0.2s' }}>{link}</a>
-          ))}
+          <a href="#features" style={{ fontSize: 14, color: t.mutedFg, textDecoration: 'none', transition: 'color 0.2s' }}>Features</a>
         </div>
         <Link href={isLoggedIn ? '/api/resolve-redirect?redirect=true' : '/sign-in'} style={{ background: t.fg, color: '#fff', padding: '8px 20px', borderRadius: 999, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
           {isLoggedIn ? 'Dashboard' : 'Sign In'}
@@ -245,7 +237,7 @@ function NexoraSection({ isLoggedIn }: { isLoggedIn: boolean }) {
           style={{ marginBottom: 24 }}
         >
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 999, border: `1px solid ${t.border}`, background: t.bg, padding: '6px 16px', fontSize: 14, color: t.mutedFg, fontFamily: interFont }}>
-            Now with GPT-5 support ✨
+            Built for General Contractors
           </div>
         </motion.div>
 
@@ -266,9 +258,9 @@ function NexoraSection({ isLoggedIn }: { isLoggedIn: boolean }) {
             fontWeight: 400,
           }}
         >
-          The Future of{' '}
-          <span style={{ fontStyle: 'italic' }}>Smarter</span>{' '}
-          Automation
+          Build On Time,{' '}
+          <span style={{ fontStyle: 'italic' }}>Every</span>{' '}
+          Time
         </motion.h1>
 
         {/* Subheadline */}
@@ -287,7 +279,7 @@ function NexoraSection({ isLoggedIn }: { isLoggedIn: boolean }) {
             padding: '0 16px',
           }}
         >
-          Automate your busywork with intelligent agents that learn, adapt, and execute—so your team can focus on what matters most.
+          Schedule, document, and manage your construction projects from one platform — with Gantt charts, file management, and real-time team collaboration.
         </motion.p>
 
         {/* CTA */}
@@ -297,9 +289,9 @@ function NexoraSection({ isLoggedIn }: { isLoggedIn: boolean }) {
           transition={{ duration: 0.6, delay: 0.3 }}
           style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 12 }}
         >
-          <a href="#" style={{ background: t.fg, color: '#fff', padding: '14px 24px', borderRadius: 999, fontSize: 14, fontWeight: 500, textDecoration: 'none', fontFamily: interFont }}>
-            Book a demo
-          </a>
+          <Link href={isLoggedIn ? '/api/resolve-redirect?redirect=true' : '/sign-up'} style={{ background: t.fg, color: '#fff', padding: '14px 24px', borderRadius: 999, fontSize: 14, fontWeight: 500, textDecoration: 'none', fontFamily: interFont }}>
+            Get Started
+          </Link>
           <button
             type="button"
             style={{
@@ -357,24 +349,24 @@ function NexoraSection({ isLoggedIn }: { isLoggedIn: boolean }) {
    ══════════════════════════════════════════════════════════════ */
 
 const stellarTabs = [
-  { id: 'analyse', label: 'Analyse', icon: ChartBar },
-  { id: 'train', label: 'Train', icon: BookOpen },
-  { id: 'testing', label: 'Testing', icon: UsersThree },
-  { id: 'deploy', label: 'Deploy', icon: Rocket },
+  { id: 'schedule', label: 'Schedule', icon: ChartBar },
+  { id: 'documents', label: 'Documents', icon: BookOpen },
+  { id: 'team', label: 'Team', icon: UsersThree },
+  { id: 'track', label: 'Track', icon: ListChecks },
 ] as const;
 
 type StellarTabId = (typeof stellarTabs)[number]['id'];
 
-function AnalyseOverlay() {
+function ScheduleOverlay() {
   return (
     <div className="animate-fade-in-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
       <div className="animate-slide-up-overlay" style={{ position: 'absolute', top: '50%', left: '50%', background: '#fff', borderRadius: 16, padding: 32, width: 380, maxWidth: '90%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
-        <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 4 }}>Set Up Your AI Workspace</p>
-        <p style={{ fontFamily: interFont, fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Configure your environment to get started</p>
+        <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 4 }}>Gantt Chart Scheduling</p>
+        <p style={{ fontFamily: interFont, fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Visualize your project timeline</p>
         <div style={{ height: 4, background: '#e5e7eb', borderRadius: 2, marginBottom: 20, overflow: 'hidden' }}>
           <div style={{ width: '25%', height: '100%', background: '#8b5cf6', borderRadius: 2 }} />
         </div>
-        {['Connect data source', 'Select AI model', 'Configure parameters', 'Review & launch'].map((step, i) => (
+        {['Define project phases', 'Add tasks & milestones', 'Set dependencies & durations', 'Save schedule version'].map((step, i) => (
           <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid #f3f4f6' : undefined }}>
             <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, fontFamily: interFont, ...(i === 0 ? { background: '#8b5cf6', color: '#fff' } : { background: '#f3f4f6', color: '#9ca3af' }) }}>
               {i === 0 ? <Check size={12} /> : i + 1}
@@ -387,20 +379,20 @@ function AnalyseOverlay() {
   );
 }
 
-function TrainOverlay() {
+function DocumentsOverlay() {
   return (
     <div className="animate-fade-in-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
       <div className="animate-slide-up-overlay" style={{ position: 'absolute', top: '50%', left: '50%', background: '#fff', borderRadius: 16, padding: 32, width: 380, maxWidth: '90%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
-        <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 4 }}>AI Model Training</p>
-        <p style={{ fontFamily: interFont, fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Training in progress...</p>
+        <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 4 }}>Document Management</p>
+        <p style={{ fontFamily: interFont, fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Search and organize project files</p>
         <div style={{ height: 4, background: '#e5e7eb', borderRadius: 2, marginBottom: 20, overflow: 'hidden' }}>
           <div style={{ width: '67%', height: '100%', background: '#f59e0b', borderRadius: 2 }} />
         </div>
         {[
-          { label: 'Epoch', value: '67 / 100' },
-          { label: 'Loss', value: '0.0234' },
-          { label: 'Accuracy', value: '94.7%' },
-          { label: 'Time remaining', value: '~12 min' },
+          { label: 'Files Uploaded', value: '247' },
+          { label: 'Categories', value: '12' },
+          { label: 'AI Search', value: 'Active' },
+          { label: 'Storage Used', value: '4.2 GB' },
         ].map((item) => (
           <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
             <span style={{ fontFamily: interFont, fontSize: 13, color: '#6b7280' }}>{item.label}</span>
@@ -412,23 +404,23 @@ function TrainOverlay() {
   );
 }
 
-function TestingOverlay() {
+function TeamOverlay() {
   return (
     <div className="animate-fade-in-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
       <div className="animate-slide-up-overlay" style={{ position: 'absolute', top: '50%', left: '50%', background: '#fff', borderRadius: 16, padding: 32, width: 380, maxWidth: '90%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Check size={14} style={{ color: '#16a34a' }} />
+            <UsersThree size={14} style={{ color: '#16a34a' }} />
           </div>
           <div>
-            <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', margin: 0 }}>Test Suite Results</p>
-            <p style={{ fontFamily: interFont, fontSize: 12, color: '#16a34a', margin: 0 }}>All tests passed</p>
+            <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', margin: 0 }}>Team Collaboration</p>
+            <p style={{ fontFamily: interFont, fontSize: 12, color: '#16a34a', margin: 0 }}>Everyone in sync</p>
           </div>
         </div>
         <div style={{ background: '#f9fafb', borderRadius: 8, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontFamily: interFont, fontSize: 24, fontWeight: 700, color: '#111' }}>127/127</span>
-            <span style={{ fontFamily: interFont, fontSize: 12, fontWeight: 500, color: '#16a34a', background: '#dcfce7', borderRadius: 999, padding: '2px 10px', display: 'flex', alignItems: 'center' }}>100%</span>
+            <span style={{ fontFamily: interFont, fontSize: 24, fontWeight: 700, color: '#111' }}>18 Members</span>
+            <span style={{ fontFamily: interFont, fontSize: 12, fontWeight: 500, color: '#16a34a', background: '#dcfce7', borderRadius: 999, padding: '2px 10px', display: 'flex', alignItems: 'center' }}>5 Roles</span>
           </div>
           <div style={{ height: 4, background: '#dcfce7', borderRadius: 2 }}>
             <div style={{ width: '100%', height: '100%', background: '#16a34a', borderRadius: 2 }} />
@@ -436,9 +428,9 @@ function TestingOverlay() {
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           {[
-            { label: 'Unit', count: 89, color: '#16a34a' },
-            { label: 'Integration', count: 28, color: '#2563eb' },
-            { label: 'E2E', count: 10, color: '#7c3aed' },
+            { label: 'Owners', count: 2, color: '#16a34a' },
+            { label: 'PMs', count: 5, color: '#2563eb' },
+            { label: 'Members', count: 11, color: '#7c3aed' },
           ].map((tt) => (
             <div key={tt.label} style={{ flex: 1, textAlign: 'center', padding: '8px 0', background: '#f9fafb', borderRadius: 8 }}>
               <p style={{ fontFamily: interFont, fontSize: 16, fontWeight: 700, color: tt.color, margin: 0 }}>{tt.count}</p>
@@ -451,13 +443,13 @@ function TestingOverlay() {
   );
 }
 
-function DeployOverlay() {
+function TrackOverlay() {
   return (
     <div className="animate-fade-in-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
       <div className="animate-slide-up-overlay" style={{ position: 'absolute', top: '50%', left: '50%', background: '#fff', borderRadius: 16, padding: 32, width: 380, maxWidth: '90%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
-        <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 4 }}>Deploy to Production</p>
-        <p style={{ fontFamily: interFont, fontSize: 12, color: '#6b7280', marginBottom: 20 }}>Pre-flight checks complete</p>
-        {['Model validation passed', 'API endpoints verified', 'Load testing complete', 'Rollback plan configured'].map((item, i) => (
+        <p style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 4 }}>Project Tracking</p>
+        <p style={{ fontFamily: interFont, fontSize: 12, color: '#6b7280', marginBottom: 20 }}>Real-time project visibility</p>
+        {['Weather data synced for job site', 'Schedule snapshot saved', 'Team notifications active', 'CSI codes classified'].map((item, i) => (
           <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid #f3f4f6' : undefined }}>
             <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Check size={11} style={{ color: '#16a34a' }} />
@@ -466,7 +458,7 @@ function DeployOverlay() {
           </div>
         ))}
         <button type="button" style={{ width: '100%', marginTop: 20, padding: '10px 0', background: '#111', color: '#fff', border: 'none', borderRadius: 999, fontFamily: interFont, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
-          Deploy Now
+          View Dashboard
         </button>
       </div>
     </div>
@@ -474,7 +466,7 @@ function DeployOverlay() {
 }
 
 function StellarSection() {
-  const [activeTab, setActiveTab] = useState<StellarTabId>('analyse');
+  const [activeTab, setActiveTab] = useState<StellarTabId>('schedule');
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -487,26 +479,26 @@ function StellarSection() {
   }, []);
 
   return (
-    <section style={{ background: '#fff', fontFamily: interFont }}>
+    <section id="features" style={{ background: '#fff', fontFamily: interFont }}>
       {/* Hero */}
       <div style={{ padding: '96px 24px 128px', maxWidth: 1280, margin: '0 auto', textAlign: 'center' }}>
         {/* Heading */}
         <h1 className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.3s', fontSize: 'clamp(3rem, 6vw, 80px)', fontWeight: 400, lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: 20, color: '#000' }}>
-          Work Smarter. Move Faster.
+          Plan. Build. Deliver.
           <br />
           <span style={{ background: 'linear-gradient(to right, #000, #6b7280, #9ca3af)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            AI Powers You Up.
+            All in One Platform.
           </span>
         </h1>
 
         {/* Subheading */}
         <p className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.4s', fontSize: 'clamp(16px, 1.5vw, 20px)', color: '#4b5563', maxWidth: 672, margin: '0 auto 32px', lineHeight: 1.6 }}>
-          Intelligent automation syncs with the tools you love to streamline tasks, boost output, and save time.
+          From Gantt chart scheduling to document management and team collaboration — everything your crew needs to keep projects on track.
         </p>
 
         {/* CTA */}
         <div className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.5s', marginBottom: 48 }}>
-          <a href="#" style={{ display: 'inline-block', background: '#000', color: '#fff', padding: '12px 32px', borderRadius: 999, fontSize: 16, fontWeight: 500, textDecoration: 'none' }}>Begin Free Trial</a>
+          <Link href="/sign-up" style={{ display: 'inline-block', background: '#000', color: '#fff', padding: '12px 32px', borderRadius: 999, fontSize: 16, fontWeight: 500, textDecoration: 'none' }}>Get Started</Link>
         </div>
 
         {/* Tab bar */}
@@ -534,36 +526,17 @@ function StellarSection() {
             autoPlay loop muted playsInline
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
-          {activeTab === 'analyse' && <AnalyseOverlay />}
-          {activeTab === 'train' && <TrainOverlay />}
-          {activeTab === 'testing' && <TestingOverlay />}
-          {activeTab === 'deploy' && <DeployOverlay />}
+          {activeTab === 'schedule' && <ScheduleOverlay />}
+          {activeTab === 'documents' && <DocumentsOverlay />}
+          {activeTab === 'team' && <TeamOverlay />}
+          {activeTab === 'track' && <TrackOverlay />}
         </div>
 
-        {/* Company logos */}
-        <div className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.8s', marginTop: 96, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 48, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: interFont, fontSize: 14, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9ca3af' }}>INTERSCOPE</span>
-          <span style={{ fontFamily: interFont, fontSize: 14, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9ca3af' }}>SPOTIFY</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <circle cx="3" cy="3" r="2" fill="#9ca3af" /><circle cx="9" cy="3" r="2" fill="#9ca3af" /><circle cx="15" cy="3" r="2" fill="#9ca3af" />
-              <circle cx="3" cy="9" r="2" fill="#9ca3af" /><circle cx="9" cy="9" r="2" fill="#9ca3af" /><circle cx="15" cy="9" r="2" fill="#9ca3af" />
-            </svg>
-            <span style={{ fontFamily: interFont, fontSize: 14, fontWeight: 600, color: '#9ca3af' }}>Nexera</span>
-          </div>
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 18, fontWeight: 700, fontStyle: 'italic', color: '#9ca3af' }}>M3</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 22, height: 22, borderRadius: '50%', border: '1.5px solid #9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontFamily: interFont, fontSize: 9, fontWeight: 700, color: '#9ca3af' }}>LC</span>
-            </div>
-            <span style={{ fontFamily: interFont, fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9ca3af' }}>Laura Cole</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="3" cy="7" r="2.5" fill="#9ca3af" /><circle cx="11" cy="7" r="2.5" fill="#9ca3af" /><circle cx="7" cy="3" r="2.5" fill="#9ca3af" />
-            </svg>
-            <span style={{ fontFamily: interFont, fontSize: 14, fontWeight: 500, color: '#9ca3af' }}>vertex</span>
-          </div>
+        {/* Tagline */}
+        <div className="animate-fade-in-up" style={{ opacity: 0, animationDelay: '0.8s', marginTop: 96, textAlign: 'center' }}>
+          <span style={{ fontFamily: interFont, fontSize: 14, fontWeight: 500, color: '#9ca3af' }}>
+            Trusted by general contractors and project managers.
+          </span>
         </div>
       </div>
     </section>
@@ -581,11 +554,9 @@ function Footer() {
   ];
 
   const mainLinks = [
-    { href: '#', label: 'Features' },
-    { href: '#', label: 'Pricing' },
-    { href: '#', label: 'About' },
-    { href: '#', label: 'Contact' },
-    { href: '#', label: 'Blog' },
+    { href: '#features', label: 'Features' },
+    { href: '/sign-in', label: 'Sign In' },
+    { href: '/sign-up', label: 'Sign Up' },
   ];
 
   const legalLinks = [
