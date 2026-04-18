@@ -18,7 +18,7 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const VIEW_PRESETS = [
   { label: 'Day',   value: 'hourAndDay' },
-  { label: 'Week',  value: 'weekAndDayLetter' },
+  { label: 'Week',  value: 'weekAndDayLetterCompact' },
   { label: 'Month', value: 'weekAndMonth' },
   { label: 'Year',  value: 'monthAndYear' },
 ] as const;
@@ -102,7 +102,7 @@ export default function GanttToolbar({
   canUndo = false,
   canRedo = false,
 }: GanttToolbarProps) {
-  const [activePreset, setActivePreset] = useState('weekAndDayLetter');
+  const [activePreset, setActivePreset] = useState('weekAndDayLetterCompact');
   const theme = useTheme();
 
   const handlePresetClick = (preset: string) => {
