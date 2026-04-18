@@ -6,6 +6,8 @@ import { Menu } from '@bryntum/gantt';
 import '@bryntum/gantt/gantt.css';
 import { Box } from '@mui/material';
 import { api } from '@/trpc/react';
+import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
+import { canManageProjects } from '@/lib/permissions';
 import { createGanttConfig } from './config/ganttConfig';
 import GanttToolbar from './components/GanttToolbar';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
@@ -74,6 +76,12 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   const [conflictOpen, setConflictOpen] = useState(false);
   const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
+  // Lock mode: chart is locked by default; admin-level users can unlock to edit.
+  const { currentOrg } = useOrgFromUrl();
+  const canEditChart = canManageProjects(currentOrg?.role ?? '');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const editingUnlocked = canEditChart && isEditMode;
+
   const isReloadingRef = useRef(false);
   const skipVersionRef = useRef(false);
 
@@ -81,6 +89,15 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     useTaskPopover();
 
   useBryntumThemeAssets();
+
+  // Sync Bryntum's built-in readOnly flag with our edit-mode state.
+  // This disables cell editing, task drag, task resize, and dependency creation.
+  useEffect(() => {
+    if (isLoading) return;
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    gantt.readOnly = !editingUnlocked;
+  }, [isLoading, getGanttInstance, editingUnlocked]);
 
   // After data loads, finalize the project so the scheduling engine is ready.
   // delayCalculation defers the initial engine run — commitAsync triggers it.
@@ -469,9 +486,11 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     return () => { detach?.(); };
   }, [isLoading, getGanttInstance, handleTaskClick]);
 
-  // Open task info dialog on double-click of a task bar (replaces Bryntum's built-in task editor)
+  // Open task info dialog on double-click of a task bar (replaces Bryntum's built-in task editor).
+  // Only attach the listener when editing is unlocked — the dialog is an edit surface.
   useEffect(() => {
     if (isLoading) return;
+    if (!editingUnlocked) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -480,7 +499,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       setTaskInfoRecord(taskRecord as BryntumTaskRecord);
     }) as (() => void) | undefined;
     return () => { detach?.(); };
-  }, [isLoading, getGanttInstance, closeTaskPopover]);
+  }, [isLoading, getGanttInstance, closeTaskPopover, editingUnlocked]);
 
   // Row action menu — detect clicks on the ⋮ button injected by the name column
   // renderer, then show a programmatic Bryntum Menu at the button position.
@@ -513,6 +532,10 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       if (!btn || column.type !== 'name') return;
 
       event.stopPropagation();
+
+      // Row action menu contains write actions (add subtask, indent, delete, …) —
+      // don't open it when the chart is locked.
+      if (!editingUnlocked) return;
 
       // Destroy any previously open menu
       if (activeMenuRef.current) {
@@ -590,7 +613,16 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         activeMenuRef.current = null;
       }
     };
-  }, [isLoading, getGanttInstance, closeTaskPopover]);
+  }, [isLoading, getGanttInstance, closeTaskPopover, editingUnlocked]);
+
+  // Close any open row-action menu the moment the chart is locked.
+  useEffect(() => {
+    if (editingUnlocked) return;
+    if (activeMenuRef.current) {
+      activeMenuRef.current.destroy();
+      activeMenuRef.current = null;
+    }
+  }, [editingUnlocked]);
 
   return (
     <div style={WRAPPER_STYLE}>
@@ -606,6 +638,9 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         onRedo={handleRedo}
         canUndo={canUndo}
         canRedo={canRedo}
+        canEditChart={canEditChart}
+        isEditMode={editingUnlocked}
+        onToggleEditMode={() => setIsEditMode((prev) => !prev)}
       />
 
       {/* Bryntum must always render in a visible container so its internal layout
@@ -649,6 +684,10 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         }
         .gantt-row-actions-btn:hover {
           background: rgba(0, 0, 0, 0.04);
+        }
+        /* Hide mutation affordances while the chart is locked. */
+        .bryntum-gantt-container[data-locked="true"] .gantt-row-actions-btn {
+          display: none;
         }
         /* Scroll-to-task button — left of the ⋮ button, uses FA crosshairs icon */
         .gantt-row-scroll-btn {
@@ -703,7 +742,11 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         }
       `}</style>
 
-      <div style={GANTT_CONTENT_STYLE} className="bryntum-gantt-container">
+      <div
+        style={GANTT_CONTENT_STYLE}
+        className="bryntum-gantt-container"
+        data-locked={editingUnlocked ? 'false' : 'true'}
+      >
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <BryntumGantt ref={ganttRef} {...ganttConfig} />
         </div>

@@ -12,6 +12,8 @@ import {
   DownloadSimple,
   Columns,
   DotsThreeVertical,
+  Lock,
+  LockOpen,
   Plus,
 } from '@phosphor-icons/react';
 
@@ -83,6 +85,11 @@ type GanttToolbarProps = {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  /** Whether the current user has permission to unlock the chart for editing. */
+  canEditChart?: boolean;
+  /** Whether the chart is currently unlocked for editing. */
+  isEditMode?: boolean;
+  onToggleEditMode?: () => void;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -101,7 +108,11 @@ export default function GanttToolbar({
   onRedo,
   canUndo = false,
   canRedo = false,
+  canEditChart = false,
+  isEditMode = false,
+  onToggleEditMode,
 }: GanttToolbarProps) {
+  const editingActive = canEditChart && isEditMode;
   const [activePreset, setActivePreset] = useState('weekAndDayLetterCompact');
   const theme = useTheme();
 
@@ -211,26 +222,28 @@ export default function GanttToolbar({
         </Box>
       </Box>
 
-      {/* ── Undo / Redo ───────────────────────────────────────────────── */}
-      <Box sx={cardContainerSx}>
-        <Box
-          component="button"
-          sx={{ ...cardItemSx, opacity: canUndo ? 1 : 0.35, cursor: canUndo ? 'pointer' : 'default' }}
-          onClick={canUndo ? onUndo : undefined}
-          title="Undo (Ctrl+Z)"
-        >
-          <ArrowUUpLeft size={13} weight="bold" />
+      {/* ── Undo / Redo (only active in edit mode) ───────────────────── */}
+      {editingActive && (
+        <Box sx={{ ...cardContainerSx, animation: 'gantt-tool-pop-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2) both' }}>
+          <Box
+            component="button"
+            sx={{ ...cardItemSx, opacity: canUndo ? 1 : 0.35, cursor: canUndo ? 'pointer' : 'default' }}
+            onClick={canUndo ? onUndo : undefined}
+            title="Undo (Ctrl+Z)"
+          >
+            <ArrowUUpLeft size={13} weight="bold" />
+          </Box>
+          <Box sx={cardDividerSx} />
+          <Box
+            component="button"
+            sx={{ ...cardItemSx, opacity: canRedo ? 1 : 0.35, cursor: canRedo ? 'pointer' : 'default' }}
+            onClick={canRedo ? onRedo : undefined}
+            title="Redo (Ctrl+Y)"
+          >
+            <ArrowUUpRight size={13} weight="bold" />
+          </Box>
         </Box>
-        <Box sx={cardDividerSx} />
-        <Box
-          component="button"
-          sx={{ ...cardItemSx, opacity: canRedo ? 1 : 0.35, cursor: canRedo ? 'pointer' : 'default' }}
-          onClick={canRedo ? onRedo : undefined}
-          title="Redo (Ctrl+Y)"
-        >
-          <ArrowUUpRight size={13} weight="bold" />
-        </Box>
-      </Box>
+      )}
 
       {/* ── Spacer ─────────────────────────────────────────────────────── */}
       <Box sx={{ flex: 1 }} />
@@ -264,8 +277,65 @@ export default function GanttToolbar({
         </Box>
       )}
 
-      {/* ── Add Task ───────────────────────────────────────────────────── */}
-      {onAddTask && (
+      {/* ── Edit / Lock toggle (admin-level users only) ────────────────── */}
+      {canEditChart && (
+        <Box
+          component="button"
+          onClick={onToggleEditMode}
+          title={editingActive ? 'Lock chart (exit edit mode)' : 'Edit chart'}
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.75,
+            height: 34,
+            px: '14px',
+            borderRadius: '10px',
+            fontSize: '12px',
+            fontWeight: 600,
+            fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
+            letterSpacing: '-0.01em',
+            cursor: 'pointer',
+            transition:
+              'background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease',
+            '&:active': { transform: 'scale(0.96)' },
+            ...(editingActive
+              ? {
+                  bgcolor: 'var(--accent-primary, #2563eb)',
+                  color: '#fff',
+                  border: '1px solid var(--accent-primary, #2563eb)',
+                  boxShadow: '0 0 0 4px rgba(37, 99, 235, 0.14)',
+                  '&:hover': { filter: 'brightness(0.9)' },
+                }
+              : {
+                  bgcolor: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }),
+          }}
+        >
+          <Box
+            key={editingActive ? 'unlocked' : 'locked'}
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              animation: 'gantt-icon-swap 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
+            }}
+          >
+            {editingActive ? (
+              <LockOpen size={13} weight="bold" />
+            ) : (
+              <Lock size={13} weight="bold" />
+            )}
+          </Box>
+          {editingActive ? 'Editing' : 'Edit'}
+        </Box>
+      )}
+
+      {/* ── Add Task (only active in edit mode) ────────────────────────── */}
+      {onAddTask && editingActive && (
         <Button
           variant="contained"
           size="small"
@@ -282,6 +352,7 @@ export default function GanttToolbar({
             borderRadius: '8px',
             backgroundColor: 'var(--accent-primary, #2563eb)',
             color: '#fff',
+            animation: 'gantt-tool-pop-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
             '&:hover': {
               backgroundColor: 'var(--accent-primary, #2563eb)',
               filter: 'brightness(0.9)',
@@ -291,6 +362,29 @@ export default function GanttToolbar({
           Add Task
         </Button>
       )}
+
+      {/* Keyframes for the toolbar micro-animations — scoped via a global <style>. */}
+      <Box
+        component="style"
+        sx={{ display: 'none' }}
+        dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes gantt-tool-pop-in {
+              0%   { opacity: 0; transform: scale(0.9) translateY(2px); }
+              100% { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            @keyframes gantt-icon-swap {
+              0%   { opacity: 0; transform: rotate(-35deg) scale(0.7); }
+              60%  { opacity: 1; transform: rotate(6deg) scale(1.08); }
+              100% { opacity: 1; transform: rotate(0) scale(1); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+              @keyframes gantt-tool-pop-in { from, to { opacity: 1; transform: none; } }
+              @keyframes gantt-icon-swap   { from, to { opacity: 1; transform: none; } }
+            }
+          `,
+        }}
+      />
     </Stack>
   );
 }
