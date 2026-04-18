@@ -47,6 +47,13 @@ export function createGanttConfig(
     animateTreeNodeToggle: false, // Disable animations for faster rendering
     detectCSSCompatibilityIssues: false,
 
+    // Virtualize the time axis so the user can switch to fine-grained presets
+    // (e.g. hourAndDay) over a multi-year startDate/endDate span without
+    // Bryntum throwing "Configured date range will result in a too long time axis".
+    // Only `bufferCoef × viewport` worth of ticks are rendered at once; the
+    // range slides as the user scrolls.
+    infiniteScroll: true,
+
     project: {
       autoLoad: true,
       autoSync: false,
@@ -170,7 +177,17 @@ export function createGanttConfig(
       },
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
-    viewPreset: 'weekAndDayLetter',
+    presets: [
+      {
+        id: 'weekAndDayLetterCompact',
+        base: 'weekAndDayLetter',
+        headers: [
+          { unit: 'month', dateFormat: 'MMMM YYYY' },
+          { unit: 'day', dateFormat: 'DD' },
+        ],
+      },
+    ],
+    viewPreset: 'weekAndDayLetterCompact',
     startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
     barMargin: 10,

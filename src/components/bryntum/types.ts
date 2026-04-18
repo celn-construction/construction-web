@@ -229,6 +229,11 @@ export type GanttConfig = {
   };
   emptyText?: string;
   viewPreset: string;
+  presets?: Array<{
+    id: string;
+    base?: string;
+    headers?: Array<{ unit: string; dateFormat: string }>;
+  }>;
   startDate?: Date;
   endDate?: Date;
   barMargin: number;
