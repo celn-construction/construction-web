@@ -1,6 +1,7 @@
 'use client';
 
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import { IBeamLoader } from '@/components/ui/IBeamLoader';
 import { Plus, Crown, Buildings } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,7 @@ export default function AccountTabContent({ onCloseModal }: AccountTabContentPro
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
-        <CircularProgress size={28} />
+        <IBeamLoader size={28} />
       </Box>
     );
   }

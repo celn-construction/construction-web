@@ -16,9 +16,9 @@ import {
   InputAdornment,
   IconButton,
   Stack,
-  CircularProgress,
 } from '@mui/material';
 import { Button } from '@/components/ui/button';
+import { IBeamLoader } from '@/components/ui/IBeamLoader';
 
 function FloatingPaths({ position }: { position: number }) {
   const paths = Array.from({ length: 36 }, (_, i) => ({
@@ -617,7 +617,7 @@ function SignInLoading() {
         justifyContent: 'center',
       }}
     >
-      <CircularProgress />
+      <IBeamLoader size={40} />
     </Box>
   );
 }
