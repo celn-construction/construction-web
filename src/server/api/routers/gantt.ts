@@ -183,10 +183,29 @@ export const ganttRouter = createTRPCRouter({
         projectData.startDate = project.startDate.toISOString();
       }
 
+      // Provide a default calendar that marks Sat/Sun as non-working so the
+      // Gantt `nonWorkingTime` feature shades weekend columns. Projects that
+      // have their own calendars override this via the `calendars` JSON column.
+      const defaultCalendars = {
+        rows: [
+          {
+            id: project.calendarId,
+            name: "General",
+            intervals: [
+              {
+                recurrentStartDate: "on Sat at 0:00",
+                recurrentEndDate: "on Mon at 0:00",
+                isWorking: false,
+              },
+            ],
+          },
+        ],
+      };
+
       return {
         success: true,
         project: projectData,
-        calendars: project.calendars ?? null,
+        calendars: project.calendars ?? defaultCalendars,
         tasks: { rows: taskTree },
         dependencies: { rows: ganttDependencies },
         resources: { rows: ganttResources },

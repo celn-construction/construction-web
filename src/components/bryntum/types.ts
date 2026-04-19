@@ -210,6 +210,7 @@ export type GanttConfig = {
     taskEdit?: boolean;
     columnLines?: boolean | { renderer?: (...args: unknown[]) => void };
     stripe?: boolean;
+    nonWorkingTime?: boolean;
     cellTooltip: {
       tooltipRenderer: (args: TooltipRendererArgs) => string;
     };
