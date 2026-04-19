@@ -55,16 +55,19 @@ export function useRecentSearches(
       if (!trimmed) return;
       const key = getStorageKey(userId, projectId);
       if (!key) return;
+      const trimmedLower = trimmed.toLowerCase();
       setRecents((prev) => {
+        const top = prev[0];
+        if (top && top.query.toLowerCase() === trimmedLower && top.aiMode === aiMode) {
+          return prev;
+        }
         const filtered = prev.filter(
-          (r) => !(r.query.toLowerCase() === trimmed.toLowerCase() && r.aiMode === aiMode),
+          (r) => !(r.query.toLowerCase() === trimmedLower && r.aiMode === aiMode),
         );
         const next = [{ query: trimmed, aiMode }, ...filtered].slice(0, MAX_RECENTS);
         try {
           window.localStorage.setItem(key, JSON.stringify(next));
-        } catch {
-          // storage full or disabled — keep in-memory state
-        }
+        } catch {}
         return next;
       });
     },
@@ -76,9 +79,7 @@ export function useRecentSearches(
     if (key) {
       try {
         window.localStorage.removeItem(key);
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
     setRecents([]);
   }, [userId, projectId]);

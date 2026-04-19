@@ -69,10 +69,6 @@ export default function DocumentToolbar({
     onSelectSuggestion(q, aiMode);
   };
 
-  const handleClear = () => {
-    onClearRecents();
-    inputRef.current?.focus();
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape' && showSuggestions) {
@@ -308,7 +304,7 @@ export default function DocumentToolbar({
         listboxId={listboxId}
         optionIdPrefix={optionIdPrefix}
         onSelect={handleSelect}
-        onClearRecents={handleClear}
+        onClearRecents={onClearRecents}
       />
     </Box>
   );

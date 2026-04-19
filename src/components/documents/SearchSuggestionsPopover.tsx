@@ -30,7 +30,6 @@ export default function SearchSuggestionsPopover({
   onClearRecents,
 }: SearchSuggestionsPopoverProps) {
   const showRecents = recents.length > 0;
-  const recentCount = showRecents ? recents.length : 0;
 
   return (
     <Popper
@@ -88,7 +87,7 @@ export default function SearchSuggestionsPopover({
         <Box sx={{ p: 1 }}>
           <SectionHeader icon={<Sparkles size={12} />} label="Try asking AI" />
           {examples.map((example, j) => {
-            const index = recentCount + j;
+            const index = recents.length + j;
             return (
               <SuggestionRow
                 key={example}
