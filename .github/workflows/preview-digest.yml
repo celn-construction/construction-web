@@ -194,7 +194,13 @@ jobs:
                 <h2 style="margin: 0 0 12px 0; font-size: 14px; color: #666;">Merged pull requests</h2>
                 ${appendix_html}
 
-                <p style="margin: 24px 0 0 0; color: #999; font-size: 12px;">Sent automatically from the BuildTrack Pro release pipeline.</p>
+                <div style="margin: 28px 0 0 0; padding: 16px 18px; background: #f8f9fc; border-radius: 8px; color: #444; font-size: 13px; line-height: 1.5;">
+                  <strong style="color: #1a1a1a;">Have feedback?</strong> Leave a comment on the relevant <a href="https://github.com/celn-construction/construction-web/pulls?q=is%3Apr+base%3Apreview" style="color: #3b5bdb; text-decoration: none;">preview PR</a> or open a <a href="https://github.com/celn-construction/construction-web/issues/new" style="color: #3b5bdb; text-decoration: none;">ticket in the GitHub project</a>.
+                  <br />
+                  Try it out: <a href="https://construction-web-git-preview-celn.vercel.app/" style="color: #3b5bdb; text-decoration: none;">construction-web-git-preview-celn.vercel.app</a>
+                </div>
+
+                <p style="margin: 20px 0 0 0; color: #999; font-size: 12px;">Sent automatically from the BuildTrack Pro release pipeline.</p>
               </div>
             </body>
           </html>
