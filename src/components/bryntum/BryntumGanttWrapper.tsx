@@ -24,9 +24,8 @@ const WRAPPER_STYLE: CSSProperties = {
   flexDirection: 'column',
   height: '100%',
   borderRadius: '12px',
-  border: '1px solid var(--border-color)',
   backgroundColor: 'var(--bg-card)',
-  boxShadow: 'var(--gantt-container-ring), var(--gantt-container-shadow)',
+  overflow: 'clip',
 };
 
 const GANTT_CONTENT_STYLE: CSSProperties = {
