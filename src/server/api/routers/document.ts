@@ -336,7 +336,7 @@ export const documentRouter = createTRPCRouter({
           ${vectorSql}::vector,
           ${keywordQuery},
           ${input.projectId},
-          ${input.folderIds ?? null},
+          ${input.folderIds ?? null}::text[],
           ${input.linkFilter},
           ${input.limit}::int,
           ${input.offset}::int
