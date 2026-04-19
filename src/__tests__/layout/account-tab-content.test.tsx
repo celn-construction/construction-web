@@ -90,6 +90,6 @@ describe("AccountTabContent", () => {
     renderWithTheme(<AccountTabContent onCloseModal={mockOnCloseModal} />);
 
     expect(screen.queryByText("Your Teams")).not.toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: /loading/i })).toBeInTheDocument();
   });
 });

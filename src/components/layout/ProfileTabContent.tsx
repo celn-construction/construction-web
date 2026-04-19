@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, TextField, Typography, CircularProgress } from '@mui/material';
+import { Box, TextField, Typography } from '@mui/material';
+import { IBeamLoader } from '@/components/ui/IBeamLoader';
 import { Button } from '@/components/ui/button';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
@@ -44,7 +45,7 @@ export default function ProfileTabContent() {
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
-        <CircularProgress size={28} />
+        <IBeamLoader size={28} />
       </Box>
     );
   }

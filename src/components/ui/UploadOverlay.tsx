@@ -52,7 +52,7 @@ export default function UploadOverlay({
           zIndex: 1,
         }}
       >
-        <CircularProgress size={size} sx={{ color: isDark ? 'white' : 'text.secondary' }} />
+        <CircularProgress size={size} sx={{ color: isDark ? 'common.white' : 'text.secondary' }} />
         {text && (
           <Typography
             sx={{
