@@ -4,16 +4,19 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { User, ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, CaretRight, CaretLineLeft, CaretLineRight, CreditCard, Lifebuoy, SignOut, type Icon } from '@phosphor-icons/react';
+import { User, ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, CaretRight, CaretLineLeft, CaretLineRight, CreditCard, Lifebuoy, SignOut, type Icon } from '@phosphor-icons/react';
 import { Box, Typography, Tooltip } from '@mui/material';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { projectNavItems, getProjectNavHref } from './navItems';
+import { projectNavItems, getProjectNavHref, SIDEBAR_SECTIONS } from './navItems';
 import OrgSwitcher from './OrgSwitcher';
 
+import { api } from '@/trpc/react';
+import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
+import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import { authClient, signOut } from '@/lib/auth-client';
 import { getInitials } from '@/lib/utils/formatting';
 import LoadingSpinner from '@/components/ui/loading-spinner';
@@ -28,6 +31,7 @@ const iconMap: Record<string, Icon> = {
   FolderSimple,
   FileMagnifyingGlass,
   GearSix,
+  UsersThree,
 };
 
 const profileMenuItems = [
@@ -51,6 +55,15 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const { data: session } = authClient.useSession();
   const user = session?.user;
   const { showLoading, hideLoading } = useLoading();
+
+  const { activeOrganizationId } = useOrgFromUrl();
+  const { currentProject } = useProjectSwitcher(activeOrganizationId, orgSlug ?? '');
+  const projectId = currentProject?.id ?? '';
+  const { data: projectMembers = [] } = api.projectMember.list.useQuery(
+    { projectId },
+    { enabled: !!projectId, retry: false },
+  );
+  const memberCount = projectMembers.length;
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -141,125 +154,150 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           transition: 'padding 0.2s ease',
         }}
       >
-        {/* Section Label */}
-        {!collapsed && (
-          <Typography
-            sx={{
-              fontSize: '0.5625rem',
-              fontWeight: 600,
-              color: 'text.disabled',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              px: 1,
-              pb: 1,
-              userSelect: 'none',
-            }}
-          >
-            Navigation
-          </Typography>
-        )}
+        {/* Grouped Nav Sections */}
+        {SIDEBAR_SECTIONS.map((section, sectionIdx) => {
+          const items = projectNavItems.filter((i) => i.section === section.id);
+          if (items.length === 0) return null;
 
-        {/* Nav Items */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-          {projectNavItems.map((item) => {
-            const NavIcon = iconMap[item.icon] ?? ChartBar;
-            const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
-            const isActive = !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
-            const isDisabled = !projectSlug;
+          return (
+            <Box key={section.id} sx={{ mb: sectionIdx < SIDEBAR_SECTIONS.length - 1 ? 2 : 0 }}>
+              {!collapsed && (
+                <Typography
+                  sx={{
+                    fontSize: '0.5625rem',
+                    fontWeight: 600,
+                    color: 'text.disabled',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    px: 1,
+                    pb: 1,
+                    userSelect: 'none',
+                  }}
+                >
+                  {section.label}
+                </Typography>
+              )}
 
-            const content = (
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: collapsed ? 'center' : 'flex-start',
-                  gap: collapsed ? 0 : 1.25,
-                  px: collapsed ? 0 : 1.25,
-                  py: 0.875,
-                  borderRadius: '8px',
-                  position: 'relative',
-                  transition: 'all 0.15s ease',
-                  bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
-                  color: isActive ? 'text.primary' : 'text.secondary',
-                  opacity: isDisabled ? 0.35 : 1,
-                  cursor: isDisabled ? 'default' : 'pointer',
-                  overflow: 'hidden',
-                  '&:hover': isDisabled ? {} : {
-                    bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
-                    color: 'text.primary',
-                  },
-                }}
-              >
-                {/* Active Indicator — thin left accent */}
-                {isActive && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      left: 0,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '2.5px',
-                      height: 16,
-                      borderRadius: '0 2px 2px 0',
-                      bgcolor: 'sidebar.indicator',
-                    }}
-                    aria-hidden="true"
-                  />
-                )}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                {items.map((item) => {
+                  const NavIcon = iconMap[item.icon] ?? ChartBar;
+                  const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
+                  const isActive = !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
+                  const isDisabled = !projectSlug;
+                  const badgeCount = item.id === 'team' && !isDisabled ? memberCount : null;
 
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
-                  <NavIcon size={17} weight={isActive ? 'fill' : 'regular'} />
-                </Box>
+                  const content = (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: collapsed ? 'center' : 'flex-start',
+                        gap: collapsed ? 0 : 1.25,
+                        px: collapsed ? 0 : 1.25,
+                        py: 0.875,
+                        borderRadius: '8px',
+                        position: 'relative',
+                        transition: 'all 0.15s ease',
+                        bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
+                        color: isActive ? 'text.primary' : 'text.secondary',
+                        opacity: isDisabled ? 0.35 : 1,
+                        cursor: isDisabled ? 'default' : 'pointer',
+                        overflow: 'hidden',
+                        '&:hover': isDisabled ? {} : {
+                          bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
+                          color: 'text.primary',
+                        },
+                      }}
+                    >
+                      {/* Active Indicator — thin left accent */}
+                      {isActive && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            left: 0,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: '2.5px',
+                            height: 16,
+                            borderRadius: '0 2px 2px 0',
+                            bgcolor: 'sidebar.indicator',
+                          }}
+                          aria-hidden="true"
+                        />
+                      )}
 
-                {!collapsed && (
-                  <Typography
-                    sx={{
-                      fontSize: '0.8125rem',
-                      fontWeight: isActive ? 550 : 400,
-                      letterSpacing: isActive ? '-0.005em' : '0',
-                      lineHeight: 1,
-                      flex: 1,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {item.label}
-                  </Typography>
-                )}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+                        <NavIcon size={17} weight={isActive ? 'fill' : 'regular'} />
+                      </Box>
 
-                {/* Subtle arrow for active item */}
-                {isActive && !collapsed && (
-                  <CaretRight style={{ width: 13, height: 13, opacity: 0.4, flexShrink: 0 }} />
-                )}
+                      {!collapsed && (
+                        <Typography
+                          sx={{
+                            fontSize: '0.8125rem',
+                            fontWeight: isActive ? 550 : 400,
+                            letterSpacing: isActive ? '-0.005em' : '0',
+                            lineHeight: 1,
+                            flex: 1,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {item.label}
+                        </Typography>
+                      )}
+
+                      {!collapsed && badgeCount !== null && badgeCount > 0 && !isActive && (
+                        <Typography
+                          sx={{
+                            fontSize: '0.6875rem',
+                            fontWeight: 500,
+                            color: 'text.disabled',
+                            lineHeight: 1,
+                            flexShrink: 0,
+                            minWidth: 16,
+                            textAlign: 'right',
+                          }}
+                        >
+                          {badgeCount}
+                        </Typography>
+                      )}
+
+                      {/* Subtle arrow for active item */}
+                      {isActive && !collapsed && (
+                        <CaretRight style={{ width: 13, height: 13, opacity: 0.4, flexShrink: 0 }} />
+                      )}
+                    </Box>
+                  );
+
+                  const wrappedContent = collapsed ? (
+                    <Tooltip title={item.label} placement="right" key={item.id}>
+                      {isDisabled ? (
+                        <Box>{content}</Box>
+                      ) : (
+                        <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
+                          {content}
+                        </Link>
+                      )}
+                    </Tooltip>
+                  ) : isDisabled ? (
+                    <Box key={item.id}>{content}</Box>
+                  ) : (
+                    <Link
+                      key={item.id}
+                      href={href}
+                      style={{ textDecoration: 'none', color: 'inherit' }}
+                    >
+                      {content}
+                    </Link>
+                  );
+
+                  return wrappedContent;
+                })}
               </Box>
-            );
-
-            const wrappedContent = collapsed ? (
-              <Tooltip title={item.label} placement="right" key={item.id}>
-                {isDisabled ? (
-                  <Box>{content}</Box>
-                ) : (
-                  <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
-                    {content}
-                  </Link>
-                )}
-              </Tooltip>
-            ) : isDisabled ? (
-              <Box key={item.id}>{content}</Box>
-            ) : (
-              <Link
-                key={item.id}
-                href={href}
-                style={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                {content}
-              </Link>
-            );
-
-            return wrappedContent;
-          })}
-        </Box>
+            </Box>
+          );
+        })}
 
         {/* Spacer */}
         <Box sx={{ flex: 1 }} />

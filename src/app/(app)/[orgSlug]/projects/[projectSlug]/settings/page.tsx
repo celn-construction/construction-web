@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  Trash, Warning, PlusCircle, MapPin, Swatches, CaretDown,
+  Trash, Warning, MapPin, Swatches, CaretDown,
   Image as ImageIcon, UploadSimple, X, FloppyDisk,
 } from '@phosphor-icons/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Autocomplete as MuiAutocomplete,
-  Box, Typography, Tabs, Tab, Paper, Popover, TextField,
+  Box, Typography, Paper, Popover, TextField,
   CircularProgress, IconButton, Tooltip,
 } from '@mui/material';
 import { useTheme, alpha, type Theme } from '@mui/material/styles';
@@ -19,17 +19,13 @@ import { useRouter, useParams } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import usePlacesAutocomplete, { getGeocode } from 'use-places-autocomplete';
 import { api } from '@/trpc/react';
-import { canInviteMembers, canDeleteProjects, canManageProjects } from '@/lib/permissions';
+import { canDeleteProjects, canManageProjects } from '@/lib/permissions';
 import { updateProjectSchema, type UpdateProjectInput } from '@/lib/validations/project';
 import { PROJECT_ICON_OPTIONS, getProjectIcon } from '@/lib/constants/projectIconComponents';
 import ProjectAvatar from '@/components/ui/ProjectAvatar';
-import InviteDialog from '@/components/team/InviteDialog';
-import MembersList from '@/components/team/MembersList';
-import PendingInvitesList from '@/components/team/PendingInvitesList';
 import DeleteProjectDialog from '@/components/projects/DeleteProjectDialog';
 import { Button } from '@/components/ui/button';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
-import { useOrgContext } from '@/components/providers/OrgProvider';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { env } from '@/env';
 
@@ -122,7 +118,7 @@ function PlainLocationField({
 }
 
 // ---------------------------------------------------------------------------
-// Settings Form (extracted for clarity)
+// Settings Form
 // ---------------------------------------------------------------------------
 
 function ProjectSettingsForm({
@@ -158,7 +154,6 @@ function ProjectSettingsForm({
   const SelectedIconComponent = getProjectIcon(selectedIcon);
   const selectedIconLabel = PROJECT_ICON_OPTIONS.find(o => o.id === selectedIcon)?.label ?? 'Building';
 
-  // Track whether image changed relative to original
   const imageChanged = imageUrl !== (projectImageUrl ?? undefined);
 
   const cleanupUploadedImage = useCallback((url?: string) => {
@@ -173,7 +168,6 @@ function ProjectSettingsForm({
     }
   }, [organizationId]);
 
-  // Cleanup orphaned upload on unmount
   useEffect(() => {
     return () => {
       if (uploadedUrlRef.current) {
@@ -197,9 +191,8 @@ function ProjectSettingsForm({
       void utils.project.list.invalidate();
       void utils.project.getActive.invalidate();
       void utils.project.getBySlug.invalidate();
-      // If slug changed, navigate to the new URL
       if (updated.slug !== params.projectSlug) {
-        router.replace(`/${params.orgSlug}/projects/${updated.slug}/manage`);
+        router.replace(`/${params.orgSlug}/projects/${updated.slug}/settings`);
       }
     },
     onError: (err) => {
@@ -211,7 +204,6 @@ function ProjectSettingsForm({
     updateMutation.mutate({ ...data, projectId });
   };
 
-  // Photo upload
   const handlePhotoDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file || !organizationId) return;
@@ -535,44 +527,23 @@ function ProjectSettingsForm({
 }
 
 // ---------------------------------------------------------------------------
-// Main Manage Page
+// Settings Page
 // ---------------------------------------------------------------------------
 
-type ManageTab = 'members' | 'pending' | 'settings';
-
-export default function ManagePage() {
+export default function ProjectSettingsPage() {
   const theme = useTheme();
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<ManageTab>('members');
 
   const { projectId, projectName, organizationId } = useProjectContext();
-  const { orgId } = useOrgContext();
 
-  const { data: members = [], isLoading: membersLoading } = api.projectMember.list.useQuery(
+  const { data: members = [] } = api.projectMember.list.useQuery(
     { projectId },
     { enabled: !!projectId }
   );
-
-  const { data: invitations = [], isLoading: invitationsLoading } =
-    api.invitation.list.useQuery({ projectId }, { enabled: !!projectId });
-
   const { data: currentUser } = api.user.me.useQuery();
-
-  const currentMembership = members.find(
-    (m) => m.user.id === currentUser?.id
-  );
-  const canManage = currentMembership ? canInviteMembers(currentMembership.role) : false;
+  const currentMembership = members.find((m) => m.user.id === currentUser?.id);
   const canDelete = currentMembership ? canDeleteProjects(currentMembership.role) : false;
   const canEdit = currentMembership ? canManageProjects(currentMembership.role) : false;
-
-  const pendingCount = invitations.filter((inv) => inv.status === 'pending').length;
-
-  useEffect(() => {
-    if (pendingCount === 0 && activeTab === 'pending') {
-      setActiveTab('members');
-    }
-  }, [pendingCount, activeTab]);
 
   return (
     <Box
@@ -586,7 +557,7 @@ export default function ManagePage() {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
-            Manage
+            Project Settings
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.disabled', mt: 0.5 }}>
             {projectName}
@@ -594,23 +565,6 @@ export default function ManagePage() {
         </Box>
       </Box>
 
-      {/* Tabs */}
-      <Box sx={{ mb: 3 }}>
-        <Tabs
-          value={activeTab}
-          onChange={(_, newValue) => setActiveTab(newValue)}
-          sx={{
-            borderBottom: 1, borderColor: 'divider',
-            '& .MuiTab-root': { textTransform: 'none', fontWeight: 500, fontSize: '0.875rem' },
-          }}
-        >
-          <Tab label={`Members (${members.length})`} value="members" />
-          {pendingCount > 0 && <Tab label={`Pending (${pendingCount})`} value="pending" />}
-          <Tab label="Settings" value="settings" />
-        </Tabs>
-      </Box>
-
-      {/* Tab Content */}
       <Paper
         elevation={0}
         sx={{
@@ -621,120 +575,61 @@ export default function ManagePage() {
           transition: 'border-color 0.2s ease',
         }}
       >
-        <AnimatePresence mode="wait">
-          {activeTab === 'members' && (
-            <Box component={motion.div} key="members"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
-              sx={{ p: 2 }}>
-              {canManage && (
-                <Box onClick={() => setInviteDialogOpen(true)}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: 1.5,
-                    p: 1.75, mb: 1.5, borderRadius: '12px', cursor: 'pointer',
-                    transition: 'background-color 0.2s',
-                    '&:hover': { bgcolor: 'action.hover' },
-                  }}>
-                  <Box sx={{
-                    width: 38, height: 38, borderRadius: '50%',
-                    bgcolor: alpha(theme.palette.primary.main, 0.08),
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <PlusCircle size={20} weight="light" color={theme.palette.primary.main} />
-                  </Box>
-                  <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
-                    Invite Member
-                  </Typography>
-                </Box>
-              )}
-              <MembersList members={members} isLoading={membersLoading} />
-            </Box>
-          )}
+        {/* Project Details — edit form */}
+        {canEdit ? (
+          <ProjectSettingsForm projectId={projectId} organizationId={organizationId} />
+        ) : (
+          <Box sx={{ px: 3, py: 2.5 }}>
+            <Typography sx={{ color: 'text.disabled', fontSize: '0.875rem' }}>
+              Only project owners, admins, and project managers can edit project settings.
+            </Typography>
+          </Box>
+        )}
 
-          {activeTab === 'pending' && (
-            <Box component={motion.div} key="pending"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
-              sx={{ p: 2 }}>
-              {pendingCount > 0 ? (
-                <PendingInvitesList invitations={invitations} isLoading={invitationsLoading}
-                  projectId={projectId} canManage={canManage} />
-              ) : (
-                <Typography sx={{ textAlign: 'center', color: 'text.disabled', py: 4 }}>
-                  No pending invitations
+        {/* Danger Zone — delete */}
+        {canDelete && (
+          <>
+            <Box sx={{
+              px: 3, py: 1.5,
+              bgcolor: alpha(theme.palette.error.main, 0.04),
+              borderTop: '1px solid',
+              borderBottom: '1px solid',
+              borderColor: alpha(theme.palette.error.main, 0.15),
+              display: 'flex', alignItems: 'center', gap: 1,
+            }}>
+              <Warning size={14} color={theme.palette.error.main} />
+              <Typography sx={{
+                fontSize: '0.75rem', fontWeight: 600, color: 'error.main',
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}>
+                Danger Zone
+              </Typography>
+            </Box>
+            <Box sx={{
+              px: 3, py: 2.5, display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', gap: 2,
+            }}>
+              <Box>
+                <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.25 }}>
+                  Delete this project
                 </Typography>
-              )}
+                <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.5 }}>
+                  Permanently delete this project and all its data. This cannot be undone.
+                </Typography>
+              </Box>
+              <Button variant="outlined" color="error"
+                onClick={() => setDeleteDialogOpen(true)}
+                startIcon={<Trash size={14} />}
+                sx={{
+                  flexShrink: 0, borderRadius: '8px', fontWeight: 600,
+                  fontSize: '0.8125rem', textTransform: 'none',
+                }}>
+                Delete
+              </Button>
             </Box>
-          )}
-
-          {activeTab === 'settings' && (
-            <Box component={motion.div} key="settings"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-              {/* Project Details — edit form */}
-              {canEdit ? (
-                <ProjectSettingsForm projectId={projectId} organizationId={organizationId} />
-              ) : (
-                <Box sx={{ px: 3, py: 2.5 }}>
-                  <Typography sx={{ color: 'text.disabled', fontSize: '0.875rem' }}>
-                    Only project owners, admins, and project managers can edit project settings.
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Danger Zone — delete */}
-              {canDelete && (
-                <>
-                  <Box sx={{
-                    px: 3, py: 1.5,
-                    bgcolor: alpha(theme.palette.error.main, 0.04),
-                    borderTop: '1px solid',
-                    borderBottom: '1px solid',
-                    borderColor: alpha(theme.palette.error.main, 0.15),
-                    display: 'flex', alignItems: 'center', gap: 1,
-                  }}>
-                    <Warning size={14} color={theme.palette.error.main} />
-                    <Typography sx={{
-                      fontSize: '0.75rem', fontWeight: 600, color: 'error.main',
-                      textTransform: 'uppercase', letterSpacing: '0.05em',
-                    }}>
-                      Danger Zone
-                    </Typography>
-                  </Box>
-                  <Box sx={{
-                    px: 3, py: 2.5, display: 'flex', alignItems: 'center',
-                    justifyContent: 'space-between', gap: 2,
-                  }}>
-                    <Box>
-                      <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.25 }}>
-                        Delete this project
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.5 }}>
-                        Permanently delete this project and all its data. This cannot be undone.
-                      </Typography>
-                    </Box>
-                    <Button variant="outlined" color="error"
-                      onClick={() => setDeleteDialogOpen(true)}
-                      startIcon={<Trash size={14} />}
-                      sx={{
-                        flexShrink: 0, borderRadius: '8px', fontWeight: 600,
-                        fontSize: '0.8125rem', textTransform: 'none',
-                      }}>
-                      Delete
-                    </Button>
-                  </Box>
-                </>
-              )}
-            </Box>
-          )}
-        </AnimatePresence>
+          </>
+        )}
       </Paper>
-
-      {/* Invite Dialog */}
-      {canManage && (
-        <InviteDialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}
-          organizationId={organizationId} projectId={projectId} />
-      )}
 
       {/* Delete Project Dialog */}
       <DeleteProjectDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}
