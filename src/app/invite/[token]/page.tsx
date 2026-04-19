@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import OrgAvatar from "@/components/ui/OrgAvatar";
 import { motion } from "framer-motion";
 import { api } from "@/trpc/react";
 import { useSession, signOut } from "@/lib/auth-client";
@@ -220,20 +221,13 @@ export default function InvitePage() {
           gap: 2,
         }}
       >
-        <Box
-          sx={{
-            width: 48,
-            height: 48,
-            bgcolor: "text.primary",
-            borderRadius: '12px',
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Building2 style={{ color: "white", width: 22, height: 22 }} />
-        </Box>
+        <OrgAvatar
+          name={invitation.organization.name}
+          seed={invitation.organization.slug ?? invitation.organization.id}
+          logoUrl={invitation.organization.logoUrl}
+          size={48}
+          borderRadius="12px"
+        />
         <Box>
           <Typography sx={{ fontWeight: 500, mb: 0.25 }}>
             {invitation.organization.name}
