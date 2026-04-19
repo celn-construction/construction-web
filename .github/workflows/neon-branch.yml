@@ -9,9 +9,58 @@ jobs:
     name: Delete Neon Branch
     runs-on: ubuntu-latest
     steps:
-      - name: Delete Neon Branch
-        uses: neondatabase/delete-branch-action@v3
-        with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch: preview/${{ github.head_ref }}
-          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete Neon branches for this PR
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${HEAD_REF}" ]; then
+            echo "head_ref is empty (likely a fork or non-branch event); skipping."
+            exit 0
+          fi
+
+          echo "Looking up Neon branches for PR #${PR_NUMBER} (head_ref=${HEAD_REF})"
+
+          api="https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches"
+          response=$(curl -fsS \
+            -H "Authorization: Bearer ${NEON_API_KEY}" \
+            -H "Accept: application/json" \
+            "${api}")
+
+          # Match Vercel-Neon's naming: `preview/<head_ref>` exactly,
+          # or `preview/<head_ref>-<suffix>` (deployment hash variants).
+          # Excludes protected branches by name as a belt-and-suspenders check.
+          matches=$(echo "${response}" | jq -r --arg ref "${HEAD_REF}" '
+            .branches[]
+            | select(.name == ("preview/" + $ref)
+                or (.name | startswith("preview/" + $ref + "-")))
+            | select(.name != "main" and .name != "production" and .protected != true)
+            | "\(.id)\t\(.name)"
+          ')
+
+          if [ -z "${matches}" ]; then
+            echo "No matching Neon branches found for head_ref=${HEAD_REF}"
+            exit 0
+          fi
+
+          echo "Found branches to delete:"
+          echo "${matches}"
+
+          fail=0
+          while IFS=$'\t' read -r branch_id branch_name; do
+            [ -z "${branch_id}" ] && continue
+            echo "Deleting Neon branch: ${branch_name} (id=${branch_id})"
+            if ! curl -fsS -X DELETE \
+              -H "Authorization: Bearer ${NEON_API_KEY}" \
+              -H "Accept: application/json" \
+              "${api}/${branch_id}" >/dev/null; then
+              echo "ERROR: failed to delete ${branch_name} (id=${branch_id})"
+              fail=1
+            fi
+          done <<< "${matches}"
+
+          exit "${fail}"
