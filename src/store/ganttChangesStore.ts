@@ -14,6 +14,12 @@ interface InternalState {
   removed: Map<string, string>;  // id → name
 }
 
+export interface GanttChangesSnapshot {
+  added: Array<[string, string]>;
+  modified: Array<[string, string]>;
+  removed: Array<[string, string]>;
+}
+
 interface GanttChangesStore {
   hasChanges: boolean;
   changeCount: number;
@@ -26,6 +32,10 @@ interface GanttChangesStore {
   setActiveVersionId: (id: string | null) => void;
   handleTaskChange: (type: 'add' | 'remove' | 'update', tasks: TaskEntry[]) => void;
   reset: () => void;
+  /** Snapshot the raw internal maps so the draft layer can persist them verbatim. */
+  serialize: () => GanttChangesSnapshot;
+  /** Restore the raw internal maps from a snapshot. Used by draft restore. */
+  hydrate: (snapshot: GanttChangesSnapshot) => void;
 }
 
 function computePublicState(internal: InternalState) {
@@ -88,6 +98,21 @@ export const useGanttChangesStore = create<GanttChangesStore>((set) => {
 
     reset: () => {
       internal = { added: new Map(), modified: new Map(), removed: new Map() };
+      set(computePublicState(internal));
+    },
+
+    serialize: () => ({
+      added: Array.from(internal.added.entries()),
+      modified: Array.from(internal.modified.entries()),
+      removed: Array.from(internal.removed.entries()),
+    }),
+
+    hydrate: (snapshot) => {
+      internal = {
+        added: new Map(snapshot.added),
+        modified: new Map(snapshot.modified),
+        removed: new Map(snapshot.removed),
+      };
       set(computePublicState(internal));
     },
   };

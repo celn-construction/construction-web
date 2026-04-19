@@ -45,7 +45,7 @@ Before editing, understand the existing file layout:
 
 ```
 src/components/bryntum/
-├── BryntumGanttWrapper.tsx    ← Main wrapper: state, sync, conflict handling, auto-save debounce
+├── BryntumGanttWrapper.tsx    ← Main wrapper: state, sync, conflict handling, draft hook
 ├── types.ts                   ← Shared types: PopoverPlacement, SelectedTask, GanttConfig, etc.
 ├── constants.ts               ← UI constants: POPOVER_WIDTH, POPOVER_GAP, etc.
 ├── config/
@@ -53,21 +53,29 @@ src/components/bryntum/
 ├── components/
 │   ├── GanttToolbar.tsx       ← Toolbar: add task, zoom, shift, preset controls
 │   ├── TaskDetailsPopover.tsx ← Task detail popover (leaf tasks only)
+│   ├── VersionControlBar.tsx  ← "N changes" badge + Create Snapshot button
+│   ├── SaveVersionDialog.tsx  ← Create Snapshot dialog (triggers server sync)
+│   ├── VersionHistoryDrawer.tsx ← List/restore/delete saved snapshots
 │   └── ConflictDialog.tsx     ← Version conflict resolution dialog
 ├── hooks/
 │   ├── useGanttControls.ts    ← Gantt control methods (add, zoom, shift, preset)
+│   ├── useGanttDraft.ts       ← Per-device draft persistence to localStorage (ticket #97)
 │   ├── useTaskPopover.ts      ← Task selection and popover placement state
 │   └── useBryntumThemeAssets.ts ← Dynamic theme CSS and Font Awesome loading
 └── utils/
     ├── ganttValidation.ts     ← Parent task duration validation
+    ├── injectTaskVersions.ts  ← Inject `version` field into outgoing sync pack
+    ├── reconcileSyncPack.ts   ← Reconcile CrudManager added/removed bags with shadow refs
     └── calculatePopoverPlacement.ts ← Popover positioning logic
 ```
 
 **Related files outside bryntum/:**
 - `src/server/api/routers/gantt.ts` — tRPC router for load/sync
+- `src/server/api/helpers/ganttSync.ts` — `syncTasks`/`syncDependencies`/etc. (orphan-parentId defense lives here)
 - `src/app/api/gantt/load/route.ts` — Load transport endpoint
-- `src/app/api/gantt/sync/route.ts` — Sync transport endpoint
+- `src/app/api/gantt/sync/route.ts` — Sync transport endpoint (always returns HTTP 200, even on error — see pitfall below)
 - `src/lib/utils/gantt.ts` — Shared Gantt data helpers
+- `src/store/ganttChangesStore.ts` — Zustand store for "N changes" counter; `serialize()`/`hydrate()` used by draft hook
 
 ### Step 3: Apply Changes Following Existing Patterns
 - New types → `types.ts`

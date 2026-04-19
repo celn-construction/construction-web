@@ -90,8 +90,28 @@ export async function syncTasks(
       return phantomIdMap.get(parentId) ?? parentId;
     };
 
+    // Pre-fetch all existing task IDs in this project so we can verify parent references
+    // before INSERT — otherwise a stale parentId (task deleted in a prior sync, or a
+    // phantom reference that never resolved) triggers FK violation and rolls back
+    // the whole transaction. Better to null the parent and log than fail the batch.
+    const existingTaskIds = new Set(
+      (await db.ganttTask.findMany({ where: { projectId }, select: { id: true } }))
+        .map((t) => t.id),
+    );
+    // Pre-assigned IDs in this batch also count as "existing" because they insert first.
+    for (const { id } of tasksWithIds) existingTaskIds.add(id);
+
     for (const { task, id } of sorted) {
-      const parentId = resolveParentId(task.parentId);
+      let parentId = resolveParentId(task.parentId);
+      if (parentId && !existingTaskIds.has(parentId)) {
+        console.warn('[Gantt:syncTasks] Orphan parentId — setting to null:', {
+          taskId: id,
+          phantomId: task.$PhantomId,
+          unresolvedParentId: task.parentId,
+          resolvedAs: parentId,
+        });
+        parentId = null;
+      }
 
       await db.ganttTask.create({
         data: {
@@ -156,9 +176,28 @@ export async function syncTasks(
       // Resolve parent phantom ID if needed (any phantom format, not just "$"-prefixed)
       if (task.parentId !== undefined) {
         const rawParentId = task.parentId;
-        updateData.parentId = rawParentId
+        const resolved = rawParentId
           ? (phantomIdMap.get(rawParentId) ?? rawParentId)
           : null;
+        if (resolved) {
+          // Verify parent actually exists to avoid FK violation rolling back the batch
+          const parentExists = await db.ganttTask.findUnique({
+            where: { id: resolved },
+            select: { id: true },
+          });
+          if (!parentExists) {
+            console.warn('[Gantt:syncTasks] Orphan parentId on update — setting to null:', {
+              taskId: task.id,
+              unresolvedParentId: rawParentId,
+              resolvedAs: resolved,
+            });
+            updateData.parentId = null;
+          } else {
+            updateData.parentId = resolved;
+          }
+        } else {
+          updateData.parentId = null;
+        }
       }
 
       // Optimistic version check: only if client sent a version (direct user edits).

@@ -47,11 +47,6 @@ export async function POST(request: Request) {
       'tasks: +' + (taskChanges?.added?.length ?? 0),
       '~' + (taskChanges?.updated?.length ?? 0),
       '-' + (taskChanges?.removed?.length ?? 0));
-    if (taskChanges?.updated) {
-      for (const t of taskChanges.updated) {
-        console.log('[Gantt:sync] Updated task in payload:', t.id, '— version:', t.version, 'typeof version:', typeof t.version);
-      }
-    }
 
     // Create tRPC context and caller
     const ctx = await createTRPCContext({
@@ -71,10 +66,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
+    // Always return HTTP 200 with `{ success: false }`. Non-200 responses push
+    // Bryntum's CrudManager into `onCrudRequestFailure`, which crashes while
+    // iterating in-flight records ("Cannot set properties of undefined (setting
+    // 'isBeingMaterialized')"). 200 + success:false routes through `onCrudFailure`,
+    // which is safe, and the response is still surfaced via the `syncFail` listener.
     if (error instanceof TRPCError) {
-      // Version conflicts return HTTP 200 with conflict flag so Bryntum's CrudManager
-      // doesn't show its built-in error popup (which intercepts non-200 responses).
-      // We detect the conflict in the client-side 'sync' handler instead.
       if (error.code === 'CONFLICT') {
         console.log('[Gantt:sync] CONFLICT:', error.message);
         return NextResponse.json({
@@ -88,22 +85,17 @@ export async function POST(request: Request) {
           timeRanges: { rows: [] },
         });
       }
-      const statusMap: Record<string, number> = {
-        NOT_FOUND: 404,
-        FORBIDDEN: 403,
-        UNAUTHORIZED: 401,
-        BAD_REQUEST: 400,
-      };
-      const status = statusMap[error.code] ?? 500;
-      return NextResponse.json(
-        { success: false, message: error.message },
-        { status }
-      );
+      console.error('[Gantt:sync] tRPC error:', error.code, error.message);
+      return NextResponse.json({
+        success: false,
+        message: error.message,
+        code: error.code,
+      });
     }
     console.error("[Gantt:sync:route] Unexpected error:", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      message: error instanceof Error ? error.message : "Internal server error",
+    });
   }
 }
