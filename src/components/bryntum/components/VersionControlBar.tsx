@@ -169,7 +169,7 @@ export default function VersionControlBar() {
 
             {/* Save button */}
             <Tooltip
-              title={hasChanges ? 'Save a new version' : 'No unsaved changes'}
+              title={hasChanges ? 'Create a named snapshot you can restore later' : 'No changes since your last snapshot'}
               arrow
               placement="bottom"
             >
@@ -203,7 +203,7 @@ export default function VersionControlBar() {
                 }}
               >
                 <FloppyDisk size={12} weight={hasChanges ? 'fill' : 'regular'} />
-                Save
+                Snapshot
               </Box>
             </Tooltip>
           </Box>
@@ -245,7 +245,7 @@ export default function VersionControlBar() {
         >
           <GitDiff size={14} weight="bold" color="var(--status-amber)" />
           <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
-            {changeCount} Unsaved Change{changeCount !== 1 ? 's' : ''}
+            {changeCount} Change{changeCount !== 1 ? 's' : ''} Since Last Snapshot
           </Typography>
         </Box>
 

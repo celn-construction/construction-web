@@ -16,6 +16,9 @@ import TaskInfoDialog from './components/TaskInfoDialog';
 import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
 import { useTaskPopover } from './hooks/useTaskPopover';
 import { useGanttControls } from './hooks/useGanttControls';
+import { useGanttDraft, hasGanttDraft } from './hooks/useGanttDraft';
+import { injectTaskVersions } from './utils/injectTaskVersions';
+import { reconcileSyncPack } from './utils/reconcileSyncPack';
 import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
 import GanttLoadingSpinner from './components/GanttLoadingSpinner';
 
@@ -76,18 +79,36 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
   // Lock mode: chart is locked by default; admin-level users can unlock to edit.
+  // If a localStorage draft is present we start unlocked — the user has unsaved
+  // work and clearly wants to keep editing rather than click a toggle first.
   const { currentOrg } = useOrgFromUrl();
   const canEditChart = canManageProjects(currentOrg?.role ?? '');
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(() => hasGanttDraft(projectId));
   const editingUnlocked = canEditChart && isEditMode;
 
   const isReloadingRef = useRef(false);
   const skipVersionRef = useRef(false);
 
+  // Bryntum's CrudManager "added"/"removed" bags can drop records when the
+  // scheduling engine commits state between cycles (see force-sync comment below).
+  // We shadow-track IDs from the reliable taskStore events so `onBeforeSync` can
+  // reconcile the outgoing pack. `lastSync*` captures what was sent so we only
+  // clear those IDs on a successful sync (new changes during the request stay).
+  const pendingAddedIdsRef = useRef<Set<string>>(new Set());
+  const pendingRemovedIdsRef = useRef<Set<string>>(new Set());
+  const lastSyncAddedIdsRef = useRef<Set<string>>(new Set());
+  const lastSyncRemovedIdsRef = useRef<Set<string>>(new Set());
+
   const { selectedTask, popoverPlacement, handleTaskClick, closeTaskPopover, isTaskPopoverOpen } =
     useTaskPopover();
 
   useBryntumThemeAssets();
+
+  useGanttDraft({
+    getGanttInstance,
+    projectId,
+    isLoading,
+  });
 
   // Sync Bryntum's built-in readOnly flag with our edit-mode state.
   // This disables cell editing, task drag, task resize, and dependency creation.
@@ -144,42 +165,43 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
 
     const onSync = () => {
       skipVersionRef.current = false;
+      // Clear only the IDs that were actually sent in this sync cycle; any IDs
+      // added to pending* after `onBeforeSync` fired belong to the next sync.
+      for (const id of lastSyncAddedIdsRef.current) pendingAddedIdsRef.current.delete(id);
+      for (const id of lastSyncRemovedIdsRef.current) pendingRemovedIdsRef.current.delete(id);
+      lastSyncAddedIdsRef.current.clear();
+      lastSyncRemovedIdsRef.current.clear();
       void utils.gantt.tasks.invalidate();
-      // Sync complete — store events already tracked the changes
     };
 
     const onSyncFail = () => {
       skipVersionRef.current = false;
+      // Keep pending IDs intact for retry; just drop the in-flight snapshot.
+      lastSyncAddedIdsRef.current.clear();
+      lastSyncRemovedIdsRef.current.clear();
     };
 
-    // Inject version into sync payload for optimistic locking.
-    // Bryntum only sends changed fields; version is never edited by users so we must
-    // manually inject it for each updated record. Engine-cascaded records (successor
-    // recalculations) are intentionally NOT injected — they skip the version check.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const onBeforeSync = ({ pack }: { pack: any }) => {
+    // Engine-cascaded records (successor recalculations) are intentionally NOT
+    // injected — they skip the version check.
+    const onBeforeSync = ({ pack }: { pack: unknown }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const taskStore = gantt.project.taskStore;
+      reconcileSyncPack(
+        pack,
+        taskStore as Parameters<typeof reconcileSyncPack>[1],
+        pendingAddedIdsRef.current,
+        pendingRemovedIdsRef.current,
+      );
+
+      // Snapshot IDs actually being sent so `onSync` can clear only these on success,
+      // without dropping new changes that arrive mid-request.
+      lastSyncAddedIdsRef.current = new Set(pendingAddedIdsRef.current);
+      lastSyncRemovedIdsRef.current = new Set(pendingRemovedIdsRef.current);
+
       // When user clicks "Proceed" after a conflict, skip version injection
       // so the server does a last-write-wins save (no version check).
-      if (skipVersionRef.current) {
-        return;
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const taskChanges = pack?.tasks as { updated?: Array<Record<string, unknown>> } | undefined;
-      if (taskChanges?.updated) {
-        for (const task of taskChanges.updated) {
-          if (task.id && typeof task.id === 'string') {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            const record = gantt.project.taskStore.getById(task.id) as { get?: (field: string) => unknown; data?: Record<string, unknown> } | null;
-            if (record?.get) {
-              const version = record.get('version');
-              if (typeof version === 'number') {
-                task.version = version;
-              }
-            }
-          }
-        }
-      }
+      if (skipVersionRef.current) return;
+      injectTaskVersions(pack, taskStore as Parameters<typeof injectTaskVersions>[1]);
     };
 
     // Track changes via direct store events (add/remove/update).
@@ -194,6 +216,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         .filter((r) => !r.isRoot && r.id)
         .map((r) => ({ id: String(r.id), name: r.name ?? 'New Task' }));
       if (tasks.length > 0) {
+        for (const t of tasks) pendingAddedIdsRef.current.add(t.id);
         window.dispatchEvent(new CustomEvent('gantt-task-change', {
           detail: { type: 'add', tasks },
         }));
@@ -207,6 +230,15 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         .filter((r) => !r.isRoot && r.id)
         .map((r) => ({ id: String(r.id), name: r.name ?? 'Task' }));
       if (tasks.length > 0) {
+        for (const t of tasks) {
+          // If added then removed before sync, the two cancel out. Otherwise track
+          // the removal so we can reconcile the pack if Bryntum drops it.
+          if (pendingAddedIdsRef.current.has(t.id)) {
+            pendingAddedIdsRef.current.delete(t.id);
+          } else {
+            pendingRemovedIdsRef.current.add(t.id);
+          }
+        }
         window.dispatchEvent(new CustomEvent('gantt-task-change', {
           detail: { type: 'remove', tasks },
         }));

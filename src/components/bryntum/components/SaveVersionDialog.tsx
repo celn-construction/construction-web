@@ -34,12 +34,12 @@ export default function SaveVersionDialog({ open, onOpenChange, projectId }: Sav
     onSuccess: (data) => {
       void utils.schedule.listVersions.invalidate({ projectId });
       window.dispatchEvent(new CustomEvent('gantt-version-saved', { detail: { name: data.name, id: data.id } }));
-      showSnackbar('Version saved', 'success');
+      showSnackbar('Snapshot created', 'success');
       reset();
       onOpenChange(false);
     },
     onError: (error) => {
-      showSnackbar(error.message || 'Failed to save version', 'error');
+      showSnackbar(error.message || 'Failed to create snapshot', 'error');
     },
   });
 
@@ -80,7 +80,7 @@ export default function SaveVersionDialog({ open, onOpenChange, projectId }: Sav
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
       <form onSubmit={handleSubmit(handleSave)}>
-        <DialogTitle sx={{ fontSize: 16, fontWeight: 600, pb: 0.5 }}>Save Version</DialogTitle>
+        <DialogTitle sx={{ fontSize: 16, fontWeight: 600, pb: 0.5 }}>Create Snapshot</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Date & time pill */}
           <Box
@@ -119,7 +119,7 @@ export default function SaveVersionDialog({ open, onOpenChange, projectId }: Sav
             render={({ field }) => (
               <TextField
                 {...field}
-                label="Version name (optional)"
+                label="Snapshot name (optional)"
                 placeholder="e.g. Baseline v1 — March 31"
                 fullWidth
                 autoFocus
@@ -136,7 +136,7 @@ export default function SaveVersionDialog({ open, onOpenChange, projectId }: Sav
               <TextField
                 {...field}
                 label="Description (optional)"
-                placeholder="What changed in this version?"
+                placeholder="What changed in this snapshot?"
                 fullWidth
                 multiline
                 minRows={2}
@@ -153,7 +153,7 @@ export default function SaveVersionDialog({ open, onOpenChange, projectId }: Sav
             Cancel
           </Button>
           <Button variant="contained" size="small" type="submit" loading={isSyncing || saveMutation.isPending}>
-            Save
+            Create Snapshot
           </Button>
         </DialogActions>
       </form>
