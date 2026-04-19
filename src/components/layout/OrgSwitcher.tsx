@@ -1,6 +1,6 @@
 'use client';
 
-import { CaretUpDown, Check } from '@phosphor-icons/react';
+import { CaretDown, Check } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams, usePathname } from 'next/navigation';
@@ -111,7 +111,7 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
         transition={{ duration: 0.15 }}
         style={{ flexShrink: 0 }}
       >
-        <CaretUpDown size={14} weight="bold" />
+        <CaretDown size={14} weight="bold" />
       </motion.div>
     </>
   );

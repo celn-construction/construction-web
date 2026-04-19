@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -69,6 +69,16 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
+
+  // Pulse badge when memberCount changes (triggers once on initial query load, then on any update)
+  const [badgePulseKey, setBadgePulseKey] = useState(0);
+  const prevMemberCountRef = useRef(memberCount);
+  useEffect(() => {
+    if (prevMemberCountRef.current !== memberCount) {
+      prevMemberCountRef.current = memberCount;
+      setBadgePulseKey((k) => k + 1);
+    }
+  }, [memberCount]);
 
   useEffect(() => {
     setIsMac(/Mac/.test(navigator.userAgent));
@@ -197,15 +207,25 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                         py: 0.875,
                         borderRadius: '8px',
                         position: 'relative',
-                        transition: 'all 0.15s ease',
+                        transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
                         bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
                         color: isActive ? 'text.primary' : 'text.secondary',
                         opacity: isDisabled ? 0.35 : 1,
                         cursor: isDisabled ? 'default' : 'pointer',
                         overflow: 'hidden',
+                        '@media (prefers-reduced-motion: reduce)': {
+                          transition: 'none',
+                        },
                         '&:hover': isDisabled ? {} : {
                           bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
                           color: 'text.primary',
+                          boxShadow: (theme) =>
+                            !isActive
+                              ? theme.palette.mode === 'dark'
+                                ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.2)'
+                                : '0 2px 4px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.08)'
+                              : 'none',
+                          '& .nav-icon': !isActive ? { transform: 'scale(1.08)' } : {},
                         },
                       }}
                     >
@@ -226,7 +246,21 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                         />
                       )}
 
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+                      <Box
+                        className="nav-icon"
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 20,
+                          height: 20,
+                          flexShrink: 0,
+                          transition: 'transform 120ms ease-out',
+                          '@media (prefers-reduced-motion: reduce)': {
+                            transition: 'none',
+                          },
+                        }}
+                      >
                         <NavIcon size={17} weight={isActive ? 'fill' : 'regular'} />
                       </Box>
 
@@ -249,6 +283,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
 
                       {!collapsed && badgeCount !== null && badgeCount > 0 && !isActive && (
                         <Typography
+                          key={badgePulseKey}
                           sx={{
                             fontSize: '0.6875rem',
                             fontWeight: 500,
@@ -257,6 +292,17 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                             flexShrink: 0,
                             minWidth: 16,
                             textAlign: 'right',
+                            display: 'inline-block',
+                            transformOrigin: 'center',
+                            animation: 'badgePulse 300ms ease-out',
+                            '@keyframes badgePulse': {
+                              '0%': { transform: 'scale(1)' },
+                              '50%': { transform: 'scale(1.15)' },
+                              '100%': { transform: 'scale(1)' },
+                            },
+                            '@media (prefers-reduced-motion: reduce)': {
+                              animation: 'none',
+                            },
                           }}
                         >
                           {badgeCount}
@@ -265,7 +311,24 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
 
                       {/* Subtle arrow for active item */}
                       {isActive && !collapsed && (
-                        <CaretRight style={{ width: 13, height: 13, opacity: 0.4, flexShrink: 0 }} />
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            flexShrink: 0,
+                            opacity: 0.4,
+                            animation: 'chevronSlideIn 180ms ease-out',
+                            '@keyframes chevronSlideIn': {
+                              '0%': { opacity: 0, transform: 'translateX(-4px)' },
+                              '100%': { opacity: 0.4, transform: 'translateX(0)' },
+                            },
+                            '@media (prefers-reduced-motion: reduce)': {
+                              animation: 'none',
+                            },
+                          }}
+                        >
+                          <CaretRight size={13} />
+                        </Box>
                       )}
                     </Box>
                   );
