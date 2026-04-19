@@ -1,0 +1,182 @@
+name: Daily Preview Digest
+
+on:
+  schedule:
+    # 13:00 UTC = 09:00 America/New_York during EDT. Drifts to 08:00 local
+    # during EST (Nov–Mar). Adjust if you want a fixed local time year-round.
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+jobs:
+  digest:
+    name: Email merged-PR digest to stakeholders
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      RECIPIENTS: '["lawrence.nicastro1@gmail.com","chaseton9@gmail.com"]'
+      EMAIL_FROM: "BuildTrack Pro <noreply@celn.app>"
+      BASE_BRANCH: preview
+    steps:
+      - name: Build and send digest
+        run: |
+          set -euo pipefail
+
+          if [ -z "${RESEND_API_KEY:-}" ]; then
+            echo "RESEND_API_KEY secret is not set; cannot send email. Exiting."
+            exit 1
+          fi
+
+          # Window = full previous calendar day in America/New_York, expressed in UTC.
+          # Example: Tue 09:00 EDT run -> Mon 00:00 EDT through Tue 00:00 EDT
+          # -> 2024-04-29T04:00:00Z through 2024-04-30T04:00:00Z.
+          window_start=$(TZ=America/New_York date -d "yesterday 00:00:00" -u +"%Y-%m-%dT%H:%M:%SZ")
+          window_end=$(TZ=America/New_York date -d "today 00:00:00" -u +"%Y-%m-%dT%H:%M:%SZ")
+          report_day=$(TZ=America/New_York date -d "yesterday" +"%A, %B %-d, %Y")
+          echo "Looking for PRs merged into ${BASE_BRANCH} between ${window_start} and ${window_end}"
+
+          prs=$(gh pr list \
+            --base "${BASE_BRANCH}" \
+            --state merged \
+            --limit 100 \
+            --json number,title,body,url,author,mergedAt \
+            | jq --arg start "${window_start}" --arg end "${window_end}" \
+                '[.[] | select(.mergedAt >= $start and .mergedAt < $end)]')
+
+          count=$(echo "${prs}" | jq 'length')
+          echo "Found ${count} PR(s) merged during ${report_day}"
+
+          if [ "${count}" = "0" ]; then
+            echo "Nothing merged yesterday. Skipping email."
+            exit 0
+          fi
+
+          # Compact input for the summarizer: one line per PR with a truncated body.
+          pr_lines=$(echo "${prs}" | jq -r '
+            .[]
+            | "PR #\(.number): \(.title)\n"
+              + "  Author: \(.author.login // "unknown")\n"
+              + "  URL: \(.url)\n"
+              + "  Description: \((.body // "(no description)") | gsub("\r"; "") | .[0:1200])"
+          ')
+
+          summary_html=""
+
+          if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "Generating non-technical summary with Anthropic…"
+
+            system_prompt=$'You are writing a "what shipped yesterday" digest for the non-technical founders of BuildTrack Pro, a SaaS construction project-management app.\n\nAudience: founders who want to feel the weight of yesterday\'s progress without reading code. They care about product momentum, customer-visible changes, and business impact — not implementation details.\n\nRules:\n- Write in plain English, short and punchy, confident but not salesy.\n- Translate engineering work into founder-relevant outcomes ("customers can now X", "this unblocks Y", "we shipped Z to preview").\n- Group related PRs into one bullet when they add up to a single product change.\n- Skip pure refactors, CI tweaks, and dependency bumps unless they directly affect users, reliability, or security.\n- Output HTML only — no markdown, no code fences, no preamble, no closing remarks.\n- Use this structure, nothing else:\n  <ul style="padding-left: 20px; margin: 0;">\n    <li style="margin-bottom: 12px;"><strong>Headline in plain language.</strong> One or two sentences on why it matters to founders or customers.</li>\n    ...\n  </ul>\n- If every PR is internal-only, return exactly: <p style="margin:0;">No customer-visible changes yesterday — just behind-the-scenes improvements.</p>'
+
+            user_content=$(printf 'Pull requests merged into the preview branch yesterday (%s):\n\n%s' "${report_day}" "${pr_lines}")
+
+            request=$(jq -n \
+              --arg system "${system_prompt}" \
+              --arg user "${user_content}" \
+              '{
+                model: "claude-sonnet-4-6",
+                max_tokens: 1500,
+                system: $system,
+                messages: [{ role: "user", content: $user }]
+              }')
+
+            http_status=$(curl -sS -o /tmp/anthropic.json -w "%{http_code}" \
+              -X POST "https://api.anthropic.com/v1/messages" \
+              -H "Content-Type: application/json" \
+              -H "anthropic-version: 2023-06-01" \
+              -H "x-api-key: ${ANTHROPIC_API_KEY}" \
+              --data "${request}")
+
+            if [ "${http_status}" = "200" ]; then
+              summary_html=$(jq -r '.content[0].text // ""' /tmp/anthropic.json \
+                | sed -E 's/^```[a-zA-Z]*$//; s/^```$//' \
+                | awk 'NF || p {p=1; print}')
+            else
+              echo "Anthropic API returned HTTP ${http_status}; falling back to plain list."
+              cat /tmp/anthropic.json
+              summary_html=""
+            fi
+          else
+            echo "ANTHROPIC_API_KEY not set; using plain list."
+          fi
+
+          if [ -z "${summary_html}" ]; then
+            summary_html=$(echo "${prs}" | jq -r '
+              "<ul style=\"padding-left: 20px; margin: 0;\">"
+              + ([.[] | "<li style=\"margin-bottom: 8px;\"><strong>"
+                  + (.title | gsub("<"; "&lt;") | gsub(">"; "&gt;"))
+                  + "</strong> — "
+                  + (.author.login // "unknown")
+                  + "</li>"] | join(""))
+              + "</ul>"
+            ')
+          fi
+
+          # Appendix: list every PR with a link so engineers can cross-reference.
+          appendix_html=$(echo "${prs}" | jq -r '
+            "<ul style=\"padding-left: 20px; margin: 0; color: #555;\">"
+            + ([.[] | "<li style=\"margin-bottom: 4px;\"><a href=\""
+                + .url
+                + "\" style=\"color: #3b5bdb; text-decoration: none;\">#"
+                + (.number | tostring)
+                + "</a> "
+                + (.title | gsub("<"; "&lt;") | gsub(">"; "&gt;"))
+                + " <span style=\"color: #888;\">— "
+                + (.author.login // "unknown")
+                + "</span></li>"] | join(""))
+            + "</ul>"
+          ')
+
+          subject="BuildTrack Pro — What shipped on ${report_day}"
+
+          html=$(cat <<EOF
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            </head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f9; margin: 0; padding: 32px 16px; color: #1a1a1a;">
+              <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                <h1 style="margin: 0 0 4px 0; font-size: 20px;">What shipped yesterday</h1>
+                <p style="margin: 0 0 24px 0; color: #666; font-size: 13px;">${report_day} · ${count} update$( [ "${count}" != "1" ] && echo "s") merged into <code>${BASE_BRANCH}</code></p>
+
+                <h2 style="margin: 0 0 12px 0; font-size: 15px; color: #1a1a1a;">Highlights for founders</h2>
+                ${summary_html}
+
+                <hr style="border: none; border-top: 1px solid #eee; margin: 28px 0;" />
+
+                <h2 style="margin: 0 0 12px 0; font-size: 14px; color: #666;">Merged pull requests</h2>
+                ${appendix_html}
+
+                <p style="margin: 24px 0 0 0; color: #999; font-size: 12px;">Sent automatically from the <code>${BASE_BRANCH}</code> branch on GitHub.</p>
+              </div>
+            </body>
+          </html>
+          EOF
+          )
+
+          payload=$(jq -n \
+            --arg from "${EMAIL_FROM}" \
+            --argjson to "${RECIPIENTS}" \
+            --arg subject "${subject}" \
+            --arg html "${html}" \
+            '{from: $from, to: $to, subject: $subject, html: $html}')
+
+          echo "Sending digest to ${RECIPIENTS}"
+          http_status=$(curl -sS -o /tmp/resend.json -w "%{http_code}" \
+            -X POST "https://api.resend.com/emails" \
+            -H "Authorization: Bearer ${RESEND_API_KEY}" \
+            -H "Content-Type: application/json" \
+            --data "${payload}")
+
+          if [ "${http_status}" != "200" ] && [ "${http_status}" != "202" ]; then
+            echo "Resend returned HTTP ${http_status}"
+            cat /tmp/resend.json
+            exit 1
+          fi
+
+          echo "Digest sent successfully."
