@@ -11,7 +11,8 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 | `BETTER_AUTH_SECRET` | Signing secret for Better Auth sessions | Yes | Any strong random string |
 | `APP_URL` | Base URL for Better Auth callbacks, trusted origins, invite links, and password reset links. Must be set per-environment — see `claudedocs/vercel.md`. | Yes (defaults to `http://localhost:3000`) | `https://celn.app` |
 | `RESEND_API_KEY` | Resend transactional email API key | Optional | `re_...` (omit for dev console logging) |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token for file uploads | Optional | Provided by Vercel integration |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for the **private** `construction-uploads` store (documents). Served to clients via `/api/blob/[documentId]`. | Optional | Provided by Vercel integration |
+| `BLOB_AVATARS_READ_WRITE_TOKEN` | Vercel Blob token for the **public** avatars store. User profile images are served directly from the public CDN URL. Required — without it, the `@vercel/blob` SDK silently falls back to `BLOB_READ_WRITE_TOKEN` (the private documents store) and avatar URLs 403 in the browser. | Yes | Provided by Vercel integration |
 | `OPENAI_API_KEY` | OpenAI API key for semantic search embeddings | Optional | `sk-proj-...` (get from platform.openai.com) |
 | `ANTHROPIC_API_KEY` | Anthropic API key for AI document analysis (image + PDF descriptions) | Optional | `sk-ant-...` (get from console.anthropic.com) |
 | `BETA_ACCESS_CODE` | Beta access code required on sign-up form. Omit to disable the gate. | Optional | `buildtrack-beta-2026` |

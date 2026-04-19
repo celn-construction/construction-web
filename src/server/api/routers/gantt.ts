@@ -8,6 +8,7 @@ import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentT
 import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
 import { recordRevision } from "@/server/api/helpers/ganttRevision";
 import type { RevisionChanges } from "@/server/api/helpers/ganttRevision";
+import { ganttCoverProxyUrl } from "@/lib/blobProxy";
 
 export const ganttRouter = createTRPCRouter({
   /**
@@ -87,7 +88,7 @@ export const ganttRouter = createTRPCRouter({
         endDate: task.endDate,
         duration: task.duration,
         durationUnit: task.durationUnit,
-        coverImageUrl: task.coverImageUrl,
+        coverImageUrl: task.coverImageUrl ? ganttCoverProxyUrl(task.id) : null,
         csiCode: task.csiCode,
         requiredSubmittals: task.requiredSubmittals,
         requiredInspections: task.requiredInspections,

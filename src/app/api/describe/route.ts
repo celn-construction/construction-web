@@ -22,11 +22,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const buffer = await file.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString("base64");
-    const dataUrl = `data:${file.type};base64,${base64}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    const analysis = await analyzeDocument(dataUrl, file.type, file.name);
+    const analysis = await analyzeDocument(buffer, file.type, file.name);
 
     // Only return AI-generated descriptions, not generic fallbacks
     if (!analysis.description || analysis.description.startsWith("File:") || analysis.description.startsWith("PDF document:")) {

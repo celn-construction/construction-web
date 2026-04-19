@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { User, ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, CaretRight, CaretLineLeft, CaretLineRight, CreditCard, Lifebuoy, SignOut, type Icon } from '@phosphor-icons/react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, CaretRight, CaretLineLeft, CaretLineRight, SignOut, type Icon } from '@phosphor-icons/react';
 import { Box, Typography, Tooltip } from '@mui/material';
 import {
   DropdownMenu,
@@ -18,7 +18,7 @@ import { api } from '@/trpc/react';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import { authClient, signOut } from '@/lib/auth-client';
-import { getInitials } from '@/lib/utils/formatting';
+import UserAvatar from '@/components/ui/UserAvatar';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { useLoading } from '@/components/providers/LoadingProvider';
 import AccountSettingsModal from './AccountSettingsModal';
@@ -35,10 +35,7 @@ const iconMap: Record<string, Icon> = {
 };
 
 const profileMenuItems = [
-  { icon: User, label: 'My Profile' },
   { icon: GearSix, label: 'Account Settings' },
-  { icon: CreditCard, label: 'Billing' },
-  { icon: Lifebuoy, label: 'Help & Support' },
 ];
 
 interface SidebarProps {
@@ -404,26 +401,9 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
               },
             }}
           >
-            {/* Avatar with gradient */}
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                color: 'common.white',
-                letterSpacing: '0.02em',
-              }}
-            >
-              {getInitials(user?.name)}
-            </Box>
+            {user && (
+              <UserAvatar user={user} size={32} borderRadius="8px" />
+            )}
 
             {!collapsed && (
               <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '2px' }}>
@@ -468,24 +448,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         >
           {/* Profile Header */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: '14px' }}>
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: '8px',
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color: 'common.white',
-              }}
-            >
-              {getInitials(user?.name)}
-            </Box>
+            {user && <UserAvatar user={user} size={36} borderRadius="8px" />}
             <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
               <Typography
                 sx={{
@@ -526,9 +489,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                 component="button"
                 onClick={() => {
                   setProfileOpen(false);
-                  if (item.label === 'Account Settings' || item.label === 'My Profile') {
-                    setSettingsOpen(true);
-                  }
+                  setSettingsOpen(true);
                 }}
                 sx={{
                   display: 'flex',

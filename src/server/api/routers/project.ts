@@ -8,6 +8,7 @@ import { getActiveOrganizationId } from "@/server/api/helpers/getActiveOrganizat
 import { getActiveProjectId } from "@/server/api/helpers/getActiveProject";
 import { getTemplateData } from "@/server/gantt/templates";
 import { generateUniqueProjectSlug } from "@/server/api/helpers/generateProjectSlug";
+import { projectImageProxyUrl, withProxyImageUrl } from "@/lib/blobProxy";
 
 export const projectRouter = createTRPCRouter({
   list: protectedProcedure
@@ -84,7 +85,7 @@ export const projectRouter = createTRPCRouter({
       );
 
       return projects.map((p) => ({
-        ...p,
+        ...withProxyImageUrl(p),
         taskCount: statsMap.get(p.id)?.taskCount ?? 0,
         completedTaskCount: statsMap.get(p.id)?.completedTaskCount ?? 0,
         completionPercent: statsMap.get(p.id)?.completionPercent ?? 0,
@@ -216,7 +217,7 @@ export const projectRouter = createTRPCRouter({
         },
       });
 
-      return project;
+      return project ? withProxyImageUrl(project) : null;
     }),
 
   getBySlug: protectedProcedure
@@ -268,7 +269,7 @@ export const projectRouter = createTRPCRouter({
         },
       });
 
-      return project;
+      return project ? withProxyImageUrl(project) : null;
     }),
 
   getActive: protectedProcedure
@@ -321,7 +322,7 @@ export const projectRouter = createTRPCRouter({
         },
       });
 
-      return project;
+      return project ? withProxyImageUrl(project) : null;
     }),
 
   setActive: protectedProcedure
@@ -363,7 +364,7 @@ export const projectRouter = createTRPCRouter({
         data: { activeProjectId: input.projectId },
       });
 
-      return project;
+      return withProxyImageUrl(project);
     }),
 
   update: projectProcedure
@@ -389,8 +390,12 @@ export const projectRouter = createTRPCRouter({
         data.icon = input.icon;
       }
 
-      if (input.imageUrl !== undefined) {
-        // Clean up old image blob if replacing
+      // The form round-trips the proxy URL unchanged when the image wasn't
+      // touched; treat that as "keep existing" and skip.
+      if (
+        input.imageUrl !== undefined &&
+        input.imageUrl !== projectImageProxyUrl(ctx.project.id)
+      ) {
         if (ctx.project.imageUrl && ctx.project.imageUrl !== input.imageUrl) {
           try {
             await del(ctx.project.imageUrl);
@@ -402,7 +407,7 @@ export const projectRouter = createTRPCRouter({
       }
 
       if (Object.keys(data).length === 0) {
-        return ctx.project;
+        return withProxyImageUrl(ctx.project);
       }
 
       const updated = await ctx.db.project.update({
@@ -410,7 +415,7 @@ export const projectRouter = createTRPCRouter({
         data,
       });
 
-      return updated;
+      return withProxyImageUrl(updated);
     }),
 
   delete: projectProcedure

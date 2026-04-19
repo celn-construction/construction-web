@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/server/db";
 import { ProjectProvider } from "@/components/providers/ProjectProvider";
 import ProjectShell from "@/components/layout/ProjectShell";
+import { withProxyImageUrl } from "@/lib/blobProxy";
 
 export default async function ProjectLayout({
   children,
@@ -39,8 +40,7 @@ export default async function ProjectLayout({
     redirect(`/${orgSlug}`);
   }
 
-  // Resolve project by slug within this organization
-  const project = await db.project.findUnique({
+  const rawProject = await db.project.findUnique({
     where: {
       organizationId_slug: {
         organizationId: organization.id,
@@ -50,10 +50,11 @@ export default async function ProjectLayout({
     select: { id: true, slug: true, name: true, icon: true, imageUrl: true, location: true, organizationId: true },
   });
 
-  // Project not found - redirect to org home
-  if (!project) {
+  if (!rawProject) {
     redirect(`/${orgSlug}`);
   }
+
+  const project = withProxyImageUrl(rawProject);
 
   // Only write if the active project actually changed
   if (user?.activeProjectId !== project.id) {

@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { analyzeDocument } from "@/server/services/tagging";
 import { embedDocuments, toVectorSql } from "@/server/services/embeddings";
 import { env } from "@/env";
+import { documentProxyUrl } from "@/lib/blobProxy";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -115,18 +116,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Upload to Vercel Blob
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+
     const blob = await put(
       `projects/${projectId}/${taskId}/${folderId}/${file.name}`,
-      file,
+      fileBuffer,
       {
-        access: "public",
+        access: "private",
         addRandomSuffix: true,
+        contentType: file.type,
       }
     );
 
-    // Analyze file for tags and description
-    const analysis = await analyzeDocument(blob.url, file.type, file.name);
+    const analysis = await analyzeDocument(fileBuffer, file.type, file.name);
 
     // Create document record with tags and description
     const document = await db.document.create({
@@ -172,7 +174,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(document);
+    return NextResponse.json({ ...document, blobUrl: documentProxyUrl(document.id) });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(

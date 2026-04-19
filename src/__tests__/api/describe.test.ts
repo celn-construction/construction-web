@@ -96,7 +96,7 @@ describe("/api/describe", () => {
     );
   });
 
-  it("calls analyzeDocument with a data URL", async () => {
+  it("calls analyzeDocument with the file buffer", async () => {
     mockAnalyzeDocument.mockResolvedValue({
       tags: [],
       description: "A construction photo.",
@@ -105,7 +105,7 @@ describe("/api/describe", () => {
     await POST(makeRequest(makeFile("site.png", "image/png")));
 
     expect(mockAnalyzeDocument).toHaveBeenCalledWith(
-      expect.stringMatching(/^data:image\/png;base64,/),
+      expect.any(Buffer),
       "image/png",
       "site.png"
     );

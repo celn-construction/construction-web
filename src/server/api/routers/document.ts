@@ -4,6 +4,7 @@ import { del } from "@vercel/blob";
 import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 import { embedQuery, toVectorSql } from "@/server/services/embeddings";
 import { expandAcronyms } from "@/lib/constants/constructionAcronyms";
+import { documentProxyUrl } from "@/lib/blobProxy";
 
 interface RawDocumentRow {
   id: string;
@@ -25,11 +26,15 @@ interface RawDocumentRow {
   uploader_email: string;
 }
 
+function toClientBlobUrl<T extends { id: string }>(doc: T): T & { blobUrl: string } {
+  return { ...doc, blobUrl: documentProxyUrl(doc.id) };
+}
+
 function shapeResults(rows: RawDocumentRow[]) {
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
-    blobUrl: r.blobUrl,
+    blobUrl: documentProxyUrl(r.id),
     mimeType: r.mimeType,
     size: r.size,
     tags: r.tags,
@@ -127,7 +132,7 @@ export const documentRouter = createTRPCRouter({
         },
       });
 
-      return documents;
+      return documents.map(toClientBlobUrl);
     }),
 
   listByTask: orgProcedure
@@ -149,7 +154,7 @@ export const documentRouter = createTRPCRouter({
         return [];
       }
 
-      return ctx.db.document.findMany({
+      const documents = await ctx.db.document.findMany({
         where: {
           projectId: input.projectId,
           taskId: input.taskId,
@@ -161,6 +166,8 @@ export const documentRouter = createTRPCRouter({
         },
         orderBy: { createdAt: "desc" },
       });
+
+      return documents.map(toClientBlobUrl);
     }),
 
   countByTask: orgProcedure
@@ -245,7 +252,7 @@ export const documentRouter = createTRPCRouter({
           }),
           ctx.db.document.count({ where }),
         ]);
-        return { results, total };
+        return { results: results.map(toClientBlobUrl), total };
       }
 
       // Case-insensitive contains match on document name
@@ -271,7 +278,7 @@ export const documentRouter = createTRPCRouter({
         ctx.db.document.count({ where }),
       ]);
 
-      return { results, total };
+      return { results: results.map(toClientBlobUrl), total };
     }),
 
   aiSearch: orgProcedure
@@ -317,7 +324,7 @@ export const documentRouter = createTRPCRouter({
           }),
           ctx.db.document.count({ where }),
         ]);
-        return { results, total };
+        return { results: results.map(toClientBlobUrl), total };
       }
 
       const queryEmbedding = await embedQuery(input.query);

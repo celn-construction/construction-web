@@ -1,9 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Box, Typography, Avatar, Skeleton } from '@mui/material';
+import { Box, Typography, Skeleton } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { formatRole } from '@/lib/utils/formatting';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 interface Member {
   id: string;
@@ -92,18 +93,6 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
     );
   }
 
-  const getInitials = (name: string | null, email: string) => {
-    if (name) {
-      return name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return email.charAt(0).toUpperCase();
-  };
-
   return (
     <Box
       component={motion.div}
@@ -138,21 +127,7 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
             },
           }}
         >
-          <Avatar
-            src={member.user.image || undefined}
-            alt={member.user.name || member.user.email}
-            sx={{
-              width: 38,
-              height: 38,
-              borderRadius: '50%',
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-              color: theme.palette.primary.contrastText,
-              fontWeight: 600,
-              fontSize: '0.8125rem',
-            }}
-          >
-            {!member.user.image && getInitials(member.user.name, member.user.email)}
-          </Avatar>
+          <UserAvatar user={member.user} size={38} />
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
