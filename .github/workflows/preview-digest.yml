@@ -70,9 +70,39 @@ jobs:
           if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
             echo "Generating non-technical summary with Anthropic…"
 
-            system_prompt=$'You are writing a "what shipped yesterday" digest for the non-technical founders of BuildTrack Pro, a SaaS construction project-management app.\n\nAudience: founders who want to feel the weight of yesterday\'s progress without reading code. They care about product momentum, customer-visible changes, and business impact — not implementation details.\n\nRules:\n- Write in plain English, short and punchy, confident but not salesy.\n- Translate engineering work into founder-relevant outcomes ("customers can now X", "this unblocks Y", "we shipped Z to preview").\n- Group related PRs into one bullet when they add up to a single product change.\n- Skip pure refactors, CI tweaks, and dependency bumps unless they directly affect users, reliability, or security.\n- Output HTML only — no markdown, no code fences, no preamble, no closing remarks.\n- Use this structure, nothing else:\n  <ul style="padding-left: 20px; margin: 0;">\n    <li style="margin-bottom: 12px;"><strong>Headline in plain language.</strong> One or two sentences on why it matters to founders or customers.</li>\n    ...\n  </ul>\n- If every PR is internal-only, return exactly: <p style="margin:0;">No customer-visible changes yesterday — just behind-the-scenes improvements.</p>'
+            system_prompt=$(cat <<'PROMPT'
+          You are writing a "what shipped yesterday" digest for the non-technical founders of BuildTrack Pro, a SaaS construction project-management app.
 
-            user_content=$(printf 'Pull requests merged into the preview branch yesterday (%s):\n\n%s' "${report_day}" "${pr_lines}")
+          Audience: founders who want to feel the weight of yesterday's progress. They care about product momentum and customer-visible changes.
+
+          GROUNDING — the most important rule:
+          - The PR list provided is your ONLY source of truth. Never invent PR numbers, feature names, UI text, dates, version labels, or references to other issues or feedback.
+          - If a detail is not in the input, describe the change generically. "The Gantt Week view header format was updated" is correct; fabricating the specific new label is not.
+          - Do not reference prior PRs, tickets, or feedback numbers unless they appear verbatim in the PR data.
+
+          Style:
+          - Lede first. One short sentence stating the outcome for users. Add at most ONE sentence of context — no more.
+          - Plain English, past tense. No marketing language ("blazingly", "dramatic", "big reduction", "directly addresses", "small change, big impact", "much easier"). Report what changed; do not editorialize.
+
+          Grouping (aggressive):
+          - Collapse related PRs into one bullet. Multiple Gantt UX PRs become ONE "Gantt polish" bullet, not three.
+          - Skip pure refactors, CI tweaks, dependency bumps, and internal workflow changes unless they affect users, reliability, or security.
+
+          Attribution — every bullet MUST end with a muted span containing linked PR numbers and author logins. Use the exact URL from each PR's URL field:
+          <span style="color:#888; font-size:12px;">(<a href="EXACT_URL" style="color:#888;">#NUMBER</a> by @LOGIN)</span>
+          For multiple PRs: list them comma-separated inside the parens, authors only listed once if shared.
+
+          Output:
+          - HTML only. No markdown, no code fences, no preamble, no closing remarks.
+          - Exact structure:
+            <ul style="padding-left: 20px; margin: 0;">
+              <li style="margin-bottom: 12px;"><strong>Outcome headline.</strong> Optional one-sentence context. <span style="color:#888;font-size:12px;">(<a href="..." style="color:#888;">#N</a> by @login)</span></li>
+            </ul>
+          - If every PR is internal-only, return exactly: <p style="margin:0;">No customer-visible changes yesterday — just behind-the-scenes improvements.</p>
+          PROMPT
+          )
+
+            user_content=$(printf 'Pull requests shipped yesterday (%s). Only use facts from this data — do not invent details.\n\n%s' "${report_day}" "${pr_lines}")
 
             request=$(jq -n \
               --arg system "${system_prompt}" \
@@ -109,29 +139,39 @@ jobs:
               "<ul style=\"padding-left: 20px; margin: 0;\">"
               + ([.[] | "<li style=\"margin-bottom: 8px;\"><strong>"
                   + (.title | gsub("<"; "&lt;") | gsub(">"; "&gt;"))
-                  + "</strong> — "
+                  + "</strong> <span style=\"color:#888; font-size:12px;\">(<a href=\""
+                  + .url
+                  + "\" style=\"color:#888;\">#"
+                  + (.number | tostring)
+                  + "</a> by @"
                   + (.author.login // "unknown")
-                  + "</li>"] | join(""))
+                  + ")</span></li>"] | join(""))
               + "</ul>"
             ')
           fi
 
-          # Appendix: list every PR with a link so engineers can cross-reference.
+          # Appendix: list every PR with a link and avatar so engineers can cross-reference.
           appendix_html=$(echo "${prs}" | jq -r '
-            "<ul style=\"padding-left: 20px; margin: 0; color: #555;\">"
-            + ([.[] | "<li style=\"margin-bottom: 4px;\"><a href=\""
-                + .url
-                + "\" style=\"color: #3b5bdb; text-decoration: none;\">#"
-                + (.number | tostring)
-                + "</a> "
+            "<ul style=\"padding: 0; margin: 0; list-style: none;\">"
+            + ([.[] | "<li style=\"margin-bottom: 8px; color: #555;\">"
+                + "<img src=\"https://github.com/"
+                + (.author.login // "ghost")
+                + ".png?size=40\" width=\"18\" height=\"18\" style=\"border-radius: 50%; vertical-align: middle; margin-right: 8px;\" alt=\"\" />"
+                + "<a href=\"" + .url + "\" style=\"color: #3b5bdb; text-decoration: none;\">#" + (.number | tostring) + "</a> "
                 + (.title | gsub("<"; "&lt;") | gsub(">"; "&gt;"))
-                + " <span style=\"color: #888;\">— "
+                + " <span style=\"color: #888;\">@"
                 + (.author.login // "unknown")
                 + "</span></li>"] | join(""))
             + "</ul>"
           ')
 
-          subject="BuildTrack Pro — What shipped on ${report_day}"
+          plural=""
+          if [ "${count}" != "1" ]; then plural="s"; fi
+          contributor_count=$(echo "${prs}" | jq '[.[] | .author.login // "unknown"] | unique | length')
+          contributor_plural=""
+          if [ "${contributor_count}" != "1" ]; then contributor_plural="s"; fi
+
+          subject="BuildTrack Pro — ${count} update${plural} shipped ${report_day}"
 
           html=$(cat <<EOF
           <!DOCTYPE html>
@@ -143,7 +183,8 @@ jobs:
             <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f9; margin: 0; padding: 32px 16px; color: #1a1a1a;">
               <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
                 <h1 style="margin: 0 0 4px 0; font-size: 20px;">What shipped yesterday</h1>
-                <p style="margin: 0 0 24px 0; color: #666; font-size: 13px;">${report_day} · ${count} update$( [ "${count}" != "1" ] && echo "s") merged into <code>${BASE_BRANCH}</code></p>
+                <p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">${report_day}</p>
+                <p style="margin: 0 0 24px 0; color: #888; font-size: 12px;">${count} update${plural} · ${contributor_count} contributor${contributor_plural}</p>
 
                 <h2 style="margin: 0 0 12px 0; font-size: 15px; color: #1a1a1a;">Highlights for founders</h2>
                 ${summary_html}
@@ -153,7 +194,7 @@ jobs:
                 <h2 style="margin: 0 0 12px 0; font-size: 14px; color: #666;">Merged pull requests</h2>
                 ${appendix_html}
 
-                <p style="margin: 24px 0 0 0; color: #999; font-size: 12px;">Sent automatically from the <code>${BASE_BRANCH}</code> branch on GitHub.</p>
+                <p style="margin: 24px 0 0 0; color: #999; font-size: 12px;">Sent automatically from the BuildTrack Pro release pipeline.</p>
               </div>
             </body>
           </html>
