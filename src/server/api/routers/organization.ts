@@ -74,7 +74,7 @@ export const organizationRouter = createTRPCRouter({
     const memberships = await ctx.db.membership.findMany({
       where: { userId: ctx.session.user.id },
       include: {
-        organization: { select: { id: true, name: true, slug: true } },
+        organization: { select: { id: true, name: true, slug: true, logoUrl: true } },
       },
       orderBy: { createdAt: "asc" },
     });

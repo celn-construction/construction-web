@@ -197,6 +197,8 @@ export const invitationRouter = createTRPCRouter({
             select: {
               id: true,
               name: true,
+              slug: true,
+              logoUrl: true,
             },
           },
           project: {

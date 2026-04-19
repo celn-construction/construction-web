@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { api } from '@/trpc/react';
 import { formatRole } from '@/lib/utils/formatting';
+import OrgAvatar from '@/components/ui/OrgAvatar';
 
 interface AccountTabContentProps {
   onCloseModal: () => void;
@@ -59,24 +60,13 @@ export default function AccountTabContent({ onCloseModal }: AccountTabContentPro
               bgcolor: 'action.hover',
             }}
           >
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: '10px',
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                color: 'common.white',
-              }}
-            >
-              {org.name.charAt(0).toUpperCase()}
-            </Box>
+            <OrgAvatar
+              name={org.name}
+              seed={org.slug ?? org.id}
+              logoUrl={org.logoUrl}
+              size={36}
+              borderRadius="10px"
+            />
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography
                 sx={{

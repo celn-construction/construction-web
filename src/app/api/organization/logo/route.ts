@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { auth } from "@/lib/auth";
+import { env } from "@/env";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -37,7 +38,12 @@ export async function POST(req: NextRequest) {
     const blob = await put(
       `organizations/logos/${session.user.id}/${file.name}`,
       file,
-      { access: "public", addRandomSuffix: true }
+      {
+        access: "public",
+        addRandomSuffix: true,
+        contentType: file.type,
+        token: env.BLOB_AVATARS_READ_WRITE_TOKEN,
+      }
     );
 
     return NextResponse.json({ logoUrl: blob.url });
