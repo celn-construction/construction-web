@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { User, Settings, CreditCard, LifeBuoy, LogOut, ChevronRight } from 'lucide-react';
+import { Settings, LogOut, ChevronRight } from 'lucide-react';
 import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, X, type Icon } from '@phosphor-icons/react';
 import { Drawer, Box, IconButton, Typography } from '@mui/material';
 import {
@@ -16,7 +16,7 @@ import { projectNavItems, getProjectNavHref } from './navItems';
 import OrgSwitcher from './OrgSwitcher';
 
 import { authClient, signOut } from '@/lib/auth-client';
-import { getInitials } from '@/lib/utils/formatting';
+import UserAvatar from '@/components/ui/UserAvatar';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { useLoading } from '@/components/providers/LoadingProvider';
 import AccountSettingsModal from './AccountSettingsModal';
@@ -34,10 +34,7 @@ interface MobileDrawerProps {
 }
 
 const mobileProfileMenuItems = [
-  { icon: User, label: 'My Profile' },
   { icon: Settings, label: 'Account Settings' },
-  { icon: CreditCard, label: 'Billing' },
-  { icon: LifeBuoy, label: 'Help & Support' },
 ];
 
 export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
@@ -263,26 +260,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               },
             }}
           >
-            {/* Avatar with accent ring */}
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                color: 'common.white',
-                letterSpacing: '0.02em',
-              }}
-            >
-              {getInitials(user?.name)}
-            </Box>
+            {user && <UserAvatar user={user} size={32} borderRadius="8px" />}
 
             <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '2px' }}>
               <Typography
@@ -325,24 +303,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         >
           {/* Profile Header */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: '14px' }}>
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: '8px',
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color: 'common.white',
-              }}
-            >
-              {getInitials(user?.name)}
-            </Box>
+            {user && <UserAvatar user={user} size={36} borderRadius="8px" />}
             <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
               <Typography
                 sx={{

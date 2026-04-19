@@ -3,6 +3,7 @@ import { put, del } from "@vercel/blob";
 import { db } from "@/server/db";
 import { auth } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { ganttCoverProxyUrl } from "@/lib/blobProxy";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -81,10 +82,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+
     const blob = await put(
       `projects/${projectId}/covers/${taskId}/${file.name}`,
-      file,
-      { access: "public", addRandomSuffix: true }
+      fileBuffer,
+      { access: "private", addRandomSuffix: true, contentType: file.type }
     );
 
     await db.ganttTask.update({
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
       data: { coverImageUrl: blob.url },
     });
 
-    return NextResponse.json({ coverImageUrl: blob.url });
+    return NextResponse.json({ coverImageUrl: ganttCoverProxyUrl(taskId) });
   } catch (error) {
     console.error("Cover image upload error:", error);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });

@@ -162,6 +162,22 @@ const currentOrg = organizations.find((o) => o.slug === params.orgSlug);
 
 Cache invalidation after mutations: `void utils.xxx.invalidate()` — always fire-and-forget with `void`.
 
+### Private blob URLs (documents, project images, task covers)
+
+All three live in the private `construction-uploads` store. Raw blob URLs are **never exposed to the client** — tRPC read procedures rewrite them to authenticated proxy paths before returning, and upload route responses return the proxy URL directly:
+
+| Model field | Proxy path | Access check | Render path |
+|---|---|---|---|
+| `Document.blobUrl` | `/api/blob/[documentId]` | project member | any tRPC document query or `/api/upload` |
+| `Project.imageUrl` | `/api/blob/project-image/[projectId]` | org member | `project.list/getById/getBySlug/getActive/setActive/update` + `[orgSlug]/projects/[projectSlug]/layout.tsx` |
+| `GanttTask.coverImageUrl` | `/api/blob/gantt-cover/[taskId]` | project member OR privileged org role | `gantt.taskDetail` + `/api/gantt/cover-image` POST response |
+
+Client code uses these like any other URL (`<img src>`, `<iframe src>`, `<a href>`, `fetch()`, `window.open()`); the browser sends its session cookie and the proxy enforces tenancy. Never attempt to render the raw blob CDN URL — it will 403.
+
+**Forms that upload and preview**: private URLs don't render in `<img>`, so forms that show a just-uploaded image before submit must use a local object URL for preview (`URL.createObjectURL(file)` + `revokeObjectURL` on unmount/replace) and keep the form state field for the raw URL that gets submitted. See `ProjectFormBody.tsx` and `manage/page.tsx` for the `previewUrl ?? imageUrl` display pattern. The tRPC update mutation also defensively treats an incoming proxy URL as a no-op (the form round-trips the unchanged proxy URL when the user edits other fields).
+
+User avatars (`user.image`) are the opposite: they live in the **public** avatars store and are rendered directly via the public CDN URL — no proxy involved.
+
 ---
 
 ## Forms

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { updateProfileSchema, type UpdateProfileInput } from '@/lib/validations/user';
-import { getInitials } from '@/lib/utils/formatting';
+import AvatarUploader from '@/components/layout/AvatarUploader';
 
 export default function ProfileTabContent() {
   const { showSnackbar } = useSnackbar();
@@ -51,36 +51,7 @@ export default function ProfileTabContent() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Avatar + identity */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Box
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: '14px',
-            background: (theme) =>
-              `linear-gradient(135deg, ${theme.palette.accent.dark}, ${theme.palette.accent.gradientEnd})`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            fontSize: '1.125rem',
-            fontWeight: 600,
-            color: 'common.white',
-            letterSpacing: '0.02em',
-          }}
-        >
-          {getInitials(user?.name)}
-        </Box>
-        <Box>
-          <Typography sx={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.3 }}>
-            {user?.name ?? 'User'}
-          </Typography>
-          <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.3, mt: 0.25 }}>
-            {user?.email}
-          </Typography>
-        </Box>
-      </Box>
+      {user && <AvatarUploader user={user} />}
 
       {/* Form */}
       <form

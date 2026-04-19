@@ -19,19 +19,19 @@ function createClient(): Anthropic {
 }
 
 export async function analyzeDocument(
-  blobUrl: string,
+  buffer: Buffer,
   mimeType: string,
   name: string
 ): Promise<DocumentAnalysis> {
   try {
     if (IMAGE_MIME_TYPES.includes(mimeType)) {
-      return await analyzeImage(blobUrl, mimeType);
+      return await analyzeImage(buffer, mimeType);
     }
     if (CONVERTIBLE_IMAGE_TYPES.includes(mimeType)) {
-      return await analyzeImage(blobUrl, mimeType);
+      return await analyzeImage(buffer, mimeType);
     }
     if (mimeType === "application/pdf") {
-      return await analyzePdf(blobUrl, name);
+      return await analyzePdf(buffer, name);
     }
     return {
       tags: tagByType(mimeType, name),
@@ -43,12 +43,10 @@ export async function analyzeDocument(
 }
 
 async function analyzeImage(
-  blobUrl: string,
+  rawBuffer: Buffer,
   mimeType: string
 ): Promise<DocumentAnalysis> {
   const client = createClient();
-  const response = await fetch(blobUrl);
-  const rawBuffer = Buffer.from(await response.arrayBuffer());
 
   // Convert unsupported formats (AVIF, HEIC, TIFF) to WebP for Claude's vision API
   let imageBuffer: Buffer;
@@ -96,13 +94,11 @@ Return ONLY valid JSON, no markdown fences.`,
 }
 
 async function analyzePdf(
-  blobUrl: string,
+  buffer: Buffer,
   name: string
 ): Promise<DocumentAnalysis> {
   const client = createClient();
-  const response = await fetch(blobUrl);
-  const buffer = await response.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
+  const base64 = buffer.toString("base64");
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",

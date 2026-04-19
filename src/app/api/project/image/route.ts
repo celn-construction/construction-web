@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     const blob = await put(
       `projects/covers/${organizationId}/${file.name}`,
       file,
-      { access: "public", addRandomSuffix: true }
+      { access: "private", addRandomSuffix: true }
     );
 
     return NextResponse.json({ imageUrl: blob.url });

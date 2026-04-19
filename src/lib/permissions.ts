@@ -73,6 +73,18 @@ export function canManageProjects(role: string): boolean {
   return hasPermission(role, "MANAGE_PROJECTS");
 }
 
+// Org roles that imply access to any project in the org, even without an
+// explicit ProjectMember row. Mirrors the auto-create logic in projectProcedure.
+const ORG_ROLES_WITH_IMPLICIT_PROJECT_ACCESS = new Set<Role>([
+  "owner",
+  "admin",
+  "project_manager",
+]);
+
+export function hasImplicitProjectAccess(role: string): boolean {
+  return ORG_ROLES_WITH_IMPLICIT_PROJECT_ACCESS.has(role as Role);
+}
+
 // Role rank for hierarchy enforcement (higher = more privileged)
 const ROLE_RANK: Record<Role, number> = {
   owner: 4,

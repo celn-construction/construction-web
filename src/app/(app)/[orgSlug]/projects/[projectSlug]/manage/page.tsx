@@ -141,6 +141,7 @@ function ProjectSettingsForm({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [iconAnchorEl, setIconAnchorEl] = useState<HTMLElement | null>(null);
   const uploadedUrlRef = useRef<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const { control, handleSubmit, watch, setValue, formState: { errors, isDirty } } =
     useForm<UpdateProjectInput>({
@@ -155,6 +156,7 @@ function ProjectSettingsForm({
 
   const selectedIcon = watch('icon') ?? 'building';
   const imageUrl = watch('imageUrl');
+  const displayImageUrl = previewUrl ?? imageUrl;
   const SelectedIconComponent = getProjectIcon(selectedIcon);
   const selectedIconLabel = PROJECT_ICON_OPTIONS.find(o => o.id === selectedIcon)?.label ?? 'Building';
 
@@ -186,6 +188,10 @@ function ProjectSettingsForm({
           }).catch(() => {});
         }
       }
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -217,17 +223,23 @@ function ProjectSettingsForm({
     if (!file || !organizationId) return;
     setIsUploading(true);
     setUploadError(null);
+    const localPreview = URL.createObjectURL(file);
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('organizationId', organizationId);
       const res = await fetch('/api/project/image', { method: 'POST', body: formData });
       if (!res.ok) {
+        URL.revokeObjectURL(localPreview);
         const d = await res.json() as { error?: string };
         throw new Error(d.error ?? 'Upload failed');
       }
       const d = await res.json() as { imageUrl: string };
       if (uploadedUrlRef.current) cleanupUploadedImage(uploadedUrlRef.current);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return localPreview;
+      });
       uploadedUrlRef.current = d.imageUrl;
       setValue('imageUrl', d.imageUrl, { shouldDirty: true });
     } catch (err) {
@@ -239,6 +251,10 @@ function ProjectSettingsForm({
 
   const handleRemovePhoto = useCallback(() => {
     if (uploadedUrlRef.current) cleanupUploadedImage();
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     setValue('imageUrl', undefined, { shouldDirty: true });
     setUploadError(null);
   }, [setValue, cleanupUploadedImage]);
@@ -288,15 +304,15 @@ function ProjectSettingsForm({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2.5 }}>
           <Box sx={{
             width: 48, height: 48, borderRadius: '12px',
-            bgcolor: imageUrl ? 'transparent' : alpha(theme.palette.primary.main, 0.08),
-            border: imageUrl ? 'none' : `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
+            bgcolor: displayImageUrl ? 'transparent' : alpha(theme.palette.primary.main, 0.08),
+            border: displayImageUrl ? 'none' : `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, overflow: 'hidden',
           }}>
             <ProjectAvatar
-              imageUrl={imageUrl}
+              imageUrl={displayImageUrl}
               icon={selectedIcon}
-              size={imageUrl ? 48 : 24}
+              size={displayImageUrl ? 48 : 24}
               borderRadius="12px"
               color={theme.palette.primary.main}
             />
@@ -424,9 +440,9 @@ function ProjectSettingsForm({
           {/* Photo Picker */}
           {pickerMode === 'photo' && (
             <Box sx={{ mb: 2.5 }}>
-              {imageUrl ? (
+              {displayImageUrl ? (
                 <Box sx={{ position: 'relative', '&:hover .remove-photo-btn': { opacity: 1 } }}>
-                  <Box component="img" src={imageUrl} alt="Project cover"
+                  <Box component="img" src={displayImageUrl} alt="Project cover"
                     sx={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: '10px' }} />
                   <IconButton className="remove-photo-btn" onClick={handleRemovePhoto}
                     aria-label="Remove uploaded photo"

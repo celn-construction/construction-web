@@ -246,6 +246,7 @@ export default function ProjectFormBody({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [iconAnchorEl, setIconAnchorEl] = useState<HTMLElement | null>(null);
   const uploadedUrlRef = useRef<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const {
     control,
@@ -268,6 +269,7 @@ export default function ProjectFormBody({
   const SelectedIconComponent = getProjectIcon(selectedIcon);
   const selectedIconLabel = PROJECT_ICON_OPTIONS.find(o => o.id === selectedIcon)?.label ?? 'Building';
   const imageUrl = watch('imageUrl');
+  const displayImageUrl = previewUrl ?? imageUrl;
 
   const cleanupUploadedImage = useCallback((url?: string) => {
     const urlToDelete = url ?? uploadedUrlRef.current;
@@ -294,6 +296,10 @@ export default function ProjectFormBody({
           }).catch(() => { /* silent cleanup */ });
         }
       }
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -302,6 +308,10 @@ export default function ProjectFormBody({
     reset();
     setPickerMode('icon');
     setUploadError(null);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
   }, [reset]);
 
   const createProject = api.project.create.useMutation({
@@ -360,6 +370,8 @@ export default function ProjectFormBody({
     setIsUploading(true);
     setUploadError(null);
 
+    const localPreview = URL.createObjectURL(file);
+
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -371,6 +383,7 @@ export default function ProjectFormBody({
       });
 
       if (!res.ok) {
+        URL.revokeObjectURL(localPreview);
         const data = await res.json() as { error?: string };
         throw new Error(data.error ?? 'Upload failed');
       }
@@ -381,6 +394,10 @@ export default function ProjectFormBody({
       if (uploadedUrlRef.current) {
         cleanupUploadedImage(uploadedUrlRef.current);
       }
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return localPreview;
+      });
 
       uploadedUrlRef.current = data.imageUrl;
       setValue('imageUrl', data.imageUrl);
@@ -395,6 +412,10 @@ export default function ProjectFormBody({
     if (uploadedUrlRef.current) {
       cleanupUploadedImage();
     }
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     setValue('imageUrl', undefined);
     setUploadError(null);
   }, [setValue, cleanupUploadedImage]);
@@ -450,8 +471,8 @@ export default function ProjectFormBody({
             width: 44,
             height: 44,
             borderRadius: '12px',
-            bgcolor: imageUrl ? 'transparent' : alpha(theme.palette.primary.main, 0.08),
-            border: imageUrl ? 'none' : `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
+            bgcolor: displayImageUrl ? 'transparent' : alpha(theme.palette.primary.main, 0.08),
+            border: displayImageUrl ? 'none' : `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -461,9 +482,9 @@ export default function ProjectFormBody({
           }}
         >
           <ProjectAvatar
-            imageUrl={imageUrl}
+            imageUrl={displayImageUrl}
             icon={selectedIcon}
-            size={imageUrl ? 44 : 22}
+            size={displayImageUrl ? 44 : 22}
             borderRadius="12px"
             color={theme.palette.primary.main}
           />
@@ -673,7 +694,7 @@ export default function ProjectFormBody({
           {/* Photo Picker */}
           {pickerMode === 'photo' && (
             <Box sx={{ mb: 2.5 }}>
-              {imageUrl ? (
+              {displayImageUrl ? (
                 <Box
                   sx={{
                     position: 'relative',
@@ -682,7 +703,7 @@ export default function ProjectFormBody({
                 >
                   <Box
                     component="img"
-                    src={imageUrl}
+                    src={displayImageUrl}
                     alt="Project cover"
                     sx={{
                       width: '100%',

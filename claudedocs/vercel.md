@@ -57,7 +57,18 @@ Only two DB vars exist in Vercel — `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON
 | Preview | Neon pooler/direct URLs | Neon integration |
 | Production | Neon pooler/direct URLs | Neon integration |
 
-All other Neon `construction_*` / `PG*` vars have been removed from the Development environment to keep `.env.local` clean. `BLOB_READ_WRITE_TOKEN` is auto-provisioned by the Vercel Blob integration.
+All other Neon `construction_*` / `PG*` vars have been removed from the Development environment to keep `.env.local` clean. Blob store tokens (`BLOB_READ_WRITE_TOKEN`, `BLOB_AVATARS_READ_WRITE_TOKEN`) are auto-provisioned by the Vercel Blob integration.
+
+## Blob Storage
+
+Two Vercel Blob stores back the app:
+
+| Store | Access | Token | Used for |
+|---|---|---|---|
+| `construction-uploads` | **private** | `BLOB_READ_WRITE_TOKEN` | Document uploads (photos, PDFs, CAD, etc.). Served to clients via the authenticated proxy at `/api/blob/[documentId]`. |
+| `construction-avatars` | **public** | `BLOB_AVATARS_READ_WRITE_TOKEN` | User profile pictures. Client reads the public CDN URL directly from `user.image`. |
+
+Document uploads go through `/api/upload` (server function calls `put(..., { access: "private" })` with the default token). Avatar uploads go through `/api/upload/avatar` (server function calls `put(..., { access: "public", token: env.BLOB_AVATARS_READ_WRITE_TOKEN })`). A blob store's `access` mode is immutable at creation — the two-store split is the mechanism for supporting both private documents and public avatars.
 
 ## Database Branching
 
