@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { CircularProgress, Backdrop, Box, Typography } from '@mui/material';
+import { Backdrop, Box, Typography } from '@mui/material';
+import { IBeamLoader } from './IBeamLoader';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -22,8 +23,8 @@ export default function LoadingSpinner({
   text
 }: LoadingSpinnerProps) {
   const spinner = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
-      <CircularProgress size={sizeMap[size]} sx={fullScreen ? { color: 'common.white' } : undefined} />
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, color: fullScreen ? 'common.white' : 'text.secondary' }}>
+      <IBeamLoader size={sizeMap[size]} />
       {text && (
         <motion.div
           initial={{ opacity: 0 }}

@@ -15,9 +15,9 @@ import {
   Paper,
   Stack,
   Alert,
-  CircularProgress,
 } from "@mui/material";
 import { Button } from '@/components/ui/button';
+import { IBeamLoader } from '@/components/ui/IBeamLoader';
 import CheckIcon from "@mui/icons-material/Check";
 
 const WRONG_EMAIL_MSG = "This invitation was sent to a different email address";
@@ -97,7 +97,9 @@ export default function InvitePage() {
         }}
       >
         <BlueprintBackground />
-        <CircularProgress sx={{ position: "relative", zIndex: 1 }} />
+        <Box sx={{ position: "relative", zIndex: 1 }}>
+          <IBeamLoader size={40} />
+        </Box>
       </Box>
     );
   }

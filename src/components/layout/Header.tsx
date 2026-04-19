@@ -25,7 +25,7 @@ const PAGE_TITLES: Record<string, string> = {
   files: 'File Tree',
   'document-explorer': 'Document Explorer',
   team: 'Team',
-  manage: 'Manage',
+  settings: 'Project Settings',
 };
 
 interface HeaderProps {

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Tooltip, Menu, MenuItem, useTheme } from '@mui/material';
+import { Box, Typography, Tooltip, Menu, MenuItem, useTheme } from '@mui/material';
+import { IBeamLoader } from '@/components/ui/IBeamLoader';
 import Pagination from '@/components/documents/Pagination';
 import { FileText, ChevronDown, Sparkles, Search, AlignJustify, Table2, LayoutGrid } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
@@ -278,7 +279,7 @@ export default function DocumentExplorerPage() {
         if (!activeSearchText) {
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, py: 8 }}>
-              <CircularProgress size={32} />
+              <IBeamLoader size={32} />
             </Box>
           );
         }

@@ -14,9 +14,9 @@ import {
   Alert,
   Stack,
   Paper,
-  CircularProgress,
 } from '@mui/material';
 import { Button } from '@/components/ui/button';
+import { IBeamLoader } from '@/components/ui/IBeamLoader';
 
 export default function VerifyEmailPage() {
   const router = useRouter();
@@ -97,7 +97,7 @@ export default function VerifyEmailPage() {
           justifyContent: 'center',
         }}
       >
-        <CircularProgress />
+        <IBeamLoader size={40} />
       </Box>
     );
   }
