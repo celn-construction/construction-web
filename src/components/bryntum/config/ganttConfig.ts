@@ -157,6 +157,7 @@ export function createGanttConfig(
       taskEdit: false,
       columnLines: true,
       stripe: true,
+      nonWorkingTime: true,
       tree: { toggleTreeNode: false },
       cellTooltip: {
         tooltipRenderer: ({ record, column }) => formatTooltipText(record, column.field),
@@ -183,6 +184,7 @@ export function createGanttConfig(
         base: 'weekAndDayLetter',
         headers: [
           { unit: 'month', dateFormat: 'MMMM YYYY' },
+          { unit: 'day', dateFormat: 'd1' },
           { unit: 'day', dateFormat: 'DD' },
         ],
       },
