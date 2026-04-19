@@ -16,6 +16,7 @@ jobs:
       pull-requests: read
     env:
       GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       RECIPIENTS: '["lawrence.nicastro1@gmail.com","chaseton9@gmail.com"]'
