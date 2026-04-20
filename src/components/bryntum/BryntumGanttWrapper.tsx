@@ -400,7 +400,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
             rollup: r.rollup, cls: r.cls, iconCls: r.iconCls,
             note: r.note, csiCode: r.csiCode, baselines: r.baselines,
             orderIndex: r.parentIndex ?? r.orderedParentIndex, version: r.version,
-            coverImageUrl: r.coverImageUrl,
           });
           const serializedTasks = allTasks
             .filter(r => !r.isRoot)

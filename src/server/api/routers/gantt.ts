@@ -8,7 +8,6 @@ import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentT
 import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
 import { recordRevision } from "@/server/api/helpers/ganttRevision";
 import type { RevisionChanges } from "@/server/api/helpers/ganttRevision";
-import { ganttCoverProxyUrl } from "@/lib/blobProxy";
 
 export const ganttRouter = createTRPCRouter({
   /**
@@ -65,7 +64,7 @@ export const ganttRouter = createTRPCRouter({
           endDate: true,
           duration: true,
           durationUnit: true,
-          coverImageUrl: true,
+          coverDocumentId: true,
           csiCode: true,
           requiredSubmittals: true,
           requiredInspections: true,
@@ -88,12 +87,53 @@ export const ganttRouter = createTRPCRouter({
         endDate: task.endDate,
         duration: task.duration,
         durationUnit: task.durationUnit,
-        coverImageUrl: task.coverImageUrl ? ganttCoverProxyUrl(task.id) : null,
+        coverDocumentId: task.coverDocumentId,
         csiCode: task.csiCode,
         requiredSubmittals: task.requiredSubmittals,
         requiredInspections: task.requiredInspections,
         group: task.parent?.name ?? null,
       };
+    }),
+
+  /**
+   * Pin (or unpin) a photo as the task's cover.
+   * Pass documentId: null to clear the pin.
+   */
+  pinPhoto: orgProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        taskId: z.string(),
+        documentId: z.string().nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { projectId, taskId, documentId } = input;
+
+      const project = await ctx.db.project.findFirst({
+        where: { id: projectId, organizationId: ctx.organization.id },
+        select: { id: true },
+      });
+      if (!project) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
+      }
+
+      if (documentId) {
+        const document = await ctx.db.document.findFirst({
+          where: { id: documentId, projectId, taskId },
+          select: { id: true },
+        });
+        if (!document) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Photo not found on this task" });
+        }
+      }
+
+      await ctx.db.ganttTask.update({
+        where: { id: taskId },
+        data: { coverDocumentId: documentId },
+      });
+
+      return { success: true };
     }),
 
   /**

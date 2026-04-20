@@ -430,21 +430,14 @@ export const projectRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Project name does not match" });
       }
 
-      // Collect blob URLs for cleanup (documents + task cover images)
-      const [documents, tasksWithCovers] = await Promise.all([
-        ctx.db.document.findMany({
-          where: { projectId: ctx.project.id },
-          select: { blobUrl: true },
-        }),
-        ctx.db.ganttTask.findMany({
-          where: { projectId: ctx.project.id, coverImageUrl: { not: null } },
-          select: { coverImageUrl: true },
-        }),
-      ]);
+      // Collect blob URLs for cleanup (all files live in the Document store now)
+      const documents = await ctx.db.document.findMany({
+        where: { projectId: ctx.project.id },
+        select: { blobUrl: true },
+      });
 
       const blobUrls = [
         ...documents.map((d) => d.blobUrl),
-        ...tasksWithCovers.map((t) => t.coverImageUrl).filter((url): url is string => !!url),
         ...(ctx.project.imageUrl ? [ctx.project.imageUrl] : []),
       ];
 

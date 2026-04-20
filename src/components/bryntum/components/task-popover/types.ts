@@ -25,4 +25,9 @@ export interface FolderContentProps {
   selectedDocId: string | null;
   onUpload: () => void;
   folderName: string;
+  // Optional pin context — only consumed by the Photos folder
+  projectId?: string;
+  taskId?: string;
+  organizationId?: string;
+  pinnedDocId?: string | null;
 }

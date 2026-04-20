@@ -51,7 +51,6 @@ export async function captureGanttSnapshot(
         baselines: true,
         orderIndex: true,
         version: true,
-        coverImageUrl: true,
       },
     }),
     db.ganttDependency.findMany({
