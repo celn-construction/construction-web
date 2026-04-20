@@ -73,7 +73,7 @@ sed -i '' "s|^POSTGRES_URL_NON_POOLING=.*|POSTGRES_URL_NON_POOLING=\"postgresql:
 echo 'APP_URL="http://localhost:3000"' >> .env.local
 
 # 5. Apply database migrations
-npx prisma db push
+npx prisma migrate deploy
 
 # 6. Start dev server (Turbopack)
 npm run dev          # http://localhost:3000
@@ -83,7 +83,25 @@ npm run dev          # http://localhost:3000
 - Local dev uses a shared PostgreSQL 17 Docker container (`construction-postgres`) on **port 5432** with `pgvector/pgvector:pg17` image. The container is shared across all Conductor workspaces via a named container and volume (`construction-pgdata`). Vercel deployments (preview/production) use Neon via the Vercel-Neon integration.
 - Email functionality falls back to console logging when `RESEND_API_KEY` is not set.
 - Better Auth trusts any localhost origin in development, and `APP_URL` in production (see `src/lib/auth.ts`).
-- In Conductor, `conductor.json` handles setup automatically — starts Docker, pulls env vars, overrides DB URLs, and installs dependencies.
+- In Conductor, `conductor.json` handles setup automatically — starts Docker, pulls env vars, overrides DB URLs, installs dependencies, and applies migrations via `prisma migrate deploy`.
+
+### Database workflow: always use `prisma migrate`, never `prisma db push`
+
+This project uses Prisma's **migration files** as the single source of truth for the schema. Always go through `prisma migrate dev` / `prisma migrate deploy` — never `prisma db push`.
+
+**Why this matters**: `db push` only syncs the declarative `schema.prisma`. It silently skips anything that lives only in raw SQL files — custom Postgres functions, generated columns, GIN indexes, triggers, extensions. Several migrations in this project rely on raw SQL (e.g. `hybrid_document_search()` for hybrid search, `Document.searchVector` as a GENERATED column, GIN trigram indexes). A DB managed via `db push` will look fine in `prisma studio` but features that depend on those bits silently fail or return empty results — and you won't notice until you exercise the affected code path.
+
+**Workflow:**
+
+| Action | Command |
+|---|---|
+| Apply existing migrations to a fresh local DB | `npx prisma migrate deploy` |
+| Create a new migration after editing `schema.prisma` | `npx prisma migrate dev --name <descriptive_name>` |
+| Add raw SQL (function, generated column, custom index) | Create the migration with `--create-only`, then edit the generated `migration.sql` before running `npx prisma migrate dev` |
+| Inspect what's pending vs applied | `npx prisma migrate status` |
+| Open the data browser | `npx prisma studio` |
+
+**If a workspace was set up via the old `db push` flow** and you suspect drift (missing functions, indexes, or generated columns), check with `npx prisma migrate status`. If it reports migrations as not applied even though the schema looks correct, the DB needs to be baselined: apply any missing raw-SQL bits manually, then mark each migration applied with `npx prisma migrate resolve --applied <name>` until status is clean. The simpler reset (if you have no important local data) is `docker volume rm construction-pgdata`, restart the container, then `npx prisma migrate deploy`.
 
 ## Available Scripts
 
@@ -93,9 +111,9 @@ npm run dev          # http://localhost:3000
 | `build` | `prisma migrate deploy && prisma generate && next build` | Production build (runs migrations first) |
 | `start` | `next start` | Start production server |
 | `preview` | `next build && next start` | Build and preview locally |
-| `db:generate` | `prisma migrate dev` | Create and apply a new migration |
-| `db:migrate` | `prisma migrate deploy` | Apply pending migrations (production) |
-| `db:push` | `prisma db push` | Push schema without migration files |
+| `db:generate` | `prisma migrate dev` | Create and apply a new migration (use this when changing `schema.prisma`) |
+| `db:migrate` | `prisma migrate deploy` | Apply pending migrations to a fresh DB (used by Vercel build and local first-run) |
+| `db:push` | `prisma db push` | **Avoid.** Skips raw-SQL migrations and causes silent drift. See "Database workflow" above |
 | `db:studio` | `prisma studio` | Open Prisma Studio GUI |
 | `test` | `vitest run` | Run tests once |
 | `test:watch` | `vitest` | Run tests in watch mode |

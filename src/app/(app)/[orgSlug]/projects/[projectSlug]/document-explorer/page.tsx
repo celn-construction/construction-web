@@ -7,8 +7,11 @@ import Pagination from '@/components/documents/Pagination';
 import { FileText, ChevronDown, Sparkles, Search, AlignJustify, Table2, LayoutGrid } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/react';
+import { authClient } from '@/lib/auth-client';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { expandFolderIds } from '@/lib/folders';
+import { DOCUMENT_AI_SEARCH_EXAMPLES } from '@/lib/constants/documentSearchExamples';
 import DocumentToolbar from '@/components/documents/DocumentToolbar';
 import DocumentFilterTabs from '@/components/documents/DocumentFilterTabs';
 import DocumentFilterPopup from '@/components/documents/DocumentFilterPopup';
@@ -36,6 +39,9 @@ const RELEVANCE_OPTION: { value: SortBy; label: string } = { value: 'relevance',
 export default function DocumentExplorerPage() {
   const theme = useTheme();
   const { projectId, organizationId } = useProjectContext();
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id ?? null;
+  const { recents, addRecent, clearRecents } = useRecentSearches(userId, projectId);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -89,13 +95,40 @@ export default function DocumentExplorerPage() {
     if (!trimmed) return;
     setAiSearchQuery(trimmed);
     setPage(1);
+    addRecent(trimmed, true);
+  };
+
+  const handleSelectSuggestion = (q: string, aiMode: boolean) => {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setQuery(trimmed);
+    setPage(1);
+    if (aiMode) {
+      setAiEnabled(true);
+      setSortBy('relevance');
+      setDebouncedQuery('');
+      setAiSearchQuery(trimmed);
+    } else {
+      setAiEnabled(false);
+      setAiSearchQuery('');
+      setSortBy((prev) => (prev === 'relevance' ? 'createdAt_desc' : prev));
+      setDebouncedQuery(trimmed);
+    }
+    addRecent(trimmed, aiMode);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (aiEnabled && e.key === 'Enter') {
-      e.preventDefault();
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (aiEnabled) {
       handleAiSubmit();
+      return;
     }
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setDebouncedQuery(trimmed);
+    setPage(1);
+    addRecent(trimmed, false);
   };
 
   const handleFilterApply = (types: string[], link: LinkFilter) => {
@@ -160,6 +193,10 @@ export default function DocumentExplorerPage() {
         isAiSearching={aiEnabled && !!aiSearchQuery && aiQuery.isFetching}
         onAiToggle={handleAiToggle}
         onUploadClick={() => {/* Upload dialog integration deferred */}}
+        recents={recents}
+        examples={DOCUMENT_AI_SEARCH_EXAMPLES}
+        onSelectSuggestion={handleSelectSuggestion}
+        onClearRecents={clearRecents}
       />
 
       <DocumentFilterTabs
