@@ -49,6 +49,11 @@ interface FolderRowProps {
   canManage?: boolean;
   onSaveRequirement?: (count: number | null) => void;
   isRequirementPending?: boolean;
+  // Pin context (only used by the Photos folder)
+  projectId?: string;
+  taskId?: string;
+  organizationId?: string;
+  pinnedDocId?: string | null;
 }
 
 function FolderRowInner({
@@ -65,6 +70,10 @@ function FolderRowInner({
   canManage,
   onSaveRequirement,
   isRequirementPending,
+  projectId,
+  taskId,
+  organizationId,
+  pinnedDocId,
 }: FolderRowProps) {
   const FolderIcon = folderIconMap[folder.id] ?? (isExpanded ? FolderOpen : FolderSimple);
   const isTrackable = folder.trackable && !!onSaveRequirement;
@@ -75,6 +84,10 @@ function FolderRowInner({
     selectedDocId,
     onUpload: () => onUpload({ id: folder.id, name: folder.name }),
     folderName: folder.name,
+    projectId,
+    taskId,
+    organizationId,
+    pinnedDocId,
   };
 
   const renderContent = () => {

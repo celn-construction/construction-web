@@ -1,14 +1,14 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "../../../../generated/prisma";
-import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
+import { createTRPCRouter, orgProcedure, projectProcedure } from "@/server/api/trpc";
+import { canManageProjects } from "@/lib/permissions";
 import { ganttLoadInputSchema, ganttSyncInputSchema, updateRequirementSchema } from "@/lib/validations/gantt";
 import { CSI_SUBDIVISION_MAP, CSI_DIVISION_MAP } from "@/lib/constants/csiCodes";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
 import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
 import { recordRevision } from "@/server/api/helpers/ganttRevision";
 import type { RevisionChanges } from "@/server/api/helpers/ganttRevision";
-import { ganttCoverProxyUrl } from "@/lib/blobProxy";
 
 export const ganttRouter = createTRPCRouter({
   /**
@@ -65,7 +65,7 @@ export const ganttRouter = createTRPCRouter({
           endDate: true,
           duration: true,
           durationUnit: true,
-          coverImageUrl: true,
+          coverDocumentId: true,
           csiCode: true,
           requiredSubmittals: true,
           requiredInspections: true,
@@ -88,12 +88,69 @@ export const ganttRouter = createTRPCRouter({
         endDate: task.endDate,
         duration: task.duration,
         durationUnit: task.durationUnit,
-        coverImageUrl: task.coverImageUrl ? ganttCoverProxyUrl(task.id) : null,
+        coverDocumentId: task.coverDocumentId,
         csiCode: task.csiCode,
         requiredSubmittals: task.requiredSubmittals,
         requiredInspections: task.requiredInspections,
         group: task.parent?.name ?? null,
       };
+    }),
+
+  /**
+   * Pin (or unpin) a photo as the task's cover.
+   * Pass documentId: null to clear the pin.
+   */
+  pinPhoto: projectProcedure
+    .input(
+      z.object({
+        taskId: z.string(),
+        documentId: z.string().nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!canManageProjects(ctx.projectMember.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to change the task cover",
+        });
+      }
+
+      const projectId = ctx.project.id;
+      const { taskId, documentId } = input;
+
+      const task = await ctx.db.ganttTask.findFirst({
+        where: { id: taskId, projectId },
+        select: { id: true },
+      });
+      if (!task) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      }
+
+      if (documentId) {
+        const document = await ctx.db.document.findFirst({
+          where: { id: documentId, projectId, taskId, folderId: "photos" },
+          select: { id: true, mimeType: true },
+        });
+        if (!document) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Photo not found in this task's Photos folder",
+          });
+        }
+        if (!document.mimeType.startsWith("image/")) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Only image files can be pinned as a cover",
+          });
+        }
+      }
+
+      await ctx.db.ganttTask.update({
+        where: { id: taskId },
+        data: { coverDocumentId: documentId },
+      });
+
+      return { success: true };
     }),
 
   /**

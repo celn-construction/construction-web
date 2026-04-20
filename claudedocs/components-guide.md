@@ -162,15 +162,16 @@ const currentOrg = organizations.find((o) => o.slug === params.orgSlug);
 
 Cache invalidation after mutations: `void utils.xxx.invalidate()` — always fire-and-forget with `void`.
 
-### Private blob URLs (documents, project images, task covers)
+### Private blob URLs (documents, project images)
 
-All three live in the private `construction-uploads` store. Raw blob URLs are **never exposed to the client** — tRPC read procedures rewrite them to authenticated proxy paths before returning, and upload route responses return the proxy URL directly:
+Both live in the private `construction-uploads` store. Raw blob URLs are **never exposed to the client** — tRPC read procedures rewrite them to authenticated proxy paths before returning, and upload route responses return the proxy URL directly:
 
 | Model field | Proxy path | Access check | Render path |
 |---|---|---|---|
 | `Document.blobUrl` | `/api/blob/[documentId]` | project member | any tRPC document query or `/api/upload` |
 | `Project.imageUrl` | `/api/blob/project-image/[projectId]` | org member | `project.list/getById/getBySlug/getActive/setActive/update` + `[orgSlug]/projects/[projectSlug]/layout.tsx` |
-| `GanttTask.coverImageUrl` | `/api/blob/gantt-cover/[taskId]` | project member OR privileged org role | `gantt.taskDetail` + `/api/gantt/cover-image` POST response |
+
+Gantt task covers are no longer a separate blob — a "cover" is just a photo in the task's Photos folder that's been pinned via `gantt.pinPhoto` (sets `GanttTask.coverDocumentId`, an FK to `Document`). The cover renders through the normal `/api/blob/[documentId]` proxy. See `CoverImageBanner.tsx` for the gallery UI and pinning flow.
 
 Client code uses these like any other URL (`<img src>`, `<iframe src>`, `<a href>`, `fetch()`, `window.open()`); the browser sends its session cookie and the proxy enforces tenancy. Never attempt to render the raw blob CDN URL — it will 403.
 
