@@ -67,9 +67,9 @@ export default function CoverImageBanner({
   const handlePin = useCallback(
     (documentId: string) => {
       if (!taskId) return;
-      pinMutation.mutate({ organizationId, projectId, taskId, documentId });
+      pinMutation.mutate({ projectId, taskId, documentId });
     },
-    [taskId, projectId, organizationId, pinMutation]
+    [taskId, projectId, pinMutation]
   );
 
   // Empty state: no photos yet — show guidance pointing to the Photos folder

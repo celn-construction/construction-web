@@ -250,6 +250,7 @@ export const scheduleRouter = createTRPCRouter({
                 baselines: (task.baselines as Prisma.InputJsonValue) ?? Prisma.JsonNull,
                 orderIndex: (task.orderIndex as number) ?? 0,
                 version: (task.version as number) ?? 1,
+                coverDocumentId: (task.coverDocumentId as string | null) ?? null,
               },
             });
           }

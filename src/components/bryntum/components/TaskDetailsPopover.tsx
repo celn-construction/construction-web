@@ -160,7 +160,7 @@ export function TaskDetailsPopover({
 
   const coverDocumentId = taskDetail?.coverDocumentId ?? null;
   const photos = ((allDocs ?? []) as DocumentItem[]).filter(
-    (d) => d.mimeType.startsWith('image/')
+    (d) => d.folderId === 'photos' && d.mimeType.startsWith('image/')
   );
   const hasRightPanel = rightPanel !== null;
   const previewDoc = rightPanel?.type === 'preview' ? rightPanel.doc : null;

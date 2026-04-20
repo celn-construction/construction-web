@@ -33,7 +33,6 @@ function PhotosFolderContentInner({
   const handlePin = (docId: string, currentlyPinned: boolean) => {
     if (!canPin) return;
     pinMutation.mutate({
-      organizationId,
       projectId,
       taskId,
       documentId: currentlyPinned ? null : docId,

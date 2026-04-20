@@ -100,6 +100,7 @@ export async function reconcileDbFromSnapshot(
           baselines: task.baselines ? (task.baselines as Prisma.InputJsonValue) : Prisma.JsonNull,
           orderIndex: (task.orderIndex as number) ?? 0,
           version: 1,
+          coverDocumentId: (task.coverDocumentId as string | null) ?? null,
         },
       });
     }
@@ -216,6 +217,7 @@ function mapTaskRecord(t: Record<string, unknown>, index: number): Record<string
     baselines: t.baselines ?? null,
     orderIndex: t.orderedParentIndex ?? t.parentIndex ?? index,
     version: 1,
+    coverDocumentId: t.coverDocumentId ?? null,
   };
 }
 

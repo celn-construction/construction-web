@@ -277,6 +277,7 @@ model GanttTask {
     note               String?
     csiCode            String?
     baselines          Json?
+    coverImageUrl          String?
     coverDocumentId        String?
     requiredSubmittals     Int?
     requiredInspections    Int?
