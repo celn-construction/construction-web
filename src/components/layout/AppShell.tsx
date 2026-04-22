@@ -30,6 +30,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <Box
+      className="app-shell-root"
       sx={{
         height: '100vh',
         bgcolor: 'background.default',

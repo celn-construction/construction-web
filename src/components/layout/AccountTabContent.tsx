@@ -87,7 +87,7 @@ export default function AccountTabContent({ onCloseModal }: AccountTabContentPro
                 <Typography
                   sx={{
                     fontSize: '0.6875rem',
-                    color: 'text.disabled',
+                    color: 'text.secondary',
                     lineHeight: 1,
                   }}
                 >
@@ -113,6 +113,7 @@ export default function AccountTabContent({ onCloseModal }: AccountTabContentPro
           border: '1px dashed',
           borderColor: 'divider',
           bgcolor: 'transparent',
+          color: 'text.primary',
           cursor: 'pointer',
           transition: 'all 0.15s',
           '&:hover': {
@@ -149,7 +150,7 @@ export default function AccountTabContent({ onCloseModal }: AccountTabContentPro
           <Typography
             sx={{
               fontSize: '0.6875rem',
-              color: 'text.disabled',
+              color: 'text.secondary',
               lineHeight: 1,
               mt: 0.25,
             }}

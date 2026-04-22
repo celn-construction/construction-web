@@ -53,7 +53,7 @@ function SchedulePill({ endDate }: { endDate: string | null }) {
           }}
         >
           <CalendarDots size={13} style={{ flexShrink: 0, opacity: 0.4 }} />
-          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1, whiteSpace: 'nowrap' }}>
+          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1, whiteSpace: 'nowrap' }}>
             No end date
           </Typography>
         </Box>

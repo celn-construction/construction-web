@@ -94,7 +94,7 @@ export default function RoleSelect({
               >
                 {role.label}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled', mt: 0.25, display: 'block' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.25, display: 'block' }}>
                 {role.description}
               </Typography>
             </Box>

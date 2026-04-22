@@ -435,7 +435,7 @@ export default function TaskInfoDialog({
             </Box>
 
             {isScheduleReadOnly && (
-              <Typography sx={{ fontSize: 11, color: 'text.disabled', fontStyle: 'italic', fontFamily: 'Inter, sans-serif' }}>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic', fontFamily: 'Inter, sans-serif' }}>
                 Schedule fields are read-only for parent tasks. Enable &quot;Manually Scheduled&quot; in the Advanced tab to edit.
               </Typography>
             )}

@@ -46,7 +46,7 @@ export default function FileDropzone({
               borderColor: isDragActive ? 'text.secondary' : 'divider',
               cursor: disabled ? 'not-allowed' : 'pointer',
               transition: 'border-color 0.2s',
-              bgcolor: isDragActive ? 'rgba(0,0,0,0.02)' : 'transparent',
+              bgcolor: isDragActive ? 'action.hover' : 'transparent',
               '&:hover': { borderColor: 'text.secondary' },
             }
           : {},
@@ -64,7 +64,7 @@ export default function FileDropzone({
     >
       {inputProps && <input {...inputProps} />}
 
-      {icon ?? <CloudArrowUp size={36} color="var(--mui-palette-text-secondary)" />}
+      {icon ?? <CloudArrowUp size={36} color="var(--text-secondary)" />}
 
       <Typography
         sx={{

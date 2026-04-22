@@ -790,7 +790,7 @@ export default function ProjectFormBody({
                   <Typography
                     sx={{
                       fontSize: '0.6875rem',
-                      color: 'text.disabled',
+                      color: 'text.secondary',
                     }}
                   >
                     PNG, JPG, WebP up to 5MB

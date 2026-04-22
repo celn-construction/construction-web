@@ -154,7 +154,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                 sx={{
                   fontSize: '0.5625rem',
                   fontWeight: 600,
-                  color: 'text.disabled',
+                  color: 'text.secondary',
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
                   px: 1,
@@ -236,7 +236,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                           sx={{
                             fontSize: '0.6875rem',
                             fontWeight: 500,
-                            color: 'text.disabled',
+                            color: 'text.secondary',
                             lineHeight: 1,
                             flexShrink: 0,
                             minWidth: 16,
@@ -318,7 +318,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               <Typography
                 sx={{
                   fontSize: '0.6875rem',
-                  color: 'text.disabled',
+                  color: 'text.secondary',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -396,13 +396,14 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                   borderRadius: '8px',
                   border: 'none',
                   bgcolor: 'transparent',
+                  color: 'text.primary',
                   cursor: 'pointer',
                   transition: 'background-color 0.15s',
                   '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
                 <item.icon style={{ width: 14, height: 14, color: 'inherit' }} />
-                <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary' }}>
+                <Typography sx={{ fontSize: '0.8125rem', color: 'inherit' }}>
                   {item.label}
                 </Typography>
               </Box>

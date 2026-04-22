@@ -133,7 +133,7 @@ export default function PendingInvitesList({
             >
               {invitation.email}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {formatRole(invitation.role)} • Sent {formatDate(invitation.createdAt)}
             </Typography>
           </Box>

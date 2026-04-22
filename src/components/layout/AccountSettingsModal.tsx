@@ -61,7 +61,7 @@ export default function AccountSettingsModal({ open, onOpenChange }: AccountSett
           sx={{
             fontSize: '0.6875rem',
             fontWeight: 600,
-            color: 'text.disabled',
+            color: 'text.secondary',
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
             px: 1,

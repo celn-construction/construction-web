@@ -107,7 +107,7 @@ export default function VersionControlBar() {
                   sx={{
                     fontSize: '0.6875rem',
                     fontWeight: 500,
-                    color: 'text.disabled',
+                    color: 'text.secondary',
                     lineHeight: 1,
                     whiteSpace: 'nowrap',
                   }}
@@ -186,7 +186,7 @@ export default function VersionControlBar() {
                   border: 'none',
                   borderRadius: '0 9px 9px 0',
                   bgcolor: hasChanges ? 'var(--accent-primary)' : 'transparent',
-                  color: hasChanges ? '#fff' : 'text.secondary',
+                  color: hasChanges ? 'var(--accent-contrast)' : 'text.secondary',
                   cursor: hasChanges ? 'pointer' : 'default',
                   opacity: hasChanges ? 1 : 0.5,
                   fontSize: '0.6875rem',
@@ -274,7 +274,7 @@ export default function VersionControlBar() {
                 </Box>
               ))}
               {added.length > 8 && (
-                <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', pl: 1.5, mt: 0.25 }}>
+                <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', pl: 1.5, mt: 0.25 }}>
                   +{added.length - 8} more
                 </Typography>
               )}
@@ -304,7 +304,7 @@ export default function VersionControlBar() {
                 </Box>
               ))}
               {modified.length > 8 && (
-                <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', pl: 1.5, mt: 0.25 }}>
+                <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', pl: 1.5, mt: 0.25 }}>
                   +{modified.length - 8} more
                 </Typography>
               )}
@@ -334,7 +334,7 @@ export default function VersionControlBar() {
                 </Box>
               ))}
               {removed.length > 8 && (
-                <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', pl: 1.5, mt: 0.25 }}>
+                <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', pl: 1.5, mt: 0.25 }}>
                   +{removed.length - 8} more
                 </Typography>
               )}

@@ -51,6 +51,22 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${inter.variable} ${instrumentSerif.variable}`}>
+      <head>
+        {/* Prevent FOUC: apply the persisted theme mode before hydration. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var stored = localStorage.getItem('theme-mode');
+                  var mode = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                  document.documentElement.setAttribute('data-theme', mode);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>
         <TRPCReactProvider>
           <ThemeRegistry>

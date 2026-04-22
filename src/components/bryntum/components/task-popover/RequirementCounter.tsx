@@ -64,7 +64,7 @@ export default function RequirementCounter({
       >
         <CircleDashed
           size={11}
-          color="var(--mui-palette-text-secondary)"
+          color="var(--text-secondary)"
           style={{ flexShrink: 0 }}
         />
         <Typography
@@ -87,10 +87,10 @@ export default function RequirementCounter({
   const isPartial = current > 0 && !isFulfilled;
 
   const statusColor = isFulfilled
-    ? 'var(--mui-palette-success-main)'
+    ? 'var(--status-green)'
     : isPartial
       ? folderColor
-      : 'var(--mui-palette-text-disabled)';
+      : 'var(--text-secondary)';
 
   return (
     <Box
@@ -116,7 +116,7 @@ export default function RequirementCounter({
               flex: 1,
               maxWidth: 16,
               borderRadius: '1.5px',
-              bgcolor: i < current ? statusColor : 'rgba(0,0,0,0.06)',
+              bgcolor: i < current ? statusColor : 'action.selected',
               transition: 'background-color 0.3s ease',
             }}
           />
@@ -131,7 +131,7 @@ export default function RequirementCounter({
       {/* Count + status icon */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
         {isFulfilled ? (
-          <CheckCircle size={11} weight="fill" color="var(--mui-palette-success-main)" />
+          <CheckCircle size={11} weight="fill" color="var(--status-green)" />
         ) : null}
         <Typography
           sx={{
@@ -241,12 +241,12 @@ export default function RequirementCounter({
                   height: 18,
                   borderRadius: '5px',
                   border: 'none',
-                  bgcolor: 'rgba(0,0,0,0.06)',
+                  bgcolor: 'action.selected',
                   cursor: 'pointer',
                   color: 'text.secondary',
                   flexShrink: 0,
                   transition: 'all 0.15s',
-                  '&:hover': { bgcolor: 'rgba(0,0,0,0.1)', color: 'text.primary' },
+                  '&:hover': { bgcolor: 'action.focus', color: 'text.primary' },
                 }}
                 aria-label="Cancel"
               >

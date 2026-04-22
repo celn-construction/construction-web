@@ -109,7 +109,7 @@ export default function TaskHeader({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                   {metaDateRange && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <CalendarBlank size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                      <CalendarBlank size={12} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
                       <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
                         {metaDateRange}
                       </Typography>
@@ -120,7 +120,7 @@ export default function TaskHeader({
                   )}
                   {durationLabel && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Timer size={12} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                      <Timer size={12} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
                       <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1 }}>
                         {durationLabel}
                       </Typography>
@@ -203,7 +203,7 @@ export default function TaskHeader({
               width: '100%',
               height: 4,
               borderRadius: '999px',
-              bgcolor: 'rgba(0,0,0,0.05)',
+              bgcolor: 'action.selected',
               overflow: 'hidden',
             }}
           >
@@ -228,14 +228,14 @@ export default function TaskHeader({
           >
             <CircleDashed
               size={11}
-              color="var(--mui-palette-text-disabled)"
+              color="var(--text-secondary)"
               style={{ flexShrink: 0 }}
             />
             <Typography
               sx={{
                 fontSize: '0.625rem',
                 fontWeight: 500,
-                color: 'text.disabled',
+                color: 'text.secondary',
                 lineHeight: 1,
               }}
             >

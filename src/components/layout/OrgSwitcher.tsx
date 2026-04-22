@@ -131,7 +131,7 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
           px: 1.75,
           py: 1.5,
           width: '100%',
-          color: 'text.disabled',
+          color: 'text.primary',
         }}
       >
         {triggerContent}
@@ -156,7 +156,7 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
             bgcolor: 'transparent',
             border: 'none',
             cursor: 'pointer',
-            color: 'text.disabled',
+            color: 'text.primary',
             transition: 'background-color 0.15s',
             '& .caret-icon': {
               transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -185,7 +185,7 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
         slotProps={{ paper: { sx: { minWidth: 240 } } }}
       >
         <Box sx={{ px: 1, py: 0.75, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.disabled', fontWeight: 500 }}>
+          <Typography sx={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.secondary', fontWeight: 500 }}>
             Switch to…
           </Typography>
         </Box>
@@ -227,7 +227,7 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
                   <Typography sx={{ fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 400 }}>
                     {org.name}
                   </Typography>
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', textTransform: 'capitalize' }}>
+                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', textTransform: 'capitalize' }}>
                     {org.role}
                   </Typography>
                 </Box>

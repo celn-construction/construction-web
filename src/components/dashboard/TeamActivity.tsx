@@ -143,7 +143,7 @@ export default function TeamActivity() {
             display: 'flex',
             justifyContent: 'space-between',
             fontSize: '0.75rem',
-            color: 'text.disabled',
+            color: 'text.secondary',
             mt: 1,
           }}
         >

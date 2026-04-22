@@ -106,7 +106,7 @@ const SubdivisionItem = memo(function SubdivisionItem({
         <Check
           size={12}
           weight="bold"
-          color="var(--mui-palette-sidebar-indicator)"
+          color="var(--sidebar-indicator)"
           style={{ flexShrink: 0 }}
         />
       )}
@@ -236,7 +236,7 @@ export default function CsiCodePanel({
       {/* ── Header ── */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: '16px', py: '12px' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-          <Tag size={14} weight="bold" color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+          <Tag size={14} weight="bold" color="var(--text-secondary)" style={{ flexShrink: 0 }} />
           <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.primary', lineHeight: 1 }}>
             CSI Classification
           </Typography>
@@ -282,7 +282,7 @@ export default function CsiCodePanel({
             gap: 1,
           }}
         >
-          <Check size={13} weight="bold" color="var(--mui-palette-sidebar-indicator)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <Check size={13} weight="bold" color="var(--sidebar-indicator)" style={{ flexShrink: 0, marginTop: 1 }} />
           <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <Typography
               sx={{
@@ -310,7 +310,7 @@ export default function CsiCodePanel({
               sx={{
                 fontSize: '0.5625rem',
                 fontWeight: 500,
-                color: 'text.disabled',
+                color: 'text.secondary',
                 lineHeight: 1,
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
@@ -333,9 +333,9 @@ export default function CsiCodePanel({
               border: 'none',
               bgcolor: 'transparent',
               cursor: 'pointer',
-              color: 'text.disabled',
+              color: 'text.secondary',
               flexShrink: 0,
-              '&:hover': { bgcolor: 'action.hover', color: 'text.secondary' },
+              '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
               transition: 'background-color 0.15s, color 0.15s',
             }}
             aria-label="Remove classification"
@@ -365,7 +365,7 @@ export default function CsiCodePanel({
       >
         <MagnifyingGlass
           size={14}
-          color="var(--mui-palette-text-secondary)"
+          color="var(--text-secondary)"
           style={{ flexShrink: 0 }}
         />
         <InputBase
@@ -440,9 +440,9 @@ export default function CsiCodePanel({
                 }}
               >
                 {isSearching || isExpanded ? (
-                  <CaretDown size={11} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                  <CaretDown size={11} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
                 ) : (
-                  <CaretRight size={11} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+                  <CaretRight size={11} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
                 )}
                 <Box
                   sx={{
@@ -489,7 +489,7 @@ export default function CsiCodePanel({
                   sx={{
                     fontSize: '0.5625rem',
                     fontWeight: 500,
-                    color: 'text.disabled',
+                    color: 'text.secondary',
                     ml: 'auto',
                     flexShrink: 0,
                     fontVariantNumeric: 'tabular-nums',
@@ -528,12 +528,12 @@ export default function CsiCodePanel({
         >
           <MagnifyingGlass
             size={20}
-            color="var(--mui-palette-text-secondary)"
+            color="var(--text-secondary)"
           />
           <Typography
             sx={{
               fontSize: '0.75rem',
-              color: 'text.disabled',
+              color: 'text.secondary',
               textAlign: 'center',
               lineHeight: 1.4,
             }}

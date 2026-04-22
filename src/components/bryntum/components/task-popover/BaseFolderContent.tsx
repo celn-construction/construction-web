@@ -28,15 +28,15 @@ function BaseFolderContentInner({
           border: '1.5px dashed',
           borderColor: 'divider',
           borderRadius: '10px',
-          bgcolor: 'rgba(0,0,0,0.015)',
+          bgcolor: 'action.hover',
           cursor: 'pointer',
           transition: 'border-color 0.2s, background-color 0.2s',
           '&:hover': {
             borderColor: 'primary.main',
-            bgcolor: 'rgba(43, 45, 66, 0.05)',
+            bgcolor: 'action.selected',
             '& .dropzone-icon': {
               transform: 'translateY(-2px)',
-              bgcolor: 'rgba(43, 45, 66, 0.12)',
+              bgcolor: 'action.focus',
             },
           },
         }}
@@ -50,11 +50,11 @@ function BaseFolderContentInner({
             width: 36,
             height: 36,
             borderRadius: '50%',
-            bgcolor: 'rgba(0,0,0,0.06)',
+            bgcolor: 'action.selected',
             transition: 'transform 0.2s, background-color 0.2s',
           }}
         >
-          <CloudArrowUp size={20} weight="bold" color="var(--mui-palette-text-secondary)" />
+          <CloudArrowUp size={20} weight="bold" color="var(--text-secondary)" />
         </Box>
         <Box sx={{ textAlign: 'center' }}>
           <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.secondary', lineHeight: 1.2 }}>
@@ -100,8 +100,8 @@ function BaseFolderContentInner({
             <FileText
               size={14}
               color={isSelected
-                ? 'var(--mui-palette-primary-main)'
-                : 'var(--mui-palette-text-secondary)'}
+                ? 'var(--accent-primary)'
+                : 'var(--text-secondary)'}
               style={{ flexShrink: 0 }}
             />
             <Typography

@@ -34,7 +34,7 @@ export default function TaskProgressCard({ uploaded, required }: TaskProgressCar
           flexShrink: 0,
         }}
       >
-        <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1, whiteSpace: 'nowrap' }}>
+        <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1, whiteSpace: 'nowrap' }}>
           No requirements set
         </Typography>
       </Box>
@@ -79,7 +79,7 @@ export default function TaskProgressCard({ uploaded, required }: TaskProgressCar
             width: '100%',
             height: 3,
             borderRadius: '1.5px',
-            bgcolor: 'rgba(0,0,0,0.06)',
+            bgcolor: 'action.selected',
             overflow: 'hidden',
           }}
         >
@@ -100,7 +100,7 @@ export default function TaskProgressCard({ uploaded, required }: TaskProgressCar
           sx={{
             fontSize: '0.5rem',
             fontWeight: 600,
-            color: isFulfilled ? 'var(--status-green)' : 'text.disabled',
+            color: isFulfilled ? 'var(--status-green)' : 'text.secondary',
             lineHeight: 1,
             textTransform: 'uppercase',
             letterSpacing: '0.06em',

@@ -129,7 +129,7 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
         {metaRows.map((row) => (
           <Box key={row.label} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {row.icon}
-            <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.disabled', width: 60, flexShrink: 0 }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.secondary', width: 60, flexShrink: 0 }}>
               {row.label}
             </Typography>
             <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.primary' }}>
@@ -145,7 +145,7 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
           ) : (
             <CircleDashed size={12} color={theme.palette.text.disabled} />
           )}
-          <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.disabled', width: 60, flexShrink: 0 }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.secondary', width: 60, flexShrink: 0 }}>
             Task
           </Typography>
           <Typography

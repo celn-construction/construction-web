@@ -99,7 +99,7 @@ export default function ProfileTabContent() {
         />
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>
+          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
             Joined {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'long',

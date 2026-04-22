@@ -146,7 +146,7 @@ export default function GanttToolbar({
     ...(!isActive && {
       '&:hover': {
         color: theme.palette.text.primary,
-        bgcolor: 'rgba(43, 45, 66, 0.05)',
+        bgcolor: theme.palette.action.hover,
       },
     }),
     '&:active': {
@@ -175,7 +175,7 @@ export default function GanttToolbar({
           display: 'flex',
           alignItems: 'center',
           height: 32,
-          bgcolor: 'rgba(43, 45, 66, 0.07)',
+          bgcolor: 'action.selected',
           borderRadius: '8px',
           p: '3px',
           gap: '2px',
@@ -301,7 +301,7 @@ export default function GanttToolbar({
             ...(editingActive
               ? {
                   bgcolor: 'var(--accent-primary, #2563eb)',
-                  color: '#fff',
+                  color: 'var(--accent-contrast, #fff)',
                   border: '1px solid var(--accent-primary, #2563eb)',
                   boxShadow: '0 0 0 4px rgba(37, 99, 235, 0.14)',
                   '&:hover': { filter: 'brightness(0.9)' },
@@ -351,7 +351,7 @@ export default function GanttToolbar({
             textTransform: 'none',
             borderRadius: '8px',
             backgroundColor: 'var(--accent-primary, #2563eb)',
-            color: '#fff',
+            color: 'var(--accent-contrast, #fff)',
             animation: 'gantt-tool-pop-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
             '&:hover': {
               backgroundColor: 'var(--accent-primary, #2563eb)',
