@@ -2,7 +2,9 @@ import { createTRPCRouter, protectedProcedure, orgProcedure } from "@/server/api
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createOrganizationSchema } from "@/lib/validations/onboarding";
+import { updateOrganizationSchema } from "@/lib/validations/organization";
 import { generateUniqueSlug } from "@/server/api/helpers/slug";
+import { canManageOrganization } from "@/lib/permissions";
 
 export const organizationRouter = createTRPCRouter({
   create: protectedProcedure
@@ -84,6 +86,53 @@ export const organizationRouter = createTRPCRouter({
       role: m.role,
     }));
   }),
+
+  getById: orgProcedure.query(async ({ ctx }) => {
+    return ctx.db.organization.findUnique({
+      where: { id: ctx.organization.id },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logoUrl: true,
+        phone: true,
+        website: true,
+        address: true,
+        city: true,
+        state: true,
+        zip: true,
+        licenseNumber: true,
+        companyType: true,
+      },
+    });
+  }),
+
+  update: orgProcedure
+    .input(updateOrganizationSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!canManageOrganization(ctx.membership.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only organization owners can edit organization details.",
+        });
+      }
+
+      return ctx.db.organization.update({
+        where: { id: ctx.organization.id },
+        data: {
+          name: input.name?.trim(),
+          companyType: input.companyType,
+          phone: input.phone,
+          website: input.website,
+          address: input.address,
+          city: input.city,
+          state: input.state,
+          zip: input.zip,
+          licenseNumber: input.licenseNumber,
+          logoUrl: input.logoUrl,
+        },
+      });
+    }),
 
   stats: orgProcedure
     .input(z.object({ organizationId: z.string() }))

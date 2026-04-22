@@ -3,9 +3,9 @@
 import { forwardRef } from 'react';
 import {
   Button as MuiButton,
+  CircularProgress,
   type ButtonProps as MuiButtonProps,
 } from '@mui/material';
-import { IBeamLoader } from './IBeamLoader';
 
 const spinnerSizeMap = {
   small: 14,
@@ -35,7 +35,13 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const spinnerSize = spinnerSizeMap[size];
-    const spinner = <IBeamLoader size={spinnerSize} color="currentColor" />;
+    const spinner = (
+      <CircularProgress
+        size={spinnerSize}
+        thickness={4.5}
+        sx={{ color: 'currentColor' }}
+      />
+    );
 
     return (
       <MuiButton

@@ -2,6 +2,9 @@
 
 import { Box, InputBase, Typography, Tooltip, keyframes, useTheme } from '@mui/material';
 import { Sparkles, Search, Upload } from 'lucide-react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import SearchSuggestionsPopover from './SearchSuggestionsPopover';
+import type { RecentSearch } from '@/hooks/useRecentSearches';
 
 interface DocumentToolbarProps {
   query: string;
@@ -11,6 +14,10 @@ interface DocumentToolbarProps {
   isAiSearching: boolean;
   onAiToggle: () => void;
   onUploadClick: () => void;
+  recents: RecentSearch[];
+  examples: readonly string[];
+  onSelectSuggestion: (query: string, aiMode: boolean) => void;
+  onClearRecents: () => void;
 }
 
 export default function DocumentToolbar({
@@ -21,10 +28,90 @@ export default function DocumentToolbar({
   isAiSearching,
   onAiToggle,
   onUploadClick,
+  recents,
+  examples,
+  onSelectSuggestion,
+  onClearRecents,
 }: DocumentToolbarProps) {
   const theme = useTheme();
   const primary = theme.palette.primary.main;
   const primaryDark = theme.palette.primary.dark;
+
+  const searchBoxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const showSuggestions = isFocused && !query.trim();
+
+  const listboxId = useId();
+  const optionIdPrefix = useId();
+
+  const items = useMemo(
+    () => [
+      ...recents.map((r) => ({ query: r.query, aiMode: r.aiMode })),
+      ...examples.map((q) => ({ query: q, aiMode: true })),
+    ],
+    [recents, examples],
+  );
+
+  useEffect(() => {
+    if (!showSuggestions) setHighlightedIndex(-1);
+  }, [showSuggestions]);
+
+  useEffect(() => {
+    setHighlightedIndex((prev) => (prev >= items.length ? -1 : prev));
+  }, [items.length]);
+
+  const handleSelect = (q: string, aiMode: boolean) => {
+    setIsFocused(false);
+    setHighlightedIndex(-1);
+    inputRef.current?.blur();
+    onSelectSuggestion(q, aiMode);
+  };
+
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape' && showSuggestions) {
+      e.preventDefault();
+      setIsFocused(false);
+      inputRef.current?.blur();
+      return;
+    }
+    if (showSuggestions && items.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev + 1) % items.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev <= 0 ? items.length - 1 : prev - 1));
+        return;
+      }
+      if (e.key === 'Home') {
+        e.preventDefault();
+        setHighlightedIndex(0);
+        return;
+      }
+      if (e.key === 'End') {
+        e.preventDefault();
+        setHighlightedIndex(items.length - 1);
+        return;
+      }
+      if (e.key === 'Enter' && highlightedIndex >= 0) {
+        const item = items[highlightedIndex];
+        if (item) {
+          e.preventDefault();
+          handleSelect(item.query, item.aiMode);
+          return;
+        }
+      }
+    }
+    onKeyDown(e);
+  };
+
+  const activeOptionId =
+    showSuggestions && highlightedIndex >= 0 ? `${optionIdPrefix}-${highlightedIndex}` : undefined;
 
   const glowPulse = keyframes`
     0% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
@@ -42,6 +129,7 @@ export default function DocumentToolbar({
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         {/* Search input */}
         <Box
+          ref={searchBoxRef}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -83,11 +171,19 @@ export default function DocumentToolbar({
             )}
           </Box>
           <InputBase
+            inputRef={inputRef}
             placeholder={aiEnabled ? 'Ask AI to find a document...' : 'Search documents...'}
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            onKeyDown={onKeyDown}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             fullWidth
+            role="combobox"
+            aria-expanded={showSuggestions}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
+            aria-activedescendant={activeOptionId}
             sx={{
               fontSize: 14,
               '& .MuiInputBase-input': {
@@ -198,6 +294,18 @@ export default function DocumentToolbar({
           AI is thinking...
         </Typography>
       )}
+      <SearchSuggestionsPopover
+        open={showSuggestions}
+        anchorEl={searchBoxRef.current}
+        recents={recents}
+        examples={examples}
+        highlightedIndex={highlightedIndex}
+        onHighlightChange={setHighlightedIndex}
+        listboxId={listboxId}
+        optionIdPrefix={optionIdPrefix}
+        onSelect={handleSelect}
+        onClearRecents={onClearRecents}
+      />
     </Box>
   );
 }

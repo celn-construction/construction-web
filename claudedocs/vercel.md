@@ -111,7 +111,7 @@ printf 'value' | vercel env add KEY_NAME development --scope celn --force
 Before merging any PR, verify the following. Skipping these steps has caused production/preview outages in the past.
 
 ### Database & Schema
-- [ ] **If `prisma/schema.prisma` changed**: a new migration file exists in `prisma/migrations/`. `db:push` only updates your local database — Vercel runs `prisma migrate deploy` which requires migration files. Use `npx prisma migrate dev --name <name>` to generate one.
+- [ ] **If `prisma/schema.prisma` changed**: a new migration file exists in `prisma/migrations/`. Always create migrations via `npx prisma migrate dev --name <name>` — never use `prisma db push`, which silently skips raw-SQL migrations and causes drift between local and production. See `claudedocs/environment-setup.md` → "Database workflow" for the full rationale.
 - [ ] **Migration is additive**: new columns have defaults or are nullable, so existing rows don't break.
 - [ ] **Migration file is committed**: check `git status prisma/migrations/` — the `.sql` file must be tracked.
 
