@@ -151,7 +151,7 @@ export default function LocationWeather({ location, organizationId }: LocationWe
               ...labelSx,
               fontSize: '0.625rem',
               fontWeight: 400,
-              color: 'text.disabled',
+              color: 'text.secondary',
             }}
           >
             {weatherInfo.label}

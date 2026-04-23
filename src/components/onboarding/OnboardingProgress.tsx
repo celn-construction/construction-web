@@ -99,7 +99,7 @@ export function OnboardingProgress({
                   transition: 'color 0.2s',
                   ...(isActive
                     ? { color: 'text.primary', fontWeight: 500 }
-                    : { color: 'text.disabled' }),
+                    : { color: 'text.secondary' }),
                 }}
               >
                 {label}

@@ -246,7 +246,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                 bgcolor: 'action.hover',
                 fontSize: '10px',
                 fontWeight: 600,
-                color: 'text.disabled',
+                color: 'text.secondary',
                 textTransform: 'uppercase',
                 letterSpacing: '0.07em',
               }}
@@ -284,7 +284,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', mb: 1.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   Progress
                 </Typography>
                 <Typography
@@ -297,7 +297,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                   }}
                 >
                   {task.progress}
-                  <Typography component="span" variant="caption" sx={{ fontWeight: 600, color: 'text.disabled', ml: 0.25 }}>
+                  <Typography component="span" variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', ml: 0.25 }}>
                     %
                   </Typography>
                 </Typography>
@@ -337,7 +337,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
                   <Calendar size={11} style={{ color: 'var(--text-muted)' }} />
-                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '10px' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '10px' }}>
                     {label}
                   </Typography>
                 </Box>
@@ -389,7 +389,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                 {selection.folderName}
               </Typography>
               {selection.parentFolderName && (
-                <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '11px' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '11px' }}>
                   in {selection.parentFolderName}
                 </Typography>
               )}
@@ -421,7 +421,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
         {organizationId && projectId && selection.folderId && (
           <Box sx={{ flex: 1, p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Box>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.25 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.25 }}>
                 Upload Documents
               </Typography>
               <FileDropzone
@@ -433,7 +433,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
             </Box>
 
             <Box>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.25 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.25 }}>
                 Documents
               </Typography>
               <DocumentList
@@ -516,13 +516,13 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                 {selectedDocument.name}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '11px' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '11px' }}>
                   {(selectedDocument.size / 1024).toFixed(1)} KB
                 </Typography>
                 {selectedDocument.uploadedBy?.name && (
                   <>
-                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '11px' }}>·</Typography>
-                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '11px' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '11px' }}>·</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '11px' }}>
                       {selectedDocument.uploadedBy.name}
                     </Typography>
                   </>
@@ -534,7 +534,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
               onClick={handleDownload}
               size="small"
               sx={{
-                color: 'text.disabled',
+                color: 'text.secondary',
                 '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
                 flexShrink: 0,
               }}
@@ -596,7 +596,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {selectedDocument.name}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2 }}>
                   {selectedDocument.mimeType} · {(selectedDocument.size / 1024).toFixed(1)} KB
                 </Typography>
                 <Typography

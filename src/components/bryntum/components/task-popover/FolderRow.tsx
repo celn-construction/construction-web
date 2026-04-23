@@ -131,9 +131,9 @@ function FolderRowInner({
         onClick={onToggle}
       >
         {isExpanded ? (
-          <CaretDown size={14} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+          <CaretDown size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
         ) : (
-          <CaretRight size={14} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+          <CaretRight size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
         )}
         <FolderIcon size={14} color={folder.color} style={{ flexShrink: 0 }} />
         <Typography
@@ -170,7 +170,7 @@ function FolderRowInner({
                   minWidth: 18,
                   height: 18,
                   borderRadius: '999px',
-                  bgcolor: 'rgba(0,0,0,0.05)',
+                  bgcolor: 'action.selected',
                   px: 0.75,
                   ml: 'auto',
                 }}

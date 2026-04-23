@@ -29,9 +29,9 @@ export default function FilePreviewPanel({ previewDoc }: FilePreviewPanelProps) 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: '20px', py: '14px' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
           {previewDoc.mimeType.startsWith('image/') ? (
-            <ImageSquare size={16} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+            <ImageSquare size={16} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
           ) : (
-            <FileText size={16} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+            <FileText size={16} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
           )}
           <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
             {previewDoc.name}
@@ -89,7 +89,7 @@ export default function FilePreviewPanel({ previewDoc }: FilePreviewPanelProps) 
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         ) : (
-          <FileText size={48} color="var(--mui-palette-text-disabled)" />
+          <FileText size={48} color="var(--text-secondary)" />
         )}
       </Box>
 

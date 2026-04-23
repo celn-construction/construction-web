@@ -34,10 +34,10 @@ function TrackableFolderContentInner({
           gap: 0.5,
         }}
       >
-        <Typography sx={{ fontSize: 11, color: 'text.disabled', lineHeight: 1.2 }}>
+        <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.2 }}>
           No {folderName.toLowerCase()} required
         </Typography>
-        <Typography sx={{ fontSize: 10, color: 'text.disabled', lineHeight: 1.2 }}>
+        <Typography sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.2 }}>
           Set a requirement to start tracking
         </Typography>
       </Box>
@@ -104,7 +104,7 @@ function TrackableFolderContentInner({
 
               <FileText
                 size={14}
-                color={isSelected ? 'var(--mui-palette-primary-main)' : 'var(--mui-palette-text-secondary)'}
+                color={isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)'}
                 style={{ flexShrink: 0 }}
               />
               <Typography
@@ -144,7 +144,7 @@ function TrackableFolderContentInner({
               borderRadius: '8px',
               border: '1.5px dashed',
               borderColor: 'divider',
-              bgcolor: 'rgba(0,0,0,0.012)',
+              bgcolor: 'action.hover',
               cursor: 'pointer',
               transition: 'border-color 0.2s, background-color 0.2s',
               '&:hover': {
@@ -162,17 +162,17 @@ function TrackableFolderContentInner({
                 width: 18,
                 height: 18,
                 borderRadius: '50%',
-                bgcolor: 'rgba(0,0,0,0.04)',
+                bgcolor: 'action.hover',
                 flexShrink: 0,
               }}
             >
-              <Typography sx={{ fontSize: 9, fontWeight: 600, color: 'text.disabled', lineHeight: 1 }}>
+              <Typography sx={{ fontSize: 9, fontWeight: 600, color: 'text.secondary', lineHeight: 1 }}>
                 {slotNum}
               </Typography>
             </Box>
 
-            <CloudArrowUp size={14} color="var(--mui-palette-text-disabled)" style={{ flexShrink: 0 }} />
-            <Typography sx={{ fontSize: 11, color: 'text.disabled', lineHeight: 1 }}>
+            <CloudArrowUp size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
+            <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1 }}>
               {singularName} {slotNum}
             </Typography>
           </Box>

@@ -162,7 +162,7 @@ export default function DocumentCardCompact({ doc, organizationId }: DocumentCar
             sx={{
               fontSize: 11,
               lineHeight: 1.4,
-              color: 'text.disabled',
+              color: 'text.secondary',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',

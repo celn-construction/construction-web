@@ -409,11 +409,11 @@ export default function DocumentExplorerPage() {
             py: 8,
           }}
         >
-          <FileText size={48} style={{ color: 'var(--text-disabled)', marginBottom: 16 }} />
+          <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: 16 }} />
           <Typography variant="h6" sx={{ color: 'text.secondary', mb: 0.5 }}>
             {displayQuery ? 'No results found' : 'No documents yet'}
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {displayQuery
               ? `No documents match "${displayQuery}"`
               : 'Upload documents to see them here'}

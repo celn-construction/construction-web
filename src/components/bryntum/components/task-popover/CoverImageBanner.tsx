@@ -134,12 +134,12 @@ export default function CoverImageBanner({
                     '100%': { backgroundPosition: '200% 0' },
                   },
                   background:
-                    'linear-gradient(90deg, var(--mui-palette-background-default) 25%, var(--mui-palette-divider) 50%, var(--mui-palette-background-default) 75%)',
+                    'linear-gradient(90deg, var(--bg-primary) 25%, var(--border-color) 50%, var(--bg-primary) 75%)',
                   backgroundSize: '200% 100%',
                   animation: 'shimmer 1.8s ease-in-out infinite',
                 }}
               >
-                <ImageSquare size={18} color="var(--mui-palette-text-disabled)" />
+                <ImageSquare size={18} color="var(--text-secondary)" />
               </Box>
             )}
             {/* eslint-disable-next-line @next/next/no-img-element */}

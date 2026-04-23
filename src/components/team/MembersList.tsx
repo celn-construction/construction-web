@@ -173,7 +173,7 @@ export default function MembersList({ members, isLoading }: MembersListProps) {
             <Typography
               sx={{
                 fontSize: '0.75rem',
-                color: 'text.disabled',
+                color: 'text.secondary',
                 mt: 0.25,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',

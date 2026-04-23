@@ -129,7 +129,7 @@ export default function VersionHistoryDrawer({
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
             <Typography sx={{ fontSize: 15, fontWeight: 600 }}>Version History</Typography>
             <Tooltip title={`${versions.length} of 50 saved versions used`} arrow placement="bottom">
-              <Typography sx={{ fontSize: 11, color: 'text.disabled', fontWeight: 500, cursor: 'default' }}>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary', fontWeight: 500, cursor: 'default' }}>
                 {versions.length}/50
               </Typography>
             </Tooltip>
@@ -180,7 +180,7 @@ export default function VersionHistoryDrawer({
               <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
                 No versions saved yet
               </Typography>
-              <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.5 }}>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.5 }}>
                 Save a version to create a snapshot of your schedule
               </Typography>
             </Box>
@@ -247,7 +247,7 @@ export default function VersionHistoryDrawer({
                               px: 0.75,
                               py: 0.25,
                               borderRadius: '4px',
-                              bgcolor: 'rgba(43, 45, 66, 0.08)',
+                              bgcolor: 'action.selected',
                             }}
                           >
                             Current
@@ -258,14 +258,14 @@ export default function VersionHistoryDrawer({
                         {version.createdBy.name ?? version.createdBy.email} · {formatDistanceToNow(new Date(version.createdAt), { addSuffix: true })}
                       </Typography>
                       {/* Always show the full date & time */}
-                      <Typography sx={{ fontSize: 10, color: 'text.disabled', mt: 0.25, lineHeight: 1 }}>
+                      <Typography sx={{ fontSize: 10, color: 'text.secondary', mt: 0.25, lineHeight: 1 }}>
                         {formatVersionDate(new Date(version.createdAt))}
                       </Typography>
                       {version.description && (
                         <Typography
                           sx={{
                             fontSize: 11,
-                            color: 'text.disabled',
+                            color: 'text.secondary',
                             mt: 0.5,
                             lineHeight: 1.3,
                             overflow: 'hidden',
@@ -321,7 +321,7 @@ export default function VersionHistoryDrawer({
               <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
                 No changes recorded yet
               </Typography>
-              <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.5 }}>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.5 }}>
                 Changes are automatically logged when the schedule is synced
               </Typography>
             </Box>
@@ -362,7 +362,7 @@ export default function VersionHistoryDrawer({
                           </Box>
                         )}
                         {s && (s.dependenciesAdded + s.dependenciesModified + s.dependenciesRemoved) > 0 && (
-                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled' }}>
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, fontSize: '0.625rem', fontWeight: 500, color: 'text.secondary' }}>
                             {s.dependenciesAdded + s.dependenciesModified + s.dependenciesRemoved} dep{(s.dependenciesAdded + s.dependenciesModified + s.dependenciesRemoved) !== 1 ? 's' : ''}
                           </Box>
                         )}
@@ -370,7 +370,7 @@ export default function VersionHistoryDrawer({
                       <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.2 }}>
                         {revision.createdBy.name ?? revision.createdBy.email} · {formatDistanceToNow(new Date(revision.createdAt), { addSuffix: true })}
                       </Typography>
-                      <Typography sx={{ fontSize: 10, color: 'text.disabled', mt: 0.25, lineHeight: 1 }}>
+                      <Typography sx={{ fontSize: 10, color: 'text.secondary', mt: 0.25, lineHeight: 1 }}>
                         {format(new Date(revision.createdAt), 'MMM d, yyyy · h:mm a')}
                       </Typography>
                     </Box>

@@ -466,11 +466,11 @@ function ProjectSettingsForm({
                     },
                   }}>
                   <input {...getInputProps()} />
-                  {isUploading ? <CircularProgress size={20} /> : <UploadSimple size={20} style={{ color: theme.palette.text.disabled }} />}
+                  {isUploading ? <CircularProgress size={20} /> : <UploadSimple size={20} style={{ color: theme.palette.text.secondary }} />}
                   <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
                     {isUploading ? 'Uploading...' : isDragActive ? 'Drop image here' : 'Drag & drop or click to upload'}
                   </Typography>
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
                     PNG, JPG, WebP up to 5MB
                   </Typography>
                 </Box>
@@ -575,7 +575,7 @@ export default function ProjectSettingsPage() {
           <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
             Project Settings
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.disabled', mt: 0.5 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             {projectName}
           </Typography>
         </Box>
@@ -596,7 +596,7 @@ export default function ProjectSettingsPage() {
           <ProjectSettingsForm projectId={projectId} organizationId={organizationId} />
         ) : (
           <Box sx={{ px: 3, py: 2.5 }}>
-            <Typography sx={{ color: 'text.disabled', fontSize: '0.875rem' }}>
+            <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
               Only project owners, admins, and project managers can edit project settings.
             </Typography>
           </Box>

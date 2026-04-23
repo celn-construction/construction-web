@@ -49,7 +49,7 @@ function PhotosFolderContentInner({
         borderRadius: '8px',
         border: '1.5px dashed',
         borderColor: 'divider',
-        bgcolor: 'rgba(0,0,0,0.015)',
+        bgcolor: 'action.hover',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -58,7 +58,7 @@ function PhotosFolderContentInner({
         transition: 'border-color 0.2s, background-color 0.2s, color 0.2s',
         '&:hover': {
           borderColor: 'primary.main',
-          bgcolor: 'rgba(43, 45, 66, 0.04)',
+          bgcolor: 'action.selected',
           color: 'primary.main',
         },
       }}
@@ -177,7 +177,7 @@ function PhotosFolderContentInner({
                   />
                 ) : (
                   <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={20} color="var(--mui-palette-text-disabled)" />
+                    <FileText size={20} color="var(--text-secondary)" />
                   </Box>
                 )}
 
@@ -240,7 +240,7 @@ function PhotosFolderContentInner({
                 '&:hover': { bgcolor: 'action.hover' },
               }}
             >
-              <FileText size={14} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+              <FileText size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
               <Typography
                 sx={{
                   fontSize: 12,
@@ -257,7 +257,7 @@ function PhotosFolderContentInner({
                 <PushPin
                   size={11}
                   weight="fill"
-                  color="var(--mui-palette-text-secondary)"
+                  color="var(--text-secondary)"
                   style={{ flexShrink: 0 }}
                 />
               )}
