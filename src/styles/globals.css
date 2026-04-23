@@ -513,3 +513,55 @@ body {
 .bryntum-gantt-container .b-virtual-scroller::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* ============================================
+   Bryntum Gantt — Context Menu Theming
+   The menu floats at the document body level (outside .bryntum-gantt-container),
+   so these rules are global and keyed on the `gantt-themed-menu` marker class
+   applied via feature configs (taskMenu, cellMenu, scheduleMenu, dependencyMenu).
+
+   Bryntum's menu is built on CSS custom properties — overriding them at the
+   menu scope is cleaner than chasing !important through specific selectors.
+   Key classes: `.b-menu.b-popup` (container), `.b-menu-item`, `.b-menu-text`,
+   `.b-menu-item-icon`, `.b-menu-item.b-separator` (separator rendered as ::before).
+   ============================================ */
+
+.b-menu.gantt-themed-menu.b-popup {
+  /* Container */
+  --b-menu-background: var(--bg-card);
+  --b-menu-padding: 4px;
+  --b-popup-border-radius: var(--radius-sm);
+  --b-menu-border-radius: var(--radius-sm);
+
+  /* Item spacing + shape (hover pill tucks inside the rounded container) */
+  --b-menu-item-padding: 0.5em 0.75em;
+  --b-menu-item-min-width: 14em;
+  --b-menu-item-border-radius: 6px;
+
+  /* Item colors — light theme */
+  --b-menu-item-color: var(--text-primary);
+  --b-menu-item-icon-color: var(--text-secondary);
+  --b-menu-item-background: transparent;
+
+  /* Hover / focus — subtle grey wash, darker icon */
+  --b-menu-item-hover-background: var(--bg-hover);
+  --b-menu-item-hover-color: var(--text-primary);
+  --b-menu-item-hover-icon-color: var(--text-primary);
+  --b-menu-item-focus-background: var(--bg-hover);
+  --b-menu-item-focus-color: var(--text-primary);
+  --b-menu-item-focus-icon-color: var(--text-primary);
+
+  /* Disabled (Paste, Indent, Outdent, etc.) */
+  --b-menu-item-disabled-color: var(--text-muted);
+  --b-menu-item-disabled-icon-color: var(--text-muted);
+
+  /* Separator — pulled in from the rounded edges */
+  --b-menu-item-separator-border-color: var(--border-light);
+  --b-menu-item-separator-inset: 0.5em;
+
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  font-family: inherit;
+  /* Clip any stray hover backgrounds to the outer rounded corners */
+  overflow: hidden;
+}
