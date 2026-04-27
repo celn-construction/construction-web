@@ -11,6 +11,11 @@ class VersionedTaskModel extends TaskModel {
       { name: 'version', type: 'int', defaultValue: 1 },
     ];
   }
+
+  override isEditable(fieldName: string): boolean {
+    if (fieldName === 'percentDone') return false;
+    return super.isEditable(fieldName);
+  }
 }
 
 function formatTooltipText(record: Record<string, unknown>, field?: string): string {
@@ -158,7 +163,7 @@ export function createGanttConfig(
       columnLines: true,
       stripe: true,
       nonWorkingTime: true,
-      percentBar: { allowResize: false },
+      percentBar: false,
       tree: { toggleTreeNode: false },
       cellTooltip: {
         tooltipRenderer: ({ record, column }) => formatTooltipText(record, column.field),
