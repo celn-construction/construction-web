@@ -1,7 +1,7 @@
 {
   "scripts": {
     "setup": "vercel link --project construction-web --scope celn --yes && vercel env pull .env.local --environment development --scope celn --yes && (docker start construction-postgres 2>/dev/null || docker run -d --name construction-postgres --restart unless-stopped -p 5432:5432 -e POSTGRES_USER=construction -e POSTGRES_PASSWORD=construction -e POSTGRES_DB=construction -v construction-pgdata:/var/lib/postgresql/data pgvector/pgvector:pg17) && sleep 2 && docker exec construction-postgres psql -U construction -d construction -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS vector;' && sed -i '' 's|\\\\n\"|\"| ' .env.local && (grep -q '^NODE_OPTIONS=' .env.local || echo 'NODE_OPTIONS=\"--max-old-space-size=8192\"' >> .env.local) && npm install && (set -a && . ./.env.local && set +a && npx prisma migrate deploy)",
-    "run": "npm run dev",
+    "run": "(set -a && . ./.env.local && set +a && npx prisma migrate deploy && npx prisma generate) && npm run dev",
     "archive": "rm -f .env.local && rm -rf .vercel && rm -rf node_modules && rm -rf .next"
   }
 }
