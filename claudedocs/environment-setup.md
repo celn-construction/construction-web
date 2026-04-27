@@ -83,7 +83,7 @@ npm run dev          # http://localhost:3000
 - Local dev uses a shared PostgreSQL 17 Docker container (`construction-postgres`) on **port 5432** with `pgvector/pgvector:pg17` image. The container is shared across all Conductor workspaces via a named container and volume (`construction-pgdata`). Vercel deployments (preview/production) use Neon via the Vercel-Neon integration.
 - Email functionality falls back to console logging when `RESEND_API_KEY` is not set.
 - Better Auth trusts any localhost origin in development, and `APP_URL` in production (see `src/lib/auth.ts`).
-- In Conductor, `conductor.json` handles setup automatically — starts Docker, pulls env vars, overrides DB URLs, installs dependencies, and applies migrations via `prisma migrate deploy`.
+- In Conductor, `conductor.json` handles setup and run automatically. The `setup` script starts Docker, pulls env vars, overrides DB URLs, installs dependencies, and applies migrations. The `run` script re-applies migrations (`prisma migrate deploy`) and regenerates the Prisma client (`prisma generate`) on every workspace start before launching `next dev`, so a workspace can never start with a stale client or unapplied migrations.
 
 ### Database workflow: always use `prisma migrate`, never `prisma db push`
 
@@ -102,6 +102,15 @@ This project uses Prisma's **migration files** as the single source of truth for
 | Open the data browser | `npx prisma studio` |
 
 **If a workspace was set up via the old `db push` flow** and you suspect drift (missing functions, indexes, or generated columns), check with `npx prisma migrate status`. If it reports migrations as not applied even though the schema looks correct, the DB needs to be baselined: apply any missing raw-SQL bits manually, then mark each migration applied with `npx prisma migrate resolve --applied <name>` until status is clean. The simpler reset (if you have no important local data) is `docker volume rm construction-pgdata`, restart the container, then `npx prisma migrate deploy`.
+
+### Cross-workspace drift hazards (shared Postgres)
+
+Because every Conductor workspace shares one `construction-postgres` container, the database is mutable shared state while `prisma/schema.prisma`, `prisma/migrations/`, and `generated/prisma/` are per-workspace (each branch's view). A migration applied in workspace A is permanently visible to every other workspace, even ones whose branch doesn't have that migration file. Two rules avoid the worst failure modes:
+
+1. **Never delete a migration file after it has been applied to the shared DB.** If a schema change needs to be undone, write a new migration that reverses it. Deleting an applied migration leaves an orphan row in `_prisma_migrations` plus orphan column changes — and any other workspace that re-runs `prisma migrate dev` will then see drift it can't reconcile against files on disk.
+2. **When a workspace starts behaving strangely after a pull, run `npx prisma migrate status` first.** It compares files on disk to `_prisma_migrations` rows and surfaces drift before runtime errors do. Do this before assuming the dev server is broken.
+
+The `run` script in `conductor.json` already applies `prisma migrate deploy && prisma generate` on every workspace start, so the common path (`git pull` → restart) self-heals. These two rules cover the cases the `run` script can't.
 
 ## Available Scripts
 
