@@ -207,7 +207,7 @@ export default function AccountTabContent({ onCloseModal }: AccountTabContentPro
                         className="row-chevron"
                         size={14}
                         weight="bold"
-                        style={{ color: 'var(--mui-palette-text-disabled)', flexShrink: 0 }}
+                        style={{ color: 'var(--text-secondary)', flexShrink: 0 }}
                       />
                     )}
                   </>

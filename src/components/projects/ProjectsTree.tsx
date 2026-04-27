@@ -736,7 +736,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
         <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 280, mb: 2 }}>
           Add tasks to your Gantt chart to organize project documents
         </Typography>
-        <Typography variant="caption" sx={{ color: 'text.disabled', maxWidth: 300 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary', maxWidth: 300 }}>
           💡 Tasks you create in the Gantt chart will automatically appear here with folders for documents, photos, and submittals
         </Typography>
         </Box>

@@ -119,7 +119,7 @@ export function FileDropzone({
             ? 'Drop file here'
             : 'Drag & drop or click to upload'}
         </Typography>
-        <Typography variant="caption" sx={{ color: 'text.disabled', mt: 0.5 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
           PDF, images, spreadsheets, Word docs, CAD files up to 50MB
         </Typography>
       </Box>

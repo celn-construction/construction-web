@@ -41,7 +41,7 @@ export default function ConflictDialog({ open, onProceed, onRefresh }: ConflictD
             mb: 0.5,
           }}
         >
-          <AlertTriangle style={{ width: 18, height: 18, color: 'var(--mui-palette-warning-main, #ed6c02)' }} />
+          <AlertTriangle style={{ width: 18, height: 18, color: 'var(--status-amber, #ed6c02)' }} />
         </Box>
 
         {/* Title */}

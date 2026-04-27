@@ -400,7 +400,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
             rollup: r.rollup, cls: r.cls, iconCls: r.iconCls,
             note: r.note, csiCode: r.csiCode, baselines: r.baselines,
             orderIndex: r.parentIndex ?? r.orderedParentIndex, version: r.version,
-            coverImageUrl: r.coverImageUrl,
+            coverDocumentId: r.coverDocumentId ?? null,
           });
           const serializedTasks = allTasks
             .filter(r => !r.isRoot)
@@ -679,7 +679,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       <style>{`
         .bryntum-gantt-container .b-tree-cell { cursor: pointer; }
         .bryntum-gantt-container .b-gantt-task.b-task-selected {
-          outline: 2.5px solid rgba(43, 45, 66, 0.85) !important;
+          outline: 2.5px solid var(--accent-primary, rgba(43, 45, 66, 0.85)) !important;
           outline-offset: 2px;
         }
         /* Name cell inner wrapper — flex row with name + dots button */
@@ -714,7 +714,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           line-height: 1;
         }
         .gantt-row-actions-btn:hover {
-          background: rgba(0, 0, 0, 0.04);
+          background: var(--bg-hover, rgba(0, 0, 0, 0.04));
         }
         /* Hide mutation affordances while the chart is locked. */
         .bryntum-gantt-container[data-locked="true"] .gantt-row-actions-btn {
@@ -735,7 +735,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           line-height: 1;
         }
         .gantt-row-scroll-btn:hover {
-          background: rgba(0, 0, 0, 0.04);
+          background: var(--bg-hover, rgba(0, 0, 0, 0.04));
           color: var(--text-primary, #2B2D42);
         }
         /* Row actions dropdown menu — clean card style */

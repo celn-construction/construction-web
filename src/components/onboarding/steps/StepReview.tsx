@@ -129,7 +129,7 @@ export function StepReview({ formData, updateField }: StepReviewProps) {
                     fontWeight: 500,
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
-                    color: 'text.disabled',
+                    color: 'text.secondary',
                   }}
                 >
                   {field.label}

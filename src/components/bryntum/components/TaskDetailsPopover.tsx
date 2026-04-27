@@ -158,7 +158,10 @@ export function TaskDetailsPopover({
   const submittalsCurrent = submittalsFolder ? getTrackableCount(submittalsFolder) : 0;
   const inspectionsCurrent = inspectionsFolder ? getTrackableCount(inspectionsFolder) : 0;
 
-  const coverImageUrl = taskDetail?.coverImageUrl ?? null;
+  const coverDocumentId = taskDetail?.coverDocumentId ?? null;
+  const photos = ((allDocs ?? []) as DocumentItem[]).filter(
+    (d) => d.folderId === 'photos' && d.mimeType.startsWith('image/')
+  );
   const hasRightPanel = rightPanel !== null;
   const previewDoc = rightPanel?.type === 'preview' ? rightPanel.doc : null;
   const selectedDocId = previewDoc?.id ?? null;
@@ -236,7 +239,8 @@ export function TaskDetailsPopover({
               taskId={taskId}
               projectId={projectId}
               organizationId={organizationId}
-              coverImageUrl={coverImageUrl}
+              coverDocumentId={coverDocumentId}
+              photos={photos}
             />
 
             <Divider sx={{ mx: 2 }} />
@@ -348,6 +352,10 @@ export function TaskDetailsPopover({
                           : undefined
                       }
                       isRequirementPending={updateRequirementMutation.isPending}
+                      projectId={projectId}
+                      taskId={taskId}
+                      organizationId={organizationId}
+                      pinnedDocId={coverDocumentId}
                     />
                   );
                 })}

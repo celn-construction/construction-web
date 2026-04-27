@@ -69,12 +69,12 @@ export default function ProjectSwitcher() {
           icon={currentProject?.icon}
           size={28}
           borderRadius="6px"
-          color="var(--mui-palette-text-secondary)"
+          color="var(--text-secondary)"
         />
         <Typography sx={{ fontSize: 14, fontWeight: 500, color: 'text.secondary', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
           {projectSlug && currentProject ? currentProject.name : 'Select project'}
         </Typography>
-        <CaretUpDown size={12} style={{ flexShrink: 0, color: 'var(--mui-palette-text-disabled)' }} />
+        <CaretUpDown size={12} style={{ flexShrink: 0, color: 'var(--text-secondary)' }} />
       </ButtonBase>
 
       <Menu
@@ -258,7 +258,7 @@ export default function ProjectSwitcher() {
                         }}
                       />
                     </Box>
-                    <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', flexShrink: 0, lineHeight: 1 }}>
+                    <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.secondary', flexShrink: 0, lineHeight: 1 }}>
                       {project.completionPercent}%
                     </Typography>
                   </Box>
@@ -267,7 +267,7 @@ export default function ProjectSwitcher() {
             );
           })}
           {filtered.length === 0 && (
-            <Typography sx={{ px: 1.25, py: 1, fontSize: '0.8125rem', color: 'text.disabled' }}>
+            <Typography sx={{ px: 1.25, py: 1, fontSize: '0.8125rem', color: 'text.secondary' }}>
               No projects found
             </Typography>
           )}

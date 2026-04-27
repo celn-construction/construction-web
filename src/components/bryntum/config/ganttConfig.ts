@@ -11,6 +11,11 @@ class VersionedTaskModel extends TaskModel {
       { name: 'version', type: 'int', defaultValue: 1 },
     ];
   }
+
+  override isEditable(fieldName: string): boolean {
+    if (fieldName === 'percentDone') return false;
+    return super.isEditable(fieldName);
+  }
 }
 
 function formatTooltipText(record: Record<string, unknown>, field?: string): string {
@@ -158,6 +163,7 @@ export function createGanttConfig(
       columnLines: true,
       stripe: true,
       nonWorkingTime: true,
+      percentBar: false,
       tree: { toggleTreeNode: false },
       cellTooltip: {
         tooltipRenderer: ({ record, column }) => formatTooltipText(record, column.field),
@@ -176,6 +182,13 @@ export function createGanttConfig(
           });
         },
       },
+      // Theme all Bryntum context menus to match the app's light palette.
+      // The marker class is applied to the floating `.b-menu` element so our
+      // CSS overrides in globals.css stay scoped to Gantt menus.
+      taskMenu: { cls: 'gantt-themed-menu' },
+      cellMenu: { cls: 'gantt-themed-menu' },
+      scheduleMenu: { cls: 'gantt-themed-menu' },
+      dependencyMenu: { cls: 'gantt-themed-menu' },
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     presets: [

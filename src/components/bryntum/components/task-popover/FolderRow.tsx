@@ -49,6 +49,11 @@ interface FolderRowProps {
   canManage?: boolean;
   onSaveRequirement?: (count: number | null) => void;
   isRequirementPending?: boolean;
+  // Pin context (only used by the Photos folder)
+  projectId?: string;
+  taskId?: string;
+  organizationId?: string;
+  pinnedDocId?: string | null;
 }
 
 function FolderRowInner({
@@ -65,6 +70,10 @@ function FolderRowInner({
   canManage,
   onSaveRequirement,
   isRequirementPending,
+  projectId,
+  taskId,
+  organizationId,
+  pinnedDocId,
 }: FolderRowProps) {
   const FolderIcon = folderIconMap[folder.id] ?? (isExpanded ? FolderOpen : FolderSimple);
   const isTrackable = folder.trackable && !!onSaveRequirement;
@@ -75,6 +84,10 @@ function FolderRowInner({
     selectedDocId,
     onUpload: () => onUpload({ id: folder.id, name: folder.name }),
     folderName: folder.name,
+    projectId,
+    taskId,
+    organizationId,
+    pinnedDocId,
   };
 
   const renderContent = () => {
@@ -118,9 +131,9 @@ function FolderRowInner({
         onClick={onToggle}
       >
         {isExpanded ? (
-          <CaretDown size={14} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+          <CaretDown size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
         ) : (
-          <CaretRight size={14} color="var(--mui-palette-text-secondary)" style={{ flexShrink: 0 }} />
+          <CaretRight size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
         )}
         <FolderIcon size={14} color={folder.color} style={{ flexShrink: 0 }} />
         <Typography
@@ -157,7 +170,7 @@ function FolderRowInner({
                   minWidth: 18,
                   height: 18,
                   borderRadius: '999px',
-                  bgcolor: 'rgba(0,0,0,0.05)',
+                  bgcolor: 'action.selected',
                   px: 0.75,
                   ml: 'auto',
                 }}

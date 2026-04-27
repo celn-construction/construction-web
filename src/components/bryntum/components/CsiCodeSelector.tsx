@@ -42,7 +42,7 @@ export default function CsiCodeSelector({ csiCode, onOpen }: CsiCodeSelectorProp
       <Tag
         size={14}
         weight={hasCode ? 'fill' : 'regular'}
-        color={hasCode ? 'var(--mui-palette-text-secondary)' : 'var(--mui-palette-text-disabled)'}
+        color="var(--text-secondary)"
         style={{ flexShrink: 0, marginTop: hasCode ? 1 : 0 }}
       />
       {hasCode ? (
@@ -68,7 +68,7 @@ export default function CsiCodeSelector({ csiCode, onOpen }: CsiCodeSelectorProp
                 sx={{
                   fontSize: '0.5625rem',
                   fontWeight: 500,
-                  color: 'text.disabled',
+                  color: 'text.secondary',
                   lineHeight: 1,
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
@@ -104,7 +104,7 @@ export default function CsiCodeSelector({ csiCode, onOpen }: CsiCodeSelectorProp
           sx={{
             fontSize: '0.75rem',
             fontWeight: 500,
-            color: 'text.disabled',
+            color: 'text.secondary',
             lineHeight: 1,
             flex: 1,
           }}
@@ -114,7 +114,7 @@ export default function CsiCodeSelector({ csiCode, onOpen }: CsiCodeSelectorProp
       )}
       <CaretRight
         size={11}
-        color="var(--mui-palette-text-disabled)"
+        color="var(--text-secondary)"
         style={{ flexShrink: 0, marginTop: hasCode ? 2 : 0 }}
       />
     </Box>

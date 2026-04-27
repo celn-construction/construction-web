@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, CaretRight, CaretLineLeft, CaretLineRight, SignOut, type Icon } from '@phosphor-icons/react';
-import { Box, Typography, Tooltip } from '@mui/material';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, CaretRight, CaretLineLeft, CaretLineRight, SignOut, Sun, Moon, type Icon } from '@phosphor-icons/react';
+import { Box, Typography, Tooltip, Switch } from '@mui/material';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,7 @@ import { authClient, signOut } from '@/lib/auth-client';
 import UserAvatar from '@/components/ui/UserAvatar';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { useLoading } from '@/components/providers/LoadingProvider';
+import { useThemeMode } from '@/components/providers/ThemeRegistry';
 import AccountSettingsModal from './AccountSettingsModal';
 
 const SIDEBAR_WIDTH = 240;
@@ -52,6 +53,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const { data: session } = authClient.useSession();
   const user = session?.user;
   const { showLoading, hideLoading } = useLoading();
+  const { mode: themeMode, toggleMode: toggleThemeMode } = useThemeMode();
 
   const { activeOrganizationId } = useOrgFromUrl();
   const { currentProject } = useProjectSwitcher(activeOrganizationId, orgSlug ?? '');
@@ -173,7 +175,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                   sx={{
                     fontSize: '0.5625rem',
                     fontWeight: 600,
-                    color: 'text.disabled',
+                    color: 'text.secondary',
                     letterSpacing: '0.12em',
                     textTransform: 'uppercase',
                     px: 1,
@@ -284,7 +286,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                           sx={{
                             fontSize: '0.6875rem',
                             fontWeight: 500,
-                            color: 'text.disabled',
+                            color: 'text.secondary',
                             lineHeight: 1,
                             flexShrink: 0,
                             minWidth: 16,
@@ -380,11 +382,11 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                 border: 'none',
                 bgcolor: 'transparent',
                 cursor: 'pointer',
-                color: 'text.disabled',
+                color: 'text.secondary',
                 transition: 'all 0.15s ease',
                 '&:hover': {
                   bgcolor: 'sidebar.hoverBg',
-                  color: 'text.secondary',
+                  color: 'text.primary',
                 },
               }}
             >
@@ -487,7 +489,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                 <Typography
                   sx={{
                     fontSize: '0.6875rem',
-                    color: 'text.disabled',
+                    color: 'text.secondary',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -564,17 +566,43 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                   borderRadius: '8px',
                   border: 'none',
                   bgcolor: 'transparent',
+                  color: 'text.primary',
                   cursor: 'pointer',
                   transition: 'background-color 0.15s',
                   '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
                 <item.icon size={14} />
-                <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary' }}>
+                <Typography sx={{ fontSize: '0.8125rem', color: 'inherit' }}>
                   {item.label}
                 </Typography>
               </Box>
             ))}
+
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                width: '100%',
+                px: '10px',
+                py: '6px',
+              }}
+            >
+              {themeMode === 'dark' ? <Sun size={14} color="var(--text-secondary)" /> : <Moon size={14} color="var(--text-secondary)" />}
+              <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', flex: 1 }}>
+                Dark mode
+              </Typography>
+              <Switch
+                checked={themeMode === 'dark'}
+                onChange={toggleThemeMode}
+                size="small"
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' },
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: 'primary.main' },
+                }}
+              />
+            </Box>
           </Box>
 
           <Box sx={{ height: '1px', bgcolor: 'divider' }} />

@@ -193,7 +193,7 @@ export function StepLogo({ logoUrl, onLogoChange }: StepLogoProps) {
                 />
                 <Typography
                   variant="caption"
-                  sx={{ color: "text.disabled", fontSize: "0.6875rem" }}
+                  sx={{ color: "text.secondary", fontSize: "0.6875rem" }}
                 >
                   Upload logo
                 </Typography>
@@ -238,7 +238,7 @@ export function StepLogo({ logoUrl, onLogoChange }: StepLogoProps) {
         component={motion.p}
         variants={fieldVariants}
         variant="caption"
-        sx={{ color: "text.disabled", textAlign: "center" }}
+        sx={{ color: "text.secondary", textAlign: "center" }}
       >
         JPG, PNG, GIF or WebP. Max 5MB.
       </Typography>

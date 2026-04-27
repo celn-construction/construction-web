@@ -215,6 +215,7 @@ export type GanttConfig = {
       tooltipRenderer: (args: TooltipRendererArgs) => string;
     };
     tree?: { toggleTreeNode?: boolean };
+    percentBar?: boolean | { allowResize?: boolean };
     taskResize?: boolean | {
       showTooltip?: boolean;
       allowResizeToZero?: boolean;
@@ -227,6 +228,10 @@ export type GanttConfig = {
         duration: number | null;
       }) => string;
     };
+    taskMenu?: boolean | { cls?: string };
+    cellMenu?: boolean | { cls?: string };
+    scheduleMenu?: boolean | { cls?: string };
+    dependencyMenu?: boolean | { cls?: string };
   };
   emptyText?: string;
   viewPreset: string;

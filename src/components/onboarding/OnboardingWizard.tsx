@@ -181,11 +181,11 @@ export function OnboardingWizard() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     borderRadius: '12px',
-                    bgcolor: '#000',
-                    color: 'white',
+                    bgcolor: 'text.primary',
+                    color: 'background.paper',
                   }}
                 >
-                  <LogoIcon sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 }, color: 'white' }} />
+                  <LogoIcon sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 }, color: 'background.paper' }} />
                 </Box>
               </Box>
 
@@ -335,7 +335,7 @@ export function OnboardingWizard() {
                     <Button
                       variant="text"
                       onClick={handleSkip}
-                      sx={{ fontSize: '0.875rem', color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
+                      sx={{ fontSize: '0.875rem', color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
                     >
                       Skip for now
                     </Button>

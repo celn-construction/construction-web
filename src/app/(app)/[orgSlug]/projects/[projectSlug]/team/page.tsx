@@ -56,7 +56,7 @@ export default function TeamPage() {
           <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
             Team
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.disabled', mt: 0.5 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             {projectName}
           </Typography>
         </Box>
@@ -127,7 +127,7 @@ export default function TeamPage() {
                 <PendingInvitesList invitations={invitations} isLoading={invitationsLoading}
                   projectId={projectId} canManage={canManage} />
               ) : (
-                <Typography sx={{ textAlign: 'center', color: 'text.disabled', py: 4 }}>
+                <Typography sx={{ textAlign: 'center', color: 'text.secondary', py: 4 }}>
                   No pending invitations
                 </Typography>
               )}

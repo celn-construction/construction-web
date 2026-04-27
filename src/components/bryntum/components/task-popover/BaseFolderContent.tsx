@@ -56,8 +56,8 @@ function BaseFolderContentInner({
             <FileText
               size={14}
               color={isSelected
-                ? 'var(--mui-palette-primary-main)'
-                : 'var(--mui-palette-text-secondary)'}
+                ? 'var(--accent-primary)'
+                : 'var(--text-secondary)'}
               style={{ flexShrink: 0 }}
             />
             <Typography

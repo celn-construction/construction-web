@@ -1,23 +1,24 @@
 /* CSS Variables for Bryntum Gantt and Theme Integration */
 
 :root {
-  --bg-primary: #fafafa;
+  --bg-primary: #f7f8f8;
   --bg-secondary: #ffffff;
-  --bg-sidebar: #f5f5f5;
+  --bg-sidebar: #ffffff;
   --bg-card: #ffffff;
-  --bg-input: #f5f5f5;
-  --bg-hover: #f0f0f0;
-  --bg-accent: #f5f5f5;
+  --bg-input: #f3f4f5;
+  --bg-hover: rgba(0, 0, 0, 0.02);
+  --bg-accent: #f3f4f5;
 
-  --text-primary: #171717;
-  --text-secondary: #737373;
-  --text-muted: #a3a3a3;
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --text-muted: #62666d;
 
-  --border-color: #e5e5e5;
+  --border-color: #e6e6e6;
   --border-light: #f0f0f0;
 
   --accent-primary: #2B2D42;
   --accent-subtle: rgba(23, 23, 23, 0.06);
+  --accent-contrast: #ffffff;
 
   --sidebar-border: rgba(0, 0, 0, 0.08);
   --sidebar-indicator: #171717;
@@ -93,11 +94,66 @@
   --gantt-toolbar-bg: #ffffff;
 }
 
+/* ============================================
+   Dark mode overrides — scoped to app design
+   system only. Marketing tokens (--lp-*) are
+   intentionally NOT overridden — the landing
+   page stays light regardless of theme mode.
+   ============================================ */
+[data-theme="dark"] {
+  --bg-primary: #0f1011;
+  --bg-secondary: #191a1b;
+  --bg-sidebar: #08090a;
+  --bg-card: #191a1b;
+  --bg-input: rgba(255, 255, 255, 0.04);
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-accent: rgba(255, 255, 255, 0.04);
+
+  --text-primary: #f7f8f8;
+  --text-secondary: #8a8f98;
+  --text-muted: #62666d;
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.05);
+
+  --accent-primary: #f7f8f8;
+  --accent-subtle: rgba(255, 255, 255, 0.06);
+  --accent-contrast: #0f1011;
+
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-indicator: #f7f8f8;
+  --sidebar-active-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
+
+  --grid-line: rgba(255, 255, 255, 0.06);
+  --timeline-accent: #f7f8f8;
+  --timeline-accent-subtle: rgba(255, 255, 255, 0.06);
+
+  --focus-ring: rgba(247, 248, 248, 0.3);
+
+  /* Gantt — dark-mode overrides for our custom layering on top of Bryntum
+     stockholm-dark. Task/summary/milestone bar fills stay the same (blue/
+     green/amber read fine on near-black), only chrome surfaces flip. */
+  --gantt-header-bg: #0f1011;
+  --gantt-header-border: rgba(255, 255, 255, 0.08);
+  --gantt-header-font-color: #8a8f98;
+  --gantt-row-hover-bg: rgba(255, 255, 255, 0.04);
+  --gantt-stripe-bg: rgba(255, 255, 255, 0.015);
+  --gantt-row-border-color: rgba(255, 255, 255, 0.06);
+  --gantt-column-line-color: rgba(255, 255, 255, 0.04);
+  --gantt-task-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --gantt-task-backdrop: rgba(255, 255, 255, 0.08);
+  --gantt-splitter-color: rgba(255, 255, 255, 0.08);
+  --gantt-splitter-hover: rgba(255, 255, 255, 0.16);
+  --gantt-toolbar-bg: #191a1b;
+}
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
+
 
 /* ============================================
    Stellar.ai Section Animations
@@ -512,4 +568,56 @@ body {
 
 .bryntum-gantt-container .b-virtual-scroller::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+/* ============================================
+   Bryntum Gantt — Context Menu Theming
+   The menu floats at the document body level (outside .bryntum-gantt-container),
+   so these rules are global and keyed on the `gantt-themed-menu` marker class
+   applied via feature configs (taskMenu, cellMenu, scheduleMenu, dependencyMenu).
+
+   Bryntum's menu is built on CSS custom properties — overriding them at the
+   menu scope is cleaner than chasing !important through specific selectors.
+   Key classes: `.b-menu.b-popup` (container), `.b-menu-item`, `.b-menu-text`,
+   `.b-menu-item-icon`, `.b-menu-item.b-separator` (separator rendered as ::before).
+   ============================================ */
+
+.b-menu.gantt-themed-menu.b-popup {
+  /* Container */
+  --b-menu-background: var(--bg-card);
+  --b-menu-padding: 4px;
+  --b-popup-border-radius: var(--radius-sm);
+  --b-menu-border-radius: var(--radius-sm);
+
+  /* Item spacing + shape (hover pill tucks inside the rounded container) */
+  --b-menu-item-padding: 0.5em 0.75em;
+  --b-menu-item-min-width: 14em;
+  --b-menu-item-border-radius: 6px;
+
+  /* Item colors — light theme */
+  --b-menu-item-color: var(--text-primary);
+  --b-menu-item-icon-color: var(--text-secondary);
+  --b-menu-item-background: transparent;
+
+  /* Hover / focus — subtle grey wash, darker icon */
+  --b-menu-item-hover-background: var(--bg-hover);
+  --b-menu-item-hover-color: var(--text-primary);
+  --b-menu-item-hover-icon-color: var(--text-primary);
+  --b-menu-item-focus-background: var(--bg-hover);
+  --b-menu-item-focus-color: var(--text-primary);
+  --b-menu-item-focus-icon-color: var(--text-primary);
+
+  /* Disabled (Paste, Indent, Outdent, etc.) */
+  --b-menu-item-disabled-color: var(--text-muted);
+  --b-menu-item-disabled-icon-color: var(--text-muted);
+
+  /* Separator — pulled in from the rounded edges */
+  --b-menu-item-separator-border-color: var(--border-light);
+  --b-menu-item-separator-inset: 0.5em;
+
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  font-family: inherit;
+  /* Clip any stray hover backgrounds to the outer rounded corners */
+  overflow: hidden;
 }
