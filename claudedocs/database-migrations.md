@@ -126,9 +126,13 @@ If anyone has ever run `db push` against a DB that also receives migrations, tho
 # Reports unapplied or missing migrations. Does NOT compare DB schema to schema.prisma.
 npx prisma migrate status
 
-# Compares migration history (what files would produce on a fresh DB) ↔ live DB.
-# Returns SQL representing the actual drift. Empty output means clean.
-# Requires a shadow DB.
+# Compares migration history (what files would produce on a fresh DB) ↔ schema.prisma.
+# Exits 0 if in sync, 2 if drift, 1 on error. Same check that runs in CI on every PR.
+npm run db:check
+
+# Compares migration history ↔ live DB. Returns SQL representing the actual drift.
+# Use this when you suspect the live DB is out of sync with what migrations would create
+# (e.g. someone ran db push against it).
 npx prisma migrate diff \
   --from-migrations prisma/migrations \
   --to-url "$POSTGRES_PRISMA_URL" \
@@ -136,7 +140,7 @@ npx prisma migrate diff \
   --script
 ```
 
-`migrate status` and `migrate diff` answer different questions. `status` checks whether all migration files have been applied. `diff` checks whether applying all the migration files to a clean DB would produce the same schema as your live DB. **The drift this project hit was invisible to `status` and only visible to `diff`** — `_prisma_migrations` had every file applied, but the DB had extra objects from past `db push`.
+`migrate status` and `migrate diff` answer different questions. `status` checks whether all migration files have been applied. `diff` checks whether the schemas match. **The drift this project hit was invisible to `status` and only visible to `diff`** — `_prisma_migrations` had every file applied, but the DB had extra objects from past `db push`. The `npm run db:check` script wraps `migrate diff` with sensible defaults and is the canonical local check.
 
 ### Fix drift
 
@@ -157,6 +161,39 @@ If you change `schema.prisma` and run `migrate dev` and Prisma says drift was de
 2. Run `prisma migrate diff --from-migrations ... --to-url ...` to see the actual drift SQL.
 3. If the drift is benign (orphan objects from a past `db push`), write an idempotent baseline migration like `20260429180000_baseline_orphan_schema_objects` that captures the orphan objects. Apply it with `migrate deploy`. Now the DB and migration history agree.
 4. Only then re-run `migrate dev` for your actual schema change.
+
+---
+
+## CI Enforcement
+
+`.github/workflows/db-migration-check.yml` runs on every PR and on pushes to `main`/`preview`. It spins up an ephemeral Postgres container, applies every migration file in `prisma/migrations/` to it, and then compares the resulting schema to `schema.prisma`. Any difference fails the check.
+
+The exact command is:
+
+```bash
+npx prisma migrate diff \
+  --from-migrations prisma/migrations \
+  --to-schema-datamodel prisma/schema.prisma \
+  --shadow-database-url "<ephemeral postgres>" \
+  --exit-code
+```
+
+`--exit-code` returns 2 if there is any difference, 0 if in sync, 1 on error. The CI job converts that into a pass/fail status and prints guidance on failure.
+
+**This is the layer that catches `db push` usage before it merges.** If you edit `schema.prisma` without writing a matching migration, this check will fail with a clear "added/changed/removed" diff. Run `npm run db:check` locally to catch the same drift before pushing.
+
+### Known false-positive surface
+
+`migrate diff` is generally accurate, but it can flag legitimate raw-SQL features that `schema.prisma` can't fully express. Two examples this project handles in `schema.prisma`:
+
+- **Generated columns** (`Document.searchVector`): declared as `Unsupported("tsvector")? @default(dbgenerated())`. `dbgenerated()` with no arguments tells Prisma "I know there's a DB-side default, don't validate it." This silences the diff for the generated expression.
+- **Indexes on Unsupported types** (`Document.searchVector` GIN index): declared via `@@index([searchVector], map: "idx_document_search_vector", type: Gin)`. This is the schema-level equivalent of the migration's raw SQL `CREATE INDEX ... USING GIN`.
+
+If you add new raw-SQL features (custom functions, triggers, additional generated columns), the CI check may flag them. The fix is usually one of:
+
+1. Add the matching declaration to `schema.prisma` (preferred — keeps the schema accurate)
+2. Use `dbgenerated()` for default expressions that schema can't express
+3. Accept that some features (custom functions, triggers) are invisible to `migrate diff` per Prisma's own [docs](https://www.prisma.io/docs/orm/reference/prisma-cli-reference) — these are silently ignored, not flagged as drift
 
 ---
 
@@ -225,13 +262,16 @@ npx prisma migrate dev
 # Check if local DB matches migration files
 npx prisma migrate status
 
-# Check if live DB schema actually matches what migrations would produce
+# Check if migrations and schema.prisma agree (same check CI runs).
+# Wraps prisma migrate diff with sensible defaults.
+npm run db:check
+
+# Check if live DB schema matches what migrations would produce (when you suspect db push happened)
 npx prisma migrate diff \
   --from-migrations prisma/migrations \
   --to-url "$POSTGRES_PRISMA_URL" \
   --shadow-database-url "postgresql://construction:construction@localhost:5432/construction_shadow" \
   --script
-# (create the shadow DB once: docker exec construction-postgres psql -U construction -d postgres -c "CREATE DATABASE construction_shadow")
 
 # Inspect what's actually in the DB
 npx prisma studio

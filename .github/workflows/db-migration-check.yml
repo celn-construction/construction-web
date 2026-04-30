@@ -1,0 +1,67 @@
+name: DB Migration Drift Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main, preview]
+
+jobs:
+  drift-check:
+    name: Migrations match schema.prisma
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: drift_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Enable pgvector and pg_trgm extensions
+        run: |
+          psql -h localhost -U postgres -d drift_check -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          psql -h localhost -U postgres -d drift_check -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+        env:
+          PGPASSWORD: postgres
+
+      - name: Check migrations match schema.prisma
+        run: |
+          npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url "postgresql://postgres:postgres@localhost:5432/drift_check" \
+            --exit-code
+        env:
+          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/drift_check
+          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/drift_check
+          SKIP_ENV_VALIDATION: true
+
+      - name: Drift detected — guidance
+        if: failure()
+        run: |
+          echo "::error title=Migration drift::schema.prisma and prisma/migrations/ disagree."
+          echo "::error::This usually means schema.prisma was edited without a matching migration file (often via 'prisma db push')."
+          echo "::error::Fix: run 'npx prisma migrate dev --name <descriptive_name>' locally, commit the new migration directory, then push."
+          echo "::error::Full guide: claudedocs/database-migrations.md"

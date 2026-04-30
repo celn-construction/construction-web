@@ -165,7 +165,7 @@ model Document {
     description  String
     notes        String                         @default("")
     embedding    Unsupported("vector(1536)")?
-    searchVector Unsupported("tsvector")?
+    searchVector Unsupported("tsvector")?         @default(dbgenerated())
     taskId       String
     folderId     String
     projectId    String
@@ -178,6 +178,7 @@ model Document {
 
     @@index([projectId, taskId, folderId])
     @@index([projectId])
+    @@index([searchVector], map: "idx_document_search_vector", type: Gin)
 }
 
 model Membership {

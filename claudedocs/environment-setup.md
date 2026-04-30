@@ -97,7 +97,7 @@ Quick reference:
 | Create a new migration after editing `schema.prisma` | `npx prisma migrate dev --name <descriptive_name>` |
 | Add raw SQL (function, generated column, custom index) | `npx prisma migrate dev --name <name> --create-only`, edit the SQL, then `npx prisma migrate dev` |
 | Check if migrations and `_prisma_migrations` agree | `npx prisma migrate status` |
-| Check if the DB schema actually matches what migrations would produce | `npx prisma migrate diff --from-migrations prisma/migrations --to-url "$POSTGRES_PRISMA_URL" --shadow-database-url "postgresql://construction:construction@localhost:5432/construction_shadow" --script` |
+| Check if migrations and `schema.prisma` agree (same check CI runs) | `npm run db:check` |
 | Open the data browser | `npx prisma studio` |
 
 The `run` script in `conductor.json` applies `prisma migrate deploy && prisma generate` on every workspace start, so the common path (`git pull` → restart) self-heals. The full doc covers what self-heal can't — including the cross-workspace shared-DB hazards (every Conductor workspace shares the same `construction-postgres` container) and how to recover from drift caused by past `db push` runs.
@@ -112,7 +112,7 @@ The `run` script in `conductor.json` applies `prisma migrate deploy && prisma ge
 | `preview` | `next build && next start` | Build and preview locally |
 | `db:generate` | `prisma migrate dev` | Create and apply a new migration (use this when changing `schema.prisma`) |
 | `db:migrate` | `prisma migrate deploy` | Apply pending migrations to a fresh DB (used by Vercel build and local first-run) |
-| `db:push` | `prisma db push` | **Avoid.** Skips raw-SQL migrations and causes silent drift. See "Database workflow" above |
+| `db:check` | `scripts/db-check.sh` | Verify migrations and `schema.prisma` agree. Same check CI runs on every PR. |
 | `db:studio` | `prisma studio` | Open Prisma Studio GUI |
 | `test` | `vitest run` | Run tests once |
 | `test:watch` | `vitest` | Run tests in watch mode |
