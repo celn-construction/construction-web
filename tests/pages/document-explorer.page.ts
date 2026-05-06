@@ -10,8 +10,8 @@ export class DocumentExplorerPage {
   constructor(page: Page) {
     this.page = page;
     this.searchInput = page.getByPlaceholder(/search documents|ask anything/i);
-    this.aiSegment = page.getByRole("button", { name: "AI", exact: true });
-    this.searchSegment = page.getByRole("button", { name: "Search", exact: true });
+    this.aiSegment = page.getByRole("button", { name: "AI mode" });
+    this.searchSegment = page.getByRole("button", { name: "Search mode" });
     this.heading = page.getByText("Document Explorer");
   }
 

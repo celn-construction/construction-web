@@ -355,6 +355,7 @@ export default function DocumentToolbar({
                 onClick={() => {
                   if (aiEnabled) onAiToggle();
                 }}
+                aria-label="Search mode"
                 aria-pressed={!aiEnabled}
                 sx={{
                   position: 'relative',
@@ -390,6 +391,7 @@ export default function DocumentToolbar({
                 onClick={() => {
                   if (!aiEnabled) onAiToggle();
                 }}
+                aria-label="AI mode"
                 aria-pressed={aiEnabled}
                 sx={{
                   position: 'relative',
