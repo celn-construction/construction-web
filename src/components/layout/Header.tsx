@@ -21,8 +21,8 @@ import ProjectSwitcher from './ProjectSwitcher';
 import LocationWeather from './LocationWeather';
 
 const PAGE_TITLES: Record<string, string> = {
-  gantt: 'Gantt Chart',
-  files: 'File Tree',
+  gantt: 'Timeline',
+  files: 'Tree',
   'document-explorer': 'Document Explorer',
   team: 'Team',
   settings: 'Project Settings',

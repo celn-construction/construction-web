@@ -30,8 +30,8 @@ const t = {
 function DashboardPreview() {
   const sidebarItems = [
     { label: 'Dashboard', icon: House, active: true },
-    { label: 'Gantt', icon: ChartBar, badge: '14' },
-    { label: 'File Tree', icon: FolderOpen },
+    { label: 'Timeline', icon: ChartBar, badge: '14' },
+    { label: 'Tree', icon: FolderOpen },
     { label: 'Documents', icon: BookOpen, chevron: true },
     { label: 'Team', icon: UsersThree },
     { label: 'Settings', icon: Gear },
