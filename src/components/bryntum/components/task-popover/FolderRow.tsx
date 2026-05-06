@@ -61,6 +61,8 @@ interface FolderRowProps {
   pinnedDocId?: string | null;
   // Drawer launch (only for trackable folders)
   onManage?: () => void;
+  // Approval context (only used by trackable folders)
+  memberRole?: string;
 }
 
 function FolderRowInner({
@@ -84,6 +86,7 @@ function FolderRowInner({
   organizationId,
   pinnedDocId,
   onManage,
+  memberRole,
 }: FolderRowProps) {
   const FolderIcon = folderIconMap[folder.id] ?? (isExpanded ? FolderOpen : FolderSimple);
   const isTrackable = folder.trackable && !!onSaveRequirement;
@@ -98,6 +101,7 @@ function FolderRowInner({
     taskId,
     organizationId,
     pinnedDocId,
+    memberRole,
   };
 
   const renderContent = () => {

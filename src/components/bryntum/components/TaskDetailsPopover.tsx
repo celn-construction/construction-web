@@ -398,6 +398,7 @@ export function TaskDetailsPopover({
                           ? () => setDrawerKind(folder.id === 'submittals' ? 'submittal' : 'inspection')
                           : undefined
                       }
+                      memberRole={memberRole}
                     />
                   );
                 })}
@@ -410,7 +411,11 @@ export function TaskDetailsPopover({
             <>
               <Divider orientation="vertical" flexItem />
               {rightPanel.type === 'preview' ? (
-                <FilePreviewPanel previewDoc={rightPanel.doc} />
+                <FilePreviewPanel
+                  previewDoc={rightPanel.doc}
+                  organizationId={organizationId}
+                  memberRole={memberRole}
+                />
               ) : (
                 <CsiCodePanel
                   csiCode={taskDetail?.csiCode}

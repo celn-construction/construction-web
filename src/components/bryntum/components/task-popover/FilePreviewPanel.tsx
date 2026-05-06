@@ -3,13 +3,37 @@
 import { Box, Typography, Divider } from '@mui/material';
 import { ImageSquare, FileText, DownloadSimple, ArrowsOut } from '@phosphor-icons/react';
 import { formatFileSize } from '@/lib/utils/formatting';
+import { isApprovableFolder } from '@/lib/folders';
 import type { PreviewDoc } from './types';
+import ApprovalToggleSwitch from './ApprovalToggleSwitch';
 
 interface FilePreviewPanelProps {
   previewDoc: PreviewDoc;
+  organizationId?: string;
+  memberRole?: string;
 }
 
-export default function FilePreviewPanel({ previewDoc }: FilePreviewPanelProps) {
+export default function FilePreviewPanel({
+  previewDoc,
+  organizationId,
+  memberRole,
+}: FilePreviewPanelProps) {
+  const showApproval =
+    isApprovableFolder(previewDoc.folderId) &&
+    !!organizationId &&
+    typeof memberRole === 'string';
+  const approvedByName = previewDoc.approvedBy?.name ?? null;
+  const approvedAtLabel = previewDoc.approvedAt
+    ? new Date(previewDoc.approvedAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : null;
+  const approvedByDisplay =
+    previewDoc.approvalStatus === 'approved' && (approvedByName || approvedAtLabel)
+      ? [approvedByName, approvedAtLabel].filter(Boolean).join(' · ')
+      : null;
   return (
     <Box
       sx={{
@@ -26,7 +50,7 @@ export default function FilePreviewPanel({ previewDoc }: FilePreviewPanelProps) 
       }}
     >
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: '20px', py: '14px' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: '20px', py: '14px', gap: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
           {previewDoc.mimeType.startsWith('image/') ? (
             <ImageSquare size={16} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
@@ -38,6 +62,17 @@ export default function FilePreviewPanel({ previewDoc }: FilePreviewPanelProps) 
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+          {showApproval && (
+            <ApprovalToggleSwitch
+              documentId={previewDoc.id}
+              documentName={previewDoc.name}
+              approvalStatus={previewDoc.approvalStatus}
+              approvedBy={previewDoc.approvedBy}
+              organizationId={organizationId!}
+              memberRole={memberRole!}
+              size="md"
+            />
+          )}
           {[
             { icon: DownloadSimple, label: 'Download' },
             { icon: ArrowsOut, label: 'Expand' },
@@ -99,6 +134,9 @@ export default function FilePreviewPanel({ previewDoc }: FilePreviewPanelProps) 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, px: '20px', py: '12px' }}>
         {previewDoc.uploadedBy?.name && (
           <MetaRow label="Uploaded by" value={previewDoc.uploadedBy.name} hasBorder />
+        )}
+        {approvedByDisplay && (
+          <MetaRow label="Approved by" value={approvedByDisplay} hasBorder />
         )}
         <MetaRow
           label="Date"

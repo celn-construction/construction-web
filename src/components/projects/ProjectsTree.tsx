@@ -504,7 +504,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
           letterSpacing: '-0.01em',
         }}
       >
-        File Tree
+        Tree
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Box
