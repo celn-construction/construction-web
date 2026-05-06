@@ -5,6 +5,7 @@ import { createTRPCRouter, orgProcedure, projectProcedure } from "@/server/api/t
 import { canManageProjects } from "@/lib/permissions";
 import { ganttLoadInputSchema, ganttSyncInputSchema, updateRequirementSchema } from "@/lib/validations/gantt";
 import { CSI_SUBDIVISION_MAP, CSI_DIVISION_MAP } from "@/lib/constants/csiCodes";
+import { APPROVABLE_FOLDER_ID_LIST } from "@/lib/folders";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
 import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
 import { recordRevision } from "@/server/api/helpers/ganttRevision";
@@ -174,7 +175,7 @@ export const ganttRouter = createTRPCRouter({
       }
 
       // Fetch all Gantt data in parallel with optimized queries
-      const [tasks, dependencies, resources, assignments, timeRanges] = await Promise.all([
+      const [tasks, dependencies, resources, assignments, timeRanges, needsReviewRows] = await Promise.all([
         ctx.db.ganttTask.findMany({
           where: { projectId },
           orderBy: { orderIndex: "asc" },
@@ -216,10 +217,27 @@ export const ganttRouter = createTRPCRouter({
         ctx.db.ganttTimeRange.findMany({
           where: { projectId },
         }),
+        ctx.db.document.groupBy({
+          by: ["taskId"],
+          where: {
+            projectId,
+            approvalStatus: "unapproved",
+            folderId: { in: APPROVABLE_FOLDER_ID_LIST },
+          },
+          _count: { _all: true },
+        }),
       ]);
 
+      // Build needsReviewCount map per task (rolled up to parents in buildTaskTree)
+      const needsReviewCounts = new Map<string, number>();
+      for (const row of needsReviewRows) {
+        if (row.taskId) {
+          needsReviewCounts.set(row.taskId, row._count._all);
+        }
+      }
+
       // Build hierarchical task tree
-      const taskTree = buildTaskTree(tasks);
+      const taskTree = buildTaskTree(tasks, needsReviewCounts);
 
       // Map other entities to Gantt format
       const ganttDependencies = dependencies.map(mapDependencyToGantt);

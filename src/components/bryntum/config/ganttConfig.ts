@@ -2,13 +2,14 @@ import { TaskModel } from '@bryntum/gantt';
 import type { DomClassList } from '@bryntum/gantt';
 import type { GanttConfig, ColumnRendererData } from '../types';
 
-// Extend TaskModel to include the `version` field used for optimistic locking.
-// Without this, Bryntum silently drops the version from loaded data and
-// record.get('version') returns undefined.
+// Extend TaskModel to include the `version` field used for optimistic locking
+// and the `needsReviewCount` field that drives the review-queue badge in the
+// name column. Without explicit `fields`, Bryntum drops these from loaded data.
 class VersionedTaskModel extends TaskModel {
   static override get fields() {
     return [
       { name: 'version', type: 'int', defaultValue: 1 },
+      { name: 'needsReviewCount', type: 'int', defaultValue: 0 },
     ];
   }
 
@@ -113,25 +114,41 @@ export function createGanttConfig(
         // TreeColumn renderer return value replaces the cell content —
         // return a DomConfig object that includes both the name and the button.
         renderer({ value, record }: ColumnRendererData) {
+          const needsReviewCount = Number(record.get('needsReviewCount') ?? 0);
+          const children: Array<Record<string, unknown>> = [
+            { tag: 'span', class: 'gantt-name-text', text: String(value ?? '') },
+          ];
+
+          if (needsReviewCount > 0) {
+            children.push({
+              tag: 'span',
+              class: 'gantt-needs-review-badge',
+              dataset: { taskId: String(record.id) },
+              title: `${needsReviewCount} item${needsReviewCount === 1 ? '' : 's'} awaiting review`,
+              text: String(needsReviewCount),
+            });
+          }
+
+          children.push(
+            {
+              tag: 'button',
+              class: 'gantt-row-scroll-btn',
+              type: 'button',
+              dataset: { taskId: String(record.id) },
+              html: '<i class="fa-solid fa-arrow-right-to-bracket"></i>',
+            },
+            {
+              tag: 'button',
+              class: 'gantt-row-actions-btn',
+              type: 'button',
+              dataset: { taskId: String(record.id) },
+              html: '<i class="fa-solid fa-ellipsis-vertical"></i>',
+            },
+          );
+
           return {
             class: 'gantt-name-cell-inner',
-            children: [
-              { tag: 'span', class: 'gantt-name-text', text: String(value ?? '') },
-              {
-                tag: 'button',
-                class: 'gantt-row-scroll-btn',
-                type: 'button',
-                dataset: { taskId: String(record.id) },
-                html: '<i class="fa-solid fa-arrow-right-to-bracket"></i>',
-              },
-              {
-                tag: 'button',
-                class: 'gantt-row-actions-btn',
-                type: 'button',
-                dataset: { taskId: String(record.id) },
-                html: '<i class="fa-solid fa-ellipsis-vertical"></i>',
-              },
-            ],
+            children,
           };
         },
       },

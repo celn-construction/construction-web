@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { Box, Typography, useTheme, alpha } from '@mui/material';
 import { Download, Trash2, FileText, FileSpreadsheet } from 'lucide-react';
 import { formatFileSize } from '@/lib/utils/formatting';
+import { isApprovableFolder } from '@/lib/folders';
+import { useOrgContext } from '@/components/providers/OrgProvider';
+import { useProjectContext } from '@/components/providers/ProjectProvider';
+import ApprovalToggle from '@/components/approvals/ApprovalToggle';
 import DeleteDocumentDialog from './DeleteDocumentDialog';
 import type { DocumentResult } from './types';
 
@@ -17,6 +21,9 @@ export default function DocumentCardGallery({ doc, organizationId }: DocumentCar
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const isImage = doc.mimeType.startsWith('image/');
+  const { memberRole } = useOrgContext();
+  const { projectId } = useProjectContext();
+  const showApproval = isApprovableFolder(doc.folderId);
 
   return (
     <Box
@@ -58,6 +65,28 @@ export default function DocumentCardGallery({ doc, organizationId }: DocumentCar
             : <FileText size={32} style={{ color: theme.palette.text.disabled }} />
         )}
       </Box>
+
+      {/* Persistent approval pill on the thumbnail (submittals + inspections only) */}
+      {showApproval && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 1,
+          }}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+          <ApprovalToggle
+            documentId={doc.id}
+            approvalStatus={doc.approvalStatus}
+            organizationId={organizationId}
+            projectId={projectId}
+            memberRole={memberRole}
+            size="sm"
+          />
+        </Box>
+      )}
 
       {/* Hover overlay with actions */}
       {hovered && (
