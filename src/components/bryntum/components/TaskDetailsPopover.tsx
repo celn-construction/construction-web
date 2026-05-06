@@ -356,6 +356,7 @@ export function TaskDetailsPopover({
                       taskId={taskId}
                       organizationId={organizationId}
                       pinnedDocId={coverDocumentId}
+                      memberRole={memberRole}
                     />
                   );
                 })}
@@ -368,7 +369,11 @@ export function TaskDetailsPopover({
             <>
               <Divider orientation="vertical" flexItem />
               {rightPanel.type === 'preview' ? (
-                <FilePreviewPanel previewDoc={rightPanel.doc} />
+                <FilePreviewPanel
+                  previewDoc={rightPanel.doc}
+                  organizationId={organizationId}
+                  memberRole={memberRole}
+                />
               ) : (
                 <CsiCodePanel
                   csiCode={taskDetail?.csiCode}
