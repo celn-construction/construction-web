@@ -189,6 +189,7 @@ export default function DocumentExplorerPage() {
         query={query}
         onQueryChange={setQuery}
         onKeyDown={handleKeyDown}
+        onSubmit={handleAiSubmit}
         aiEnabled={aiEnabled}
         isAiSearching={aiEnabled && !!aiSearchQuery && aiQuery.isFetching}
         onAiToggle={handleAiToggle}
