@@ -136,7 +136,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       </Box>
 
       {/* Org Header */}
-      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', position: 'relative' }}>
+      <Box sx={{ position: 'relative' }}>
         <OrgSwitcher />
         {/* Close button — overlaid top-right */}
         <IconButton
