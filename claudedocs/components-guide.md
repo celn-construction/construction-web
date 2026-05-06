@@ -14,7 +14,7 @@ Conventions for adding, naming, and structuring components in `src/components/`.
 | `dashboard/` | Dashboard feature components (StatsCards, ProjectsList, TeamActivity) |
 | `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel) |
 | `documents/` | Document feature components (DocumentList, UploadDialog, FileDropzone) |
-| `approvals/` | Submittal/inspection approval workflow (ApprovalToggle, ReviewQueueContent, ReviewCard) |
+| `approvals/` | Submittal/inspection approval workflow (ApprovalToggle, ReviewQueueContent, ReviewCard). The Review Queue's "Overdue" tab reads from `gantt.listSlots` / `approval.listOverdueSlots` so per-task slot due dates surface here. |
 | `team/` | Team/invite management (MembersList, InviteDialog, RoleSelect, PendingInvitesList) |
 | `onboarding/` | Onboarding wizard and step components |
 | `bryntum/` | Gantt chart integration — has its own internal structure (see below) |
@@ -250,6 +250,7 @@ bryntum/
     ganttConfig.ts          ← Bryntum config object
   components/
     TaskDetailsPopover.tsx
+    SubmittalDrawer.tsx       ← right-side drawer for managing per-slot submittals/inspections
     BryntumPanelHeader.tsx
     CsiCodeSelector.tsx
     task-popover/             ← extracted sub-components for TaskDetailsPopover
