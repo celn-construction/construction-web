@@ -54,6 +54,8 @@ interface FolderRowProps {
   taskId?: string;
   organizationId?: string;
   pinnedDocId?: string | null;
+  // Approval context (only used by trackable folders)
+  memberRole?: string;
 }
 
 function FolderRowInner({
@@ -74,6 +76,7 @@ function FolderRowInner({
   taskId,
   organizationId,
   pinnedDocId,
+  memberRole,
 }: FolderRowProps) {
   const FolderIcon = folderIconMap[folder.id] ?? (isExpanded ? FolderOpen : FolderSimple);
   const isTrackable = folder.trackable && !!onSaveRequirement;
@@ -88,6 +91,7 @@ function FolderRowInner({
     taskId,
     organizationId,
     pinnedDocId,
+    memberRole,
   };
 
   const renderContent = () => {
