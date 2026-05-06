@@ -2,8 +2,17 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "../../../../generated/prisma";
 import { createTRPCRouter, orgProcedure, projectProcedure } from "@/server/api/trpc";
-import { canManageProjects } from "@/lib/permissions";
-import { ganttLoadInputSchema, ganttSyncInputSchema, updateRequirementSchema } from "@/lib/validations/gantt";
+import { canManageProjects, canApproveDocuments } from "@/lib/permissions";
+import {
+  ganttLoadInputSchema,
+  ganttSyncInputSchema,
+  updateRequirementSchema,
+  listSlotsSchema,
+  setSlotCountSchema,
+  updateSlotSchema,
+  type SlotKind,
+} from "@/lib/validations/gantt";
+import { nextSuggestedSlotName } from "@/lib/constants/slotNameLibrary";
 import { CSI_SUBDIVISION_MAP, CSI_DIVISION_MAP } from "@/lib/constants/csiCodes";
 import { APPROVABLE_FOLDER_ID_LIST } from "@/lib/folders";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
@@ -532,4 +541,192 @@ export const ganttRouter = createTRPCRouter({
 
       return { totalRequired, totalUploaded, latestEndDate: latestEndDate._max.endDate ?? null };
     }),
+
+  // ─── Per-slot tracking (Tier 2/3) ──────────────────────────────────────
+  // Slots carry the metadata that the legacy requiredSubmittals/Inspections
+  // integers don't: name, due date, approver. They are kept in sync with those
+  // count columns by setSlotCount so the popover and existing readers keep
+  // working. listSlots auto-backfills from the legacy count on first read.
+
+  listSlots: orgProcedure
+    .input(z.object({ projectId: z.string() }).merge(listSlotsSchema))
+    .query(async ({ ctx, input }) => {
+      const { projectId, taskId, kind } = input;
+
+      const task = await ctx.db.ganttTask.findFirst({
+        where: { id: taskId, projectId, project: { organizationId: ctx.organization.id } },
+        select: { id: true, requiredSubmittals: true, requiredInspections: true },
+      });
+      if (!task) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      }
+
+      const existing = await ctx.db.taskRequirementSlot.findMany({
+        where: { taskId, kind },
+        orderBy: { index: "asc" },
+        include: {
+          approver: { select: { id: true, name: true, email: true, image: true } },
+        },
+      });
+
+      const legacyCount = legacyCountForKind(task, kind);
+
+      // Lazy backfill: legacy count > 0 but no slot rows yet → create N anonymous slots.
+      if (existing.length === 0 && legacyCount > 0) {
+        await ctx.db.taskRequirementSlot.createMany({
+          data: Array.from({ length: legacyCount }, (_, i) => ({
+            taskId,
+            kind,
+            index: i,
+          })),
+          skipDuplicates: true,
+        });
+        return ctx.db.taskRequirementSlot.findMany({
+          where: { taskId, kind },
+          orderBy: { index: "asc" },
+          include: {
+            approver: { select: { id: true, name: true, email: true, image: true } },
+          },
+        });
+      }
+
+      return existing;
+    }),
+
+  setSlotCount: orgProcedure
+    .input(z.object({ projectId: z.string() }).merge(setSlotCountSchema))
+    .mutation(async ({ ctx, input }) => {
+      if (!canApproveDocuments(ctx.membership.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to manage requirements",
+        });
+      }
+
+      const { projectId, taskId, kind, count } = input;
+
+      const task = await ctx.db.ganttTask.findFirst({
+        where: { id: taskId, projectId, project: { organizationId: ctx.organization.id } },
+        select: { id: true },
+      });
+      if (!task) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      }
+
+      const legacyField = kind === "submittal" ? "requiredSubmittals" : "requiredInspections";
+
+      return ctx.db.$transaction(async (tx) => {
+        const current = await tx.taskRequirementSlot.findMany({
+          where: { taskId, kind },
+          orderBy: { index: "asc" },
+          select: { id: true, index: true, name: true },
+        });
+
+        if (count > current.length) {
+          // Add slots at the end with smart-default names from the library,
+          // skipping any names already taken by existing slots.
+          const names: (string | null)[] = current.map((s) => s.name);
+          const newSlots: Array<{ taskId: string; kind: string; index: number; name: string | null }> = [];
+          for (let i = 0; i < count - current.length; i++) {
+            const name = nextSuggestedSlotName(kind, names);
+            names.push(name);
+            newSlots.push({
+              taskId,
+              kind,
+              index: current.length + i,
+              name,
+            });
+          }
+          await tx.taskRequirementSlot.createMany({ data: newSlots });
+        } else if (count < current.length) {
+          // Remove the last (current.length - count) slots
+          const toRemove = current.slice(count).map((s) => s.id);
+          await tx.taskRequirementSlot.deleteMany({ where: { id: { in: toRemove } } });
+        }
+
+        // Keep the legacy count column in sync so existing readers (popover header,
+        // requirementStats, TrackableFolderContent) don't need to change.
+        await tx.ganttTask.update({
+          where: { id: taskId },
+          data: { [legacyField]: count === 0 ? null : count },
+        });
+
+        return tx.taskRequirementSlot.findMany({
+          where: { taskId, kind },
+          orderBy: { index: "asc" },
+          include: {
+            approver: { select: { id: true, name: true, email: true, image: true } },
+          },
+        });
+      });
+    }),
+
+  updateSlot: orgProcedure
+    .input(z.object({ projectId: z.string() }).merge(updateSlotSchema))
+    .mutation(async ({ ctx, input }) => {
+      if (!canApproveDocuments(ctx.membership.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to manage requirements",
+        });
+      }
+
+      const { projectId, slotId, ...patch } = input;
+
+      const slot = await ctx.db.taskRequirementSlot.findUnique({
+        where: { id: slotId },
+        select: { id: true, task: { select: { projectId: true, project: { select: { organizationId: true } } } } },
+      });
+      if (
+        !slot ||
+        slot.task.projectId !== projectId ||
+        slot.task.project.organizationId !== ctx.organization.id
+      ) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Slot not found" });
+      }
+
+      // If approverId is provided, verify the user is a member of this org.
+      if (patch.approverId) {
+        const member = await ctx.db.membership.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: patch.approverId,
+              organizationId: ctx.organization.id,
+            },
+          },
+          select: { id: true },
+        });
+        if (!member) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Approver must be a member of this organization",
+          });
+        }
+      }
+
+      const data: Record<string, unknown> = {};
+      if (patch.name !== undefined) {
+        data.name = patch.name === null ? null : patch.name.trim() || null;
+      }
+      if (patch.dueDate !== undefined) {
+        data.dueDate = patch.dueDate === null ? null : new Date(patch.dueDate);
+      }
+      if (patch.approverId !== undefined) data.approverId = patch.approverId;
+
+      return ctx.db.taskRequirementSlot.update({
+        where: { id: slotId },
+        data,
+        include: {
+          approver: { select: { id: true, name: true, email: true, image: true } },
+        },
+      });
+    }),
 });
+
+function legacyCountForKind(
+  task: { requiredSubmittals: number | null; requiredInspections: number | null },
+  kind: SlotKind,
+): number {
+  if (kind === "submittal") return task.requiredSubmittals ?? 0;
+  return task.requiredInspections ?? 0;
+}

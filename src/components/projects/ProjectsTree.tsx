@@ -105,7 +105,7 @@ function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }
     [allDocs, folder.id]
   );
 
-  const documentCount = counts?.[folder.id] || 0;
+  const documentCount = counts?.[folder.id]?.total ?? 0;
 
   const handleUploadComplete = () => {
     if (organizationId && projectId) {
@@ -177,9 +177,9 @@ function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }
     >
       {!folder.isLeaf &&
         folder.children &&
-        folder.children.filter((child) => (counts?.[child.id] ?? 0) > 0).map((child) => {
+        folder.children.filter((child) => (counts?.[child.id]?.total ?? 0) > 0).map((child) => {
           const childId = `${folderId}-${child.id}`;
-          const childDocCount = counts?.[child.id] || 0;
+          const childDocCount = counts?.[child.id]?.total ?? 0;
           const childDocs = (allDocs ?? []).filter((d) => d.folderId === child.id);
 
           return (
