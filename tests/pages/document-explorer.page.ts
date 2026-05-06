@@ -3,13 +3,15 @@ import type { Locator, Page } from "@playwright/test";
 export class DocumentExplorerPage {
   readonly page: Page;
   readonly searchInput: Locator;
-  readonly aiToggle: Locator;
+  readonly aiSegment: Locator;
+  readonly searchSegment: Locator;
   readonly heading: Locator;
 
   constructor(page: Page) {
     this.page = page;
-    this.searchInput = page.getByPlaceholder(/search documents|ask ai/i);
-    this.aiToggle = page.getByRole("button", { name: /ai search/i });
+    this.searchInput = page.getByPlaceholder(/search documents|ask anything/i);
+    this.aiSegment = page.getByRole("button", { name: "AI", exact: true });
+    this.searchSegment = page.getByRole("button", { name: "Search", exact: true });
     this.heading = page.getByText("Document Explorer");
   }
 
@@ -18,17 +20,16 @@ export class DocumentExplorerPage {
   }
 
   async enableAi() {
-    // Click the AI toggle button if not already enabled
-    const placeholder = this.page.getByPlaceholder(/ask ai/i);
+    const placeholder = this.page.getByPlaceholder(/ask anything/i);
     if (!(await placeholder.isVisible())) {
-      await this.aiToggle.click();
+      await this.aiSegment.click();
     }
   }
 
   async disableAi() {
     const placeholder = this.page.getByPlaceholder(/search documents/i);
     if (!(await placeholder.isVisible())) {
-      await this.aiToggle.click();
+      await this.searchSegment.click();
     }
   }
 

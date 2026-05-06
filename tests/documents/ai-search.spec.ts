@@ -57,9 +57,7 @@ test.describe("Document explorer AI search", () => {
 
     // Placeholder should change to AI prompt
     const aiPlaceholder =
-      documentExplorerPage.page.getByPlaceholder(
-        "Ask AI to find a document..."
-      );
+      documentExplorerPage.page.getByPlaceholder("Ask anything...");
     await expect(aiPlaceholder).toBeVisible();
   });
 
@@ -80,7 +78,7 @@ test.describe("Document explorer AI search", () => {
 
     // Enable AI and type a query
     await documentExplorerPage.enableAi();
-    const searchInput = page.getByPlaceholder("Ask AI to find a document...");
+    const searchInput = page.getByPlaceholder("Ask anything...");
     await searchInput.fill("foundation inspection");
 
     // Set up a request listener for the aiSearch tRPC call
