@@ -26,6 +26,7 @@ export const projectNavItems: NavItem[] = [
   { id: 'gantt', label: 'Gantt', icon: 'ChartBar', segment: 'gantt', section: 'navigation' },
   { id: 'files', label: 'File Tree', icon: 'FolderSimple', segment: 'files', section: 'navigation' },
   { id: 'document-explorer', label: 'Document Explorer', icon: 'FileMagnifyingGlass', segment: 'document-explorer', section: 'navigation' },
+  { id: 'reviews', label: 'Review Queue', icon: 'SealCheck', segment: 'reviews', section: 'navigation' },
   { id: 'team', label: 'Team', icon: 'UsersThree', segment: 'team', section: 'workspace' },
   { id: 'project-settings', label: 'Project Settings', icon: 'GearSix', segment: 'settings', section: 'workspace' },
 ];

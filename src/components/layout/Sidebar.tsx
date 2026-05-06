@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, CaretRight, CaretLineLeft, CaretLineRight, SignOut, Sun, Moon, type Icon } from '@phosphor-icons/react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, SealCheck, CaretRight, CaretLineLeft, CaretLineRight, SignOut, Sun, Moon, type Icon } from '@phosphor-icons/react';
 import { Box, Typography, Tooltip, Switch } from '@mui/material';
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import { authClient, signOut } from '@/lib/auth-client';
 import UserAvatar from '@/components/ui/UserAvatar';
+import { LogoIcon } from '@/components/ui/Logo';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { useLoading } from '@/components/providers/LoadingProvider';
 import { useThemeMode } from '@/components/providers/ThemeRegistry';
@@ -31,6 +32,7 @@ const iconMap: Record<string, Icon> = {
   ChartBar,
   FolderSimple,
   FileMagnifyingGlass,
+  SealCheck,
   GearSix,
   UsersThree,
 };
@@ -121,6 +123,41 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         overflow: 'hidden',
       }}
     >
+      {/* Brand */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          gap: 1,
+          height: 48,
+          px: collapsed ? 0 : 1.75,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          color: 'text.primary',
+          userSelect: 'none',
+          overflow: 'hidden',
+        }}
+        aria-label="BuildTrack Pro"
+      >
+        <LogoIcon size={20} />
+        {!collapsed && (
+          <Typography
+            sx={{
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              lineHeight: 1,
+              letterSpacing: '-0.01em',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            BuildTrack Pro
+          </Typography>
+        )}
+      </Box>
+
       {/* Org Header */}
       <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
         {collapsed ? (

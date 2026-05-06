@@ -7,6 +7,7 @@ import { memberRouter } from "@/server/api/routers/member";
 import { projectMemberRouter } from "@/server/api/routers/projectMember";
 import { projectRouter } from "@/server/api/routers/project";
 import { documentRouter } from "@/server/api/routers/document";
+import { approvalRouter } from "@/server/api/routers/approval";
 import { notificationRouter } from "@/server/api/routers/notification";
 import { ganttRouter } from "@/server/api/routers/gantt";
 import { betaRouter } from "@/server/api/routers/beta";
@@ -27,6 +28,7 @@ export const appRouter = createTRPCRouter({
   projectMember: projectMemberRouter,
   project: projectRouter,
   document: documentRouter,
+  approval: approvalRouter,
   notification: notificationRouter,
   gantt: ganttRouter,
   beta: betaRouter,

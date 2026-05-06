@@ -19,6 +19,12 @@ export type TaskClickEventPayload = {
     id: string | number;
     name?: string;
     isParent?: boolean;
+    /**
+     * Bryntum sets this to true while the record has only a generated/phantom
+     * id (i.e. has not been persisted via gantt.sync yet). Mutations that read
+     * `record.id` against the DB will fail with NOT_FOUND for phantom records.
+     */
+    isPhantom?: boolean;
   };
   event: {
     target: EventTarget | null;

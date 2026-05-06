@@ -8,7 +8,8 @@ export type Permission =
   | "CREATE_PROJECTS"
   | "DELETE_PROJECTS"
   | "MANAGE_PROJECTS"
-  | "VIEW_PROJECTS";
+  | "VIEW_PROJECTS"
+  | "APPROVE_DOCUMENTS";
 
 const rolePermissions: Record<Role, Permission[]> = {
   owner: [
@@ -20,6 +21,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     "DELETE_PROJECTS",
     "MANAGE_PROJECTS",
     "VIEW_PROJECTS",
+    "APPROVE_DOCUMENTS",
   ],
   admin: [
     "INVITE_MEMBERS",
@@ -29,11 +31,13 @@ const rolePermissions: Record<Role, Permission[]> = {
     "DELETE_PROJECTS",
     "MANAGE_PROJECTS",
     "VIEW_PROJECTS",
+    "APPROVE_DOCUMENTS",
   ],
   project_manager: [
     "CREATE_PROJECTS",
     "MANAGE_PROJECTS",
     "VIEW_PROJECTS",
+    "APPROVE_DOCUMENTS",
   ],
   member: [
     "VIEW_PROJECTS",
@@ -71,6 +75,10 @@ export function canDeleteProjects(role: string): boolean {
 
 export function canManageProjects(role: string): boolean {
   return hasPermission(role, "MANAGE_PROJECTS");
+}
+
+export function canApproveDocuments(role: string): boolean {
+  return hasPermission(role, "APPROVE_DOCUMENTS");
 }
 
 // Org roles that imply access to any project in the org, even without an

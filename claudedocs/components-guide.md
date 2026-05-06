@@ -14,6 +14,7 @@ Conventions for adding, naming, and structuring components in `src/components/`.
 | `dashboard/` | Dashboard feature components (StatsCards, ProjectsList, TeamActivity) |
 | `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel) |
 | `documents/` | Document feature components (DocumentList, UploadDialog, FileDropzone) |
+| `approvals/` | Submittal/inspection approval workflow (ApprovalToggle, ReviewQueueContent, ReviewCard) |
 | `team/` | Team/invite management (MembersList, InviteDialog, RoleSelect, PendingInvitesList) |
 | `onboarding/` | Onboarding wizard and step components |
 | `bryntum/` | Gantt chart integration — has its own internal structure (see below) |
@@ -251,7 +252,6 @@ bryntum/
     TaskDetailsPopover.tsx
     BryntumPanelHeader.tsx
     CsiCodeSelector.tsx
-    GanttLoadingSpinner.tsx
     task-popover/             ← extracted sub-components for TaskDetailsPopover
       types.ts
       TaskHeader.tsx
