@@ -159,7 +159,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
       </Box>
 
       {/* Org Header */}
-      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+      <Box sx={{ overflow: 'hidden' }}>
         {collapsed ? (
           <Tooltip title="Expand sidebar" placement="right">
             <Box
