@@ -1,4 +1,4 @@
-import { createTheme, type Theme } from '@mui/material/styles';
+import { createTheme, alpha, type Theme } from '@mui/material/styles';
 
 // Light theme — matches construction.pen $--variable tokens (3rd iteration)
 export const lightTheme: Theme = createTheme({
@@ -105,6 +105,27 @@ export const lightTheme: Theme = createTheme({
           '&.MuiButton-sizeLarge .MuiButton-startIcon svg, &.MuiButton-sizeLarge .MuiButton-endIcon svg': { width: 18, height: 18 },
           '&.MuiButton-sizeSmall .MuiButton-startIcon svg, &.MuiButton-sizeSmall .MuiButton-endIcon svg': { width: 14, height: 14 },
         },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          transition: 'box-shadow 0.15s ease',
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: theme.palette.divider,
+            transition: 'border-color 0.15s ease',
+          },
+          '&:hover:not(.Mui-disabled) .MuiOutlinedInput-notchedOutline': {
+            borderColor: alpha(theme.palette.text.primary, 0.32),
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: theme.palette.primary.main,
+            borderWidth: '1.5px',
+          },
+          '&.Mui-focused': {
+            boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.08)}`,
+          },
+        }),
       },
     },
   },
@@ -368,6 +389,27 @@ export const darkTheme: Theme = createTheme({
           '&.MuiButton-sizeLarge .MuiButton-startIcon svg, &.MuiButton-sizeLarge .MuiButton-endIcon svg': { width: 18, height: 18 },
           '&.MuiButton-sizeSmall .MuiButton-startIcon svg, &.MuiButton-sizeSmall .MuiButton-endIcon svg': { width: 14, height: 14 },
         },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          transition: 'box-shadow 0.15s ease',
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: theme.palette.divider,
+            transition: 'border-color 0.15s ease',
+          },
+          '&:hover:not(.Mui-disabled) .MuiOutlinedInput-notchedOutline': {
+            borderColor: alpha(theme.palette.text.primary, 0.32),
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: theme.palette.primary.main,
+            borderWidth: '1.5px',
+          },
+          '&.Mui-focused': {
+            boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.08)}`,
+          },
+        }),
       },
     },
   },
