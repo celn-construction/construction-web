@@ -286,11 +286,6 @@ function ResetPasswordForm() {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        bgcolor: 'input.background',
-                      },
-                    }}
                   />
                 </Box>
 
@@ -326,11 +321,6 @@ function ResetPasswordForm() {
                           </IconButton>
                         </InputAdornment>
                       ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        bgcolor: 'input.background',
-                      },
                     }}
                   />
                 </Box>

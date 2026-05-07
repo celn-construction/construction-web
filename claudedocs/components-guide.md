@@ -12,7 +12,7 @@ Conventions for adding, naming, and structuring components in `src/components/`.
 | `layout/` | App shell: Header, Sidebar, MobileDrawer, OrgSwitcher, ProjectSwitcher, UserMenu, PageHeader |
 | `providers/` | React context providers: ThemeRegistry, OrgProvider, ProjectProvider, LoadingProvider |
 | `dashboard/` | Dashboard feature components (StatsCards, ProjectsList, TeamActivity) |
-| `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel) |
+| `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel, SidebarRowPreview) |
 | `documents/` | Document feature components (DocumentList, UploadDialog, FileDropzone) |
 | `approvals/` | Submittal/inspection approval workflow (ApprovalToggle, ReviewQueueContent, ReviewCard) |
 | `team/` | Team/invite management (MembersList, InviteDialog, RoleSelect, PendingInvitesList) |
@@ -179,6 +179,19 @@ Client code uses these like any other URL (`<img src>`, `<iframe src>`, `<a href
 **Forms that upload and preview**: private URLs don't render in `<img>`, so forms that show a just-uploaded image before submit must use a local object URL for preview (`URL.createObjectURL(file)` + `revokeObjectURL` on unmount/replace) and keep the form state field for the raw URL that gets submitted. See `ProjectFormBody.tsx` and `manage/page.tsx` for the `previewUrl ?? imageUrl` display pattern. The tRPC update mutation also defensively treats an incoming proxy URL as a no-op (the form round-trips the unchanged proxy URL when the user edits other fields).
 
 User avatars (`user.image`) are the opposite: they live in the **public** avatars store and are rendered directly via the public CDN URL — no proxy involved.
+
+---
+
+## TextField / Input Styling
+
+All `TextField` components use the global `MuiOutlinedInput` theme override defined in `src/theme/theme.ts`. **Do not add custom `sx` to override border, focus ring, or background color on TextFields** — the theme handles this for both light and dark modes automatically.
+
+The global style gives every input:
+- `divider` border color at rest (soft, consistent with the design system)
+- `text.primary` border at 32% opacity on hover
+- `primary.main` border + 1.5px width + subtle focus ring on focus
+
+The only deliberate exception is `OtpInput.tsx` — its box-style digit appearance overrides the global styles via component-level `sx`, which takes precedence over `styleOverrides`. Do not replicate this pattern elsewhere.
 
 ---
 
