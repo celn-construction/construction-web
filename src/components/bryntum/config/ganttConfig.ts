@@ -62,7 +62,11 @@ export function createGanttConfig(
 
     project: {
       autoLoad: true,
-      autoSync: false,
+      autoSync: true,
+      // Coalesce rapid changes (e.g. mid-drag) into one HTTP request per
+      // window. Default is 100ms; 500ms cuts in-flight requests during a
+      // drag from ~10/sec to ~2/sec while still feeling instant on release.
+      autoSyncTimeout: 500,
       writeAllFields: true,
       taskModelClass: VersionedTaskModel,
       resetUndoRedoQueuesAfterLoad: true,

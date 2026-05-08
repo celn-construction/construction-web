@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CSI_SUBDIVISION_MAP, CSI_DIVISION_MAP } from "@/lib/constants/csiCodes";
 
 // Load input schema
 export const ganttLoadInputSchema = z.object({
@@ -29,7 +30,10 @@ const taskRecordSchema = z.object({
   cls: z.string().nullable().optional(),
   iconCls: z.string().nullable().optional(),
   note: z.string().nullable().optional(),
-  csiCode: z.string().nullable().optional(),
+  csiCode: z.string().nullable().optional().refine(
+    (val) => val == null || CSI_SUBDIVISION_MAP.has(val) || CSI_DIVISION_MAP.has(val),
+    { message: "Invalid CSI code" },
+  ),
   baselines: z.any().optional(),
 });
 
@@ -100,6 +104,9 @@ export const updateRequirementSchema = z.object({
   taskId: z.string(),
   field: z.enum(['requiredSubmittals', 'requiredInspections']),
   count: z.number().int().min(0).max(50).nullable(),
+  // Optimistic-locking version from the loaded taskDetail. Server compares
+  // and throws CONFLICT on mismatch; if omitted, falls through (last-write-wins).
+  version: z.number().int().optional(),
 });
 
 export type UpdateRequirementInput = z.infer<typeof updateRequirementSchema>;

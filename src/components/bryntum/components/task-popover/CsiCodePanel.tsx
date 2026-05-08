@@ -11,13 +11,13 @@ import {
   Prohibit,
 } from '@phosphor-icons/react';
 import { Box, Typography, IconButton, InputBase, Divider } from '@mui/material';
-import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import {
   CSI_MASTERFORMAT,
   CSI_SUBDIVISION_MAP,
   type CsiSubdivision,
 } from '@/lib/constants/csiCodes';
+import type { BryntumGanttInstance } from '../../types';
 
 // ─── Subdivision row ────────────────────────────────────────────────
 interface SubdivisionItemProps {
@@ -117,35 +117,21 @@ const SubdivisionItem = memo(function SubdivisionItem({
 // ─── Main panel ─────────────────────────────────────────────────────
 interface CsiCodePanelProps {
   csiCode: string | null | undefined;
-  organizationId: string;
-  projectId: string;
   taskId: string;
+  ganttInstance: BryntumGanttInstance | null;
   onClose: () => void;
 }
 
 export default function CsiCodePanel({
   csiCode,
-  organizationId,
-  projectId,
   taskId,
+  ganttInstance,
   onClose,
 }: CsiCodePanelProps) {
   const { showSnackbar } = useSnackbar();
   const [search, setSearch] = useState('');
   const [expandedDivision, setExpandedDivision] = useState<string | null>(null);
   const [optimisticCode, setOptimisticCode] = useState<string | null | undefined>(undefined);
-
-  const utils = api.useUtils();
-
-  const updateCsiCode = api.gantt.updateCsiCode.useMutation({
-    onSuccess: () => {
-      void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
-    },
-    onError: (error) => {
-      setOptimisticCode(undefined);
-      showSnackbar(error.message || 'Failed to update CSI code', 'error');
-    },
-  });
 
   useEffect(() => {
     if (optimisticCode !== undefined && csiCode === optimisticCode) {
@@ -191,28 +177,37 @@ export default function CsiCodePanel({
       : filtered;
   }, [query, isSearching]);
 
+  // Mutate the Bryntum task record directly. autoSync persists the change
+  // through `gantt.sync`, which reuses the optimistic-locking version check
+  // already wired up for every Bryntum-tracked field.
+  const writeCsiCode = useCallback(
+    (next: string | null) => {
+      const taskStore = ganttInstance?.project?.taskStore as
+        | { getById?: (id: string) => { csiCode?: string | null } | null | undefined }
+        | undefined;
+      const record = taskStore?.getById?.(taskId);
+      if (!record) {
+        showSnackbar('Could not find task in chart — try reloading', 'error');
+        setOptimisticCode(undefined);
+        return;
+      }
+      record.csiCode = next;
+    },
+    [ganttInstance, taskId, showSnackbar],
+  );
+
   const handleSelectSubdivision = useCallback(
     (code: string) => {
       setOptimisticCode(code);
-      updateCsiCode.mutate({
-        organizationId,
-        projectId,
-        taskId,
-        csiCode: code,
-      });
+      writeCsiCode(code);
     },
-    [organizationId, projectId, taskId, updateCsiCode],
+    [writeCsiCode],
   );
 
   const handleRemoveCode = useCallback(() => {
     setOptimisticCode(null);
-    updateCsiCode.mutate({
-      organizationId,
-      projectId,
-      taskId,
-      csiCode: null,
-    });
-  }, [organizationId, projectId, taskId, updateCsiCode]);
+    writeCsiCode(null);
+  }, [writeCsiCode]);
 
   const hasCode = !!displayCode;
   const subEntry = hasCode ? CSI_SUBDIVISION_MAP.get(displayCode!) : null;

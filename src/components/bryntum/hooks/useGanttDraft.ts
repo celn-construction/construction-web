@@ -1,20 +1,12 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useGanttChangesStore, type GanttChangesSnapshot } from '@/store/ganttChangesStore';
-
-interface GanttStoreRecord {
-  id?: string | number;
-  name?: string;
-  isRoot?: boolean;
-  [key: string]: unknown;
-}
+import { useSnackbar } from '@/hooks/useSnackbar';
 
 interface GanttStore {
   on: (event: string, handler: () => void) => void;
   un: (event: string, handler: () => void) => void;
   count?: number;
-  records?: GanttStoreRecord[];
 }
 
 interface GanttProject {
@@ -36,25 +28,25 @@ interface UseGanttDraftOptions {
   isLoading: boolean;
 }
 
-const STORAGE_PREFIX = 'gantt-draft-v4-';
+const STORAGE_PREFIX = 'gantt-draft-v5-';
+const SAVE_DEBOUNCE_MS = 250;
 
 function storageKey(projectId: string) {
   return `${STORAGE_PREFIX}${projectId}`;
 }
 
-// Bundled format: the Bryntum project state (for Gantt to restore the store)
-// plus the live counter snapshot (for the "N changes since last snapshot" badge
-// to come back exactly as the user left it).
+// With autoSync:true the database is the source of truth, but a refresh
+// during an in-flight sync request could lose the most recent edit.
+// Persisting Bryntum's project state to localStorage covers that gap.
 interface DraftBundle {
   projectJson: string;
-  counter: GanttChangesSnapshot;
   savedAt: number;
 }
 
 function parseBundle(saved: string): DraftBundle | null {
   try {
     const parsed = JSON.parse(saved) as Partial<DraftBundle>;
-    if (typeof parsed.projectJson !== 'string' || !parsed.counter) return null;
+    if (typeof parsed.projectJson !== 'string') return null;
     return parsed as DraftBundle;
   } catch {
     return null;
@@ -86,12 +78,12 @@ export function hasGanttDraft(projectId: string | undefined): boolean {
   }
 }
 
-// Per-device draft persistence for Gantt edits. Uses Bryntum's built-in
-// `project.json` getter/setter to snapshot and restore the full project
-// state — tasks, dependencies, assignments, resources. Drafts survive page
-// refresh / navigation; cleared on explicit sync.
 export function useGanttDraft({ getGanttInstance, projectId, isLoading }: UseGanttDraftOptions) {
   const restoredRef = useRef(false);
+  const { showSnackbar } = useSnackbar();
+  // Surface the quota warning at most once per session — if it fires once and
+  // the user keeps editing, repeating the warning every ~250ms would drown them.
+  const quotaWarnedRef = useRef(false);
 
   // Restore draft once after Bryntum finishes loading server data.
   useEffect(() => {
@@ -100,12 +92,6 @@ export function useGanttDraft({ getGanttInstance, projectId, isLoading }: UseGan
     if (!project) return;
 
     restoredRef.current = true;
-
-    // The "N changes since last snapshot" counter is a singleton Zustand store.
-    // On project switch (component remount with a new projectId), it still
-    // holds counts from the previous project. Reset before we decide what to
-    // repopulate it with.
-    useGanttChangesStore.getState().reset();
 
     const saved = localStorage.getItem(storageKey(projectId));
     if (!saved) return;
@@ -120,22 +106,13 @@ export function useGanttDraft({ getGanttInstance, projectId, isLoading }: UseGan
       return;
     }
 
-    // Defer restore past the wrapper's post-load effects (commitAsync +
-    // enableStm). At isLoading:false, the wrapper schedules a commitAsync; its
-    // .then(() => enableStm()) runs async. If we restore mid-flight, something
-    // in that chain clears our records. 500ms is a heuristic that's worked
-    // reliably — if we regress, an explicit completion signal from the wrapper
-    // would be better.
+    // Defer past the wrapper's post-load commitAsync → enableStm chain.
+    // Applying mid-flight caused records to be silently dropped. 500ms is
+    // a heuristic — an explicit completion signal would be more robust.
     const timer = setTimeout(() => {
       try {
         (project as { json: string }).json = bundle.projectJson;
 
-        // Hydrate the counter from the persisted snapshot — the exact state
-        // the user saw before refresh, including adds/modifies/removes that
-        // we couldn't infer from the store alone.
-        useGanttChangesStore.getState().hydrate(bundle.counter);
-
-        // Trigger a commitAsync so the chart paints the restored records.
         void project.commitAsync?.().catch((err: unknown) => {
           console.warn('[useGanttDraft] restore: commitAsync error', err);
         });
@@ -147,16 +124,19 @@ export function useGanttDraft({ getGanttInstance, projectId, isLoading }: UseGan
     return () => clearTimeout(timer);
   }, [isLoading, projectId, getGanttInstance]);
 
-  // Save the full project state on every store change. No debounce — the
-  // `taskCount === 0` guard below filters Bryntum's transient empty states,
-  // and debouncing would risk losing the user's last action if they refresh
-  // immediately after editing (e.g., delete task then Cmd+R).
+  // Save the project state on store change, debounced. With autoSync flushing
+  // every ~500ms the draft only needs to cover the in-flight gap, so saving
+  // on every event would be wasted work (a 200-task project.json round-trips
+  // ~50–200KB through JSON.stringify per write).
   useEffect(() => {
     if (isLoading || !projectId) return;
     const project = getGanttInstance()?.project;
     if (!project) return;
 
-    const save = () => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const flush = () => {
+      timer = null;
       try {
         const projectJson = (project as { json?: string }).json;
         const taskCount = project.taskStore?.count ?? 0;
@@ -168,25 +148,42 @@ export function useGanttDraft({ getGanttInstance, projectId, isLoading }: UseGan
 
         const bundle: DraftBundle = {
           projectJson,
-          counter: useGanttChangesStore.getState().serialize(),
           savedAt: Date.now(),
         };
         localStorage.setItem(storageKey(projectId), JSON.stringify(bundle));
       } catch (err) {
+        // QuotaExceededError: localStorage is full. Without a warning the user
+        // keeps editing and assumes drafts are protecting them when they aren't.
+        const isQuota = err instanceof DOMException &&
+          (err.name === 'QuotaExceededError' || err.code === 22);
+        if (isQuota && !quotaWarnedRef.current) {
+          quotaWarnedRef.current = true;
+          showSnackbar(
+            'Browser storage is full — your edits sync to the server but cannot be recovered locally if the page reloads mid-save.',
+            'warning',
+          );
+        }
         console.warn('[useGanttDraft] save: error writing', err);
       }
     };
 
-    project.taskStore?.on('change', save);
-    project.dependencyStore?.on('change', save);
+    const scheduleSave = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(flush, SAVE_DEBOUNCE_MS);
+    };
+
+    project.taskStore?.on('change', scheduleSave);
+    project.dependencyStore?.on('change', scheduleSave);
 
     return () => {
-      project.taskStore?.un('change', save);
-      project.dependencyStore?.un('change', save);
+      project.taskStore?.un('change', scheduleSave);
+      project.dependencyStore?.un('change', scheduleSave);
+      if (timer) clearTimeout(timer);
     };
   }, [isLoading, projectId, getGanttInstance]);
 
-  // Clear draft when the user explicitly syncs (Create Snapshot succeeds).
+  // Clear draft after a successful sync — autoSync flushes within seconds,
+  // so the draft only persists long enough to cover the in-flight gap.
   useEffect(() => {
     if (!projectId) return;
     const project = getGanttInstance()?.project;

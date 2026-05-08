@@ -4,12 +4,9 @@ import { Prisma } from "../../../../generated/prisma";
 import { createTRPCRouter, orgProcedure, projectProcedure } from "@/server/api/trpc";
 import { canManageProjects } from "@/lib/permissions";
 import { ganttLoadInputSchema, ganttSyncInputSchema, updateRequirementSchema } from "@/lib/validations/gantt";
-import { CSI_SUBDIVISION_MAP, CSI_DIVISION_MAP } from "@/lib/constants/csiCodes";
 import { APPROVABLE_FOLDER_ID_LIST } from "@/lib/folders";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
 import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
-import { recordRevision } from "@/server/api/helpers/ganttRevision";
-import type { RevisionChanges } from "@/server/api/helpers/ganttRevision";
 
 export const ganttRouter = createTRPCRouter({
   /**
@@ -70,6 +67,7 @@ export const ganttRouter = createTRPCRouter({
           csiCode: true,
           requiredSubmittals: true,
           requiredInspections: true,
+          version: true,
           parentId: true,
           parent: {
             select: { name: true },
@@ -93,6 +91,7 @@ export const ganttRouter = createTRPCRouter({
         csiCode: task.csiCode,
         requiredSubmittals: task.requiredSubmittals,
         requiredInspections: task.requiredInspections,
+        version: task.version,
         group: task.parent?.name ?? null,
       };
     }),
@@ -342,15 +341,6 @@ export const ganttRouter = createTRPCRouter({
           { isolationLevel: 'RepeatableRead' },
         );
 
-        // Record a revision delta (fire-and-forget, non-blocking).
-        // This runs outside the RepeatableRead transaction so it doesn't
-        // hold locks or affect sync latency.
-        const syncPayload: RevisionChanges = {
-          tasks, dependencies, resources, assignments, timeRanges,
-        };
-        void recordRevision(ctx.db, projectId, ctx.session.user.id, syncPayload)
-          .catch((err) => console.error("Failed to record revision:", err));
-
         return result;
       } catch (error) {
         if (error instanceof VersionConflictError) {
@@ -371,51 +361,12 @@ export const ganttRouter = createTRPCRouter({
     }),
 
   /**
-   * Update a task's CSI code from the detail popover
-   */
-  updateCsiCode: orgProcedure
-    .input(z.object({
-      projectId: z.string(),
-      taskId: z.string(),
-      csiCode: z.string().nullable().refine(
-        (val) => val === null || CSI_SUBDIVISION_MAP.has(val) || CSI_DIVISION_MAP.has(val),
-        { message: "Invalid CSI code" },
-      ),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      const { projectId, taskId, csiCode } = input;
-
-      const project = await ctx.db.project.findFirst({
-        where: { id: projectId, organizationId: ctx.organization.id },
-      });
-
-      if (!project) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
-      }
-
-      const task = await ctx.db.ganttTask.findFirst({
-        where: { id: taskId, projectId },
-        select: { id: true },
-      });
-
-      if (!task) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found in this project" });
-      }
-
-      return ctx.db.ganttTask.update({
-        where: { id: taskId },
-        data: { csiCode },
-        select: { id: true, csiCode: true },
-      });
-    }),
-
-  /**
    * Update a task's required submittal/inspection count
    */
   updateRequirement: orgProcedure
     .input(z.object({ projectId: z.string() }).merge(updateRequirementSchema))
     .mutation(async ({ ctx, input }) => {
-      const { projectId, taskId, field, count } = input;
+      const { projectId, taskId, field, count, version } = input;
 
       if (ctx.membership.role !== "owner" && ctx.membership.role !== "admin") {
         throw new TRPCError({ code: "FORBIDDEN", message: "Only owners and admins can set requirements" });
@@ -423,17 +374,24 @@ export const ganttRouter = createTRPCRouter({
 
       const task = await ctx.db.ganttTask.findFirst({
         where: { id: taskId, projectId, project: { organizationId: ctx.organization.id } },
-        select: { id: true },
+        select: { id: true, version: true },
       });
 
       if (!task) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Task not found in this project" });
       }
 
+      if (version != null && task.version !== version) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "This task changed since you opened it. Reload to see the latest values.",
+        });
+      }
+
       return ctx.db.ganttTask.update({
         where: { id: taskId },
-        data: { [field]: count },
-        select: { id: true, requiredSubmittals: true, requiredInspections: true },
+        data: { [field]: count, version: { increment: 1 } },
+        select: { id: true, requiredSubmittals: true, requiredInspections: true, version: true },
       });
     }),
 

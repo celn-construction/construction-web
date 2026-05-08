@@ -45,11 +45,10 @@ export function useTaskPopover() {
       if (taskRecord.isParent) return;
 
       // Bryntum-generated phantom IDs (newly added tasks not yet synced) don't
-      // exist in the DB, so popover mutations like updateRequirement /
-      // updateCsiCode / pinPhoto would throw NOT_FOUND. Tell the user to save
-      // a snapshot first instead of opening a popover that can't save.
+      // exist in the DB, so popover mutations like updateRequirement / pinPhoto
+      // would throw NOT_FOUND. Wait for autoSync to assign a real id first.
       if (taskRecord.isPhantom) {
-        showSnackbar('Save a snapshot to edit this task', 'info');
+        showSnackbar('Saving task — try again in a moment', 'info');
         return;
       }
 
