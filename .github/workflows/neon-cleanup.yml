@@ -1,0 +1,120 @@
+name: Cleanup Orphan Neon Branches
+
+on:
+  # Daily at 09:00 UTC (~04:00 ET / ~01:00 PT). Always deletes when scheduled.
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List orphans without deleting (uncheck to actually delete)"
+        type: boolean
+        default: true
+
+jobs:
+  cleanup:
+    name: Find and delete orphan preview branches
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+      # Scheduled runs always delete; manual runs respect the dry_run checkbox.
+      DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || inputs.dry_run }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Identify and clean up orphan Neon branches
+        run: |
+          set -euo pipefail
+
+          echo "Mode: $([ "${DRY_RUN}" = "false" ] && echo 'DELETE' || echo 'DRY RUN')"
+
+          api="https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches"
+          branches_file=$(mktemp)
+          orphans_file=$(mktemp)
+          open_refs_file=$(mktemp)
+          trap 'rm -f "${branches_file}" "${orphans_file}" "${open_refs_file}"' EXIT
+
+          curl -fsS \
+            -H "Authorization: Bearer ${NEON_API_KEY}" \
+            -H "Accept: application/json" \
+            "${api}?limit=200" \
+            | jq -r '
+                .branches[]
+                | select(.name | startswith("preview/"))
+                | select(.name != "main" and .name != "production" and .protected != true)
+                | "\(.id)\t\(.name)"
+              ' \
+            > "${branches_file}"
+
+          if [ ! -s "${branches_file}" ]; then
+            echo "No preview branches found on this Neon project."
+            exit 0
+          fi
+
+          echo "Preview branches on Neon:"
+          cat "${branches_file}"
+          echo ""
+
+          gh pr list --state open --limit 100 --json headRefName --jq '.[].headRefName' \
+            | sort -u > "${open_refs_file}"
+
+          echo "Open PR head refs:"
+          if [ ! -s "${open_refs_file}" ]; then
+            echo "(none)"
+          else
+            cat "${open_refs_file}"
+          fi
+          echo ""
+
+          # An orphan = a preview branch whose name doesn't correspond to any
+          # open PR, where correspondence is:
+          #   preview/<ref>              (exact)
+          #   preview/<ref>-<suffix>     (deployment-hash variant)
+          while IFS=$'\t' read -r branch_id branch_name; do
+            [ -z "${branch_id}" ] && continue
+            ref_candidate="${branch_name#preview/}"
+            is_orphan=true
+
+            while IFS= read -r open_ref; do
+              [ -z "${open_ref}" ] && continue
+              if [ "${ref_candidate}" = "${open_ref}" ] || [[ "${ref_candidate}" == "${open_ref}-"* ]]; then
+                is_orphan=false
+                break
+              fi
+            done < "${open_refs_file}"
+
+            if [ "${is_orphan}" = "true" ]; then
+              printf '%s\t%s\n' "${branch_id}" "${branch_name}" >> "${orphans_file}"
+            fi
+          done < "${branches_file}"
+
+          if [ ! -s "${orphans_file}" ]; then
+            echo "No orphan preview branches — everything maps to an open PR."
+            exit 0
+          fi
+
+          echo "Orphan preview branches (no matching open PR):"
+          cat "${orphans_file}"
+          echo ""
+
+          if [ "${DRY_RUN}" != "false" ]; then
+            echo "DRY RUN — no branches deleted. Re-run with dry_run unchecked to actually delete."
+            exit 0
+          fi
+
+          fail=0
+          while IFS=$'\t' read -r branch_id branch_name; do
+            [ -z "${branch_id}" ] && continue
+            echo "Deleting ${branch_name} (id=${branch_id})"
+            if ! curl -fsS -X DELETE \
+              -H "Authorization: Bearer ${NEON_API_KEY}" \
+              -H "Accept: application/json" \
+              "${api}/${branch_id}" >/dev/null; then
+              echo "ERROR: failed to delete ${branch_name}"
+              fail=1
+            fi
+          done < "${orphans_file}"
+
+          exit "${fail}"
