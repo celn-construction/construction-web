@@ -213,17 +213,22 @@ export const documentRouter = createTRPCRouter({
       }
 
       const grouped = await ctx.db.document.groupBy({
-        by: ["folderId"],
+        by: ["folderId", "approvalStatus"],
         where: {
           projectId: input.projectId,
           taskId: input.taskId,
         },
-        _count: { folderId: true },
+        _count: { _all: true },
       });
 
-      return Object.fromEntries(
-        grouped.map((g) => [g.folderId, g._count.folderId])
-      );
+      const result: Record<string, { total: number; approved: number }> = {};
+      for (const row of grouped) {
+        const bucket = result[row.folderId] ?? { total: 0, approved: 0 };
+        bucket.total += row._count._all;
+        if (row.approvalStatus === "approved") bucket.approved += row._count._all;
+        result[row.folderId] = bucket;
+      }
+      return result;
     }),
 
   search: orgProcedure

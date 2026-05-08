@@ -4,11 +4,14 @@ import React from 'react';
 import { Box, Typography, alpha, useTheme } from '@mui/material';
 import { CloudArrowUp, FileText, CheckCircle } from '@phosphor-icons/react';
 import type { FolderContentProps, PreviewDoc } from './types';
+import { api } from '@/trpc/react';
+import type { SlotKind } from '@/lib/validations/gantt';
 import ApprovalToggleSwitch from './ApprovalToggleSwitch';
 
 interface TrackableFolderContentProps extends FolderContentProps {
   required: number | null;
   folderColor: string;
+  kind?: SlotKind;
 }
 
 function TrackableFolderContentInner({
@@ -19,6 +22,9 @@ function TrackableFolderContentInner({
   folderName,
   required,
   folderColor,
+  kind,
+  taskId,
+  projectId,
   organizationId,
   memberRole,
 }: TrackableFolderContentProps) {
@@ -26,6 +32,13 @@ function TrackableFolderContentInner({
   const successMain = theme.palette.success.main;
   const canShowApproval =
     !!organizationId && typeof memberRole === 'string';
+
+  // Slot metadata (names) — shares the React Query cache with SubmittalDrawer.
+  const slotsQuery = api.gantt.listSlots.useQuery(
+    { organizationId: organizationId!, projectId: projectId!, taskId: taskId!, kind: kind! },
+    { enabled: !!kind && !!taskId && !!projectId && !!organizationId && (required ?? 0) > 0 },
+  );
+  const slotMeta = slotsQuery.data ?? [];
   // No requirement set — empty state (no dropzones until a requirement is configured)
   if (required === null || required === 0) {
     return (
@@ -200,8 +213,18 @@ function TrackableFolderContentInner({
             </Box>
 
             <CloudArrowUp size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
-            <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1 }}>
-              {singularName} {slotNum}
+            <Typography
+              sx={{
+                fontSize: 11,
+                color: 'text.secondary',
+                lineHeight: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+              }}
+            >
+              {slotMeta[index]?.name?.trim() || `${singularName} ${slotNum}`}
             </Typography>
           </Box>
         );

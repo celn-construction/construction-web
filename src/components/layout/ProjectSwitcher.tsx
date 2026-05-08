@@ -85,6 +85,7 @@ export default function ProjectSwitcher() {
         <ProjectAvatar
           imageUrl={currentProject?.imageUrl}
           icon={currentProject?.icon}
+          colorId={currentProject?.imageUrl ? null : currentProject?.color}
           size={22}
           borderRadius="5px"
           color="var(--text-secondary)"
@@ -216,11 +217,8 @@ export default function ProjectSwitcher() {
                     width: 56,
                     flexShrink: 0,
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: hasImage
-                      ? 'transparent'
-                      : alpha(theme.palette.divider, 0.06),
+                    alignItems: 'stretch',
+                    justifyContent: 'stretch',
                     overflow: 'hidden',
                   }}
                 >
@@ -238,9 +236,9 @@ export default function ProjectSwitcher() {
                   ) : (
                     <ProjectAvatar
                       icon={project.icon}
-                      size={22}
+                      colorId={project.color ?? 'slate'}
+                      size={56}
                       borderRadius={0}
-                      color={theme.palette.text.disabled}
                     />
                   )}
                 </Box>
