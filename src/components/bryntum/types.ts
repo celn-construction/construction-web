@@ -238,10 +238,9 @@ export type GanttConfig = {
     cellMenu?: boolean | { cls?: string };
     scheduleMenu?: boolean | { cls?: string };
     dependencyMenu?: boolean | { cls?: string };
-    /** Dependencies — enables drag-to-create dep arrows between tasks AND
-     *  unlocks the `addDependency` / `removeDependency` items in TaskMenu.
-     *  Without this, those items render permanently disabled. Set to false
-     *  (or remove the key) to revert. */
+    /** Dependencies — drag-to-create dep arrows (handles on task bar
+     *  edges) and auto-rescheduling on predecessor moves. Set to false
+     *  (or remove) to revert. */
     dependencies?: boolean | {
       allowCreate?: boolean;
       allowDrop?: boolean;

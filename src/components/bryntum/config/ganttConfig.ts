@@ -201,26 +201,18 @@ export function createGanttConfig(
       cellMenu: { cls: 'gantt-themed-menu' },
       scheduleMenu: { cls: 'gantt-themed-menu' },
       dependencyMenu: { cls: 'gantt-themed-menu' },
-      // Dependencies — enables:
-      //   1. Drag-to-create arrows from one task's edge to another's
-      //      (Finish-to-Start by default; drag direction picks the type)
-      //   2. The `addDependency` / `removeDependency` items in the right-
-      //      click TaskMenu (which were previously permanently disabled)
-      //   3. Auto-rescheduling: moving a predecessor shifts its successors
+      // Dependencies — drag-to-create dep arrows (hover any task bar's
+      // edge for handles) and auto-rescheduling on predecessor moves.
+      // Does NOT light up the `linkTasks` / `unlinkTasks` items in the
+      // right-click menu — those need 2+ tasks Cmd-selected; the tooltip
+      // wired in processItems (BryntumGanttWrapper.tsx) explains this.
       //
-      // Plumbing already in place — the dependencyStore is loaded from
-      // /api/gantt/load and synced via /api/gantt/sync, so creates/deletes
-      // round-trip to the DB without further API work.
+      // dependencyStore already loads from /api/gantt/load and syncs via
+      // /api/gantt/sync, so creates/deletes round-trip with no API work.
       //
-      // To REVERT: set this to `false` (or delete the line). Existing
-      // dependency rows in the DB stay; they just stop rendering. No
-      // schema migration needed.
-      //
-      // History context: the team built+removed a custom SVG dep system
-      // during the kibo-ui era (commits 856d7a6 → 22a382f / 0a2cbf7 /
-      // b0a1630 / ac717e2). When migrating to Bryntum, the feature was
-      // never re-enabled — see claudedocs/components-guide.md (Bryntum
-      // section) for the broader migration story.
+      // To revert: set false. Existing rows stay in the DB, just stop
+      // rendering. History: built+removed during the kibo-ui era
+      // (commits 856d7a6 → 22a382f → 0a2cbf7 → b0a1630 → ac717e2).
       dependencies: true,
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',

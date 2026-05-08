@@ -618,6 +618,12 @@ body {
      "interactable" rather than ambient. Light: ~4% black; dark: ~6% white. */
   --menu-item-hover-bg: rgba(0, 0, 0, 0.045);
   --menu-item-active-bg: rgba(0, 0, 0, 0.07);
+
+  /* Destructive hover/active — red tint readable on light surfaces.
+     Dark mode bumps opacity in the [data-theme="dark"] block below; 8%
+     red over near-black is imperceptible. */
+  --menu-danger-hover-bg: rgba(220, 38, 38, 0.08);
+  --menu-danger-active-bg: rgba(220, 38, 38, 0.14);
   --b-menu-item-hover-background: var(--menu-item-hover-bg);
   --b-menu-item-hover-color: var(--text-primary);
   --b-menu-item-hover-icon-color: var(--text-primary);
@@ -650,6 +656,8 @@ body {
 [data-theme="dark"] .b-menu.b-popup {
   --menu-item-hover-bg: rgba(255, 255, 255, 0.06);
   --menu-item-active-bg: rgba(255, 255, 255, 0.10);
+  --menu-danger-hover-bg: rgba(248, 113, 113, 0.18);
+  --menu-danger-active-bg: rgba(248, 113, 113, 0.28);
   box-shadow:
     0 8px 28px rgba(0, 0, 0, 0.45),
     0 2px 6px rgba(0, 0, 0, 0.3);
@@ -730,18 +738,11 @@ body {
   transform: none !important;
 }
 
-/* Hide Cut/Paste menu rows. Bryntum's TaskCopyPaste feature uses several
-   ref names across versions — listing all known variants ensures the rule
-   matches whichever Bryntum is on. JS `processItems` filtering is a
-   second line of defense in BryntumGanttWrapper.tsx. */
-.b-menu.b-popup .b-menu-item[data-ref="cutTask"],
-.b-menu.b-popup .b-menu-item[data-ref="pasteTask"],
+/* Hide Cut/Paste rows — JS `processItems` deletes them too; this is a
+   belt-and-suspenders rule for the brief flash window before the JS
+   removal lands on first render. */
 .b-menu.b-popup .b-menu-item[data-ref="cut"],
-.b-menu.b-popup .b-menu-item[data-ref="paste"],
-.b-menu.b-popup .b-menu-item[data-ref="cutRecord"],
-.b-menu.b-popup .b-menu-item[data-ref="pasteRecord"],
-.b-menu.b-popup .b-menu-item[data-ref="cutEvent"],
-.b-menu.b-popup .b-menu-item[data-ref="pasteEvent"] {
+.b-menu.b-popup .b-menu-item[data-ref="paste"] {
   display: none !important;
 }
 
@@ -757,15 +758,15 @@ body {
   --b-menu-item-hover-icon-color: var(--status-red);
   --b-menu-item-focus-color: var(--status-red);
   --b-menu-item-focus-icon-color: var(--status-red);
-  --b-menu-item-hover-background: rgba(220, 38, 38, 0.08);
-  --b-menu-item-focus-background: rgba(220, 38, 38, 0.08);
+  --b-menu-item-hover-background: var(--menu-danger-hover-bg);
+  --b-menu-item-focus-background: var(--menu-danger-hover-bg);
 }
 
 .b-menu.b-popup .b-menu-item:has(.b-icon-trash):active,
 .b-menu.b-popup .b-menu-item.gantt-action-danger:active,
 .b-menu.b-popup .b-menu-item.menu-item-danger:active {
-  --b-menu-item-hover-background: rgba(220, 38, 38, 0.14);
-  --b-menu-item-focus-background: rgba(220, 38, 38, 0.14);
+  --b-menu-item-hover-background: var(--menu-danger-active-bg);
+  --b-menu-item-focus-background: var(--menu-danger-active-bg);
 }
 
 /* Disabled-item tooltip — side-aligned, themed to match the menu.
