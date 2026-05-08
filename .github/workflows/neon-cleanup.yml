@@ -23,6 +23,7 @@ jobs:
       # Scheduled runs always delete; manual runs respect the dry_run checkbox.
       DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || inputs.dry_run }}
       GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
       - name: Identify and clean up orphan Neon branches
         run: |
