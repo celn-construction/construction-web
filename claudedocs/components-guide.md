@@ -265,7 +265,6 @@ bryntum/
     TaskDetailsPopover.tsx
     SubmittalDrawer.tsx       ← right-side drawer for managing per-slot submittals/inspections
     BryntumPanelHeader.tsx
-    CsiCodeSelector.tsx
     task-popover/             ← extracted sub-components for TaskDetailsPopover
       types.ts
       TaskHeader.tsx

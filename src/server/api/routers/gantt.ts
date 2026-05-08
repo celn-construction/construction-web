@@ -83,6 +83,16 @@ export const ganttRouter = createTRPCRouter({
           parent: {
             select: { name: true },
           },
+          assignments: {
+            select: {
+              resource: {
+                select: { id: true, name: true, image: true },
+              },
+            },
+          },
+          _count: {
+            select: { children: true },
+          },
         },
       });
 
@@ -103,6 +113,8 @@ export const ganttRouter = createTRPCRouter({
         requiredSubmittals: task.requiredSubmittals,
         requiredInspections: task.requiredInspections,
         group: task.parent?.name ?? null,
+        assignees: task.assignments.map((a) => a.resource),
+        hasChildren: task._count.children > 0,
       };
     }),
 

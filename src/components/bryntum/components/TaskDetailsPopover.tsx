@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDrag } from '@use-gesture/react';
 import { Box, Popover, Typography, Divider } from '@mui/material';
 
@@ -153,6 +153,22 @@ export function TaskDetailsPopover({
     onClose();
   };
 
+  // Scroll target for the "View all" / "+ Add" actions in the header.
+  const requirementsRef = useRef<HTMLDivElement | null>(null);
+  const handleScrollToRequirements = useCallback(() => {
+    // Open submittals + inspections so their counters are visible after scroll.
+    setExpandedFolders((prev) => {
+      const next = new Set(prev);
+      next.add('submittals');
+      next.add('inspections');
+      return next;
+    });
+    // Defer until after the expand state lands a frame so the row heights are real.
+    requestAnimationFrame(() => {
+      requirementsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
+
   // Compute current upload + approval counts for trackable folders.
   const getTrackableCount = (folder: Folder) => {
     const allIds = expandFolderIds(folder.id);
@@ -255,6 +271,7 @@ export function TaskDetailsPopover({
               taskDetailLoading={taskDetailLoading}
               onClose={handleClose}
               onOpenCsiPanel={openCsiPanel}
+              onScrollToRequirements={handleScrollToRequirements}
               submittalsCurrent={submittalsCurrent}
               inspectionsCurrent={inspectionsCurrent}
             />
@@ -270,7 +287,10 @@ export function TaskDetailsPopover({
             <Divider sx={{ mx: 2 }} />
 
             {/* ── DOCUMENTS SECTION ── */}
-            <Box sx={{ p: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box
+              ref={requirementsRef}
+              sx={{ p: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 1, scrollMarginTop: '8px' }}
+            >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography
                   sx={{
