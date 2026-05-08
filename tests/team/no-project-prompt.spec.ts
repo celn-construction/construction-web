@@ -30,8 +30,10 @@ test.describe("No project prompt (inline)", () => {
     await page.getByRole("button", { name: "Create Project" }).click();
 
     // AddProjectDialog should open
-    await expect(page.getByText("New Project")).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText("Set up a new construction project")).toBeVisible();
+    await expect(page.getByText("New project")).toBeVisible({ timeout: 5000 });
+    await expect(
+      page.getByText("Track schedule, documents and team in one place.")
+    ).toBeVisible();
   });
 
   test("no redirect to /new-project when org has no projects", async ({

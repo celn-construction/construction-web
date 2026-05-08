@@ -1,6 +1,6 @@
 'use client';
 
-import { CaretDown } from '@phosphor-icons/react';
+import { CaretDown, Plus } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams, usePathname } from 'next/navigation';
@@ -41,7 +41,13 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
     setOrgMenuOpen(false);
   };
 
+  const handleCreateOrg = () => {
+    setOrgMenuOpen(false);
+    router.push('/onboarding?new=true');
+  };
+
   const isLoading = orgsLoading;
+  const hasOtherOrgs = otherOrgs.length > 0;
 
   if (collapsed) {
     return isLoading ? (
@@ -55,21 +61,21 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
     );
   }
 
-  const hasSwitcher = otherOrgs.length > 0;
-
   const triggerContent = (
     <>
       {isLoading ? (
-        <Skeleton variant="rectangular" width={34} height={34} sx={{ borderRadius: '8px', flexShrink: 0 }} />
+        <Skeleton variant="rectangular" width={24} height={24} sx={{ borderRadius: '6px', flexShrink: 0 }} />
       ) : (
         <OrgAvatar
           name={currentOrg?.name ?? 'Organization'}
           seed={currentOrg?.slug ?? currentOrg?.id ?? 'org'}
           logoUrl={currentOrg?.logoUrl}
+          size={24}
+          borderRadius="6px"
           className="org-avatar"
         />
       )}
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, flex: 1, gap: '2px' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, flex: 1, gap: '4px' }}>
         {isLoading ? (
           <>
             <Skeleton width={100} height={14} />
@@ -85,61 +91,50 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                maxWidth: 130,
                 lineHeight: 1.2,
+                width: '100%',
+                textAlign: 'left',
               }}
             >
               {currentOrg?.name ?? 'No Organization'}
             </Typography>
             {currentOrg?.role && (
-              <Typography
+              <Box
+                component="span"
                 sx={{
-                  fontSize: '0.625rem',
-                  fontWeight: 500,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  fontSize: '0.5625rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
                   color: 'text.secondary',
-                  lineHeight: 1,
-                  textTransform: 'capitalize',
+                  bgcolor: 'action.selected',
+                  px: 0.625,
+                  py: '2px',
+                  borderRadius: '4px',
+                  lineHeight: 1.2,
                 }}
               >
                 {currentOrg.role}
-              </Typography>
+              </Box>
             )}
           </>
         )}
       </Box>
-      {hasSwitcher && (
-        <motion.div
-          animate={{ rotate: orgMenuOpen ? 180 : 0 }}
-          transition={{ duration: 0.15 }}
-          className="caret-icon"
-          style={{ flexShrink: 0 }}
-        >
-          <CaretDown size={14} weight="bold" />
-        </motion.div>
-      )}
+      <motion.div
+        animate={{ rotate: orgMenuOpen ? 180 : 0 }}
+        transition={{ duration: 0.15 }}
+        className="caret-icon"
+        style={{ flexShrink: 0, display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+      >
+        <CaretDown size={14} weight="bold" />
+      </motion.div>
     </>
   );
 
-  // No other orgs to switch to — non-interactive row (no caret)
-  if (!hasSwitcher && !isLoading) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.25,
-          px: 1.75,
-          py: 1.5,
-          width: '100%',
-          color: 'text.primary',
-        }}
-      >
-        {triggerContent}
-      </Box>
-    );
-  }
-
-  // Has other orgs — dropdown switcher
+  // Always render as a dropdown — even with one org, this surfaces "Create organization"
+  // and keeps the avatar/name as the primary clickable affordance.
   return (
     <DropdownMenu open={orgMenuOpen} onOpenChange={setOrgMenuOpen}>
       <DropdownMenuTrigger asChild>
@@ -149,13 +144,14 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1.25,
+            gap: 1,
             px: 1.75,
-            py: 1.5,
+            py: 1.25,
             width: '100%',
             bgcolor: 'transparent',
             border: 'none',
             cursor: 'pointer',
+            textAlign: 'left',
             color: 'text.primary',
             transition: 'background-color 0.15s',
             '& .caret-icon': {
@@ -184,57 +180,85 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
         sideOffset={8}
         slotProps={{ paper: { sx: { minWidth: 240 } } }}
       >
-        <Box sx={{ px: 1, py: 0.75, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.secondary', fontWeight: 500 }}>
-            Switch to…
-          </Typography>
-        </Box>
-        {otherOrgs.map((org, index) => (
-          <DropdownMenuItem key={org.id} onClick={() => handleSwitch(org.slug)}>
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.18, delay: index * 0.03, ease: [0.4, 0, 0.2, 1] }}
-              whileTap={{ scale: 0.97 }}
-              style={{ width: '100%' }}
+        {hasOtherOrgs && (
+          <>
+            <Box sx={{ px: 1, py: 0.75, mb: 0.5 }}>
+              <Typography sx={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.secondary', fontWeight: 500 }}>
+                Switch to…
+              </Typography>
+            </Box>
+            {otherOrgs.map((org, index) => (
+              <DropdownMenuItem key={org.id} onClick={() => handleSwitch(org.slug)}>
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.18, delay: index * 0.03, ease: [0.4, 0, 0.2, 1] }}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ width: '100%' }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      width: '100%',
+                      '& .item-avatar, & .item-text': {
+                        transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      },
+                      '&:hover .item-avatar': {
+                        transform: 'scale(1.06)',
+                      },
+                      '&:hover .item-text': {
+                        transform: 'translateX(2px)',
+                      },
+                    }}
+                  >
+                    <OrgAvatar
+                      className="item-avatar"
+                      name={org.name}
+                      seed={org.slug ?? org.id}
+                      logoUrl={org.logoUrl}
+                      size={32}
+                      borderRadius="12px"
+                    />
+                    <Box className="item-text" sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                      <Typography sx={{ fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 400 }}>
+                        {org.name}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', textTransform: 'capitalize' }}>
+                        {org.role}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </motion.div>
+              </DropdownMenuItem>
+            ))}
+            <Box sx={{ height: '1px', bgcolor: 'divider', my: 0.5 }} />
+          </>
+        )}
+        <DropdownMenuItem onClick={handleCreateOrg}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', color: 'text.primary' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                borderRadius: '8px',
+                border: '1px dashed',
+                borderColor: 'divider',
+                color: 'text.secondary',
+                flexShrink: 0,
+              }}
             >
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.5,
-                  width: '100%',
-                  '& .item-avatar, & .item-text': {
-                    transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  },
-                  '&:hover .item-avatar': {
-                    transform: 'scale(1.06)',
-                  },
-                  '&:hover .item-text': {
-                    transform: 'translateX(2px)',
-                  },
-                }}
-              >
-                <OrgAvatar
-                  className="item-avatar"
-                  name={org.name}
-                  seed={org.slug ?? org.id}
-                  logoUrl={org.logoUrl}
-                  size={32}
-                  borderRadius="12px"
-                />
-                <Box className="item-text" sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                  <Typography sx={{ fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 400 }}>
-                    {org.name}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', textTransform: 'capitalize' }}>
-                    {org.role}
-                  </Typography>
-                </Box>
-              </Box>
-            </motion.div>
-          </DropdownMenuItem>
-        ))}
+              <Plus size={14} weight="bold" />
+            </Box>
+            <Typography sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
+              Create organization
+            </Typography>
+          </Box>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

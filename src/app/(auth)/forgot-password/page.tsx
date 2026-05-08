@@ -218,11 +218,6 @@ export default function ForgotPasswordPage() {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        bgcolor: 'input.background',
-                      },
-                    }}
                   />
                 </Box>
 

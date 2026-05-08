@@ -12,9 +12,9 @@ Conventions for adding, naming, and structuring components in `src/components/`.
 | `layout/` | App shell: Header, Sidebar, MobileDrawer, OrgSwitcher, ProjectSwitcher, UserMenu, PageHeader |
 | `providers/` | React context providers: ThemeRegistry, OrgProvider, ProjectProvider, LoadingProvider |
 | `dashboard/` | Dashboard feature components (StatsCards, ProjectsList, TeamActivity) |
-| `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel) |
+| `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel, SidebarRowPreview) |
 | `documents/` | Document feature components (DocumentList, UploadDialog, FileDropzone) |
-| `approvals/` | Submittal/inspection approval workflow (ApprovalToggle, ReviewQueueContent, ReviewCard) |
+| `approvals/` | Submittal/inspection approval workflow (ApprovalToggle, ReviewQueueContent, ReviewCard). The Review Queue's "Overdue" tab reads from `gantt.listSlots` / `approval.listOverdueSlots` so per-task slot due dates surface here. |
 | `team/` | Team/invite management (MembersList, InviteDialog, RoleSelect, PendingInvitesList) |
 | `onboarding/` | Onboarding wizard and step components |
 | `bryntum/` | Gantt chart integration — has its own internal structure (see below) |
@@ -182,6 +182,19 @@ User avatars (`user.image`) are the opposite: they live in the **public** avatar
 
 ---
 
+## TextField / Input Styling
+
+All `TextField` components use the global `MuiOutlinedInput` theme override defined in `src/theme/theme.ts`. **Do not add custom `sx` to override border, focus ring, or background color on TextFields** — the theme handles this for both light and dark modes automatically.
+
+The global style gives every input:
+- `divider` border color at rest (soft, consistent with the design system)
+- `text.primary` border at 32% opacity on hover
+- `primary.main` border + 1.5px width + subtle focus ring on focus
+
+The only deliberate exception is `OtpInput.tsx` — its box-style digit appearance overrides the global styles via component-level `sx`, which takes precedence over `styleOverrides`. Do not replicate this pattern elsewhere.
+
+---
+
 ## Forms
 
 Use `react-hook-form` + `zodResolver` + a Zod schema from `src/lib/validations/`.
@@ -250,6 +263,7 @@ bryntum/
     ganttConfig.ts          ← Bryntum config object
   components/
     TaskDetailsPopover.tsx
+    SubmittalDrawer.tsx       ← right-side drawer for managing per-slot submittals/inspections
     BryntumPanelHeader.tsx
     task-popover/             ← extracted sub-components for TaskDetailsPopover
       types.ts
