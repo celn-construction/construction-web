@@ -18,6 +18,10 @@ import {
 import { format } from 'date-fns';
 import { formatFileSize } from '@/lib/utils/formatting';
 import { getCategoryLabel } from '@/lib/constants/documentCategories';
+import { isApprovableFolder } from '@/lib/folders';
+import { useOrgContext } from '@/components/providers/OrgProvider';
+import { useProjectContext } from '@/components/providers/ProjectProvider';
+import ApprovalToggle from '@/components/approvals/ApprovalToggle';
 import DeleteDocumentDialog from './DeleteDocumentDialog';
 import type { DocumentResult } from './types';
 
@@ -42,7 +46,11 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
   const theme = useTheme();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const isImage = doc.mimeType.startsWith('image/');
+  const isUnassigned = !doc.taskId;
   const categoryLabel = getCategoryLabel(doc.folderId);
+  const { memberRole } = useOrgContext();
+  const { projectId } = useProjectContext();
+  const showApproval = isApprovableFolder(doc.folderId);
 
   const metaRows = [
     { icon: <Folder size={12} color={theme.palette.text.disabled} />, label: 'Category', value: categoryLabel },
@@ -59,11 +67,18 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
         borderRadius: '12px',
         border: '1px solid',
         borderColor: 'divider',
+        borderLeft: isUnassigned ? `3px solid ${theme.palette.warning.main}` : undefined,
         bgcolor: 'background.paper',
         overflow: 'hidden',
-        transition: 'border-color 0.2s',
+        transition: 'border-color 0.2s, transform 0.18s ease, box-shadow 0.18s ease',
+        willChange: 'transform',
         '&:hover': {
           borderColor: alpha(theme.palette.primary.main, 0.3),
+          borderLeftColor: isUnassigned ? theme.palette.warning.main : undefined,
+          transform: 'translateY(-2px)',
+          boxShadow: theme.palette.mode === 'dark'
+            ? '0 8px 20px rgba(0,0,0,0.4)'
+            : '0 8px 20px rgba(43,45,66,0.10)',
         },
       }}
     >
@@ -143,22 +158,52 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
           {doc.taskId ? (
             <CheckSquare size={12} color={theme.palette.docExplorer.linkedGreen} />
           ) : (
-            <CircleDashed size={12} color={theme.palette.text.disabled} />
+            <CircleDashed size={12} color={theme.palette.warning.main} />
           )}
           <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.secondary', width: 60, flexShrink: 0 }}>
             Task
           </Typography>
-          <Typography
-            sx={{
-              fontSize: 11,
-              fontWeight: 500,
-              lineHeight: 1,
-              color: doc.taskId ? 'docExplorer.linkedGreen' : 'text.disabled',
-            }}
-          >
-            {doc.taskId ? 'Linked' : 'Not linked'}
-          </Typography>
+          {doc.taskId ? (
+            <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'docExplorer.linkedGreen' }}>
+              Linked
+            </Typography>
+          ) : (
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                px: '6px',
+                py: '2px',
+                borderRadius: '4px',
+                border: '1px dashed',
+                borderColor: alpha(theme.palette.warning.main, 0.4),
+                bgcolor: alpha(theme.palette.warning.main, 0.08),
+              }}
+            >
+              <Typography sx={{ fontSize: 10, fontWeight: 600, lineHeight: 1, color: theme.palette.warning.dark }}>
+                Unassigned
+              </Typography>
+            </Box>
+          )}
         </Box>
+
+        {/* Approval row (submittals + inspections only) */}
+        {showApproval && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ width: 12, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.secondary', width: 60, flexShrink: 0 }}>
+              Status
+            </Typography>
+            <ApprovalToggle
+              documentId={doc.id}
+              approvalStatus={doc.approvalStatus}
+              organizationId={organizationId}
+              projectId={projectId}
+              memberRole={memberRole}
+              size="sm"
+            />
+          </Box>
+        )}
       </Box>
 
       {/* Divider */}

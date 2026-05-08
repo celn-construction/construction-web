@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, projectProcedure } from "@/server/api/trpc";
-import { canRemoveMembers, canAssignRole } from "@/lib/permissions";
+import {
+  canInviteMembers,
+  canRemoveMembers,
+  canAssignRole,
+} from "@/lib/permissions";
+import { bulkAddProjectMembersSchema } from "@/lib/validations/projectMember";
 
 export const projectMemberRouter = createTRPCRouter({
   list: projectProcedure.query(async ({ ctx, input }) => {
@@ -71,5 +76,53 @@ export const projectMemberRouter = createTRPCRouter({
       });
 
       return { success: true };
+    }),
+
+  bulkAdd: projectProcedure
+    .input(bulkAddProjectMembersSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!canInviteMembers(ctx.projectMember.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to add members to this project",
+        });
+      }
+
+      for (const member of input.members) {
+        if (!canAssignRole(ctx.projectMember.role, member.role)) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Cannot assign a role equal to or above your own",
+          });
+        }
+      }
+
+      const userIds = input.members.map((m) => m.userId);
+      const memberships = await ctx.db.membership.findMany({
+        where: {
+          organizationId: ctx.organization.id,
+          userId: { in: userIds },
+        },
+        select: { userId: true },
+      });
+      const validUserIds = new Set(memberships.map((m) => m.userId));
+      const invalidIds = userIds.filter((id) => !validUserIds.has(id));
+      if (invalidIds.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "One or more users are not members of this organization",
+        });
+      }
+
+      const result = await ctx.db.projectMember.createMany({
+        data: input.members.map((m) => ({
+          userId: m.userId,
+          projectId: ctx.project.id,
+          role: m.role,
+        })),
+        skipDuplicates: true,
+      });
+
+      return { added: result.count };
     }),
 });

@@ -1,4 +1,4 @@
-export type NavSection = 'navigation' | 'workspace';
+export type NavSection = 'project-plan' | 'documents' | 'workspace';
 
 export interface NavItem {
   id: string;
@@ -14,7 +14,8 @@ export interface NavSectionDef {
 }
 
 export const SIDEBAR_SECTIONS: NavSectionDef[] = [
-  { id: 'navigation', label: 'Navigation' },
+  { id: 'project-plan', label: 'Project Plan' },
+  { id: 'documents', label: 'Documents' },
   { id: 'workspace', label: 'Workspace' },
 ];
 
@@ -23,9 +24,10 @@ export const orgNavItems: NavItem[] = [];
 
 // Project-level navigation (requires a selected project)
 export const projectNavItems: NavItem[] = [
-  { id: 'gantt', label: 'Gantt', icon: 'ChartBar', segment: 'gantt', section: 'navigation' },
-  { id: 'files', label: 'File Tree', icon: 'FolderSimple', segment: 'files', section: 'navigation' },
-  { id: 'document-explorer', label: 'Document Explorer', icon: 'FileMagnifyingGlass', segment: 'document-explorer', section: 'navigation' },
+  { id: 'gantt', label: 'Timeline', icon: 'ChartBar', segment: 'gantt', section: 'project-plan' },
+  { id: 'files', label: 'Tree', icon: 'FolderSimple', segment: 'files', section: 'project-plan' },
+  { id: 'document-explorer', label: 'Document Explorer', icon: 'FileMagnifyingGlass', segment: 'document-explorer', section: 'documents' },
+  { id: 'reviews', label: 'Review Queue', icon: 'SealCheck', segment: 'reviews', section: 'documents' },
   { id: 'team', label: 'Team', icon: 'UsersThree', segment: 'team', section: 'workspace' },
   { id: 'project-settings', label: 'Project Settings', icon: 'GearSix', segment: 'settings', section: 'workspace' },
 ];

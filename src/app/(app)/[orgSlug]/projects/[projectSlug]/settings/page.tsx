@@ -4,16 +4,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  Trash, Warning, MapPin, Swatches, CaretDown,
+  Trash, Warning, Swatches, CaretDown,
   Image as ImageIcon, UploadSimple, X, FloppyDisk,
 } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import {
   Autocomplete as MuiAutocomplete,
   Box, Typography, Paper, Popover, TextField,
-  CircularProgress, IconButton, Tooltip,
+  IconButton, Tooltip,
 } from '@mui/material';
-import { useTheme, alpha, type Theme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import Script from 'next/script';
 import { useRouter, useParams } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { env } from '@/env';
+import { trackUpload } from '@/store/uploadStatusStore';
 
 const GOOGLE_PLACES_API_KEY = env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
 
@@ -35,31 +36,9 @@ const GOOGLE_PLACES_API_KEY = env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
 // Location fields (reused from ProjectFormBody patterns)
 // ---------------------------------------------------------------------------
 
-const fieldSxFactory = (theme: Theme) => ({
-  '& .MuiOutlinedInput-root': {
-    borderRadius: '8px',
-    fontSize: '0.9375rem',
-    bgcolor: alpha(theme.palette.divider, 0.08),
-    transition: 'all 0.15s ease',
-    '& fieldset': { borderColor: 'transparent' },
-    '&:hover fieldset': { borderColor: alpha(theme.palette.primary.main, 0.3) },
-    '&.Mui-focused fieldset': { borderColor: theme.palette.primary.main, borderWidth: '1.5px' },
-    '&.Mui-focused': {
-      bgcolor: 'background.paper',
-      boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.08)}`,
-    },
-  },
-  '& .MuiOutlinedInput-input': {
-    py: 1.5,
-    px: 1.75,
-    '&::placeholder': { color: alpha(theme.palette.text.secondary, 0.5), opacity: 1 },
-  },
-});
-
 function LocationAutocompleteField({
   value, onChange, error, helperText,
 }: { value: string; onChange: (v: string) => void; error?: boolean; helperText?: string }) {
-  const theme = useTheme();
   const {
     ready,
     suggestions: { data },
@@ -90,8 +69,8 @@ function LocationAutocompleteField({
       onInputChange={handleInputChange} onChange={handleSelect}
       disabled={!ready} filterOptions={(x) => x}
       renderInput={(params) => (
-        <TextField {...params} placeholder="e.g. 123 Main St, New York, NY"
-          error={error} helperText={helperText} fullWidth sx={fieldSxFactory(theme)} />
+        <TextField {...params} label="Location" placeholder="e.g. 123 Main St, New York, NY"
+          error={error} helperText={helperText} fullWidth />
       )}
       slotProps={{
         paper: {
@@ -109,11 +88,10 @@ function LocationAutocompleteField({
 function PlainLocationField({
   value, onChange, error, helperText,
 }: { value: string; onChange: (v: string) => void; error?: boolean; helperText?: string }) {
-  const theme = useTheme();
   return (
     <TextField value={value} onChange={(e) => onChange(e.target.value)}
-      placeholder="e.g. 123 Main St, New York, NY" error={error} helperText={helperText}
-      fullWidth autoComplete="off" sx={fieldSxFactory(theme)} />
+      label="Location" placeholder="e.g. 123 Main St, New York, NY" error={error} helperText={helperText}
+      fullWidth autoComplete="off" />
   );
 }
 
@@ -216,29 +194,33 @@ function ProjectSettingsForm({
     setIsUploading(true);
     setUploadError(null);
     const localPreview = URL.createObjectURL(file);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('organizationId', organizationId);
-      const res = await fetch('/api/project/image', { method: 'POST', body: formData });
-      if (!res.ok) {
-        URL.revokeObjectURL(localPreview);
-        const d = await res.json() as { error?: string };
-        throw new Error(d.error ?? 'Upload failed');
-      }
-      const d = await res.json() as { imageUrl: string };
-      if (uploadedUrlRef.current) cleanupUploadedImage(uploadedUrlRef.current);
-      setPreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return localPreview;
-      });
-      uploadedUrlRef.current = d.imageUrl;
-      setValue('imageUrl', d.imageUrl, { shouldDirty: true });
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
+
+    const result = await trackUpload<{ imageUrl: string }>(
+      file,
+      () => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('organizationId', organizationId);
+        return fetch('/api/project/image', { method: 'POST', body: formData });
+      },
+      { doneLabel: 'Cover image ready' },
+    );
+
+    if (!result.ok || !result.data?.imageUrl) {
+      URL.revokeObjectURL(localPreview);
+      setUploadError(result.error ?? 'Upload failed');
       setIsUploading(false);
+      return;
     }
+
+    if (uploadedUrlRef.current) cleanupUploadedImage(uploadedUrlRef.current);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return localPreview;
+    });
+    uploadedUrlRef.current = result.data.imageUrl;
+    setValue('imageUrl', result.data.imageUrl, { shouldDirty: true });
+    setIsUploading(false);
   }, [organizationId, setValue, cleanupUploadedImage]);
 
   const handleRemovePhoto = useCallback(() => {
@@ -279,7 +261,6 @@ function ProjectSettingsForm({
 
   const useGooglePlaces = !!GOOGLE_PLACES_API_KEY && scriptLoaded;
   const hasChanges = isDirty || imageChanged;
-  const fieldSx = fieldSxFactory(theme);
 
   return (
     <>
@@ -466,9 +447,9 @@ function ProjectSettingsForm({
                     },
                   }}>
                   <input {...getInputProps()} />
-                  {isUploading ? <CircularProgress size={20} /> : <UploadSimple size={20} style={{ color: theme.palette.text.secondary }} />}
+                  <UploadSimple size={20} style={{ color: theme.palette.text.secondary }} />
                   <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                    {isUploading ? 'Uploading...' : isDragActive ? 'Drop image here' : 'Drag & drop or click to upload'}
+                    {isDragActive ? 'Drop image here' : 'Drag & drop or click to upload'}
                   </Typography>
                   <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
                     PNG, JPG, WebP up to 5MB
@@ -484,33 +465,16 @@ function ProjectSettingsForm({
           )}
 
           {/* Project Name */}
-          <Typography component="label" htmlFor="settings-name-input"
-            sx={{
-              display: 'block', fontSize: '0.75rem', fontWeight: 600,
-              color: 'text.secondary', textTransform: 'uppercase',
-              letterSpacing: '0.05em', mb: 0.75,
-            }}>
-            Project Name
-          </Typography>
           <Controller name="name" control={control} render={({ field }) => (
             <TextField {...field} id="settings-name-input"
+              label="Project Name"
               placeholder="e.g. Downtown Tower Construction"
               error={!!errors.name} helperText={errors.name?.message}
-              fullWidth autoComplete="off" sx={fieldSx} />
+              fullWidth autoComplete="off" />
           )} />
 
           {/* Location */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 2.5, mb: 0.75 }}>
-            <MapPin size={13} style={{ color: theme.palette.text.secondary }} />
-            <Typography component="label"
-              sx={{
-                display: 'block', fontSize: '0.75rem', fontWeight: 600,
-                color: 'text.secondary', textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}>
-              Location
-            </Typography>
-          </Box>
+          <Box sx={{ mt: 2 }}>
           <Controller name="location" control={control} render={({ field }) =>
             useGooglePlaces ? (
               <LocationAutocompleteField value={field.value ?? ''} onChange={field.onChange}
@@ -520,6 +484,7 @@ function ProjectSettingsForm({
                 error={!!errors.location} helperText={errors.location?.message} />
             )
           } />
+          </Box>
 
           {/* Save Button */}
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2.5 }}>

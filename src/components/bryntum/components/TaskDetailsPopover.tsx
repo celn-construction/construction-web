@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDrag } from '@use-gesture/react';
 import { Box, Popover, Typography, Divider } from '@mui/material';
 
@@ -19,6 +19,9 @@ import CoverImageBanner from './task-popover/CoverImageBanner';
 import FolderRow from './task-popover/FolderRow';
 import FilePreviewPanel from './task-popover/FilePreviewPanel';
 import CsiCodePanel from './task-popover/CsiCodePanel';
+import SubmittalDrawer from './SubmittalDrawer';
+import { canApproveDocuments } from '@/lib/permissions';
+import type { SlotKind } from '@/lib/validations/gantt';
 
 type RightPanel = { type: 'preview'; doc: PreviewDoc } | { type: 'csi' } | null;
 
@@ -40,10 +43,12 @@ export function TaskDetailsPopover({
   const { projectId, organizationId } = useProjectContext();
   const { memberRole } = useOrgContext();
   const canManageRequirements = memberRole === 'owner' || memberRole === 'admin';
+  const canManageSlots = canApproveDocuments(memberRole);
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [uploadFolder, setUploadFolder] = useState<{ id: string; name: string } | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
+  const [drawerKind, setDrawerKind] = useState<SlotKind | null>(null);
 
   // ── Drag state ──
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -148,15 +153,44 @@ export function TaskDetailsPopover({
     onClose();
   };
 
-  // Compute current upload counts for trackable folders (submittals & inspections)
+  // Scroll target for the "View all" / "+ Add" actions in the header.
+  const requirementsRef = useRef<HTMLDivElement | null>(null);
+  const handleScrollToRequirements = useCallback(() => {
+    // Open submittals + inspections so their counters are visible after scroll.
+    setExpandedFolders((prev) => {
+      const next = new Set(prev);
+      next.add('submittals');
+      next.add('inspections');
+      return next;
+    });
+    // Defer until after the expand state lands a frame so the row heights are real.
+    requestAnimationFrame(() => {
+      requirementsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
+
+  // Compute current upload + approval counts for trackable folders.
   const getTrackableCount = (folder: Folder) => {
     const allIds = expandFolderIds(folder.id);
-    return allIds.reduce((sum, id) => sum + (counts?.[id] ?? 0), 0);
+    let total = 0;
+    let approved = 0;
+    for (const id of allIds) {
+      const c = counts?.[id];
+      total += c?.total ?? 0;
+      approved += c?.approved ?? 0;
+    }
+    return { total, approved, pending: total - approved };
   };
   const submittalsFolder = folderData.find((f) => f.id === 'submittals');
   const inspectionsFolder = folderData.find((f) => f.id === 'inspections');
-  const submittalsCurrent = submittalsFolder ? getTrackableCount(submittalsFolder) : 0;
-  const inspectionsCurrent = inspectionsFolder ? getTrackableCount(inspectionsFolder) : 0;
+  const submittalsCounts = submittalsFolder
+    ? getTrackableCount(submittalsFolder)
+    : { total: 0, approved: 0, pending: 0 };
+  const inspectionsCounts = inspectionsFolder
+    ? getTrackableCount(inspectionsFolder)
+    : { total: 0, approved: 0, pending: 0 };
+  const submittalsCurrent = submittalsCounts.total;
+  const inspectionsCurrent = inspectionsCounts.total;
 
   const coverDocumentId = taskDetail?.coverDocumentId ?? null;
   const photos = ((allDocs ?? []) as DocumentItem[]).filter(
@@ -172,7 +206,13 @@ export function TaskDetailsPopover({
         open={open}
         anchorReference="anchorPosition"
         anchorPosition={popoverPlacement?.anchorPosition}
-        onClose={handleClose}
+        // While the drawer is open, ignore backdrop clicks and Esc on the
+        // popover so interacting with the drawer doesn't dismiss the popover
+        // underneath. The drawer has its own close button + backdrop.
+        onClose={(_event, reason) => {
+          if (drawerKind && (reason === 'backdropClick' || reason === 'escapeKeyDown')) return;
+          handleClose();
+        }}
         transformOrigin={
           popoverPlacement?.transformOrigin ?? { vertical: 'center', horizontal: 'left' }
         }
@@ -231,6 +271,7 @@ export function TaskDetailsPopover({
               taskDetailLoading={taskDetailLoading}
               onClose={handleClose}
               onOpenCsiPanel={openCsiPanel}
+              onScrollToRequirements={handleScrollToRequirements}
               submittalsCurrent={submittalsCurrent}
               inspectionsCurrent={inspectionsCurrent}
             />
@@ -246,7 +287,10 @@ export function TaskDetailsPopover({
             <Divider sx={{ mx: 2 }} />
 
             {/* ── DOCUMENTS SECTION ── */}
-            <Box sx={{ p: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box
+              ref={requirementsRef}
+              sx={{ p: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 1, scrollMarginTop: '8px' }}
+            >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography
                   sx={{
@@ -317,17 +361,28 @@ export function TaskDetailsPopover({
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 {folderData.map((folder) => {
-                  const count = counts?.[folder.id] ?? 0;
+                  const count = counts?.[folder.id]?.total ?? 0;
                   const folderDocs = ((allDocs ?? []) as DocumentItem[]).filter(
                     (d) => d.folderId === folder.id
                   );
 
                   // For trackable folders, sum counts across parent + child IDs
                   let trackingCurrent: number | undefined;
+                  let trackingApproved: number | undefined;
+                  let trackingPending: number | undefined;
                   let trackingRequired: number | null | undefined;
                   if (folder.trackable && folder.requirementField) {
                     const allIds = expandFolderIds(folder.id);
-                    trackingCurrent = allIds.reduce((sum, id) => sum + (counts?.[id] ?? 0), 0);
+                    let total = 0;
+                    let approved = 0;
+                    for (const id of allIds) {
+                      const c = counts?.[id];
+                      total += c?.total ?? 0;
+                      approved += c?.approved ?? 0;
+                    }
+                    trackingCurrent = total;
+                    trackingApproved = approved;
+                    trackingPending = total - approved;
                     trackingRequired = taskDetail?.[folder.requirementField] ?? null;
                   }
 
@@ -345,6 +400,8 @@ export function TaskDetailsPopover({
                       // Tracking props
                       required={trackingRequired}
                       current={trackingCurrent}
+                      approved={trackingApproved}
+                      pending={trackingPending}
                       canManage={canManageRequirements}
                       onSaveRequirement={
                         folder.requirementField
@@ -356,6 +413,12 @@ export function TaskDetailsPopover({
                       taskId={taskId}
                       organizationId={organizationId}
                       pinnedDocId={coverDocumentId}
+                      onManage={
+                        folder.trackable && canManageSlots
+                          ? () => setDrawerKind(folder.id === 'submittals' ? 'submittal' : 'inspection')
+                          : undefined
+                      }
+                      memberRole={memberRole}
                     />
                   );
                 })}
@@ -368,7 +431,11 @@ export function TaskDetailsPopover({
             <>
               <Divider orientation="vertical" flexItem />
               {rightPanel.type === 'preview' ? (
-                <FilePreviewPanel previewDoc={rightPanel.doc} />
+                <FilePreviewPanel
+                  previewDoc={rightPanel.doc}
+                  organizationId={organizationId}
+                  memberRole={memberRole}
+                />
               ) : (
                 <CsiCodePanel
                   csiCode={taskDetail?.csiCode}
@@ -395,6 +462,31 @@ export function TaskDetailsPopover({
           folderId={uploadFolder.id}
           folderName={uploadFolder.name}
           onUploadComplete={handleUploadComplete}
+        />
+      )}
+
+      {/* Submittal/inspection management drawer */}
+      {drawerKind && taskId && (
+        <SubmittalDrawer
+          open
+          onClose={() => setDrawerKind(null)}
+          organizationId={organizationId}
+          projectId={projectId}
+          taskId={taskId}
+          taskName={taskName}
+          initialKind={drawerKind}
+          docsByKind={{
+            submittal: ((allDocs ?? []) as DocumentItem[]).filter((d) =>
+              expandFolderIds('submittals').includes(d.folderId),
+            ),
+            inspection: ((allDocs ?? []) as DocumentItem[]).filter((d) =>
+              expandFolderIds('inspections').includes(d.folderId),
+            ),
+          }}
+          onUploadToFolder={(folderId) => {
+            const folder = folderData.find((f) => f.id === folderId);
+            if (folder) setUploadFolder({ id: folder.id, name: folder.name });
+          }}
         />
       )}
     </>

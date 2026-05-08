@@ -12,8 +12,9 @@ Conventions for adding, naming, and structuring components in `src/components/`.
 | `layout/` | App shell: Header, Sidebar, MobileDrawer, OrgSwitcher, ProjectSwitcher, UserMenu, PageHeader |
 | `providers/` | React context providers: ThemeRegistry, OrgProvider, ProjectProvider, LoadingProvider |
 | `dashboard/` | Dashboard feature components (StatsCards, ProjectsList, TeamActivity) |
-| `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel) |
+| `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel, SidebarRowPreview) |
 | `documents/` | Document feature components (DocumentList, UploadDialog, FileDropzone) |
+| `approvals/` | Submittal/inspection approval workflow (ApprovalToggle, ReviewQueueContent, ReviewCard). The Review Queue's "Overdue" tab reads from `gantt.listSlots` / `approval.listOverdueSlots` so per-task slot due dates surface here. |
 | `team/` | Team/invite management (MembersList, InviteDialog, RoleSelect, PendingInvitesList) |
 | `onboarding/` | Onboarding wizard and step components |
 | `bryntum/` | Gantt chart integration — has its own internal structure (see below) |
@@ -181,6 +182,19 @@ User avatars (`user.image`) are the opposite: they live in the **public** avatar
 
 ---
 
+## TextField / Input Styling
+
+All `TextField` components use the global `MuiOutlinedInput` theme override defined in `src/theme/theme.ts`. **Do not add custom `sx` to override border, focus ring, or background color on TextFields** — the theme handles this for both light and dark modes automatically.
+
+The global style gives every input:
+- `divider` border color at rest (soft, consistent with the design system)
+- `text.primary` border at 32% opacity on hover
+- `primary.main` border + 1.5px width + subtle focus ring on focus
+
+The only deliberate exception is `OtpInput.tsx` — its box-style digit appearance overrides the global styles via component-level `sx`, which takes precedence over `styleOverrides`. Do not replicate this pattern elsewhere.
+
+---
+
 ## Forms
 
 Use `react-hook-form` + `zodResolver` + a Zod schema from `src/lib/validations/`.
@@ -217,9 +231,43 @@ const { control, handleSubmit, reset, formState: { errors } } = useForm<InputTyp
 | `ImageWithFallback` / `OptimizedImage` | `next/image` | Always use over bare `<img>` |
 | `FileDropzone` | `react-dropzone` | Standalone or embedded dropzone; accepts `getRootProps`/`getInputProps` for standalone mode |
 | `UploadOverlay` | `CircularProgress` | Upload progress overlay with spinner; variants: `dark` (image overlay), `light` (form area) |
+| `UploadStatusChips` | MUI + framer-motion | Toast-style upload chips, fixed bottom-right. Pure render; consumes `UploadEntry[]`. |
+| `UploadStatusChipsHost` | — | Reads global `uploadStatusStore` and renders the chips with 4s auto-dismiss for done entries. Mounted once per layout (already in `AppShell` and `(onboarding)/layout.tsx`). |
 | `ProjectAvatar` | `next/image` + `Box` | Renders project cover image (with `onError` fallback) or project icon; used in ProjectSwitcher and ProjectFormBody |
 
 For any MUI component without a `ui/` wrapper, use MUI directly — do not create wrappers unless the abstraction is used in 3+ places.
+
+### Standardized upload chip — use the global store, not local spinner state
+
+Every upload UI in the app — documents, avatars, org logos, project cover images, onboarding logos — funnels its progress through one toast chip in the bottom-right corner. The chip is mounted once via `UploadStatusChipsHost` in `AppShell` and the onboarding layout, and is fed by the Zustand store at `src/store/uploadStatusStore.ts`.
+
+**To add a new upload site**, do NOT introduce another inline spinner / scrim / "Uploading..." label. Use the `trackUpload` helper:
+
+```ts
+import { trackUpload } from '@/store/uploadStatusStore';
+
+const result = await trackUpload<{ imageUrl: string }>(
+  file,
+  () => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetch('/api/your/endpoint', { method: 'POST', body: formData });
+  },
+  { doneLabel: 'Cover image ready', maxBytes: 5 * 1024 * 1024 },
+);
+
+if (result.ok && result.data?.imageUrl) {
+  // use the URL — round-trip into form state, etc.
+} else if (result.error) {
+  // surface to caller (snackbar, inline error). The chip already shows the error.
+}
+```
+
+The helper wraps a fetch in chip lifecycle (pending → uploading → done | error), parses the JSON body, and returns `{ ok, data?, error? }`. Each `id` is internally generated (`crypto.randomUUID`), `doneLabel` overrides the default "Uploaded · {size}" line, and `maxBytes` short-circuits with an error chip if exceeded. The fetch shape and response parsing stay with the caller — different endpoints return different bodies.
+
+**Form-integrated uploads (project cover, etc.) keep their `URL.createObjectURL` previews** so the form shows the chosen image immediately. Just don't render a second progress indicator — the chip is the single source of truth.
+
+**Do not** mount `<UploadStatusChips />` or `<UploadStatusChipsHost />` directly inside feature components — the host is already global. Mounting a second instance double-renders chips and z-index-fights with the original.
 
 ---
 
@@ -249,9 +297,8 @@ bryntum/
     ganttConfig.ts          ← Bryntum config object
   components/
     TaskDetailsPopover.tsx
+    SubmittalDrawer.tsx       ← right-side drawer for managing per-slot submittals/inspections
     BryntumPanelHeader.tsx
-    CsiCodeSelector.tsx
-    GanttLoadingSpinner.tsx
     task-popover/             ← extracted sub-components for TaskDetailsPopover
       types.ts
       TaskHeader.tsx

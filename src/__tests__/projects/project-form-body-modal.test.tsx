@@ -27,6 +27,11 @@ vi.mock("@/trpc/react", () => ({
         }),
       },
     },
+    weather: {
+      getByLocation: {
+        useQuery: vi.fn(() => ({ data: undefined, isLoading: false })),
+      },
+    },
     useUtils: vi.fn(() => ({
       project: {
         list: { invalidate: vi.fn() },
@@ -76,7 +81,7 @@ describe("ProjectFormBody — modal vs standalone behavior", () => {
     });
   });
 
-  it("calls onSuccess and does NOT navigate when in modal mode", async () => {
+  it("calls onSuccess with the created project and does NOT navigate in modal mode", async () => {
     const onSuccess = vi.fn();
     render(
       <ProjectFormBody
@@ -89,11 +94,14 @@ describe("ProjectFormBody — modal vs standalone behavior", () => {
       />
     );
 
-    // Simulate the mutation success callback
-    const mockProject = { name: "My Project", slug: "my-project" };
+    const mockProject = { id: "proj-123", name: "My Project", slug: "my-project" };
     onMutationSuccess?.(mockProject);
 
-    expect(onSuccess).toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalledWith({
+      id: "proj-123",
+      slug: "my-project",
+      name: "My Project",
+    });
     expect(mockPush).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
   });
@@ -108,7 +116,7 @@ describe("ProjectFormBody — modal vs standalone behavior", () => {
       />
     );
 
-    const mockProject = { name: "My Project", slug: "my-project" };
+    const mockProject = { id: "proj-123", name: "My Project", slug: "my-project" };
     onMutationSuccess?.(mockProject);
 
     expect(mockPush).toHaveBeenCalledWith("/test-org/projects/my-project/gantt");
@@ -125,7 +133,7 @@ describe("ProjectFormBody — modal vs standalone behavior", () => {
       />
     );
 
-    const mockProject = { name: "My Project", slug: "my-project" };
+    const mockProject = { id: "proj-123", name: "My Project", slug: "my-project" };
     onMutationSuccess?.(mockProject);
 
     expect(mockReplace).toHaveBeenCalledWith("/test-org/projects/my-project/gantt");
@@ -146,8 +154,8 @@ describe("ProjectFormBody — modal vs standalone behavior", () => {
 
     expect(screen.getByText("New Project")).toBeInTheDocument();
     expect(screen.getByText("Set up a new construction project")).toBeInTheDocument();
-    expect(screen.getByText("Project Name")).toBeInTheDocument();
-    expect(screen.getByText("Location")).toBeInTheDocument();
+    expect(screen.getByLabelText(/^name$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^location$/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /create project/i })).toBeInTheDocument();
   });
 

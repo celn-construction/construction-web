@@ -6,6 +6,7 @@ import {
   calculatePopoverPlacement,
   createFallbackPopoverPlacement,
 } from '../utils/calculatePopoverPlacement';
+import { useSnackbar } from '@/hooks/useSnackbar';
 
 function findTaskBarElement(target: EventTarget | null): Element | null {
   if (!(target instanceof Element)) {
@@ -18,6 +19,7 @@ function findTaskBarElement(target: EventTarget | null): Element | null {
 export function useTaskPopover() {
   const [selectedTask, setSelectedTask] = useState<SelectedTask | null>(null);
   const [popoverPlacement, setPopoverPlacement] = useState<PopoverPlacement | null>(null);
+  const { showSnackbar } = useSnackbar();
 
   const selectedTaskIdRef = useRef<string | null>(null);
   const highlightedElementRef = useRef<Element | null>(null);
@@ -41,6 +43,15 @@ export function useTaskPopover() {
     ({ taskRecord, event }: TaskClickEventPayload) => {
       // Only open the popover for leaf tasks — parent task bars just navigate the chart
       if (taskRecord.isParent) return;
+
+      // Bryntum-generated phantom IDs (newly added tasks not yet synced) don't
+      // exist in the DB, so popover mutations like updateRequirement /
+      // updateCsiCode / pinPhoto would throw NOT_FOUND. Tell the user to save
+      // a snapshot first instead of opening a popover that can't save.
+      if (taskRecord.isPhantom) {
+        showSnackbar('Save a snapshot to edit this task', 'info');
+        return;
+      }
 
       const taskId = String(taskRecord.id);
 
@@ -74,7 +85,7 @@ export function useTaskPopover() {
 
       setPopoverPlacement(createFallbackPopoverPlacement(event.clientX, event.clientY));
     },
-    [clearHighlight, closeTaskPopover]
+    [clearHighlight, closeTaskPopover, showSnackbar]
   );
 
   return {

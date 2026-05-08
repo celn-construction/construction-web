@@ -74,3 +74,22 @@ export function expandFolderIds(topLevelId: string): string[] {
   const childIds = folder.children ? folder.children.map((c) => c.id) : [];
   return [topLevelId, ...childIds];
 }
+
+// Top-level categories that go through the approval workflow.
+const APPROVABLE_TOP_LEVELS = ["submittals", "inspections"] as const;
+
+const APPROVABLE_FOLDER_IDS = new Set(
+  APPROVABLE_TOP_LEVELS.flatMap((id) => expandFolderIds(id)),
+);
+
+/**
+ * Returns true when a document in this folder can be sent through the
+ * Review Queue. Currently submittals and inspections (including their
+ * subfolders); RFIs, change orders, and photos do not require approval.
+ */
+export function isApprovableFolder(folderId: string | null | undefined): boolean {
+  if (!folderId) return false;
+  return APPROVABLE_FOLDER_IDS.has(folderId);
+}
+
+export const APPROVABLE_FOLDER_ID_LIST: string[] = Array.from(APPROVABLE_FOLDER_IDS);

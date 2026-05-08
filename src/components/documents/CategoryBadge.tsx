@@ -5,7 +5,7 @@ import { Folder } from 'lucide-react';
 import { getCategoryLabel } from '@/lib/constants/documentCategories';
 
 interface CategoryBadgeProps {
-  folderId: string;
+  folderId: string | null;
   showIcon?: boolean;
 }
 

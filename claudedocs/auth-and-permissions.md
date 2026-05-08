@@ -17,15 +17,17 @@
 
 ## Roles & Permissions Matrix
 
-| Role | Rank | INVITE | REMOVE | MANAGE_ROLES | MANAGE_ORG | CREATE_PROJ | DELETE_PROJ | MANAGE_PROJ | VIEW_PROJ |
-|------|------|--------|--------|--------------|------------|-------------|-------------|-------------|-----------|
-| owner | 4 | Y | Y | Y | Y | Y | Y | Y | Y |
-| admin | 3 | Y | Y | Y | - | Y | Y | Y | Y |
-| project_manager | 2 | - | - | - | - | Y | - | Y | Y |
-| member | 1 | - | - | - | - | - | - | - | Y |
-| viewer | 0 | - | - | - | - | - | - | - | Y |
+| Role | Rank | INVITE | REMOVE | MANAGE_ROLES | MANAGE_ORG | CREATE_PROJ | DELETE_PROJ | MANAGE_PROJ | VIEW_PROJ | APPROVE_DOCS |
+|------|------|--------|--------|--------------|------------|-------------|-------------|-------------|-----------|--------------|
+| owner | 4 | Y | Y | Y | Y | Y | Y | Y | Y | Y |
+| admin | 3 | Y | Y | Y | - | Y | Y | Y | Y | Y |
+| project_manager | 2 | - | - | - | - | Y | - | Y | Y | Y |
+| member | 1 | - | - | - | - | - | - | - | Y | - |
+| viewer | 0 | - | - | - | - | - | - | - | Y | - |
 
 **Role hierarchy rule**: A user can only assign roles strictly below their own rank (e.g., admin can assign project_manager, member, viewer but not admin or owner).
+
+`APPROVE_DOCS` gates the submittal/inspection approval toggle and the Review Queue mutations. Members and viewers see read-only badges.
 
 ## Permission Utilities
 
@@ -38,6 +40,7 @@
 | `canRemoveMembers(role)` | Shorthand for `hasPermission(role, "REMOVE_MEMBERS")` |
 | `canManageRoles(role)` | Shorthand for `hasPermission(role, "MANAGE_ROLES")` |
 | `canManageOrganization(role)` | Shorthand for `hasPermission(role, "MANAGE_ORGANIZATION")` |
+| `canApproveDocuments(role)` | Shorthand for `hasPermission(role, "APPROVE_DOCUMENTS")` |
 | `canAssignRole(inviterRole, targetRole)` | Returns `true` if inviter rank > target rank |
 
 ### Server-side (tRPC routers)

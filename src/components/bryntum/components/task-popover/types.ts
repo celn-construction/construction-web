@@ -1,3 +1,9 @@
+export interface ApprovedByUser {
+  id: string;
+  name: string | null;
+  email?: string;
+}
+
 export interface PreviewDoc {
   id: string;
   name: string;
@@ -6,6 +12,10 @@ export interface PreviewDoc {
   size: number;
   createdAt: string | Date;
   uploadedBy: { name: string | null } | null;
+  folderId: string;
+  approvalStatus: string;
+  approvedAt: Date | string | null;
+  approvedBy: ApprovedByUser | null;
 }
 
 export interface DocumentItem {
@@ -17,6 +27,9 @@ export interface DocumentItem {
   folderId: string;
   createdAt: Date;
   uploadedBy: { name: string | null } | null;
+  approvalStatus: string;
+  approvedAt: Date | string | null;
+  approvedBy: ApprovedByUser | null;
 }
 
 export interface FolderContentProps {
@@ -30,4 +43,6 @@ export interface FolderContentProps {
   taskId?: string;
   organizationId?: string;
   pinnedDocId?: string | null;
+  // Approval context — only consumed by trackable folders (submittals, inspections)
+  memberRole?: string;
 }

@@ -1,12 +1,12 @@
 'use client';
 
 import { skipToken } from '@tanstack/react-query';
-import { Folder, FileText, Download, Calendar, BarChart2, FolderOpen } from 'lucide-react';
+import { Folder, FileText, Download, BarChart2, FolderOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { FileDropzone } from '@/components/documents/FileDropzone';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { api } from '@/trpc/react';
-import { Box, Typography, IconButton, LinearProgress, Paper, Chip } from '@mui/material';
+import { Box, Typography, IconButton, Paper, Chip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { type Selection, deriveStatus } from '@/lib/utils/gantt';
 
@@ -95,7 +95,7 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
   const utils = api.useUtils();
 
   const { data: taskData } = api.gantt.taskDetail.useQuery(
-    projectId && organizationId && selection?.taskId && selection?.type !== 'document'
+    projectId && organizationId && selection?.taskId && selection?.type === 'folder'
       ? { organizationId, projectId, taskId: selection.taskId }
       : skipToken
   );
@@ -210,141 +210,6 @@ export function ProjectDetailPanel({ selection, projectId, organizationId }: Pro
                   },
                 }}
               />
-            ))}
-          </Box>
-        </Box>
-      </Box>
-    );
-  }
-
-  // ─── Task selected ────────────────────────────────────────────────────────
-  if (selection.type === 'task' && task) {
-    return (
-      <Box sx={{ height: '100%', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-        {/* Colored accent header strip */}
-        <Box
-          sx={{
-            flexShrink: 0,
-            borderLeft: `3px solid ${task.status.color}`,
-            px: 3,
-            pt: 3,
-            pb: 2.5,
-            borderBottom: '1px solid',
-            borderBottomColor: 'divider',
-          }}
-        >
-          {/* Group badge */}
-          <Box sx={{ mb: 1 }}>
-            <Box
-              component="span"
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                px: 1.25,
-                py: 0.25,
-                borderRadius: '6px',
-                bgcolor: 'action.hover',
-                fontSize: '10px',
-                fontWeight: 600,
-                color: 'text.secondary',
-                textTransform: 'uppercase',
-                letterSpacing: '0.07em',
-              }}
-            >
-              {task.group}
-            </Box>
-          </Box>
-
-          {/* Task name */}
-          <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-            {task.name}
-          </Typography>
-
-          {/* Status */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1.25 }}>
-            <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: task.status.color, flexShrink: 0 }} />
-            <Typography variant="caption" sx={{ fontWeight: 600, color: task.status.color, letterSpacing: '0.02em' }}>
-              {task.status.name}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Body */}
-        <Box sx={{ flex: 1, p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          {/* Progress card */}
-          {task.progress !== undefined && (
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2.5,
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: '12px',
-                bgcolor: 'background.paper',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', mb: 1.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Progress
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '26px',
-                    fontWeight: 700,
-                    color: task.status.color,
-                    lineHeight: 1,
-                    letterSpacing: '-0.02em',
-                  }}
-                >
-                  {task.progress}
-                  <Typography component="span" variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', ml: 0.25 }}>
-                    %
-                  </Typography>
-                </Typography>
-              </Box>
-              <LinearProgress
-                variant="determinate"
-                value={task.progress}
-                sx={{
-                  height: 6,
-                  borderRadius: '6px',
-                  bgcolor: 'action.hover',
-                  '& .MuiLinearProgress-bar': {
-                    bgcolor: task.status.color,
-                    borderRadius: '6px',
-                  },
-                }}
-              />
-            </Paper>
-          )}
-
-          {/* Date cards */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-            {[
-              { label: 'Start Date', value: task.startAt },
-              { label: 'End Date', value: task.endAt },
-            ].map(({ label, value }) => (
-              <Paper
-                key={label}
-                elevation={0}
-                sx={{
-                  p: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: '12px',
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
-                  <Calendar size={11} style={{ color: 'var(--text-muted)' }} />
-                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '10px' }}>
-                    {label}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ fontWeight: 500, color: value ? 'text.primary' : 'text.disabled', fontSize: '13px' }}>
-                  {value ? format(new Date(value), 'MMM d, yyyy') : '—'}
-                </Typography>
-              </Paper>
             ))}
           </Box>
         </Box>

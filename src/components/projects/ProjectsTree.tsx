@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, Fragment, useMemo, useEffect } from 'react';
+import { useState, useCallback, Fragment, useMemo, useRef } from 'react';
 import {
   FolderSimple,
   FolderOpen,
@@ -11,7 +11,7 @@ import {
   ArrowsOutSimple,
   MagnifyingGlass,
   X,
-
+  UploadSimple,
   Question,
   PaperPlaneTilt,
   PencilSimpleLine,
@@ -27,6 +27,7 @@ import { useTheme } from '@mui/material/styles';
 import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/react';
 import UploadDialog from '@/components/documents/UploadDialog';
+import { useDocumentUploader } from '@/components/documents/useDocumentUploader';
 import { folderData } from '@/lib/folders';
 
 export { folderData };
@@ -105,7 +106,12 @@ function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }
     [allDocs, folder.id]
   );
 
-  const documentCount = counts?.[folder.id] || 0;
+  const documentCount = counts?.[folder.id]?.total ?? 0;
+  const childDocCount = folder.children?.reduce(
+    (acc, child) => acc + (counts?.[child.id]?.total ?? 0), 0
+  ) ?? 0;
+  // Empty when no documents in this folder or any of its children
+  const isEmpty = documentCount === 0 && childDocCount === 0;
 
   const handleUploadComplete = () => {
     if (organizationId && projectId) {
@@ -129,12 +135,34 @@ function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }
       key={folderId}
       itemId={folderId}
       label={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.375 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            py: 0.375,
+            opacity: isEmpty ? 0.55 : 1,
+            '&:hover .empty-upload-hint': { opacity: 1 },
+          }}
+          onClick={isEmpty ? (e: React.MouseEvent) => { e.stopPropagation(); setUploadOpen(true); } : undefined}
+        >
           {(() => {
             const FolderIcon = folderIconMap[folder.id] ?? (isExpanded ? FolderOpen : FolderSimple);
-            return <FolderIcon size={14} color={folder.color} />;
+            return <FolderIcon size={14} color={isEmpty ? theme.palette.text.disabled : folder.color} />;
           })()}
-          <Box sx={{ fontWeight: 500, flexGrow: 1, fontSize: '0.8125rem' }}>{folder.name}</Box>
+          <Box
+            sx={{
+              fontWeight: 500,
+              flexGrow: 1,
+              fontSize: '0.8125rem',
+              color: isEmpty ? 'text.disabled' : undefined,
+              fontStyle: isEmpty ? 'italic' : undefined,
+            }}
+          >
+            {folder.name}
+          </Box>
+
+          {/* Document count badge — only when non-empty */}
           {documentCount > 0 && (
             <Box
               sx={{
@@ -157,29 +185,53 @@ function FolderNode({ folder, taskId, projectId, organizationId, expandedItems }
               {documentCount}
             </Box>
           )}
-          <IconButton
-            size="small"
-            aria-label={`Upload file to ${folder.name}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setUploadOpen(true);
-            }}
-            sx={{
-              p: 0.5,
-              color: 'text.disabled',
-              '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
-            }}
-          >
-            <Plus size={14} weight="bold" />
-          </IconButton>
+
+          {/* Upload button — only on non-empty folders (empty rows are themselves the upload target) */}
+          {!isEmpty && (
+            <IconButton
+              size="small"
+              aria-label={`Upload file to ${folder.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setUploadOpen(true);
+              }}
+              sx={{
+                p: 0.5,
+                color: 'text.disabled',
+                '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
+              }}
+            >
+              <Plus size={14} weight="bold" />
+            </IconButton>
+          )}
+
+          {/* Upload hint — fades in on hover for empty folders */}
+          {isEmpty && (
+            <Box
+              className="empty-upload-hint"
+              sx={{
+                opacity: 0,
+                transition: 'opacity 0.15s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+                color: 'text.disabled',
+              }}
+            >
+              <Plus size={10} weight="bold" />
+              <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, lineHeight: 1 }}>
+                Upload
+              </Typography>
+            </Box>
+          )}
         </Box>
       }
     >
       {!folder.isLeaf &&
         folder.children &&
-        folder.children.filter((child) => (counts?.[child.id] ?? 0) > 0).map((child) => {
+        folder.children.filter((child) => (counts?.[child.id]?.total ?? 0) > 0).map((child) => {
           const childId = `${folderId}-${child.id}`;
-          const childDocCount = counts?.[child.id] || 0;
+          const childDocCount = counts?.[child.id]?.total ?? 0;
           const childDocs = (allDocs ?? []).filter((d) => d.folderId === child.id);
 
           return (
@@ -295,6 +347,77 @@ function deriveStatus(percentDone: number, theme: import('@mui/material/styles')
   return { name: 'Planned', color: theme.palette.text.disabled };
 }
 
+/**
+ * Limbo-upload button: posts files to /api/upload without taskId/folderId so they
+ * land as "unassigned" and surface in the doc-explorer's Unassigned chip.
+ * Rendered only when both ids are available so the hook can run cleanly.
+ */
+function UnassignedUploader({
+  organizationId,
+  projectId,
+}: {
+  organizationId: string;
+  projectId: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { upload } = useDocumentUploader({ organizationId, projectId });
+
+  const handleClick = () => {
+    inputRef.current?.click();
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 0) void upload(files);
+    // Reset so re-selecting the same file fires onChange again.
+    e.target.value = '';
+  };
+
+  return (
+    <Fragment>
+      <Box
+        component="button"
+        type="button"
+        onClick={handleClick}
+        aria-label="Upload unassigned document"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          px: '8px',
+          py: '4px',
+          borderRadius: '6px',
+          border: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          cursor: 'pointer',
+          fontSize: '0.6875rem',
+          fontWeight: 500,
+          lineHeight: 1,
+          letterSpacing: '0.01em',
+          transition: 'border-color 0.15s, background-color 0.15s, color 0.15s',
+          '&:hover': {
+            borderColor: 'primary.main',
+            bgcolor: 'action.hover',
+            color: 'primary.main',
+          },
+        }}
+      >
+        <UploadSimple size={11} weight="bold" />
+        Upload
+      </Box>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        hidden
+        onChange={handleChange}
+      />
+    </Fragment>
+  );
+}
+
 export default function ProjectsTree({ selectedNodeId, onSelect, projectId, organizationId }: ProjectsTreeProps) {
   const theme = useTheme();
   const { data: tasks = [], isLoading } = api.gantt.tasks.useQuery(
@@ -324,26 +447,18 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
   const activeProjectId = projectId ?? null;
   const activeOrganizationId = organizationId;
 
-  // Controlled expanded state — auto-expand new groups as they load
+  // Controlled expanded state — tasks start collapsed (user expands to see folders)
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  useEffect(() => {
-    const groupIds = groups.map((g) => `group-${g.id}`);
-    setExpandedItems((prev) => {
-      const toAdd = groupIds.filter((id) => !prev.includes(id));
-      return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
-    });
-  }, [groups]);
 
   const expandAll = useCallback(() => {
     const allIds: string[] = [];
     for (const group of groups) {
-      const groupId = `group-${group.id}`;
-      allIds.push(groupId);
       const tasks = grouped[group.id] ?? [];
       if (tasks.length === 0) {
-        // Group has no child tasks — folders hang directly off the group
+        const groupTaskId = `task-${group.id}`;
+        allIds.push(groupTaskId);
         for (const folder of folderData) {
-          allIds.push(`task-${group.id}-${folder.id}`);
+          allIds.push(`${groupTaskId}-${folder.id}`);
         }
       } else {
         for (const task of tasks) {
@@ -381,15 +496,16 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
       const matchingTasks = tasks.filter((t) => t.name.toLowerCase().includes(queryLower));
 
       if (groupMatches || matchingTasks.length > 0) {
-        const groupId = `group-${group.id}`;
         fGroups.push(group);
         fGrouped[group.id] = groupMatches ? tasks : matchingTasks;
-        expandIds.push(groupId);
 
-        // Auto-expand matching tasks
+        // Auto-expand matching tasks (no group-level node to expand)
         const visibleTasks = groupMatches ? tasks : matchingTasks;
         for (const task of visibleTasks) {
           expandIds.push(`task-${task.id}`);
+        }
+        if (tasks.length === 0) {
+          expandIds.push(`task-${group.id}`);
         }
       }
     }
@@ -411,20 +527,9 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
       return;
     }
 
-    // Ignore group selections
-    if (nodeId.startsWith('group-')) {
-      onSelect(null);
-      return;
-    }
-
-    // Parse task selection: task-{featureId}
+    // Task items just expand/collapse — no detail panel
     if (nodeId.startsWith('task-') && !nodeId.includes('-', 5)) {
-      const taskId = nodeId.substring(5);
-      onSelect({
-        type: 'task',
-        nodeId,
-        taskId,
-      });
+      onSelect(null);
       return;
     }
 
@@ -504,9 +609,12 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
           letterSpacing: '-0.01em',
         }}
       >
-        File Tree
+        Tree
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {projectId && organizationId && (
+          <UnassignedUploader projectId={projectId} organizationId={organizationId} />
+        )}
         <Box
           component="button"
           onClick={expandAll}
@@ -781,26 +889,33 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
       >
         {filteredGroups.map((group) => {
           const tasks = filteredGrouped[group.id] || [];
-          const groupId = `group-${group.id}`;
 
           return (
-            <TreeItem
-              key={groupId}
-              itemId={groupId}
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.375 }}>
-                  {effectiveExpandedItems.includes(groupId) && tasks.length > 0 ? (
-                    <FolderOpen size={16} />
-                  ) : (
-                    <FolderSimple size={16} />
-                  )}
-                  <Box sx={{ fontWeight: 500, flexGrow: 1, fontSize: '0.8125rem' }}>{group.name}</Box>
-                  <Box sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-                    {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
-                  </Box>
-                </Box>
-              }
-            >
+            <Fragment key={group.id}>
+              {/* Section label — non-interactive group name */}
+              <Box
+                sx={{
+                  px: 1.5,
+                  pt: 1.5,
+                  pb: 0.25,
+                  userSelect: 'none',
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: '0.5625rem',
+                    fontWeight: 600,
+                    color: 'text.disabled',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    lineHeight: 1,
+                  }}
+                >
+                  {group.name}
+                </Typography>
+              </Box>
+
+              {/* Groups with no child tasks show their folders directly */}
               {tasks.length === 0 && folderData.map((folder) => (
                 <FolderNode
                   key={`task-${group.id}-${folder.id}`}
@@ -811,6 +926,8 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
                   expandedItems={expandedItems}
                 />
               ))}
+
+              {/* Child tasks — clicking expands to show folder subdirectories */}
               {tasks.map((task) => {
                 const taskId = `task-${task.id}`;
 
@@ -842,7 +959,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
                             flexShrink: 0,
                           }}
                         >
-                          {task.progress !== undefined && (
+                          {task.progress !== undefined && task.progress > 0 && (
                             <Box sx={{ color: 'text.secondary' }}>{task.progress}%</Box>
                           )}
                           <Box sx={{ fontWeight: 500, color: task.status.color }}>
@@ -865,7 +982,7 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
                   </TreeItem>
                 );
               })}
-            </TreeItem>
+            </Fragment>
           );
         })}
       </SimpleTreeView>

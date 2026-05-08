@@ -13,6 +13,9 @@ import {
   CaretDown,
   CaretRight,
   Plus,
+  Sliders,
+  CheckCircle,
+  Clock,
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
 import type { Folder } from '@/lib/folders';
@@ -46,6 +49,8 @@ interface FolderRowProps {
   // Tracking props (only used for trackable folders)
   required?: number | null;
   current?: number;
+  approved?: number;
+  pending?: number;
   canManage?: boolean;
   onSaveRequirement?: (count: number | null) => void;
   isRequirementPending?: boolean;
@@ -54,6 +59,10 @@ interface FolderRowProps {
   taskId?: string;
   organizationId?: string;
   pinnedDocId?: string | null;
+  // Drawer launch (only for trackable folders)
+  onManage?: () => void;
+  // Approval context (only used by trackable folders)
+  memberRole?: string;
 }
 
 function FolderRowInner({
@@ -67,6 +76,8 @@ function FolderRowInner({
   selectedDocId,
   required,
   current,
+  approved,
+  pending,
   canManage,
   onSaveRequirement,
   isRequirementPending,
@@ -74,6 +85,8 @@ function FolderRowInner({
   taskId,
   organizationId,
   pinnedDocId,
+  onManage,
+  memberRole,
 }: FolderRowProps) {
   const FolderIcon = folderIconMap[folder.id] ?? (isExpanded ? FolderOpen : FolderSimple);
   const isTrackable = folder.trackable && !!onSaveRequirement;
@@ -88,6 +101,7 @@ function FolderRowInner({
     taskId,
     organizationId,
     pinnedDocId,
+    memberRole,
   };
 
   const renderContent = () => {
@@ -95,11 +109,13 @@ function FolderRowInner({
 
     // Trackable folders (submittals, inspections) get numbered slot dropzones
     if (isTrackable) {
+      const kind = folder.id === 'submittals' ? 'submittal' : folder.id === 'inspections' ? 'inspection' : undefined;
       return (
         <TrackableFolderContent
           {...contentProps}
           required={required ?? null}
           folderColor={folder.color}
+          kind={kind}
         />
       );
     }
@@ -149,7 +165,16 @@ function FolderRowInner({
         </Typography>
 
         {/* Tracking indicator — inline in the header row */}
-        {isTrackable ? (
+        {isTrackable && onManage ? (
+          <ManageChipRow
+            current={current ?? 0}
+            approved={approved ?? 0}
+            pending={pending ?? 0}
+            required={required ?? null}
+            folderColor={folder.color}
+            onManage={onManage}
+          />
+        ) : isTrackable ? (
           <RequirementCounter
             current={current ?? 0}
             required={required ?? null}
@@ -221,3 +246,191 @@ function FolderRowInner({
 
 const FolderRow = React.memo(FolderRowInner);
 export default FolderRow;
+
+/**
+ * Inline progress + state-driven chip for trackable folder headers (admins).
+ *
+ * Four states derived from (required, approved, pending):
+ *   - Not set up        → required is null/0          → "Set up" chip
+ *   - In progress       → uploads exist, not complete → "Manage" chip
+ *   - Pending review    → some uploads awaiting       → "N in review" indigo pill
+ *   - Complete          → approved >= required         → no chip; ✓ next to count
+ */
+function ManageChipRow({
+  current,
+  approved,
+  pending,
+  required,
+  folderColor,
+  onManage,
+}: {
+  current: number;
+  approved: number;
+  pending: number;
+  required: number | null;
+  folderColor: string;
+  onManage: () => void;
+}) {
+  const total = required ?? 0;
+  const isComplete = total > 0 && approved >= total;
+  const hasPending = pending > 0;
+
+  // State 1 — Not set up: just the chip.
+  if (total === 0) {
+    return (
+      <Box
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, ml: 0.5 }}
+      >
+        <Box sx={{ flex: 1 }} />
+        <ChipButton color={folderColor} onClick={onManage} ariaLabel="Set up">
+          <Sliders size={10} weight="bold" />
+          Set up
+        </ChipButton>
+      </Box>
+    );
+  }
+
+  // Segment fill rule (left-to-right):
+  //   approved → solid green, pending → striped folder color, empty → muted
+  const segmentFill = (i: number) => {
+    if (i < approved) return { color: 'var(--status-green)', striped: false };
+    if (i < approved + pending) return { color: folderColor, striped: true };
+    return { color: 'rgba(43,45,66,0.08)', striped: false };
+  };
+
+  return (
+    <Box
+      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      sx={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1, minWidth: 0, ml: 0.5 }}
+    >
+      <Box sx={{ display: 'flex', gap: '2px', flex: 1, alignItems: 'center', minWidth: 0 }}>
+        {Array.from({ length: Math.min(total, 10) }).map((_, i) => {
+          const fill = segmentFill(i);
+          return (
+            <Box
+              key={i}
+              sx={{
+                height: 3.5,
+                flex: 1,
+                maxWidth: 16,
+                borderRadius: '1.5px',
+                bgcolor: fill.striped ? 'transparent' : fill.color,
+                background: fill.striped
+                  ? `repeating-linear-gradient(135deg, ${fill.color} 0, ${fill.color} 2.5px, ${fill.color}55 2.5px, ${fill.color}55 5px)`
+                  : undefined,
+                transition: 'background-color 0.3s ease, background 0.3s ease',
+              }}
+            />
+          );
+        })}
+        {total > 10 && (
+          <Typography sx={{ fontSize: '0.5rem', color: 'text.disabled', lineHeight: 1, flexShrink: 0 }}>
+            +{total - 10}
+          </Typography>
+        )}
+      </Box>
+
+      {/* Count + completion check (clickable in complete state) */}
+      {isComplete ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+          <Typography
+            component="button"
+            onClick={onManage}
+            sx={{
+              fontSize: '0.5625rem',
+              fontWeight: 600,
+              color: 'success.main',
+              lineHeight: 1,
+              fontVariantNumeric: 'tabular-nums',
+              letterSpacing: '-0.01em',
+              border: 'none',
+              background: 'transparent',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              p: 0,
+              transition: 'color 0.15s',
+              '&:hover': { color: 'success.dark' },
+            }}
+            aria-label="Manage requirements"
+          >
+            {approved}/{total}
+          </Typography>
+          <CheckCircle size={11} weight="fill" color="var(--status-green)" />
+        </Box>
+      ) : (
+        <Typography
+          sx={{
+            fontSize: '0.5625rem',
+            fontWeight: 600,
+            color: 'text.secondary',
+            lineHeight: 1,
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: '-0.01em',
+            flexShrink: 0,
+          }}
+        >
+          {current}/{total}
+        </Typography>
+      )}
+
+      {/* Trailing chip — varies by state */}
+      {isComplete ? null : hasPending ? (
+        <ChipButton
+          color="#4f46e5"
+          onClick={onManage}
+          ariaLabel={`${pending} awaiting approval`}
+        >
+          <Clock size={10} weight="bold" />
+          {pending} in review
+        </ChipButton>
+      ) : (
+        <ChipButton color={folderColor} onClick={onManage} ariaLabel="Manage requirements">
+          <Sliders size={10} weight="bold" />
+          Manage
+        </ChipButton>
+      )}
+    </Box>
+  );
+}
+
+function ChipButton({
+  color,
+  onClick,
+  ariaLabel,
+  children,
+}: {
+  color: string;
+  onClick: () => void;
+  ariaLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box
+      component="button"
+      onClick={onClick}
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '3px',
+        py: '2px',
+        px: '6px',
+        borderRadius: '5px',
+        border: '1px solid transparent',
+        bgcolor: `${color}14`,
+        color,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        fontSize: '0.5625rem',
+        fontWeight: 600,
+        letterSpacing: '0.02em',
+        flexShrink: 0,
+        transition: 'background-color 0.15s, border-color 0.15s',
+        '&:hover': { bgcolor: `${color}25`, borderColor: color },
+      }}
+      aria-label={ariaLabel}
+    >
+      {children}
+    </Box>
+  );
+}

@@ -20,7 +20,7 @@ import { useGanttDraft, hasGanttDraft } from './hooks/useGanttDraft';
 import { injectTaskVersions } from './utils/injectTaskVersions';
 import { reconcileSyncPack } from './utils/reconcileSyncPack';
 import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
-import GanttLoadingSpinner from './components/GanttLoadingSpinner';
+import { IBeamLoader } from '@/components/ui/IBeamLoader';
 
 const WRAPPER_STYLE: CSSProperties = {
   display: 'flex',
@@ -380,6 +380,106 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           await gantt.project.commitAsync();
 
+          // ────────────────────────────────────────────────────────────────
+          // PHANTOM RESCUE PATH
+          //
+          // Why this exists:
+          //   New tasks get a Bryntum phantom id like "_generatedTaskModel_…".
+          //   `autoSync` is false on this Gantt, and after the localStorage
+          //   draft restores via `project.json = saved`, Bryntum stops
+          //   tracking those records as "added" — so `crudStoreHasChanges()`
+          //   returns false and the regular `project.sync()` call below
+          //   silently no-ops. Result: phantoms never reach the DB, and any
+          //   downstream mutation (`updateRequirement`, `updateCsiCode`,
+          //   `pinPhoto`) throws NOT_FOUND.
+          //
+          // What this does:
+          //   Detect phantoms, POST them directly to /api/gantt/sync as
+          //   `tasks.added`, clear the stale localStorage draft (otherwise it
+          //   would restore phantom ids on next page load), then
+          //   project.load() so the local store picks up the real cuids the
+          //   server just minted. After this runs, the user can edit those
+          //   tasks immediately (no popover snackbar block).
+          // ────────────────────────────────────────────────────────────────
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const allTasksForRescue = (gantt.project.taskStore.allRecords as Array<{
+              id?: unknown;
+              isPhantom?: boolean;
+              isRoot?: boolean;
+              data?: Record<string, unknown>;
+            }>) ?? [];
+            const phantomTasks = allTasksForRescue.filter((r) => !r.isRoot && r.isPhantom);
+
+            if (phantomTasks.length > 0 && projectId) {
+              const toIso = (v: unknown): string | null | undefined => {
+                if (v == null) return v as null | undefined;
+                if (v instanceof Date) return v.toISOString();
+                return String(v);
+              };
+
+              const added = phantomTasks.map((r) => {
+                const d = (r.data ?? (r as unknown as Record<string, unknown>)) as Record<string, unknown>;
+                return {
+                  $PhantomId: String(r.id),
+                  name: typeof d.name === 'string' ? d.name : 'New Task',
+                  parentId: d.parentId ? String(d.parentId) : null,
+                  percentDone: typeof d.percentDone === 'number' ? d.percentDone : 0,
+                  startDate: toIso(d.startDate),
+                  endDate: toIso(d.endDate),
+                  duration: typeof d.duration === 'number' ? d.duration : null,
+                  durationUnit: typeof d.durationUnit === 'string' ? d.durationUnit : 'day',
+                  effort: typeof d.effort === 'number' ? d.effort : null,
+                  effortUnit: typeof d.effortUnit === 'string' ? d.effortUnit : null,
+                  expanded: typeof d.expanded === 'boolean' ? d.expanded : false,
+                  manuallyScheduled: typeof d.manuallyScheduled === 'boolean' ? d.manuallyScheduled : false,
+                  constraintType: typeof d.constraintType === 'string' ? d.constraintType : null,
+                  constraintDate: toIso(d.constraintDate),
+                  rollup: typeof d.rollup === 'boolean' ? d.rollup : false,
+                  cls: typeof d.cls === 'string' ? d.cls : null,
+                  iconCls: typeof d.iconCls === 'string' ? d.iconCls : null,
+                  note: typeof d.note === 'string' ? d.note : null,
+                  csiCode: typeof d.csiCode === 'string' ? d.csiCode : null,
+                  orderIndex: typeof d.parentIndex === 'number'
+                    ? d.parentIndex
+                    : typeof d.orderedParentIndex === 'number'
+                      ? d.orderedParentIndex
+                      : undefined,
+                };
+              });
+
+              const rescueRes = await fetch(`/api/gantt/sync?projectId=${projectId}`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tasks: { added } }),
+              });
+              const rescueJson = await rescueRes.json() as {
+                success?: boolean;
+                conflict?: boolean;
+                message?: string;
+                tasks?: { rows?: Array<{ $PhantomId?: string; id?: string }> };
+              };
+
+              if (rescueJson.success && !rescueJson.conflict) {
+                // Clear the stale draft so the freshly-loaded real ids stick
+                // instead of getting overwritten by a draft restore on next mount.
+                try {
+                  localStorage.removeItem(`gantt-draft-v4-${projectId}`);
+                } catch {
+                  // Non-fatal: storage may be unavailable in private mode.
+                }
+
+                // Refresh from server. Bryntum preserves scroll/expansion
+                // across loads, but the local store now carries real cuids.
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                await gantt.project.load();
+              }
+            }
+          } catch {
+            // Non-fatal — fall through to existing snapshot save flow.
+          }
+
           // 2. Read ALL data from Bryntum's individual stores and serialize to plain objects.
           //    We can't use project.inlineData directly because it contains Bryntum record
           //    instances with circular parent↔children references that break JSON serialization.
@@ -441,8 +541,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
               assignments: serializedAssignments,
               timeRanges: serializedTimeRanges,
             })) as Record<string, unknown>;
-          } catch (jsonErr) {
-            console.error('[ForceSync] JSON serialization failed:', jsonErr);
+          } catch {
             inlineData = { tasks: [], dependencies: [], resources: [], assignments: [], timeRanges: [] };
           }
 
@@ -456,6 +555,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
               // Non-fatal — the inlineData snapshot will still have all data
             }
           }
+
           window.dispatchEvent(new CustomEvent('gantt-sync-done', { detail: { inlineData } }));
         } catch {
           window.dispatchEvent(new CustomEvent('gantt-sync-done', { detail: { inlineData: null } }));
@@ -822,6 +922,26 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         .bryntum-gantt-container[data-locked="true"] .gantt-row-actions-btn {
           display: none;
         }
+        /* "Needs review" pill — appears in the name cell when a task has
+           unapproved submittals or inspections (count rolls up to parents). */
+        .gantt-needs-review-badge {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 6px;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 6px;
+          border-radius: 999px;
+          background: #f59e0b;
+          color: #fff;
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1;
+          letter-spacing: 0;
+          cursor: default;
+        }
       `}</style>
 
       <div
@@ -847,9 +967,10 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
               justifyContent: 'center',
               bgcolor: 'var(--bg-card)',
               zIndex: 1,
+              color: 'text.secondary',
             }}
           >
-            <GanttLoadingSpinner />
+            <IBeamLoader size={44} />
           </Box>
         )}
 

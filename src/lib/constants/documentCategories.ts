@@ -1,6 +1,7 @@
 import { folderData } from '@/lib/folders';
 
-export function getCategoryLabel(folderId: string): string {
+export function getCategoryLabel(folderId: string | null | undefined): string {
+  if (!folderId) return 'Unassigned';
   for (const folder of folderData) {
     if (folder.id === folderId) return folder.name;
     if (folder.children) {

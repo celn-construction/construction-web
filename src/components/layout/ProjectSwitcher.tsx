@@ -49,32 +49,64 @@ export default function ProjectSwitcher() {
     setSearch('');
   };
 
+  const hasProject = !!(projectSlug && currentProject);
+
   return (
     <>
       <ButtonBase
         onClick={(e) => setAnchorEl(e.currentTarget)}
         sx={{
-          display: 'flex',
+          display: 'inline-flex',
           alignItems: 'center',
-          gap: '6px',
-          px: 1,
-          py: 0.5,
+          gap: 1,
+          pl: 0.75,
+          pr: 1,
+          py: 0.875,
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
           borderRadius: '8px',
-          transition: 'background-color 0.15s',
-          '&:hover': { bgcolor: 'action.selected' },
+          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+          transition: 'background-color 0.15s, border-color 0.15s, box-shadow 0.15s',
+          color: 'text.primary',
+          fontSize: '14.5px',
+          fontWeight: 600,
+          letterSpacing: '-0.005em',
+          lineHeight: 1,
+          minWidth: 0,
+          maxWidth: 320,
+          '&:hover': {
+            bgcolor: 'action.hover',
+            borderColor: (theme) => theme.palette.mode === 'dark' ? alpha(theme.palette.divider, 0.8) : '#d4d4d4',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+          },
         }}
       >
         <ProjectAvatar
           imageUrl={currentProject?.imageUrl}
           icon={currentProject?.icon}
-          size={28}
-          borderRadius="6px"
+          colorId={currentProject?.imageUrl ? null : currentProject?.color}
+          size={22}
+          borderRadius="5px"
           color="var(--text-secondary)"
         />
-        <Typography sx={{ fontSize: 14, fontWeight: 500, color: 'text.secondary', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
-          {projectSlug && currentProject ? currentProject.name : 'Select project'}
+        <Typography
+          component="span"
+          sx={{
+            fontSize: '14.5px',
+            fontWeight: 600,
+            letterSpacing: '-0.005em',
+            color: hasProject ? 'text.primary' : 'text.secondary',
+            lineHeight: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+          }}
+        >
+          {hasProject ? currentProject.name : 'Select project'}
         </Typography>
-        <CaretUpDown size={12} style={{ flexShrink: 0, color: 'var(--text-secondary)' }} />
+        <CaretUpDown size={14} style={{ flexShrink: 0, color: 'var(--text-secondary)' }} />
       </ButtonBase>
 
       <Menu
@@ -185,11 +217,8 @@ export default function ProjectSwitcher() {
                     width: 56,
                     flexShrink: 0,
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: hasImage
-                      ? 'transparent'
-                      : alpha(theme.palette.divider, 0.06),
+                    alignItems: 'stretch',
+                    justifyContent: 'stretch',
                     overflow: 'hidden',
                   }}
                 >
@@ -207,9 +236,9 @@ export default function ProjectSwitcher() {
                   ) : (
                     <ProjectAvatar
                       icon={project.icon}
-                      size={22}
+                      colorId={project.color ?? 'slate'}
+                      size={56}
                       borderRadius={0}
-                      color={theme.palette.text.disabled}
                     />
                   )}
                 </Box>
