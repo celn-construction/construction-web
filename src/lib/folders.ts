@@ -87,7 +87,8 @@ const APPROVABLE_FOLDER_IDS = new Set(
  * Review Queue. Currently submittals and inspections (including their
  * subfolders); RFIs, change orders, and photos do not require approval.
  */
-export function isApprovableFolder(folderId: string): boolean {
+export function isApprovableFolder(folderId: string | null | undefined): boolean {
+  if (!folderId) return false;
   return APPROVABLE_FOLDER_IDS.has(folderId);
 }
 

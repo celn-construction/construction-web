@@ -55,13 +55,16 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const projectId = formData.get("projectId") as string | null;
-    const taskId = formData.get("taskId") as string | null;
-    const folderId = formData.get("folderId") as string | null;
+    const rawTaskId = formData.get("taskId") as string | null;
+    const rawFolderId = formData.get("folderId") as string | null;
+    // Empty string and missing both mean "unassigned"
+    const taskId = rawTaskId && rawTaskId.length > 0 ? rawTaskId : null;
+    const folderId = rawFolderId && rawFolderId.length > 0 ? rawFolderId : null;
     const title = (formData.get("title") as string | null)?.trim() || null;
     const notes = (formData.get("notes") as string | null)?.trim() ?? "";
 
-    // Validate required fields
-    if (!file || !projectId || !taskId || !folderId) {
+    // Validate required fields. taskId/folderId are optional — null means unassigned.
+    if (!file || !projectId) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -118,15 +121,17 @@ export async function POST(req: NextRequest) {
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    const blob = await put(
-      `projects/${projectId}/${taskId}/${folderId}/${file.name}`,
-      fileBuffer,
-      {
-        access: "private",
-        addRandomSuffix: true,
-        contentType: file.type,
-      }
-    );
+    // Unassigned uploads land in a project-level "_unassigned" path; assigned uploads use task/folder.
+    const blobPath =
+      taskId && folderId
+        ? `projects/${projectId}/${taskId}/${folderId}/${file.name}`
+        : `projects/${projectId}/_unassigned/${file.name}`;
+
+    const blob = await put(blobPath, fileBuffer, {
+      access: "private",
+      addRandomSuffix: true,
+      contentType: file.type,
+    });
 
     const analysis = await analyzeDocument(fileBuffer, file.type, file.name);
 

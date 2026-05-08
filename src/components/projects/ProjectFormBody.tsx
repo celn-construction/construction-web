@@ -17,7 +17,6 @@ import { keyframes } from '@mui/system';
 import {
   Autocomplete as MuiAutocomplete,
   Box,
-  CircularProgress,
   IconButton,
   Popover,
   TextField,
@@ -43,6 +42,7 @@ import {
 import usePlacesAutocomplete, { getGeocode } from 'use-places-autocomplete';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { trackUpload } from '@/store/uploadStatusStore';
 import { env } from '@/env';
 
 const GOOGLE_PLACES_API_KEY = env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
@@ -324,40 +324,37 @@ export default function ProjectFormBody({
 
     const localPreview = URL.createObjectURL(file);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('organizationId', organizationId);
+    const result = await trackUpload<{ imageUrl: string }>(
+      file,
+      () => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('organizationId', organizationId);
+        return fetch('/api/project/image', { method: 'POST', body: formData });
+      },
+      { doneLabel: 'Cover image ready' },
+    );
 
-      const res = await fetch('/api/project/image', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        URL.revokeObjectURL(localPreview);
-        const data = await res.json() as { error?: string };
-        throw new Error(data.error ?? 'Upload failed');
-      }
-
-      const data = await res.json() as { imageUrl: string };
-
-      if (uploadedUrlRef.current) {
-        cleanupUploadedImage(uploadedUrlRef.current);
-      }
-      setPreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return localPreview;
-      });
-
-      uploadedUrlRef.current = data.imageUrl;
-      setValue('imageUrl', data.imageUrl);
-      setPickerMode('photo');
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed — try again');
-    } finally {
+    if (!result.ok || !result.data?.imageUrl) {
+      URL.revokeObjectURL(localPreview);
+      setUploadError(result.error ?? 'Upload failed — try again');
       setIsUploading(false);
+      return;
     }
+
+    // Clean up previous upload if replacing
+    if (uploadedUrlRef.current) {
+      cleanupUploadedImage(uploadedUrlRef.current);
+    }
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return localPreview;
+    });
+
+    uploadedUrlRef.current = result.data.imageUrl;
+    setValue('imageUrl', result.data.imageUrl);
+    setPickerMode('photo');
+    setIsUploading(false);
   }, [organizationId, setValue, cleanupUploadedImage]);
 
   const handleRemovePhoto = useCallback(() => {
@@ -807,17 +804,11 @@ export default function ProjectFormBody({
                   }}
                 >
                   <input {...popoverDropzone.getInputProps()} />
-                  {isUploading ? (
-                    <CircularProgress size={20} />
-                  ) : (
-                    <UploadSimple size={20} style={{ color: theme.palette.text.disabled }} />
-                  )}
+                  <UploadSimple size={20} style={{ color: theme.palette.text.disabled }} />
                   <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                    {isUploading
-                      ? 'Uploading...'
-                      : popoverDropzone.isDragActive
-                        ? 'Drop image here'
-                        : 'Click to upload or drop here'}
+                    {popoverDropzone.isDragActive
+                      ? 'Drop image here'
+                      : 'Click to upload or drop here'}
                   </Typography>
                   <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
                     PNG, JPG, WebP up to 5MB

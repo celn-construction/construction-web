@@ -6,6 +6,7 @@ import { Box } from '@mui/material';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileDrawer from '@/components/layout/MobileDrawer';
+import UploadStatusChipsHost from '@/components/ui/UploadStatusChipsHost';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -73,6 +74,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Drawer Overlay */}
       <MobileDrawer isOpen={drawerOpen} onClose={closeDrawer} />
+
+      <UploadStatusChipsHost />
     </Box>
   );
 }

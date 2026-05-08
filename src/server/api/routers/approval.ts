@@ -147,6 +147,8 @@ export const approvalRouter = createTRPCRouter({
       // count[taskId][kind] = number of docs uploaded under that folder family
       const counts = new Map<string, { submittal: number; inspection: number }>();
       for (const row of grouped) {
+        // The where clause constrains taskId/folderId to non-null IN-lists, so guards are belt-and-suspenders.
+        if (!row.taskId || !row.folderId) continue;
         const bucket = counts.get(row.taskId) ?? { submittal: 0, inspection: 0 };
         if (submittalIds.includes(row.folderId)) bucket.submittal += row._count._all;
         if (inspectionIds.includes(row.folderId)) bucket.inspection += row._count._all;
@@ -209,7 +211,7 @@ export const approvalRouter = createTRPCRouter({
         });
       }
 
-      if (!APPROVABLE_FOLDER_ID_LIST.includes(document.folderId)) {
+      if (!document.folderId || !APPROVABLE_FOLDER_ID_LIST.includes(document.folderId)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "This document type does not require approval",
@@ -294,6 +296,7 @@ async function countOverdueSlots(db: PrismaClient, projectId: string): Promise<n
 
   const counts = new Map<string, { submittal: number; inspection: number }>();
   for (const row of grouped) {
+    if (!row.taskId || !row.folderId) continue;
     const bucket = counts.get(row.taskId) ?? { submittal: 0, inspection: 0 };
     if (submittalIds.includes(row.folderId)) bucket.submittal += row._count._all;
     if (inspectionIds.includes(row.folderId)) bucket.inspection += row._count._all;
