@@ -238,6 +238,15 @@ export type GanttConfig = {
     cellMenu?: boolean | { cls?: string };
     scheduleMenu?: boolean | { cls?: string };
     dependencyMenu?: boolean | { cls?: string };
+    /** Dependencies — drag-to-create dep arrows (handles on task bar
+     *  edges) and auto-rescheduling on predecessor moves. Set to false
+     *  (or remove) to revert. */
+    dependencies?: boolean | {
+      allowCreate?: boolean;
+      allowDrop?: boolean;
+      drawOnScroll?: boolean;
+      showLagInTooltip?: boolean;
+    };
   };
   emptyText?: string;
   viewPreset: string;
