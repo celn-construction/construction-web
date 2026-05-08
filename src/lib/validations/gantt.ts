@@ -111,6 +111,32 @@ export const updateRequirementSchema = z.object({
 
 export type UpdateRequirementInput = z.infer<typeof updateRequirementSchema>;
 
+// Per-slot tracking schemas (Tier 2/3)
+export const slotKindSchema = z.enum(['submittal', 'inspection']);
+export type SlotKind = z.infer<typeof slotKindSchema>;
+
+export const listSlotsSchema = z.object({
+  taskId: z.string(),
+  kind: slotKindSchema,
+});
+
+export const setSlotCountSchema = z.object({
+  taskId: z.string(),
+  kind: slotKindSchema,
+  count: z.number().int().min(0).max(50),
+});
+
+export const updateSlotSchema = z.object({
+  slotId: z.string(),
+  name: z.string().trim().max(200).nullable().optional(),
+  dueDate: z.string().or(z.date()).nullable().optional(),
+  approverId: z.string().nullable().optional(),
+});
+
+export type ListSlotsInput = z.infer<typeof listSlotsSchema>;
+export type SetSlotCountInput = z.infer<typeof setSlotCountSchema>;
+export type UpdateSlotInput = z.infer<typeof updateSlotSchema>;
+
 // Type exports
 export type GanttLoadInput = z.infer<typeof ganttLoadInputSchema>;
 export type GanttSyncInput = z.infer<typeof ganttSyncInputSchema>;

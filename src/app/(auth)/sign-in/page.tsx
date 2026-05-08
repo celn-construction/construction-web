@@ -411,9 +411,6 @@ function SignInForm() {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': { bgcolor: 'input.background' },
-                    }}
                   />
                 </Box>
 
@@ -447,9 +444,6 @@ function SignInForm() {
                           </IconButton>
                         </InputAdornment>
                       ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': { bgcolor: 'input.background' },
                     }}
                   />
                 </Box>

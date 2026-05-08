@@ -1,13 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, alpha, useTheme } from '@mui/material';
 import { CloudArrowUp, FileText, CheckCircle } from '@phosphor-icons/react';
 import type { FolderContentProps, PreviewDoc } from './types';
+import { api } from '@/trpc/react';
+import type { SlotKind } from '@/lib/validations/gantt';
+import ApprovalToggleSwitch from './ApprovalToggleSwitch';
 
 interface TrackableFolderContentProps extends FolderContentProps {
   required: number | null;
   folderColor: string;
+  kind?: SlotKind;
 }
 
 function TrackableFolderContentInner({
@@ -18,7 +22,23 @@ function TrackableFolderContentInner({
   folderName,
   required,
   folderColor,
+  kind,
+  taskId,
+  projectId,
+  organizationId,
+  memberRole,
 }: TrackableFolderContentProps) {
+  const theme = useTheme();
+  const successMain = theme.palette.success.main;
+  const canShowApproval =
+    !!organizationId && typeof memberRole === 'string';
+
+  // Slot metadata (names) — shares the React Query cache with SubmittalDrawer.
+  const slotsQuery = api.gantt.listSlots.useQuery(
+    { organizationId: organizationId!, projectId: projectId!, taskId: taskId!, kind: kind! },
+    { enabled: !!kind && !!taskId && !!projectId && !!organizationId && (required ?? 0) > 0 },
+  );
+  const slotMeta = slotsQuery.data ?? [];
   // No requirement set — empty state (no dropzones until a requirement is configured)
   if (required === null || required === 0) {
     return (
@@ -67,7 +87,12 @@ function TrackableFolderContentInner({
             size: doc.size,
             createdAt: doc.createdAt,
             uploadedBy: doc.uploadedBy ?? null,
+            folderId: doc.folderId,
+            approvalStatus: doc.approvalStatus,
+            approvedAt: doc.approvedAt,
+            approvedBy: doc.approvedBy,
           };
+          const isApproved = doc.approvalStatus === 'approved';
 
           return (
             <Box
@@ -86,7 +111,7 @@ function TrackableFolderContentInner({
                 transition: 'background-color 0.15s',
               }}
             >
-              {/* Slot number badge — filled */}
+              {/* Slot number badge — green when approved, folder-colored otherwise */}
               <Box
                 sx={{
                   display: 'flex',
@@ -95,11 +120,16 @@ function TrackableFolderContentInner({
                   width: 18,
                   height: 18,
                   borderRadius: '50%',
-                  bgcolor: `${folderColor}18`,
+                  bgcolor: isApproved ? alpha(successMain, 0.12) : `${folderColor}18`,
                   flexShrink: 0,
+                  transition: 'background-color 0.2s',
                 }}
               >
-                <CheckCircle size={11} weight="fill" color={folderColor} />
+                <CheckCircle
+                  size={11}
+                  weight="fill"
+                  color={isApproved ? successMain : folderColor}
+                />
               </Box>
 
               <FileText
@@ -121,6 +151,17 @@ function TrackableFolderContentInner({
               >
                 {doc.name}
               </Typography>
+              {canShowApproval && (
+                <ApprovalToggleSwitch
+                  documentId={doc.id}
+                  documentName={doc.name}
+                  approvalStatus={doc.approvalStatus}
+                  approvedBy={doc.approvedBy}
+                  organizationId={organizationId!}
+                  memberRole={memberRole!}
+                  size="sm"
+                />
+              )}
               {doc.createdAt != null && (
                 <Typography sx={{ fontSize: 11, color: 'text.secondary', flexShrink: 0 }}>
                   {new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -172,8 +213,18 @@ function TrackableFolderContentInner({
             </Box>
 
             <CloudArrowUp size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
-            <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1 }}>
-              {singularName} {slotNum}
+            <Typography
+              sx={{
+                fontSize: 11,
+                color: 'text.secondary',
+                lineHeight: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+              }}
+            >
+              {slotMeta[index]?.name?.trim() || `${singularName} ${slotNum}`}
             </Typography>
           </Box>
         );

@@ -4,7 +4,8 @@ import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Camera, X, CloudArrowUp } from "@phosphor-icons/react";
 import { useDropzone } from "react-dropzone";
-import { Box, Typography, IconButton, CircularProgress } from "@mui/material";
+import { Box, Typography, IconButton } from "@mui/material";
+import { trackUpload } from "@/store/uploadStatusStore";
 
 interface StepLogoProps {
   logoUrl: string;
@@ -35,29 +36,22 @@ export function StepLogo({ logoUrl, onLogoChange }: StepLogoProps) {
       setError("");
       setUploading(true);
 
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
+      const result = await trackUpload<{ logoUrl?: string }>(
+        file,
+        () => {
+          const formData = new FormData();
+          formData.append("file", file);
+          return fetch("/api/organization/logo", { method: "POST", body: formData });
+        },
+        { doneLabel: "Logo uploaded" },
+      );
 
-        const res = await fetch("/api/organization/logo", {
-          method: "POST",
-          body: formData,
-        });
+      setUploading(false);
 
-        const data = (await res.json()) as { logoUrl?: string; error?: string };
-
-        if (!res.ok) {
-          setError(data.error || "Upload failed");
-          return;
-        }
-
-        if (data.logoUrl) {
-          onLogoChange(data.logoUrl);
-        }
-      } catch {
-        setError("Upload failed. Please try again.");
-      } finally {
-        setUploading(false);
+      if (result.ok && result.data?.logoUrl) {
+        onLogoChange(result.data.logoUrl);
+      } else {
+        setError(result.error ?? "Upload failed. Please try again.");
       }
     },
     [onLogoChange]
@@ -182,23 +176,17 @@ export function StepLogo({ logoUrl, onLogoChange }: StepLogoProps) {
             }}
           >
             <input {...getInputProps()} />
-            {uploading ? (
-              <CircularProgress size={28} />
-            ) : (
-              <>
-                <Camera
-                  size={32}
-                  weight="light"
-                  style={{ color: "var(--text-muted)" }}
-                />
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", fontSize: "0.6875rem" }}
-                >
-                  Upload logo
-                </Typography>
-              </>
-            )}
+            <Camera
+              size={32}
+              weight="light"
+              style={{ color: "var(--text-muted)" }}
+            />
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", fontSize: "0.6875rem" }}
+            >
+              Upload logo
+            </Typography>
           </Box>
         )}
       </Box>

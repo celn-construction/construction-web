@@ -14,8 +14,8 @@ interface RawDocumentRow {
   size: number;
   tags: string[];
   description: string;
-  taskId: string;
-  folderId: string;
+  taskId: string | null;
+  folderId: string | null;
   projectId: string;
   uploadedById: string;
   createdAt: Date;
@@ -101,8 +101,8 @@ function buildOrderBy(sortBy: z.infer<typeof sortBySchema>) {
 }
 
 function buildLinkCondition(linkFilter: z.infer<typeof linkFilterSchema>) {
-  if (linkFilter === "linked") return { taskId: { not: "" } };
-  if (linkFilter === "unlinked") return { taskId: "" };
+  if (linkFilter === "linked") return { taskId: { not: null } };
+  if (linkFilter === "unlinked") return { taskId: null };
   return {};
 }
 
@@ -213,17 +213,23 @@ export const documentRouter = createTRPCRouter({
       }
 
       const grouped = await ctx.db.document.groupBy({
-        by: ["folderId"],
+        by: ["folderId", "approvalStatus"],
         where: {
           projectId: input.projectId,
           taskId: input.taskId,
         },
-        _count: { folderId: true },
+        _count: { _all: true },
       });
 
-      return Object.fromEntries(
-        grouped.map((g) => [g.folderId, g._count.folderId])
-      );
+      const result: Record<string, { total: number; approved: number }> = {};
+      for (const row of grouped) {
+        if (!row.folderId) continue;
+        const bucket = result[row.folderId] ?? { total: 0, approved: 0 };
+        bucket.total += row._count._all;
+        if (row.approvalStatus === "approved") bucket.approved += row._count._all;
+        result[row.folderId] = bucket;
+      }
+      return result;
     }),
 
   search: orgProcedure
@@ -376,6 +382,19 @@ export const documentRouter = createTRPCRouter({
 
       const total = Number(rows[0]?.total_count ?? 0);
       return { results: shapeResults(rows), total };
+    }),
+
+  countUnassigned: orgProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const project = await ctx.db.project.findFirst({
+        where: { id: input.projectId, organizationId: ctx.organization.id },
+        select: { id: true },
+      });
+      if (!project) return 0;
+      return ctx.db.document.count({
+        where: { projectId: input.projectId, taskId: null },
+      });
     }),
 
   delete: orgProcedure

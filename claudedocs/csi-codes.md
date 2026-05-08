@@ -43,14 +43,14 @@ The final JSON was validated against the AGC Austin PDF (official MasterFormat 2
 |------|---------|
 | `src/lib/constants/csiCodes.json` | Raw data: `[{ code, name, subdivisions: [{ code, name }] }]` |
 | `src/lib/constants/csiCodes.ts` | TypeScript layer: exports `CSI_MASTERFORMAT`, `CSI_DIVISIONS`, `CSI_DIVISION_MAP`, `CSI_SUBDIVISION_MAP`, `formatCsiCode()` |
-| `src/components/bryntum/components/CsiCodeSelector.tsx` | Display-only trigger button showing current CSI code; calls `onOpen` to open the panel |
+| `src/components/bryntum/components/task-popover/TaskHeader.tsx` | Inline CSI chip in the popover meta row (code + truncated name when set, dashed "+ CSI code" when empty); calls `onOpenCsiPanel` to open the panel |
 | `src/components/bryntum/components/task-popover/CsiCodePanel.tsx` | Slide-in panel: accordion menu with search, optimistic updates, code selection |
 | `src/server/api/routers/gantt.ts` | tRPC mutation `updateCsiCode` with Zod `.refine()` validation |
 
 ### Data flow
 
 1. **Static JSON** loaded at module init, TypeScript builds O(1) lookup Maps
-2. **Trigger**: `CsiCodeSelector` displays the current code and opens the `CsiCodePanel` slide-in panel
+2. **Trigger**: `TaskHeader` renders an inline CSI chip; clicking it calls `onOpenCsiPanel` to open the `CsiCodePanel` slide-in panel
 3. **Selection**: `CsiCodePanel` reads from `CSI_MASTERFORMAT`, filters client-side, shows accordion by division
 4. **Save**: User selects code -> optimistic update -> `gantt.updateCsiCode` mutation -> validates code exists in `CSI_SUBDIVISION_MAP` or `CSI_DIVISION_MAP` -> saves string to `GanttTask.csiCode`
 5. **Display**: `formatCsiCode(code)` resolves `"03 30 00"` -> `"03 30 00 - Cast-in-Place Concrete"`

@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useSession } from '@/lib/auth-client';
 import { motion } from 'framer-motion';
+
+const Logo3D = dynamic(() => import('@/components/ui/Logo3D'), { ssr: false });
 import { CaretDown, Play, MagnifyingGlass, Bell, House, ListChecks, Buildings, Gear, FolderOpen, CloudSun, CalendarBlank, MapPin, ClockCounterClockwise, CaretRight, Check, ChartBar, BookOpen, UsersThree } from '@phosphor-icons/react';
 
 const interFont = 'var(--font-inter)';
@@ -30,8 +33,8 @@ const t = {
 function DashboardPreview() {
   const sidebarItems = [
     { label: 'Dashboard', icon: House, active: true },
-    { label: 'Gantt', icon: ChartBar, badge: '14' },
-    { label: 'File Tree', icon: FolderOpen },
+    { label: 'Timeline', icon: ChartBar, badge: '14' },
+    { label: 'Tree', icon: FolderOpen },
     { label: 'Documents', icon: BookOpen, chevron: true },
     { label: 'Team', icon: UsersThree },
     { label: 'Settings', icon: Gear },
@@ -544,6 +547,44 @@ function StellarSection() {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   BLOCK 3 — 3D Logo
+   ══════════════════════════════════════════════════════════════ */
+
+function Logo3DSection() {
+  return (
+    <section
+      style={{
+        background: '#fff',
+        fontFamily: interFont,
+        padding: '96px 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: 480, height: 360 }}>
+        <Logo3D />
+      </div>
+      <p
+        style={{
+          fontFamily: instrumentSerifFont,
+          fontSize: 'clamp(2rem, 4vw, 3rem)',
+          fontWeight: 400,
+          color: t.fg,
+          margin: '24px 0 8px',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        BuildTrack Pro
+      </p>
+      <p style={{ fontSize: 14, color: t.mutedFg, margin: 0 }}>
+        Built for builders.
+      </p>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
    FOOTER
    ══════════════════════════════════════════════════════════════ */
 
@@ -653,6 +694,9 @@ export default function Home() {
 
       {/* Block 2: Stellar.ai */}
       <StellarSection />
+
+      {/* Block 3: 3D Logo */}
+      <Logo3DSection />
 
       {/* Footer */}
       <Footer />

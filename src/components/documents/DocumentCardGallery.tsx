@@ -21,6 +21,7 @@ export default function DocumentCardGallery({ doc, organizationId }: DocumentCar
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const isImage = doc.mimeType.startsWith('image/');
+  const isUnassigned = !doc.taskId;
   const { memberRole } = useOrgContext();
   const { projectId } = useProjectContext();
   const showApproval = isApprovableFolder(doc.folderId);
@@ -33,11 +34,22 @@ export default function DocumentCardGallery({ doc, organizationId }: DocumentCar
         position: 'relative',
         borderRadius: '10px',
         border: '1px solid',
-        borderColor: hovered ? alpha(theme.palette.primary.main, 0.3) : 'divider',
+        borderColor: isUnassigned
+          ? alpha(theme.palette.warning.main, 0.5)
+          : hovered
+            ? alpha(theme.palette.primary.main, 0.3)
+            : 'divider',
         bgcolor: 'background.paper',
         overflow: 'hidden',
-        transition: 'border-color 0.2s',
+        transition: 'border-color 0.2s, transform 0.18s ease, box-shadow 0.18s ease',
         cursor: 'pointer',
+        willChange: 'transform',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: theme.palette.mode === 'dark'
+            ? '0 8px 20px rgba(0,0,0,0.4)'
+            : '0 8px 20px rgba(43,45,66,0.10)',
+        },
       }}
     >
       {/* Preview area */}
@@ -65,6 +77,32 @@ export default function DocumentCardGallery({ doc, organizationId }: DocumentCar
             : <FileText size={32} style={{ color: theme.palette.text.disabled }} />
         )}
       </Box>
+
+      {/* Persistent unassigned indicator (top-left) — mutually exclusive with approval pill (unassigned has no folder) */}
+      {isUnassigned && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 6,
+            left: 6,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            px: '6px',
+            py: '2px',
+            borderRadius: '4px',
+            bgcolor: alpha(theme.palette.background.paper, 0.9),
+            backdropFilter: 'blur(4px)',
+            color: theme.palette.mode === 'dark' ? theme.palette.warning.light : theme.palette.warning.dark,
+            border: `1px dashed ${alpha(theme.palette.warning.main, 0.5)}`,
+            zIndex: 1,
+          }}
+        >
+          <Typography sx={{ fontSize: 9, fontWeight: 700, lineHeight: 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            Unassigned
+          </Typography>
+        </Box>
+      )}
 
       {/* Persistent approval pill on the thumbnail (submittals + inspections only) */}
       {showApproval && (

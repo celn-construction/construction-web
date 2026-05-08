@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { Bell, UserPlus, List } from '@phosphor-icons/react';
+import { Bell, UserPlus, List as ListIcon } from '@phosphor-icons/react';
 import { Box, Typography, IconButton, Divider } from '@mui/material';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,17 +15,9 @@ import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useNavigationLoading } from '@/hooks/useNavigationLoading';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
-import { api } from '@/trpc/react';
-import ProjectSwitcher from './ProjectSwitcher';
+import Breadcrumb from './Breadcrumb';
+import IdentityMenu from './IdentityMenu';
 import LocationWeather from './LocationWeather';
-
-const PAGE_TITLES: Record<string, string> = {
-  gantt: 'Gantt Chart',
-  files: 'File Tree',
-  'document-explorer': 'Document Explorer',
-  team: 'Team',
-  settings: 'Project Settings',
-};
 
 interface HeaderProps {
   onMenuOpen?: () => void;
@@ -34,164 +25,168 @@ interface HeaderProps {
 
 export default function Header({ onMenuOpen }: HeaderProps) {
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
-  const pathname = usePathname();
 
   useNavigationLoading();
   const { activeOrganizationId, orgSlug } = useOrgFromUrl();
   const { currentProject } = useProjectSwitcher(activeOrganizationId, orgSlug);
 
-  const lastSegment = pathname.split('/').pop() ?? '';
-  const pageTitle = PAGE_TITLES[lastSegment] ?? null;
   const { unreadCount, notificationsData, markAsRead, markAllAsRead } = useNotifications(
     activeOrganizationId,
-    notifMenuOpen
+    notifMenuOpen,
   );
 
   return (
     <Box
       component="header"
       sx={{
-        px: 3,
-        pt: 1.5,
-        pb: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 0.75,
+        height: 60,
         flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 2,
+        px: { xs: 2, md: 2.5 },
+        bgcolor: 'background.paper',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
       }}
     >
-      {/* Row 1: Navigation + Location/Weather + Notifications */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+      {/* Left: mobile menu button + breadcrumb */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: 1 }}>
         {onMenuOpen && (
           <IconButton
             onClick={onMenuOpen}
             aria-label="Open menu"
-            sx={{ display: { xs: 'inline-flex', md: 'none' }, p: 0.5, '&:hover': { opacity: 0.7 } }}
-          >
-            <List size={20} weight="bold" />
-          </IconButton>
-        )}
-        {pageTitle && (
-          <>
-            <Typography sx={{ fontSize: 18, fontWeight: 700, color: 'text.primary', lineHeight: 1 }}>
-              {pageTitle}
-            </Typography>
-            <Typography sx={{ color: 'text.disabled', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>·</Typography>
-          </>
-        )}
-        <ProjectSwitcher />
-
-        {/* Spacer */}
-        <Box sx={{ flex: 1 }} />
-
-        {/* Location/Weather pill — right side of Row 1 */}
-        {currentProject?.location && activeOrganizationId && (
-          <LocationWeather location={currentProject.location} organizationId={activeOrganizationId} />
-        )}
-
-        {/* Notifications Bell */}
-      <DropdownMenu open={notifMenuOpen} onOpenChange={setNotifMenuOpen}>
-        <DropdownMenuTrigger asChild>
-          <IconButton
-            aria-label="Notifications"
             sx={{
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              position: 'relative',
+              display: { xs: 'inline-flex', md: 'none' },
+              p: 0.75,
               color: 'text.secondary',
-              bgcolor: 'action.hover',
-              '&:hover': { bgcolor: 'divider' },
+              '&:hover': { color: 'text.primary' },
             }}
           >
-            <Bell size={18} weight="regular" />
-            {unreadCount > 0 && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -2,
-                  right: -2,
-                  minWidth: 18,
-                  height: 18,
-                  bgcolor: 'primary.main',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: 'white',
-                  px: 0.375,
-                  lineHeight: 1,
-                }}
-              >
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </Box>
-            )}
+            <ListIcon size={20} weight="bold" />
           </IconButton>
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent align="end" className="w-80" style={{ maxHeight: 400, overflow: 'auto' }}>
-          <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography sx={{ fontSize: 14, fontWeight: 600 }}>Notifications</Typography>
-            {unreadCount > 0 && (
-              <Button
-                variant="text"
-                size="small"
-                onClick={() => markAllAsRead.mutate({ organizationId: activeOrganizationId })}
-                loading={markAllAsRead.isPending}
-                loadingPosition="start"
-                sx={{ fontSize: 12 }}
-              >
-                Mark all read
-              </Button>
-            )}
-          </Box>
-          <Divider />
-          {notificationsData?.notifications && notificationsData.notifications.length > 0 ? (
-            notificationsData.notifications.map((n) => (
-              <DropdownMenuItem
-                key={n.id}
-                onClick={() => {
-                  if (!n.read) markAsRead.mutate({ organizationId: activeOrganizationId, ids: [n.id] });
-                }}
-              >
-                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', width: '100%', p: 1.5 }}>
-                  <Box
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      bgcolor: 'primary.main',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <UserPlus size={16} weight="regular" color="white" />
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 13, mb: 0.5 }}>{n.message}</Typography>
-                    <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
-                      {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                    </Typography>
-                  </Box>
-                  {!n.read && (
-                    <Box sx={{ width: 8, height: 8, bgcolor: 'primary.main', borderRadius: '50%', flexShrink: 0, mt: 0.5 }} />
-                  )}
-                </Box>
-              </DropdownMenuItem>
-            ))
-          ) : (
-            <Box sx={{ p: 4, textAlign: 'center' }}>
-              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>No notifications</Typography>
-            </Box>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        )}
+        <Breadcrumb />
       </Box>
 
+      {/* Right: weather (when applicable) + notifications + identity */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {currentProject?.location && activeOrganizationId && (
+          <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+            <LocationWeather
+              location={currentProject.location}
+              organizationId={activeOrganizationId}
+            />
+          </Box>
+        )}
+
+        {/* Notifications */}
+        <DropdownMenu open={notifMenuOpen} onOpenChange={setNotifMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <IconButton
+              aria-label="Notifications"
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: '8px',
+                position: 'relative',
+                color: 'text.secondary',
+                '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+              }}
+            >
+              <Bell size={18} weight="regular" />
+              {unreadCount > 0 && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 6,
+                    right: 6,
+                    minWidth: 8,
+                    height: 8,
+                    bgcolor: 'error.main',
+                    borderRadius: '50%',
+                    border: '1.5px solid',
+                    borderColor: 'background.paper',
+                  }}
+                />
+              )}
+            </IconButton>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="end" className="w-80" style={{ maxHeight: 400, overflow: 'auto' }}>
+            <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 600 }}>Notifications</Typography>
+              {unreadCount > 0 && (
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => markAllAsRead.mutate({ organizationId: activeOrganizationId })}
+                  loading={markAllAsRead.isPending}
+                  loadingPosition="start"
+                  sx={{ fontSize: 12 }}
+                >
+                  Mark all read
+                </Button>
+              )}
+            </Box>
+            <Divider />
+            {notificationsData?.notifications && notificationsData.notifications.length > 0 ? (
+              notificationsData.notifications.map((n) => (
+                <DropdownMenuItem
+                  key={n.id}
+                  onClick={() => {
+                    if (!n.read) markAsRead.mutate({ organizationId: activeOrganizationId, ids: [n.id] });
+                  }}
+                >
+                  <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', width: '100%', p: 1.5 }}>
+                    <Box
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        bgcolor: 'primary.main',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <UserPlus size={16} weight="regular" color="white" />
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontSize: 13, mb: 0.5 }}>{n.message}</Typography>
+                      <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
+                        {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                      </Typography>
+                    </Box>
+                    {!n.read && (
+                      <Box sx={{ width: 8, height: 8, bgcolor: 'primary.main', borderRadius: '50%', flexShrink: 0, mt: 0.5 }} />
+                    )}
+                  </Box>
+                </DropdownMenuItem>
+              ))
+            ) : (
+              <Box sx={{ p: 4, textAlign: 'center' }}>
+                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>No notifications</Typography>
+              </Box>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Vertical divider between bell and identity */}
+        <Box
+          sx={{
+            width: '1px',
+            height: 22,
+            bgcolor: 'divider',
+            mx: 0.5,
+          }}
+        />
+
+        {/* Identity menu */}
+        <IdentityMenu />
+      </Box>
     </Box>
   );
 }

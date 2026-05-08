@@ -49,6 +49,9 @@ vi.mock("@/trpc/react", () => ({
           return mocks.listAllResult;
         },
       },
+      listOverdueSlots: {
+        useQuery: () => ({ data: undefined, isLoading: false }),
+      },
       // ApprovalToggle mocks (we don't render the toggle in these tests but
       // ReviewCard imports the toggle which calls these).
       setStatus: {

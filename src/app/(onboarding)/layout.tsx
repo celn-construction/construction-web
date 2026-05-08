@@ -1,5 +1,6 @@
 import { Box } from '@mui/material';
 import { BlueprintBackground } from '@/components/onboarding/BlueprintBackground';
+import UploadStatusChipsHost from '@/components/ui/UploadStatusChipsHost';
 
 export default function OnboardingLayout({
   children,
@@ -16,6 +17,7 @@ export default function OnboardingLayout({
     >
       <BlueprintBackground />
       {children}
+      <UploadStatusChipsHost />
     </Box>
   );
 }

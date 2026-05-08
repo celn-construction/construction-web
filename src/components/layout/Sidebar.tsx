@@ -3,27 +3,15 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, SealCheck, CaretRight, CaretLineLeft, CaretLineRight, SignOut, Sun, Moon, type Icon } from '@phosphor-icons/react';
-import { Box, Typography, Tooltip, Switch } from '@mui/material';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, SealCheck, CaretRight, CaretLineLeft, CaretLineRight, type Icon } from '@phosphor-icons/react';
+import { Box, Typography, Tooltip } from '@mui/material';
 import { projectNavItems, getProjectNavHref, SIDEBAR_SECTIONS } from './navItems';
 import OrgSwitcher from './OrgSwitcher';
 
 import { api } from '@/trpc/react';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
-import { authClient, signOut } from '@/lib/auth-client';
-import UserAvatar from '@/components/ui/UserAvatar';
 import { LogoIcon } from '@/components/ui/Logo';
-import LoadingSpinner from '@/components/ui/loading-spinner';
-import { useLoading } from '@/components/providers/LoadingProvider';
-import { useThemeMode } from '@/components/providers/ThemeRegistry';
-import AccountSettingsModal from './AccountSettingsModal';
 
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 64;
@@ -37,10 +25,6 @@ const iconMap: Record<string, Icon> = {
   UsersThree,
 };
 
-const profileMenuItems = [
-  { icon: GearSix, label: 'Account Settings' },
-];
-
 interface SidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -50,12 +34,6 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
   const { orgSlug, projectSlug } = params;
-  const router = useRouter();
-
-  const { data: session } = authClient.useSession();
-  const user = session?.user;
-  const { showLoading, hideLoading } = useLoading();
-  const { mode: themeMode, toggleMode: toggleThemeMode } = useThemeMode();
 
   const { activeOrganizationId } = useOrgFromUrl();
   const { currentProject } = useProjectSwitcher(activeOrganizationId, orgSlug ?? '');
@@ -66,9 +44,6 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   );
   const memberCount = projectMembers.length;
 
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
 
   // Pulse badge when memberCount changes (triggers once on initial query load, then on any update)
@@ -84,27 +59,6 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   useEffect(() => {
     setIsMac(/Mac/.test(navigator.userAgent));
   }, []);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    showLoading('Logging out...');
-    try {
-      await signOut({
-        fetchOptions: {
-          onSuccess: () => {
-            hideLoading();
-            setProfileOpen(false);
-            router.push('/sign-in');
-            router.refresh();
-          },
-        },
-      });
-    } catch (error) {
-      console.error('Logout failed:', error);
-      setIsLoggingOut(false);
-      hideLoading();
-    }
-  };
 
   return (
     <Box
@@ -130,36 +84,70 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
           gap: 1,
-          height: 48,
+          height: 60,
           px: collapsed ? 0 : 1.75,
           borderBottom: '1px solid',
           borderColor: 'divider',
           color: 'text.primary',
           userSelect: 'none',
           overflow: 'hidden',
+          flexShrink: 0,
         }}
         aria-label="BuildTrack Pro"
       >
         <LogoIcon size={20} />
         {!collapsed && (
-          <Typography
-            sx={{
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              lineHeight: 1,
-              letterSpacing: '-0.01em',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            BuildTrack Pro
-          </Typography>
+          <>
+            <Typography
+              sx={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                lineHeight: 1,
+                letterSpacing: '-0.01em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                flex: 1,
+              }}
+            >
+              BuildTrack Pro
+            </Typography>
+            <Tooltip
+              title={`Collapse sidebar (${isMac ? '⌘' : 'Ctrl+'}B)`}
+              placement="bottom"
+            >
+              <Box
+                component="button"
+                onClick={onToggleCollapse}
+                aria-label="Collapse sidebar"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 28,
+                  height: 28,
+                  flexShrink: 0,
+                  borderRadius: '6px',
+                  border: 'none',
+                  bgcolor: 'transparent',
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s, color 0.15s',
+                  '&:hover': {
+                    bgcolor: 'sidebar.hoverBg',
+                    color: 'text.primary',
+                  },
+                }}
+              >
+                <CaretLineLeft size={14} weight="bold" />
+              </Box>
+            </Tooltip>
+          </>
         )}
       </Box>
 
       {/* Org Header */}
-      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+      <Box sx={{ overflow: 'hidden' }}>
         {collapsed ? (
           <Tooltip title="Expand sidebar" placement="right">
             <Box
@@ -477,203 +465,6 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           </Tooltip>
         </Box>
       </Box>
-
-      {/* User Profile */}
-      <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
-        <DropdownMenuTrigger asChild>
-          <Box
-            component="button"
-            sx={{
-              borderTop: '1px solid',
-              borderColor: 'divider',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              gap: collapsed ? 0 : 1.25,
-              px: collapsed ? 0 : 1.75,
-              py: 1.5,
-              width: '100%',
-              bgcolor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'text.secondary',
-              transition: 'all 0.15s ease',
-              '&:hover': {
-                bgcolor: 'sidebar.hoverBg',
-              },
-            }}
-          >
-            {user && (
-              <UserAvatar user={user} size={32} borderRadius="8px" />
-            )}
-
-            {!collapsed && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '2px' }}>
-                <Typography
-                  sx={{
-                    fontSize: '0.8125rem',
-                    fontWeight: 550,
-                    color: 'text.primary',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
-                    textAlign: 'left',
-                  }}
-                >
-                  {user?.name ?? 'User'}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '0.6875rem',
-                    color: 'text.secondary',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
-                    textAlign: 'left',
-                  }}
-                >
-                  {user?.email ?? ''}
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent
-          align="start"
-          sideOffset={8}
-          anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-          transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-          style={{ width: 240, padding: 0, overflow: 'hidden', borderRadius: 12 }}
-        >
-          {/* Profile Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: '14px' }}>
-            {user && <UserAvatar user={user} size={36} borderRadius="8px" />}
-            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-              <Typography
-                sx={{
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                  color: 'text.primary',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.2,
-                }}
-              >
-                {user?.name ?? 'User'}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.6875rem',
-                  color: 'text.secondary',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.2,
-                  mt: '2px',
-                }}
-              >
-                {user?.email ?? ''}
-              </Typography>
-            </Box>
-          </Box>
-
-          <Box sx={{ height: '1px', bgcolor: 'divider' }} />
-
-          {/* Menu Items */}
-          <Box sx={{ py: '4px', px: '6px' }}>
-            {profileMenuItems.map((item) => (
-              <Box
-                key={item.label}
-                component="button"
-                onClick={() => {
-                  setProfileOpen(false);
-                  setSettingsOpen(true);
-                }}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  width: '100%',
-                  px: '10px',
-                  py: '8px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  bgcolor: 'transparent',
-                  color: 'text.primary',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.15s',
-                  '&:hover': { bgcolor: 'action.hover' },
-                }}
-              >
-                <item.icon size={14} />
-                <Typography sx={{ fontSize: '0.8125rem', color: 'inherit' }}>
-                  {item.label}
-                </Typography>
-              </Box>
-            ))}
-
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                px: '10px',
-                py: '6px',
-              }}
-            >
-              {themeMode === 'dark' ? <Sun size={14} color="var(--text-secondary)" /> : <Moon size={14} color="var(--text-secondary)" />}
-              <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', flex: 1 }}>
-                Dark mode
-              </Typography>
-              <Switch
-                checked={themeMode === 'dark'}
-                onChange={toggleThemeMode}
-                size="small"
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: 'primary.main' },
-                }}
-              />
-            </Box>
-          </Box>
-
-          <Box sx={{ height: '1px', bgcolor: 'divider' }} />
-
-          {/* Log Out */}
-          <Box
-            component="button"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              px: '14px',
-              py: '10px',
-              border: 'none',
-              bgcolor: 'transparent',
-              cursor: 'pointer',
-              color: 'error.main',
-              transition: 'background-color 0.15s',
-              '&:hover': { bgcolor: 'action.hover' },
-              '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
-            }}
-          >
-            <SignOut size={14} />
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'inherit' }}>
-              Log out
-            </Typography>
-          </Box>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <AccountSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </Box>
   );
 }
