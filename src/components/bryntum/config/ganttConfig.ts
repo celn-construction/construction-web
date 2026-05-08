@@ -31,8 +31,6 @@ function formatTooltipText(record: Record<string, unknown>, field?: string): str
   return String(value);
 }
 
-// Debounce timer so a double-click (edit) cancels the single-click scroll
-
 interface LoadingCallbacks {
   onLoadStart?: () => void;
   onLoadComplete?: () => void;
@@ -119,13 +117,6 @@ export function createGanttConfig(
               { tag: 'span', class: 'gantt-name-text', text: String(value ?? '') },
               {
                 tag: 'button',
-                class: 'gantt-row-scroll-btn',
-                type: 'button',
-                dataset: { taskId: String(record.id) },
-                html: '<i class="fa-solid fa-arrow-right-to-bracket"></i>',
-              },
-              {
-                tag: 'button',
                 class: 'gantt-row-actions-btn',
                 type: 'button',
                 dataset: { taskId: String(record.id) },
@@ -135,8 +126,8 @@ export function createGanttConfig(
           };
         },
       },
-      // Single-clicking the name cell scrolls the timeline to the task's bar (see cellClick listener).
-      // Double-clicking starts inline name editing (Bryntum native behavior).
+      // Double-clicking the name cell starts inline name editing (Bryntum native behavior).
+      // Right-click opens the task context menu (includes "Scroll to item").
       {
         type: 'startdate',
         field: 'startDate',
@@ -185,10 +176,37 @@ export function createGanttConfig(
       // Theme all Bryntum context menus to match the app's light palette.
       // The marker class is applied to the floating `.b-menu` element so our
       // CSS overrides in globals.css stay scoped to Gantt menus.
-      taskMenu: { cls: 'gantt-themed-menu' },
+      //
+      // taskMenu intentionally NOT here — passed as the top-level
+      // `taskMenuFeature` prop on <BryntumGantt> in BryntumGanttWrapper so its
+      // `items` / `processItems` config is honored by the React wrapper. When
+      // nested under `features` here, the wrapper translates it via its
+      // `features → ${key}Feature` rewriter and the `processItems` callback
+      // never fires.
       cellMenu: { cls: 'gantt-themed-menu' },
       scheduleMenu: { cls: 'gantt-themed-menu' },
       dependencyMenu: { cls: 'gantt-themed-menu' },
+      // Dependencies — enables:
+      //   1. Drag-to-create arrows from one task's edge to another's
+      //      (Finish-to-Start by default; drag direction picks the type)
+      //   2. The `addDependency` / `removeDependency` items in the right-
+      //      click TaskMenu (which were previously permanently disabled)
+      //   3. Auto-rescheduling: moving a predecessor shifts its successors
+      //
+      // Plumbing already in place — the dependencyStore is loaded from
+      // /api/gantt/load and synced via /api/gantt/sync, so creates/deletes
+      // round-trip to the DB without further API work.
+      //
+      // To REVERT: set this to `false` (or delete the line). Existing
+      // dependency rows in the DB stay; they just stop rendering. No
+      // schema migration needed.
+      //
+      // History context: the team built+removed a custom SVG dep system
+      // during the kibo-ui era (commits 856d7a6 → 22a382f / 0a2cbf7 /
+      // b0a1630 / ac717e2). When migrating to Bryntum, the feature was
+      // never re-enabled — see claudedocs/components-guide.md (Bryntum
+      // section) for the broader migration story.
+      dependencies: true,
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     presets: [

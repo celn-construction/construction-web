@@ -571,53 +571,252 @@ body {
 }
 
 /* ============================================
-   Bryntum Gantt — Context Menu Theming
-   The menu floats at the document body level (outside .bryntum-gantt-container),
-   so these rules are global and keyed on the `gantt-themed-menu` marker class
-   applied via feature configs (taskMenu, cellMenu, scheduleMenu, dependencyMenu).
+   Bryntum Menu Theming — applies to all floating Bryntum menus (taskMenu,
+   cellMenu, scheduleMenu, dependencyMenu, and the programmatic row-action
+   Menu). Bryntum exposes its menu chrome through CSS custom properties on
+   `.b-menu.b-popup`, so we override those instead of fighting specificity
+   with !important. MUI/other menus do not carry `.b-menu`, so this is safe.
 
-   Bryntum's menu is built on CSS custom properties — overriding them at the
-   menu scope is cleaner than chasing !important through specific selectors.
-   Key classes: `.b-menu.b-popup` (container), `.b-menu-item`, `.b-menu-text`,
-   `.b-menu-item-icon`, `.b-menu-item.b-separator` (separator rendered as ::before).
+   Microinteractions follow the Linear/Raycast philosophy: motion implies,
+   never decorates. Container fades in fast, items cascade top-to-bottom,
+   hover translates icons 1px to suggest forward intent. All transforms
+   are gated behind `prefers-reduced-motion` for accessibility.
    ============================================ */
 
-.b-menu.gantt-themed-menu.b-popup {
+/* Container pop — quick, subtle */
+@keyframes gantt-menu-pop {
+  from { opacity: 0; transform: scale(0.98) translateY(-3px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Items cascade in from above — implies top-to-bottom reading order */
+@keyframes gantt-menu-item-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.b-menu.b-popup {
   /* Container */
   --b-menu-background: var(--bg-card);
   --b-menu-padding: 4px;
-  --b-popup-border-radius: var(--radius-sm);
   --b-menu-border-radius: var(--radius-sm);
 
-  /* Item spacing + shape (hover pill tucks inside the rounded container) */
-  --b-menu-item-padding: 0.5em 0.75em;
-  --b-menu-item-min-width: 14em;
+  /* Item geometry — comfortable click targets (~32px tall, matches macOS) */
+  --b-menu-item-padding: 7px 12px;
+  --b-menu-item-gap: 10px;
+  --b-menu-item-min-width: 13em;
   --b-menu-item-border-radius: 6px;
+  --b-menu-item-icon-width: 14px;
+  --b-menu-item-font-weight: 450;
 
-  /* Item colors — light theme */
+  /* Item colors */
   --b-menu-item-color: var(--text-primary);
   --b-menu-item-icon-color: var(--text-secondary);
   --b-menu-item-background: transparent;
 
-  /* Hover / focus — subtle grey wash, darker icon */
-  --b-menu-item-hover-background: var(--bg-hover);
+  /* Hover / focus — slightly heavier than --bg-hover so the pill reads as
+     "interactable" rather than ambient. Light: ~4% black; dark: ~6% white. */
+  --menu-item-hover-bg: rgba(0, 0, 0, 0.045);
+  --menu-item-active-bg: rgba(0, 0, 0, 0.07);
+  --b-menu-item-hover-background: var(--menu-item-hover-bg);
   --b-menu-item-hover-color: var(--text-primary);
   --b-menu-item-hover-icon-color: var(--text-primary);
-  --b-menu-item-focus-background: var(--bg-hover);
+  --b-menu-item-focus-background: var(--menu-item-hover-bg);
   --b-menu-item-focus-color: var(--text-primary);
   --b-menu-item-focus-icon-color: var(--text-primary);
 
-  /* Disabled (Paste, Indent, Outdent, etc.) */
+  /* Disabled */
   --b-menu-item-disabled-color: var(--text-muted);
   --b-menu-item-disabled-icon-color: var(--text-muted);
 
-  /* Separator — pulled in from the rounded edges */
+  /* Separator — thin, inset from the rounded edges */
   --b-menu-item-separator-border-color: var(--border-light);
-  --b-menu-item-separator-inset: 0.5em;
+  --b-menu-item-separator-inset: 6px;
+  --b-menu-item-separator-height: 1px;
 
   border: 1px solid var(--border-color);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  border-radius: var(--radius-sm);
+  box-shadow:
+    0 8px 28px rgba(15, 23, 42, 0.10),
+    0 2px 6px rgba(15, 23, 42, 0.04);
   font-family: inherit;
-  /* Clip any stray hover backgrounds to the outer rounded corners */
+  font-size: 0.8125rem;
+  line-height: 1.4;
   overflow: hidden;
+  transform-origin: top left;
+  animation: gantt-menu-pop 0.10s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+[data-theme="dark"] .b-menu.b-popup {
+  --menu-item-hover-bg: rgba(255, 255, 255, 0.06);
+  --menu-item-active-bg: rgba(255, 255, 255, 0.10);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Per-item entrance — cascade from top, capped at 5 stagger steps so very
+   long menus don't drag (everything past item 6 lands together at 90ms). */
+.b-menu.b-popup .b-menu-item {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  transition:
+    background-color 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: gantt-menu-item-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0ms;
+}
+.b-menu.b-popup .b-menu-item:nth-child(2) { animation-delay: 18ms; }
+.b-menu.b-popup .b-menu-item:nth-child(3) { animation-delay: 36ms; }
+.b-menu.b-popup .b-menu-item:nth-child(4) { animation-delay: 54ms; }
+.b-menu.b-popup .b-menu-item:nth-child(5) { animation-delay: 72ms; }
+.b-menu.b-popup .b-menu-item:nth-child(n+6) { animation-delay: 90ms; }
+
+/* Press feedback — slightly darker bg, no scale (scale on a flex row
+   pushes siblings around). Tactile but stable. */
+.b-menu.b-popup .b-menu-item:not(.b-disabled):active {
+  --b-menu-item-hover-background: var(--menu-item-active-bg);
+  --b-menu-item-focus-background: var(--menu-item-active-bg);
+  transition-duration: 0.04s;
+}
+
+/* Icon — subtle 1px translate on hover suggests "forward into this action".
+   Spring curve overshoots briefly, then settles. */
+.b-menu.b-popup .b-menu-item-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  transition:
+    color 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.b-menu.b-popup .b-menu-item:not(.b-disabled):hover .b-menu-item-icon,
+.b-menu.b-popup .b-menu-item:not(.b-disabled):focus-within .b-menu-item-icon {
+  transform: translateX(1px);
+}
+
+/* Submenu chevron — points where the action goes; on hover, it leans that way */
+.b-menu.b-popup .b-menu-item .b-icon-sub-menu {
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), color 0.12s ease;
+}
+
+.b-menu.b-popup .b-menu-item:not(.b-disabled):hover .b-icon-sub-menu,
+.b-menu.b-popup .b-menu-item:not(.b-disabled):focus-within .b-icon-sub-menu {
+  transform: translateX(2px);
+  color: var(--text-secondary);
+}
+
+.b-menu.b-popup .b-menu-item.b-disabled .b-menu-item-icon {
+  opacity: 0.6;
+}
+
+/* Disabled rows — not-allowed cursor signals "you can't click this". The
+   hover-tint highlight is suppressed so the row doesn't pretend to be
+   actionable. A tooltip explaining WHY each item is disabled is wired up
+   in `processItems` (BryntumGanttWrapper.tsx). */
+.b-menu.b-popup .b-menu-item.b-disabled {
+  cursor: not-allowed !important;
+}
+
+.b-menu.b-popup .b-menu-item.b-disabled:hover,
+.b-menu.b-popup .b-menu-item.b-disabled:focus-within {
+  background: transparent !important;
+}
+
+.b-menu.b-popup .b-menu-item.b-disabled:hover .b-menu-item-icon,
+.b-menu.b-popup .b-menu-item.b-disabled:focus-within .b-menu-item-icon {
+  transform: none !important;
+}
+
+/* Hide Cut/Paste menu rows. Bryntum's TaskCopyPaste feature uses several
+   ref names across versions — listing all known variants ensures the rule
+   matches whichever Bryntum is on. JS `processItems` filtering is a
+   second line of defense in BryntumGanttWrapper.tsx. */
+.b-menu.b-popup .b-menu-item[data-ref="cutTask"],
+.b-menu.b-popup .b-menu-item[data-ref="pasteTask"],
+.b-menu.b-popup .b-menu-item[data-ref="cut"],
+.b-menu.b-popup .b-menu-item[data-ref="paste"],
+.b-menu.b-popup .b-menu-item[data-ref="cutRecord"],
+.b-menu.b-popup .b-menu-item[data-ref="pasteRecord"],
+.b-menu.b-popup .b-menu-item[data-ref="cutEvent"],
+.b-menu.b-popup .b-menu-item[data-ref="pasteEvent"] {
+  display: none !important;
+}
+
+/* Destructive items — Delete by built-in trash icon, plus opt-in classes
+   for menus we author programmatically (row-action `gantt-action-danger`,
+   future `menu-item-danger`). */
+.b-menu.b-popup .b-menu-item:has(.b-icon-trash),
+.b-menu.b-popup .b-menu-item.gantt-action-danger,
+.b-menu.b-popup .b-menu-item.menu-item-danger {
+  --b-menu-item-color: var(--status-red);
+  --b-menu-item-icon-color: var(--status-red);
+  --b-menu-item-hover-color: var(--status-red);
+  --b-menu-item-hover-icon-color: var(--status-red);
+  --b-menu-item-focus-color: var(--status-red);
+  --b-menu-item-focus-icon-color: var(--status-red);
+  --b-menu-item-hover-background: rgba(220, 38, 38, 0.08);
+  --b-menu-item-focus-background: rgba(220, 38, 38, 0.08);
+}
+
+.b-menu.b-popup .b-menu-item:has(.b-icon-trash):active,
+.b-menu.b-popup .b-menu-item.gantt-action-danger:active,
+.b-menu.b-popup .b-menu-item.menu-item-danger:active {
+  --b-menu-item-hover-background: rgba(220, 38, 38, 0.14);
+  --b-menu-item-focus-background: rgba(220, 38, 38, 0.14);
+}
+
+/* Disabled-item tooltip — side-aligned, themed to match the menu.
+   Set as `gantt-disabled-tooltip` cls in processItems (BryntumGanttWrapper).
+   Bryntum tooltips render as .b-tooltip + .b-popup; the cls lands on
+   the popup, so we key off the same .b-popup root. */
+.b-tooltip.gantt-disabled-tooltip.b-popup {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow:
+    0 8px 28px rgba(15, 23, 42, 0.10),
+    0 2px 6px rgba(15, 23, 42, 0.04);
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-family: inherit;
+  max-width: 240px;
+  /* Leave a small breathing gap between the menu edge and the tooltip
+     so they don't visually merge. */
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+/* The little arrow that points from the tooltip back at the menu item. */
+.b-tooltip.gantt-disabled-tooltip.b-popup .b-pointer-el {
+  --b-tooltip-pointer-color: var(--bg-card);
+}
+
+[data-theme="dark"] .b-tooltip.gantt-disabled-tooltip.b-popup {
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* WCAG 2.3.3 — honor system "Reduce motion" preference. Users with
+   vestibular disorders cannot opt-out of animation any other way. */
+@media (prefers-reduced-motion: reduce) {
+  .b-menu.b-popup,
+  .b-menu.b-popup .b-menu-item {
+    animation: none;
+  }
+  .b-menu.b-popup .b-menu-item-icon,
+  .b-menu.b-popup .b-menu-item .b-icon-sub-menu {
+    transition-property: color;
+  }
+  .b-menu.b-popup .b-menu-item:hover .b-menu-item-icon,
+  .b-menu.b-popup .b-menu-item:hover .b-icon-sub-menu,
+  .b-menu.b-popup .b-menu-item:focus-within .b-menu-item-icon,
+  .b-menu.b-popup .b-menu-item:focus-within .b-icon-sub-menu {
+    transform: none;
+  }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
 import { Menu } from '@bryntum/gantt';
 import '@bryntum/gantt/gantt.css';
@@ -72,7 +72,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     enableStm,
   } = ganttControls;
 
-  const errorColor = '#D93C15';
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [conflictOpen, setConflictOpen] = useState(false);
@@ -544,21 +543,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     const onCellClick = ({ record, column, event }: { record: any; column: { type: string }; event: MouseEvent }) => {
       const target = event.target as HTMLElement;
 
-      // Scroll-to-task button — centers the timeline on the task's start date.
-      // NOTE: scrollTaskIntoView corrupts the time axis header virtual renderer,
-      // so we use the timeAxis subgrid's scrollable to scroll horizontally instead.
-      const scrollBtn = target.closest('.gantt-row-scroll-btn') as HTMLElement | null;
-      if (scrollBtn && column.type === 'name') {
-        event.stopPropagation();
-        const taskRecord = record as BryntumTaskRecord;
-        const startDate = taskRecord.startDate as Date | undefined;
-        if (startDate) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-          (gantt as any).scrollToDate(startDate, { block: 'center', animate: 300 });
-        }
-        return;
-      }
-
       const btn = target.closest('.gantt-row-actions-btn') as HTMLElement | null;
       if (!btn || column.type !== 'name') return;
 
@@ -646,6 +630,123 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     };
   }, [isLoading, getGanttInstance, closeTaskPopover, editingUnlocked]);
 
+  // taskMenu config — passed as the top-level `taskMenuFeature` prop on
+  // <BryntumGantt> below. NOT via `features.taskMenu` in the config object —
+  // the React wrapper's `features → ${key}Feature` translation drops function
+  // values like `onItem`/`processItems`, so the menu item never receives its
+  // handler. The top-level prop is honored verbatim by the wrapper.
+  // See Bryntum docs for `features.taskMenu` config:
+  // https://bryntum.com/products/gantt/docs/api/Gantt/feature/TaskMenu
+  const taskMenuFeature = useMemo(() => ({
+    cls: 'gantt-themed-menu',
+    items: {
+      scrollToItem: {
+        text: 'Scroll to item',
+        // b-icon-search (magnifying glass) is in the bundled Bryntum CSS;
+        // FA crosshair classes aren't in the slimmed FA subset this app loads.
+        icon: 'b-icon b-icon-eye',
+        // weight 50 sits above "Show details" (default ~100), pinning the
+        // navigation action at the very top of the menu.
+        weight: 50,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onItem({ taskRecord, source }: { taskRecord: any; source: any }) {
+          const gantt = source?.client ?? getGanttInstance();
+          if (!gantt || !taskRecord?.startDate) return;
+          // scrollToDate is the proven-safe path — `scrollTaskIntoView`
+          // corrupts the time-axis header virtual renderer.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          gantt.scrollToDate(taskRecord.startDate, { block: 'center', animate: 300 });
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          gantt.selectedRecords = [taskRecord];
+        },
+      },
+    },
+    // Two jobs in this callback:
+    //
+    // 1. Hide Cut/Paste rows. They are injected by the separate
+    //    `taskCopyPaste` feature; we filter by display text since `text`
+    //    is the only stable cross-version identifier for those two items.
+    //    CSS in globals.css is the second line of defense via data-ref
+    //    selectors. Keyboard shortcuts stay bound either way.
+    //
+    // 2. Attach a tooltip explaining WHY each disabled item can't be used,
+    //    so the user sees context instead of a silent dead row.
+    //
+    //    Important: at `processItems` time, Bryntum stores each item's
+    //    `text` as a localization key (e.g. 'L{addDependency}') and only
+    //    resolves it to a display string at render time. So we key
+    //    `disabledReasons` on the ITEM REF (the property name in the items
+    //    object) — that's the stable identifier at this lifecycle stage.
+    //
+    //    The dominant cause of disabled write actions in this app is
+    //    `gantt.readOnly`, which is wired to the chart's edit-lock toggle
+    //    (see line 118: `gantt.readOnly = !editingUnlocked`). When the
+    //    lock is on, every write item gets disabled in one sweep — surface
+    //    that directly so the user knows to unlock the chart.
+    //
+    //    Pairs with `cursor: not-allowed` on .b-disabled in globals.css.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    processItems({ items }: { items: Record<string, any> }) {
+      const gantt = getGanttInstance();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      const isLocked = !!(gantt as any)?.readOnly;
+
+      // Reasons keyed by the REAL Bryntum 7.2 task-menu refs (verified from
+      // a runtime dump — see git history for the diagnostic that confirmed
+      // these names). `linkTasks` / `unlinkTasks` are the dependency-related
+      // items; they were previously assumed to be `addDependency` /
+      // `removeDependency`, which never matched.
+      const reasonsByRef: Record<string, string> = {
+        // linkTasks is multi-select chain: select 2+ tasks (Cmd-click in the
+        // grid), right-click → Bryntum links them in sequence. With one task
+        // it's permanently disabled by design. Drag-to-create from a task's
+        // edge handle is the alternative single-dep flow (enabled by the
+        // `dependencies: true` feature in ganttConfig.ts).
+        linkTasks: 'Select 2 or more tasks to link them in sequence, or drag from a task\'s edge to another to create a single dependency',
+        unlinkTasks: 'Select 2 or more linked tasks to remove the dependencies between them',
+        indent: 'No task above this one to nest under',
+        outdent: 'This task is already at the top level',
+        deleteTask: 'This task cannot be deleted right now',
+        editTask: 'Editing this task is unavailable',
+        convertToMilestone: 'This task cannot be converted to a milestone',
+        add: 'Add is unavailable for this task',
+        addTaskAbove: 'Cannot add a task above this one',
+        addTaskBelow: 'Cannot add a task below this one',
+        addSubtask: 'Cannot add a subtask to this task',
+        addMilestone: 'Cannot add a milestone here',
+        copy: 'Nothing to copy',
+        paste: 'Cut or copy a task first',
+      };
+
+      for (const ref of Object.keys(items)) {
+        const item = items[ref];
+        // Hide Cut/Paste by REF (the lowercase Bryntum key) rather than by
+        // text. Bryntum stores `text` as a localization key like `L{cut}`,
+        // so the old `text === 'Cut'` check never matched — the CSS
+        // `[data-ref="cut"]` rule was doing all the actual hiding.
+        if (ref === 'cut' || ref === 'paste' || ref === 'cutTask' || ref === 'pasteTask') {
+          delete items[ref];
+          continue;
+        }
+        if (item && typeof item === 'object' && item.disabled && !item.tooltip) {
+          const reason = isLocked
+            ? 'Editing is locked — click the lock icon in the toolbar to unlock the chart'
+            : reasonsByRef[ref] ?? 'This action is unavailable for this task';
+          // Tooltip object (not a bare string) so we can pin alignment to
+          // the side of the item — `l-r` = my LEFT edge against item's
+          // RIGHT edge → tooltip floats out the right side of the menu,
+          // away from the menu items themselves. Bryntum's collision
+          // detection auto-flips to the left if the right edge is clipped.
+          item.tooltip = {
+            html: reason,
+            align: 'l-r',
+            cls: 'gantt-disabled-tooltip',
+          };
+        }
+      }
+    },
+  }), [getGanttInstance]);
+
   // Close any open row-action menu the moment the chart is locked.
   useEffect(() => {
     if (editingUnlocked) return;
@@ -675,7 +776,8 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       />
 
       {/* Bryntum must always render in a visible container so its internal layout
-          calculations use real dimensions.  The loading/error overlays sit on top. */}
+          calculations use real dimensions. The loading/error overlays sit on top.
+          Menu theming for all Bryntum context menus lives in globals.css. */}
       <style>{`
         .bryntum-gantt-container .b-tree-cell { cursor: pointer; }
         .bryntum-gantt-container .b-gantt-task.b-task-selected {
@@ -720,57 +822,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         .bryntum-gantt-container[data-locked="true"] .gantt-row-actions-btn {
           display: none;
         }
-        /* Scroll-to-task button — left of the ⋮ button, uses FA crosshairs icon */
-        .gantt-row-scroll-btn {
-          flex-shrink: 0;
-          background: none;
-          border: none;
-          box-shadow: none;
-          min-width: 0;
-          padding: 4px 4px;
-          cursor: pointer;
-          border-radius: 4px;
-          color: var(--text-secondary, #8D99AE);
-          font-size: 13px;
-          line-height: 1;
-        }
-        .gantt-row-scroll-btn:hover {
-          background: var(--bg-hover, rgba(0, 0, 0, 0.04));
-          color: var(--text-primary, #2B2D42);
-        }
-        /* Row actions dropdown menu — clean card style */
-        .b-menu:has(.gantt-action-danger) {
-          border-radius: 10px !important;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
-          border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08)) !important;
-          padding: 4px 0 !important;
-          overflow: hidden;
-        }
-        .b-menu:has(.gantt-action-danger) .b-menuitem {
-          padding: 8px 16px !important;
-          font-size: 13px !important;
-          font-weight: 500 !important;
-          border-radius: 0 !important;
-          gap: 10px !important;
-        }
-        .b-menu:has(.gantt-action-danger) .b-menuitem:hover {
-          background: var(--hover-bg, rgba(0, 0, 0, 0.04)) !important;
-        }
-        .b-menu:has(.gantt-action-danger) .b-menuitem .b-icon {
-          font-size: 14px !important;
-          width: 18px !important;
-          text-align: center;
-        }
-        .b-menu:has(.gantt-action-danger) .b-menu-separator {
-          margin: 4px 0 !important;
-        }
-        /* Delete action red text */
-        .gantt-action-danger {
-          color: ${errorColor} !important;
-        }
-        .gantt-action-danger .b-icon {
-          color: ${errorColor} !important;
-        }
       `}</style>
 
       <div
@@ -779,7 +830,11 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         data-locked={editingUnlocked ? 'false' : 'true'}
       >
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <BryntumGantt ref={ganttRef} {...ganttConfig} />
+          <BryntumGantt
+            ref={ganttRef}
+            {...ganttConfig}
+            taskMenuFeature={taskMenuFeature}
+          />
         </div>
 
         {isLoading && (
