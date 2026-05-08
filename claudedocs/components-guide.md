@@ -251,7 +251,6 @@ bryntum/
   components/
     TaskDetailsPopover.tsx
     BryntumPanelHeader.tsx
-    CsiCodeSelector.tsx
     task-popover/             ← extracted sub-components for TaskDetailsPopover
       types.ts
       TaskHeader.tsx
