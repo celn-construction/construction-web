@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography, alpha, useTheme } from '@mui/material';
 import { SlidersHorizontal, X, SquareCheck, CircleDashed } from 'lucide-react';
 import type { LinkFilter } from '@/components/documents/DocumentFilterPopup';
 
@@ -15,22 +15,28 @@ const FOLDER_LABELS: Record<string, string> = {
 interface DocumentFilterTabsProps {
   selectedTypes: string[];
   linkFilter: LinkFilter;
+  unassignedCount?: number;
   onOpenPopup: (e: React.MouseEvent<HTMLElement>) => void;
   onRemoveType: (type: string) => void;
   onRemoveLinkFilter: () => void;
+  onToggleUnassigned?: () => void;
   isLoading?: boolean;
 }
 
 export default function DocumentFilterTabs({
   selectedTypes,
   linkFilter,
+  unassignedCount = 0,
   onOpenPopup,
   onRemoveType,
   onRemoveLinkFilter,
+  onToggleUnassigned,
   isLoading,
 }: DocumentFilterTabsProps) {
   const theme = useTheme();
   const activeCount = selectedTypes.length + (linkFilter !== 'all' ? 1 : 0);
+  const isUnassignedActive = linkFilter === 'unlinked';
+  const showUnassignedChip = unassignedCount > 0 || isUnassignedActive;
 
   if (isLoading) {
     return <Box sx={{ mb: 2 }} />;
@@ -92,6 +98,58 @@ export default function DocumentFilterTabs({
         )}
       </Box>
 
+      {/* Unassigned quick-filter chip — leading position so it's the first thing users see when there's a backlog */}
+      {showUnassignedChip && onToggleUnassigned && (
+        <Box
+          component="button"
+          onClick={onToggleUnassigned}
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            borderRadius: '999px',
+            px: '12px',
+            py: '6px',
+            cursor: 'pointer',
+            border: '1px dashed',
+            borderColor: isUnassignedActive
+              ? theme.palette.warning.main
+              : alpha(theme.palette.warning.main, 0.4),
+            bgcolor: isUnassignedActive
+              ? alpha(theme.palette.warning.main, 0.16)
+              : alpha(theme.palette.warning.main, 0.08),
+            color: theme.palette.warning.dark,
+            transition: 'all 0.15s',
+            '&:hover': {
+              bgcolor: alpha(theme.palette.warning.main, 0.16),
+              borderColor: theme.palette.warning.main,
+            },
+          }}
+        >
+          <CircleDashed style={{ width: 12, height: 12 }} />
+          <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'inherit' }}>
+            Unassigned
+          </Typography>
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 18,
+              height: 18,
+              px: '5px',
+              borderRadius: '999px',
+              bgcolor: isUnassignedActive ? theme.palette.warning.main : alpha(theme.palette.warning.main, 0.18),
+              color: isUnassignedActive ? '#fff' : theme.palette.warning.dark,
+            }}
+          >
+            <Typography sx={{ fontSize: 10, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+              {unassignedCount}
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
       {/* Active document type chips */}
       {selectedTypes.map((type) => (
         <Box key={type} sx={activeChipSx}>
@@ -117,8 +175,8 @@ export default function DocumentFilterTabs({
         </Box>
       ))}
 
-      {/* Active link filter chip */}
-      {linkFilter !== 'all' && (
+      {/* Active link filter chip — only shown for "linked"; "unlinked" uses the dedicated Unassigned chip above */}
+      {linkFilter === 'linked' && (
         <Box sx={activeChipSx}>
           {linkFilter === 'linked' ? (
             <SquareCheck style={{ width: 12, height: 12, color: theme.palette.docExplorer.linkedGreen, flexShrink: 0 }} />

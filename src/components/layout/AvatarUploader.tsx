@@ -1,12 +1,13 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { Camera } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
+import { trackUpload } from '@/store/uploadStatusStore';
 
 interface AvatarUploaderProps {
   user: {
@@ -41,28 +42,21 @@ export default function AvatarUploader({
     if (!file) return;
 
     setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+    const result = await trackUpload(
+      file,
+      () => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return fetch('/api/upload/avatar', { method: 'POST', body: formData });
+      },
+      { doneLabel: 'Profile photo updated' },
+    );
+    setIsUploading(false);
 
-      const res = await fetch('/api/upload/avatar', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const { error } = (await res.json().catch(() => ({ error: 'Upload failed' }))) as {
-          error?: string;
-        };
-        throw new Error(error || 'Upload failed');
-      }
-
+    if (result.ok) {
       await utils.user.me.invalidate();
-      showSnackbar('Profile photo updated', 'success');
-    } catch (err) {
-      showSnackbar(err instanceof Error ? err.message : 'Upload failed', 'error');
-    } finally {
-      setIsUploading(false);
+    } else if (result.error) {
+      showSnackbar(result.error, 'error');
     }
   };
 
@@ -117,21 +111,6 @@ export default function AvatarUploader({
             }}
           >
             <Camera size={20} weight="regular" />
-          </Box>
-        )}
-
-        {busy && (
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              bgcolor: 'rgba(0,0,0,0.45)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CircularProgress size={Math.round(size * 0.4)} sx={{ color: 'white' }} />
           </Box>
         )}
 

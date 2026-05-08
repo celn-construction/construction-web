@@ -6,8 +6,8 @@ export interface DocumentResult {
   size: number;
   tags: string[];
   description: string;
-  taskId: string;
-  folderId: string;
+  taskId: string | null;
+  folderId: string | null;
   projectId: string;
   uploadedById: string;
   createdAt: Date;

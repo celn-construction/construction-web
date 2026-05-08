@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Box, Typography, Tooltip, Menu, MenuItem, useTheme } from '@mui/material';
-import { IBeamLoader } from '@/components/ui/IBeamLoader';
+import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/documents/Pagination';
 import { FileText, ChevronDown, Sparkles, Search, AlignJustify, Table2, LayoutGrid } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
@@ -19,6 +19,9 @@ import type { LinkFilter } from '@/components/documents/DocumentFilterPopup';
 import DocumentCardCompact from '@/components/documents/DocumentCardCompact';
 import DocumentCardDetail from '@/components/documents/DocumentCardDetail';
 import DocumentCardGallery from '@/components/documents/DocumentCardGallery';
+import DocumentSkeletons from '@/components/documents/DocumentSkeletons';
+import DropOverlay from '@/components/documents/DropOverlay';
+import { useDocumentUploader } from '@/components/documents/useDocumentUploader';
 import type { DocumentResult } from '@/components/documents/types';
 
 const LIMIT = 20;
@@ -55,6 +58,77 @@ export default function DocumentExplorerPage() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [linkFilter, setLinkFilter] = useState<LinkFilter>('all');
   const [filterAnchorEl, setFilterAnchorEl] = useState<HTMLElement | null>(null);
+
+  // Unassigned chip count — refreshed alongside search results.
+  const unassignedCountQuery = api.document.countUnassigned.useQuery(
+    { organizationId, projectId },
+    { enabled: !!organizationId && !!projectId, staleTime: 10_000 },
+  );
+  const unassignedCount = unassignedCountQuery.data ?? 0;
+
+  const handleToggleUnassigned = () => {
+    setLinkFilter((prev) => (prev === 'unlinked' ? 'all' : 'unlinked'));
+    setPage(1);
+  };
+
+  // Drag-and-drop visual state (page-level overlay)
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { upload } = useDocumentUploader({ organizationId, projectId });
+
+  useEffect(() => {
+    const hasFiles = (e: DragEvent) =>
+      Array.from(e.dataTransfer?.types ?? []).includes('Files');
+
+    const onDragEnter = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      dragCounterRef.current += 1;
+      setIsDragging(true);
+    };
+    const onDragLeave = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      dragCounterRef.current -= 1;
+      if (dragCounterRef.current <= 0) {
+        dragCounterRef.current = 0;
+        setIsDragging(false);
+      }
+    };
+    const onDragOver = (e: DragEvent) => {
+      if (hasFiles(e)) e.preventDefault();
+    };
+    const onDrop = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      dragCounterRef.current = 0;
+      setIsDragging(false);
+      const files = Array.from(e.dataTransfer?.files ?? []);
+      if (files.length > 0) {
+        void upload(files);
+      }
+    };
+
+    window.addEventListener('dragenter', onDragEnter);
+    window.addEventListener('dragleave', onDragLeave);
+    window.addEventListener('dragover', onDragOver);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      window.removeEventListener('dragenter', onDragEnter);
+      window.removeEventListener('dragleave', onDragLeave);
+      window.removeEventListener('dragover', onDragOver);
+      window.removeEventListener('drop', onDrop);
+    };
+  }, [upload]);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 0) void upload(files);
+    e.target.value = '';
+  };
 
   // Debounce search input (only for fuzzy mode)
   useEffect(() => {
@@ -184,7 +258,16 @@ export default function DocumentExplorerPage() {
         : '';
 
   return (
-    <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <DropOverlay visible={isDragging} />
+      <Box
+        component="input"
+        type="file"
+        multiple
+        ref={fileInputRef}
+        onChange={handleFileInputChange}
+        sx={{ display: 'none' }}
+      />
       <DocumentToolbar
         query={query}
         onQueryChange={setQuery}
@@ -192,7 +275,7 @@ export default function DocumentExplorerPage() {
         aiEnabled={aiEnabled}
         isAiSearching={aiEnabled && !!aiSearchQuery && aiQuery.isFetching}
         onAiToggle={handleAiToggle}
-        onUploadClick={() => {/* Upload dialog integration deferred */}}
+        onUploadClick={handleUploadClick}
         recents={recents}
         examples={DOCUMENT_AI_SEARCH_EXAMPLES}
         onSelectSuggestion={handleSelectSuggestion}
@@ -202,9 +285,11 @@ export default function DocumentExplorerPage() {
       <DocumentFilterTabs
         selectedTypes={selectedTypes}
         linkFilter={linkFilter}
+        unassignedCount={unassignedCount}
         onOpenPopup={(e) => setFilterAnchorEl(e.currentTarget)}
         onRemoveType={handleRemoveType}
         onRemoveLinkFilter={handleRemoveLinkFilter}
+        onToggleUnassigned={handleToggleUnassigned}
         isLoading={isLoading}
       />
 
@@ -312,13 +397,9 @@ export default function DocumentExplorerPage() {
         const isAiLoader = aiEnabled && !!aiSearchQuery;
         const activeSearchText = isAiLoader ? aiSearchQuery : debouncedQuery;
 
-        // Initial browse (no search query) → loading spinner
+        // Initial browse (no search query) → skeleton cards matching the active view mode
         if (!activeSearchText) {
-          return (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, py: 8 }}>
-              <IBeamLoader size={32} />
-            </Box>
-          );
+          return <DocumentSkeletons viewMode={viewMode} count={8} />;
         }
 
         // Active search → type-specific loader
@@ -409,7 +490,23 @@ export default function DocumentExplorerPage() {
             py: 8,
           }}
         >
-          <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: 16 }} />
+          <Box
+            sx={{
+              mb: 2,
+              display: 'flex',
+              color: 'text.secondary',
+              animation: 'docEmptyBob 3.2s ease-in-out infinite',
+              '@keyframes docEmptyBob': {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-6px)' },
+              },
+              '@media (prefers-reduced-motion: reduce)': {
+                animation: 'none',
+              },
+            }}
+          >
+            <FileText size={48} />
+          </Box>
           <Typography variant="h6" sx={{ color: 'text.secondary', mb: 0.5 }}>
             {displayQuery ? 'No results found' : 'No documents yet'}
           </Typography>
@@ -421,54 +518,57 @@ export default function DocumentExplorerPage() {
         </Box>
       )}
 
-      {/* Results */}
-      {!isLoading && !showFuzzyLoader && rawResults.length > 0 && (() => {
-        const opacitySx = { opacity: isBackgroundFetching ? 0.6 : 1, transition: 'opacity 0.2s' };
-
-        if (viewMode === 'gallery') {
-          return (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-                gap: 1.5,
-                ...opacitySx,
-              }}
+      {/* Results — staggered entrance + view-mode crossfade */}
+      {!isLoading && !showFuzzyLoader && rawResults.length > 0 && (
+        <Box sx={{ opacity: isBackgroundFetching ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              style={
+                viewMode === 'gallery'
+                  ? {
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                      gap: 12,
+                    }
+                  : viewMode === 'detail'
+                    ? {
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, 260px)',
+                        gap: 16,
+                        alignItems: 'start',
+                      }
+                    : { display: 'flex', flexDirection: 'column', gap: 6 }
+              }
             >
-              {rawResults.map((doc) => (
-                <DocumentCardGallery key={doc.id} doc={doc} organizationId={organizationId} />
+              {rawResults.map((doc, i) => (
+                <motion.div
+                  key={doc.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.22,
+                    ease: [0.2, 0.8, 0.2, 1],
+                    delay: Math.min(i * 0.025, 0.4),
+                  }}
+                >
+                  {viewMode === 'gallery' ? (
+                    <DocumentCardGallery doc={doc} organizationId={organizationId} />
+                  ) : viewMode === 'detail' ? (
+                    <DocumentCardDetail doc={doc} organizationId={organizationId} />
+                  ) : (
+                    <DocumentCardCompact doc={doc} organizationId={organizationId} />
+                  )}
+                </motion.div>
               ))}
-            </Box>
-          );
-        }
-
-        if (viewMode === 'detail') {
-          return (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, 260px)',
-                gap: 2,
-                alignItems: 'start',
-                ...opacitySx,
-              }}
-            >
-              {rawResults.map((doc) => (
-                <DocumentCardDetail key={doc.id} doc={doc} organizationId={organizationId} />
-              ))}
-            </Box>
-          );
-        }
-
-        // Compact view — stacked rows with thumbnails
-        return (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '6px', ...opacitySx }}>
-            {rawResults.map((doc) => (
-              <DocumentCardCompact key={doc.id} doc={doc} organizationId={organizationId} />
-            ))}
-          </Box>
-        );
-      })()}
+            </motion.div>
+          </AnimatePresence>
+        </Box>
+      )}
     </Box>
   );
 }

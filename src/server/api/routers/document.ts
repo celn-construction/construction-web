@@ -14,8 +14,8 @@ interface RawDocumentRow {
   size: number;
   tags: string[];
   description: string;
-  taskId: string;
-  folderId: string;
+  taskId: string | null;
+  folderId: string | null;
   projectId: string;
   uploadedById: string;
   createdAt: Date;
@@ -85,8 +85,8 @@ function buildOrderBy(sortBy: z.infer<typeof sortBySchema>) {
 }
 
 function buildLinkCondition(linkFilter: z.infer<typeof linkFilterSchema>) {
-  if (linkFilter === "linked") return { taskId: { not: "" } };
-  if (linkFilter === "unlinked") return { taskId: "" };
+  if (linkFilter === "linked") return { taskId: { not: null } };
+  if (linkFilter === "unlinked") return { taskId: null };
   return {};
 }
 
@@ -345,6 +345,19 @@ export const documentRouter = createTRPCRouter({
 
       const total = Number(rows[0]?.total_count ?? 0);
       return { results: shapeResults(rows), total };
+    }),
+
+  countUnassigned: orgProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const project = await ctx.db.project.findFirst({
+        where: { id: input.projectId, organizationId: ctx.organization.id },
+        select: { id: true },
+      });
+      if (!project) return 0;
+      return ctx.db.document.count({
+        where: { projectId: input.projectId, taskId: null },
+      });
     }),
 
   delete: orgProcedure

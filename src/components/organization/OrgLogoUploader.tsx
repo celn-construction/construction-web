@@ -1,9 +1,10 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Box } from '@mui/material';
 import { Camera } from '@phosphor-icons/react';
 import OrgAvatar from '@/components/ui/OrgAvatar';
+import { trackUpload } from '@/store/uploadStatusStore';
 
 interface OrgLogoUploaderProps {
   name: string;
@@ -40,26 +41,21 @@ export default function OrgLogoUploader({
     if (!file) return;
 
     setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+    const result = await trackUpload<{ logoUrl?: string }>(
+      file,
+      () => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return fetch('/api/organization/logo', { method: 'POST', body: formData });
+      },
+      { doneLabel: 'Logo updated' },
+    );
+    setUploading(false);
 
-      const res = await fetch('/api/organization/logo', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = (await res.json().catch(() => ({}))) as { logoUrl?: string; error?: string };
-
-      if (!res.ok || !data.logoUrl) {
-        throw new Error(data.error ?? 'Upload failed');
-      }
-
-      await onUpload(data.logoUrl);
-    } catch (err) {
-      onError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setUploading(false);
+    if (result.ok && result.data?.logoUrl) {
+      await onUpload(result.data.logoUrl);
+    } else {
+      onError(result.error ?? 'Upload failed');
     }
   };
 
@@ -99,21 +95,6 @@ export default function OrgLogoUploader({
           }}
         >
           <Camera size={20} weight="regular" />
-        </Box>
-      )}
-
-      {uploading && (
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            bgcolor: 'rgba(0,0,0,0.45)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <CircularProgress size={Math.round(size * 0.4)} sx={{ color: 'white' }} />
         </Box>
       )}
 

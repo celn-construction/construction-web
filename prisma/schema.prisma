@@ -166,8 +166,8 @@ model Document {
     notes        String                         @default("")
     embedding    Unsupported("vector(1536)")?
     searchVector Unsupported("tsvector")?
-    taskId       String
-    folderId     String
+    taskId       String?
+    folderId     String?
     projectId    String
     uploadedById String
     createdAt    DateTime                       @default(now())

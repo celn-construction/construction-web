@@ -32,6 +32,7 @@ export default function DocumentCardCompact({ doc, organizationId }: DocumentCar
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const isImage = doc.mimeType.startsWith('image/');
+  const isUnassigned = !doc.taskId;
   const categoryLabel = getCategoryLabel(doc.folderId);
 
   return (
@@ -47,11 +48,18 @@ export default function DocumentCardCompact({ doc, organizationId }: DocumentCar
         borderRadius: '10px',
         border: '1px solid',
         borderColor: hovered ? alpha(theme.palette.primary.main, 0.3) : 'divider',
+        borderLeft: isUnassigned ? `3px solid ${theme.palette.warning.main}` : undefined,
+        pl: isUnassigned ? '12px' : '14px',
         bgcolor: 'background.paper',
-        transition: 'border-color 0.2s, background-color 0.15s',
+        transition: 'border-color 0.2s, background-color 0.15s, transform 0.18s ease, box-shadow 0.18s ease',
         cursor: 'pointer',
+        willChange: 'transform',
         '&:hover': {
           bgcolor: alpha(theme.palette.primary.main, 0.02),
+          transform: 'translateY(-1px)',
+          boxShadow: theme.palette.mode === 'dark'
+            ? '0 4px 12px rgba(0,0,0,0.35)'
+            : '0 4px 12px rgba(43,45,66,0.08)',
         },
       }}
     >
@@ -147,10 +155,23 @@ export default function DocumentCardCompact({ doc, organizationId }: DocumentCar
               </Typography>
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <CircleDashed size={10} color={theme.palette.text.disabled} />
-              <Typography sx={{ fontSize: 11, lineHeight: 1, color: 'text.disabled' }}>
-                Unlinked
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                px: '6px',
+                py: '2px',
+                borderRadius: '4px',
+                border: '1px dashed',
+                borderColor: alpha(theme.palette.warning.main, 0.4),
+                bgcolor: alpha(theme.palette.warning.main, 0.08),
+                color: theme.palette.warning.dark,
+              }}
+            >
+              <CircleDashed size={9} />
+              <Typography sx={{ fontSize: 10, fontWeight: 600, lineHeight: 1, color: 'inherit' }}>
+                Unassigned
               </Typography>
             </Box>
           )}
