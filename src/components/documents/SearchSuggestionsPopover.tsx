@@ -30,6 +30,9 @@ export default function SearchSuggestionsPopover({
   onClearRecents,
 }: SearchSuggestionsPopoverProps) {
   const showRecents = recents.length > 0;
+  const showExamples = examples.length > 0;
+
+  if (!showRecents && !showExamples) return null;
 
   return (
     <Popper
@@ -83,25 +86,27 @@ export default function SearchSuggestionsPopover({
             ))}
           </Box>
         )}
-        {showRecents && <Box sx={{ height: 1, bgcolor: 'divider' }} />}
-        <Box sx={{ p: 1 }}>
-          <SectionHeader icon={<Sparkles size={12} />} label="Try asking AI" />
-          {examples.map((example, j) => {
-            const index = recents.length + j;
-            return (
-              <SuggestionRow
-                key={example}
-                id={`${optionIdPrefix}-${index}`}
-                icon={<Sparkles size={14} />}
-                label={example}
-                italic
-                highlighted={highlightedIndex === index}
-                onMouseEnter={() => onHighlightChange(index)}
-                onSelect={() => onSelect(example, true)}
-              />
-            );
-          })}
-        </Box>
+        {showRecents && showExamples && <Box sx={{ height: 1, bgcolor: 'divider' }} />}
+        {showExamples && (
+          <Box sx={{ p: 1 }}>
+            <SectionHeader icon={<Sparkles size={12} />} label="Try asking AI" />
+            {examples.map((example, j) => {
+              const index = recents.length + j;
+              return (
+                <SuggestionRow
+                  key={example}
+                  id={`${optionIdPrefix}-${index}`}
+                  icon={<Sparkles size={14} />}
+                  label={example}
+                  italic
+                  highlighted={highlightedIndex === index}
+                  onMouseEnter={() => onHighlightChange(index)}
+                  onSelect={() => onSelect(example, true)}
+                />
+              );
+            })}
+          </Box>
+        )}
       </Paper>
     </Popper>
   );

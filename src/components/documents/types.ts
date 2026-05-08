@@ -11,9 +11,17 @@ export interface DocumentResult {
   projectId: string;
   uploadedById: string;
   createdAt: Date;
+  approvalStatus: string;
+  approvedById: string | null;
+  approvedAt: Date | null;
   uploadedBy: {
     id: string;
     name: string | null;
     email: string;
   };
+  approvedBy: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
 }

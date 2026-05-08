@@ -27,7 +27,10 @@ type GanttTaskSelect = {
 };
 
 // Bryntum expects specific field names - map DB fields to Bryntum fields
-export function mapTaskToGantt(task: GanttTaskSelect): Record<string, unknown> {
+export function mapTaskToGantt(
+  task: GanttTaskSelect,
+  needsReviewCount = 0,
+): Record<string, unknown> {
   return {
     id: task.id,
     parentId: task.parentId,
@@ -50,6 +53,7 @@ export function mapTaskToGantt(task: GanttTaskSelect): Record<string, unknown> {
     csiCode: task.csiCode,
     baselines: task.baselines,
     version: task.version,
+    needsReviewCount,
   };
 }
 
@@ -96,16 +100,21 @@ export function mapTimeRangeToGantt(timeRange: GanttTimeRange): Record<string, u
 }
 
 /**
- * Build hierarchical task tree from flat task array
- * Tasks with parentId will be nested under their parent's children array
+ * Build hierarchical task tree from flat task array.
+ * Tasks with parentId will be nested under their parent's children array.
+ * If needsReviewCounts is provided, each task gets the count from the map and
+ * parent tasks roll up the sum from their descendants.
  */
-export function buildTaskTree(tasks: GanttTaskSelect[]): Record<string, unknown>[] {
+export function buildTaskTree(
+  tasks: GanttTaskSelect[],
+  needsReviewCounts?: Map<string, number>,
+): Record<string, unknown>[] {
   const taskMap = new Map<string, Record<string, unknown>>();
   const rootTasks: Record<string, unknown>[] = [];
 
   // First pass: create all task objects
   for (const task of tasks) {
-    const ganttTask = mapTaskToGantt(task);
+    const ganttTask = mapTaskToGantt(task, needsReviewCounts?.get(task.id) ?? 0);
     ganttTask.children = [];
     taskMap.set(task.id, ganttTask);
   }
@@ -142,6 +151,22 @@ export function buildTaskTree(tasks: GanttTaskSelect[]): Record<string, unknown>
   };
 
   sortByOrderIndex(rootTasks);
+
+  // Roll up needsReviewCount from children to parents (post-order traversal)
+  if (needsReviewCounts) {
+    const rollup = (node: Record<string, unknown>): number => {
+      const children = (node.children as Record<string, unknown>[]) ?? [];
+      let sum = (node.needsReviewCount as number) ?? 0;
+      for (const child of children) {
+        sum += rollup(child);
+      }
+      node.needsReviewCount = sum;
+      return sum;
+    };
+    for (const root of rootTasks) {
+      rollup(root);
+    }
+  }
 
   return rootTasks;
 }

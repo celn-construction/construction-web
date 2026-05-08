@@ -220,6 +220,36 @@ npx playwright show-report             # view last HTML report
 | Gantt sync | ❌ | ❌ |
 | Document explorer AI search | ✅ | ✅ |
 | Document upload | ❌ | ❌ |
-| Permissions enforcement | ❌ | ❌ |
+| Permissions enforcement | ✅ (approval flow) | ❌ |
+| Submittal/inspection approval | ✅ | ❌ |
 
 **Priority gaps:** E2E for the invite→join flow, Gantt sync, and document upload are the highest-value additions.
+
+### Mocking tRPC for component tests
+
+Component tests for tRPC-driven UIs use `vi.hoisted()` to give each test fine-grained control over what `api.x.y.useQuery()` and `useMutation()` return. `vi.mock()` factories are hoisted before imports, so a regular top-level `let` would be undefined inside the factory — `vi.hoisted()` is the only way to declare mock state that's available at hoist time:
+
+```ts
+const mocks = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+  queryData: undefined as MyType | undefined,
+}));
+
+vi.mock("@/trpc/react", () => ({
+  api: {
+    myRouter: {
+      myMutation: { useMutation: () => ({ mutate: mocks.mutate, isPending: mocks.isPending }) },
+      myQuery: { useQuery: () => ({ data: mocks.queryData, isLoading: false }) },
+    },
+    useUtils: () => ({ myRouter: { myQuery: { invalidate: vi.fn() } } }),
+  },
+}));
+
+beforeEach(() => {
+  mocks.mutate.mockReset();
+  mocks.queryData = /* per-test value */;
+});
+```
+
+See `src/__tests__/approvals/ApprovalToggle.test.tsx` and `ReviewQueueContent.test.tsx` for working examples.

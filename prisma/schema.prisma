@@ -34,6 +34,8 @@ model User {
     projectMembers     ProjectMember[]
     invitations        Invitation[]     @relation("InvitedByUser")
     documents          Document[]
+    approvedDocuments  Document[]       @relation("ApprovedByUser")
+    approverSlots      TaskRequirementSlot[] @relation("SlotApprover")
     notifications      Notification[]
     activeOrganization Organization?    @relation("ActiveOrganization", fields: [activeOrganizationId], references: [id], onDelete: SetNull)
     activeProject      Project?         @relation("ActiveProject", fields: [activeProjectId], references: [id], onDelete: SetNull)
@@ -124,6 +126,7 @@ model Project {
     location       String          @default("")
     slug           String
     icon           String          @default("building")
+    color          String?
     imageUrl       String?
     status         String          @default("active")
     organizationId String
@@ -156,28 +159,33 @@ model Project {
 }
 
 model Document {
-    id           String                         @id @default(cuid())
-    name         String
-    blobUrl      String
-    mimeType     String
-    size         Int
-    tags         String[]                       @default([])
-    description  String
-    notes        String                         @default("")
-    embedding    Unsupported("vector(1536)")?
-    searchVector Unsupported("tsvector")?
-    taskId       String?
-    folderId     String?
-    projectId    String
-    uploadedById String
-    createdAt    DateTime                       @default(now())
+    id             String                         @id @default(cuid())
+    name           String
+    blobUrl        String
+    mimeType       String
+    size           Int
+    tags           String[]                       @default([])
+    description    String
+    notes          String                         @default("")
+    embedding      Unsupported("vector(1536)")?
+    searchVector   Unsupported("tsvector")?
+    taskId         String?
+    folderId       String?
+    projectId      String
+    uploadedById   String
+    approvalStatus String                         @default("unapproved")
+    approvedById   String?
+    approvedAt     DateTime?
+    createdAt      DateTime                       @default(now())
 
-    project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-    uploadedBy User    @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+    project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    uploadedBy    User       @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+    approvedBy    User?      @relation("ApprovedByUser", fields: [approvedById], references: [id], onDelete: SetNull)
     coverForTasks GanttTask[] @relation("TaskCoverDocument")
 
     @@index([projectId, taskId, folderId])
     @@index([projectId])
+    @@index([projectId, approvalStatus])
 }
 
 model Membership {
@@ -291,10 +299,31 @@ model GanttTask {
     dependenciesFrom GanttDependency[] @relation("FromTask")
     dependenciesTo   GanttDependency[] @relation("ToTask")
     coverDocument    Document? @relation("TaskCoverDocument", fields: [coverDocumentId], references: [id], onDelete: SetNull)
+    requirementSlots TaskRequirementSlot[]
 
     @@index([projectId])
     @@index([projectId, parentId])
     @@index([parentId])
+}
+
+model TaskRequirementSlot {
+    id          String    @id @default(cuid())
+    taskId      String
+    kind        String    // 'submittal' | 'inspection'
+    index       Int
+    name        String?
+    dueDate     DateTime?
+    approverId  String?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    task     GanttTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+    approver User?     @relation("SlotApprover", fields: [approverId], references: [id], onDelete: SetNull)
+
+    @@unique([taskId, kind, index])
+    @@index([taskId, kind])
+    @@index([approverId])
+    @@index([dueDate])
 }
 
 model GanttDependency {

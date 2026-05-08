@@ -20,6 +20,7 @@ import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import { authClient, signOut } from '@/lib/auth-client';
 import UserAvatar from '@/components/ui/UserAvatar';
+import { LogoIcon } from '@/components/ui/Logo';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { useLoading } from '@/components/providers/LoadingProvider';
 import AccountSettingsModal from './AccountSettingsModal';
@@ -105,8 +106,37 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         },
       }}
     >
+      {/* Brand */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          height: 48,
+          px: 1.75,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          color: 'text.primary',
+          userSelect: 'none',
+        }}
+        aria-label="BuildTrack Pro"
+      >
+        <LogoIcon size={20} />
+        <Typography
+          sx={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            lineHeight: 1,
+            letterSpacing: '-0.01em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          BuildTrack Pro
+        </Typography>
+      </Box>
+
       {/* Org Header */}
-      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', position: 'relative' }}>
+      <Box sx={{ position: 'relative' }}>
         <OrgSwitcher />
         {/* Close button — overlaid top-right */}
         <IconButton

@@ -19,11 +19,17 @@ interface RawDocumentRow {
   projectId: string;
   uploadedById: string;
   createdAt: Date;
+  approvalStatus: string;
+  approvedById: string | null;
+  approvedAt: Date | null;
   rank: number;
   total_count: bigint;
   uploader_id: string;
   uploader_name: string | null;
   uploader_email: string;
+  approver_id: string | null;
+  approver_name: string | null;
+  approver_email: string | null;
 }
 
 function toClientBlobUrl<T extends { id: string }>(doc: T): T & { blobUrl: string } {
@@ -44,12 +50,22 @@ function shapeResults(rows: RawDocumentRow[]) {
     projectId: r.projectId,
     uploadedById: r.uploadedById,
     createdAt: r.createdAt,
+    approvalStatus: r.approvalStatus,
+    approvedById: r.approvedById,
+    approvedAt: r.approvedAt,
     rank: r.rank,
     uploadedBy: {
       id: r.uploader_id,
       name: r.uploader_name,
       email: r.uploader_email,
     },
+    approvedBy: r.approver_id
+      ? {
+          id: r.approver_id,
+          name: r.approver_name,
+          email: r.approver_email ?? "",
+        }
+      : null,
   }));
 }
 
@@ -126,6 +142,9 @@ export const documentRouter = createTRPCRouter({
               email: true,
             },
           },
+          approvedBy: {
+            select: { id: true, name: true, email: true },
+          },
         },
         orderBy: {
           createdAt: "desc",
@@ -163,6 +182,9 @@ export const documentRouter = createTRPCRouter({
           uploadedBy: {
             select: { id: true, name: true, email: true },
           },
+          approvedBy: {
+            select: { id: true, name: true, email: true },
+          },
         },
         orderBy: { createdAt: "desc" },
       });
@@ -191,17 +213,23 @@ export const documentRouter = createTRPCRouter({
       }
 
       const grouped = await ctx.db.document.groupBy({
-        by: ["folderId"],
+        by: ["folderId", "approvalStatus"],
         where: {
           projectId: input.projectId,
           taskId: input.taskId,
         },
-        _count: { folderId: true },
+        _count: { _all: true },
       });
 
-      return Object.fromEntries(
-        grouped.map((g) => [g.folderId, g._count.folderId])
-      );
+      const result: Record<string, { total: number; approved: number }> = {};
+      for (const row of grouped) {
+        if (!row.folderId) continue;
+        const bucket = result[row.folderId] ?? { total: 0, approved: 0 };
+        bucket.total += row._count._all;
+        if (row.approvalStatus === "approved") bucket.approved += row._count._all;
+        result[row.folderId] = bucket;
+      }
+      return result;
     }),
 
   search: orgProcedure
@@ -245,6 +273,9 @@ export const documentRouter = createTRPCRouter({
               uploadedBy: {
                 select: { id: true, name: true, email: true },
               },
+              approvedBy: {
+                select: { id: true, name: true, email: true },
+              },
             },
             orderBy,
             take: input.limit,
@@ -268,6 +299,9 @@ export const documentRouter = createTRPCRouter({
           where,
           include: {
             uploadedBy: {
+              select: { id: true, name: true, email: true },
+            },
+            approvedBy: {
               select: { id: true, name: true, email: true },
             },
           },
@@ -317,7 +351,10 @@ export const documentRouter = createTRPCRouter({
         const [results, total] = await Promise.all([
           ctx.db.document.findMany({
             where,
-            include: { uploadedBy: { select: { id: true, name: true, email: true } } },
+            include: {
+              uploadedBy: { select: { id: true, name: true, email: true } },
+              approvedBy: { select: { id: true, name: true, email: true } },
+            },
             orderBy: buildOrderBy(input.sortBy),
             take: input.limit,
             skip: input.offset,

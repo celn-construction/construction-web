@@ -7,7 +7,7 @@ import { Box, Typography, Tooltip } from '@mui/material';
 import { CalendarDots } from '@phosphor-icons/react';
 import { differenceInCalendarDays } from 'date-fns';
 import FilesContent from '@/components/files/FilesContent';
-import GanttLoadingSpinner from '@/components/bryntum/components/GanttLoadingSpinner';
+import { IBeamLoader } from '@/components/ui/IBeamLoader';
 import VersionControlBar from '@/components/bryntum/components/VersionControlBar';
 import TaskProgressCard from '@/components/bryntum/components/TaskProgressCard';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
@@ -19,8 +19,8 @@ const BryntumGanttWrapper = dynamic(
   {
     ssr: false,
     loading: () => (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <GanttLoadingSpinner />
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary' }}>
+        <IBeamLoader size={32} />
       </Box>
     ),
   }

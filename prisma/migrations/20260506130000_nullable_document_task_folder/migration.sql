@@ -12,7 +12,10 @@ UPDATE "Document" SET "taskId" = NULL WHERE "taskId" = '';
 UPDATE "Document" SET "folderId" = NULL WHERE "folderId" = '';
 
 -- Recreate hybrid_document_search() to compare with IS NULL / IS NOT NULL instead of = ''.
--- Function signature is unchanged so callers don't need updating.
+-- Approval fields (added in 20260504000000_add_document_approvals) are preserved in the return shape.
+-- DROP first because the prior signature has the same parameters but we want a clean rebuild.
+DROP FUNCTION IF EXISTS hybrid_document_search(vector, text, text, text[], text, int, int, float);
+
 CREATE OR REPLACE FUNCTION hybrid_document_search(
   p_query_vector vector(1536),
   p_query_text text,
@@ -27,8 +30,10 @@ RETURNS TABLE (
   id text, name text, "blobUrl" text, "mimeType" text, size int,
   tags text[], description text, "taskId" text, "folderId" text,
   "projectId" text, "uploadedById" text, "createdAt" timestamptz,
+  "approvalStatus" text, "approvedById" text, "approvedAt" timestamptz,
   rank float, total_count bigint,
-  uploader_id text, uploader_name text, uploader_email text
+  uploader_id text, uploader_name text, uploader_email text,
+  approver_id text, approver_name text, approver_email text
 ) LANGUAGE sql STABLE AS $$
   WITH base_ids AS (
     SELECT d.id
@@ -79,11 +84,14 @@ RETURNS TABLE (
     d.id, d.name, d."blobUrl", d."mimeType", d.size, d.tags,
     d.description, d."taskId", d."folderId", d."projectId",
     d."uploadedById", d."createdAt",
+    d."approvalStatus", d."approvedById", d."approvedAt",
     r.rrf_score AS rank,
     r.total_count,
-    u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email
+    u.id AS uploader_id, u.name AS uploader_name, u.email AS uploader_email,
+    a.id AS approver_id, a.name AS approver_name, a.email AS approver_email
   FROM ranked r
   JOIN "Document" d ON d.id = r.id
   JOIN "User" u ON u.id = d."uploadedById"
+  LEFT JOIN "User" a ON a.id = d."approvedById"
   ORDER BY r.rrf_score DESC;
 $$;

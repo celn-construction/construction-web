@@ -91,6 +91,10 @@ function PhotosFolderContentInner({
     size: doc.size,
     createdAt: doc.createdAt,
     uploadedBy: doc.uploadedBy ?? null,
+    folderId: doc.folderId,
+    approvalStatus: doc.approvalStatus,
+    approvedAt: doc.approvedAt,
+    approvedBy: doc.approvedBy,
   });
 
   return (

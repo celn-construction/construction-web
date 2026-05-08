@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { Box, Typography, useTheme, alpha } from '@mui/material';
 import { Download, Trash2, FileText, FileSpreadsheet } from 'lucide-react';
 import { formatFileSize } from '@/lib/utils/formatting';
+import { isApprovableFolder } from '@/lib/folders';
+import { useOrgContext } from '@/components/providers/OrgProvider';
+import { useProjectContext } from '@/components/providers/ProjectProvider';
+import ApprovalToggle from '@/components/approvals/ApprovalToggle';
 import DeleteDocumentDialog from './DeleteDocumentDialog';
 import type { DocumentResult } from './types';
 
@@ -18,6 +22,9 @@ export default function DocumentCardGallery({ doc, organizationId }: DocumentCar
   const [hovered, setHovered] = useState(false);
   const isImage = doc.mimeType.startsWith('image/');
   const isUnassigned = !doc.taskId;
+  const { memberRole } = useOrgContext();
+  const { projectId } = useProjectContext();
+  const showApproval = isApprovableFolder(doc.folderId);
 
   return (
     <Box
@@ -71,7 +78,7 @@ export default function DocumentCardGallery({ doc, organizationId }: DocumentCar
         )}
       </Box>
 
-      {/* Persistent unassigned indicator (top-left) */}
+      {/* Persistent unassigned indicator (top-left) — mutually exclusive with approval pill (unassigned has no folder) */}
       {isUnassigned && (
         <Box
           sx={{
@@ -94,6 +101,28 @@ export default function DocumentCardGallery({ doc, organizationId }: DocumentCar
           <Typography sx={{ fontSize: 9, fontWeight: 700, lineHeight: 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             Unassigned
           </Typography>
+        </Box>
+      )}
+
+      {/* Persistent approval pill on the thumbnail (submittals + inspections only) */}
+      {showApproval && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 1,
+          }}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+          <ApprovalToggle
+            documentId={doc.id}
+            approvalStatus={doc.approvalStatus}
+            organizationId={organizationId}
+            projectId={projectId}
+            memberRole={memberRole}
+            size="sm"
+          />
         </Box>
       )}
 
