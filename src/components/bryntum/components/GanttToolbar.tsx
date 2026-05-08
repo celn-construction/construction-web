@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Stack } from '@mui/material';
+import { Box, MenuItem, Select, Stack } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +37,7 @@ const cardContainerSx = {
   border: '1px solid var(--border-color)',
   boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
   overflow: 'hidden',
+  flexShrink: 0,
 } as const;
 
 /** Borderless button inside a card container */
@@ -167,9 +168,11 @@ export default function GanttToolbar({
         borderBottom: '1px solid var(--border-color)',
         flexShrink: 0,
         bgcolor: 'var(--gantt-toolbar-bg)',
+        containerType: 'inline-size',
+        containerName: 'gantt-toolbar',
       }}
     >
-      {/* ── View Preset Picker ──────────────────────────────────────────── */}
+      {/* ── View Preset Picker — segmented (hidden ≤560px) ──────────────── */}
       <Box
         sx={{
           display: 'flex',
@@ -179,6 +182,10 @@ export default function GanttToolbar({
           borderRadius: '8px',
           p: '3px',
           gap: '2px',
+          flexShrink: 0,
+          '@container gantt-toolbar (max-width: 560px)': {
+            display: 'none',
+          },
         }}
       >
         {VIEW_PRESETS.map((preset) => {
@@ -198,6 +205,38 @@ export default function GanttToolbar({
           );
         })}
       </Box>
+
+      {/* ── View Preset Picker — select fallback (shown ≤560px) ─────────── */}
+      <Select
+        value={activePreset}
+        onChange={(e) => handlePresetClick(e.target.value as string)}
+        size="small"
+        aria-label="Time scale"
+        sx={{
+          display: 'none',
+          flexShrink: 0,
+          height: 32,
+          fontSize: '12px',
+          fontWeight: 600,
+          fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
+          letterSpacing: '-0.01em',
+          bgcolor: 'background.paper',
+          '& .MuiSelect-select': {
+            py: 0,
+            display: 'flex',
+            alignItems: 'center',
+          },
+          '@container gantt-toolbar (max-width: 560px)': {
+            display: 'inline-flex',
+          },
+        }}
+      >
+        {VIEW_PRESETS.map((preset) => (
+          <MenuItem key={preset.value} value={preset.value} sx={{ fontSize: '12px' }}>
+            {preset.label}
+          </MenuItem>
+        ))}
+      </Select>
 
       {/* ── Zoom + Nav Controls ──────────────────────────────────────────── */}
       <Box sx={cardContainerSx}>
@@ -283,9 +322,11 @@ export default function GanttToolbar({
           component="button"
           onClick={onToggleEditMode}
           title={editingActive ? 'Lock chart (exit edit mode)' : 'Edit chart'}
+          aria-label={editingActive ? 'Lock chart' : 'Edit chart'}
           sx={{
             display: 'inline-flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: 0.75,
             height: 34,
             px: '14px',
@@ -295,9 +336,16 @@ export default function GanttToolbar({
             fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
             letterSpacing: '-0.01em',
             cursor: 'pointer',
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
             transition:
               'background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease',
             '&:active': { transform: 'scale(0.96)' },
+            '@container gantt-toolbar (max-width: 720px)': {
+              px: 0,
+              gap: 0,
+              width: 34,
+            },
             ...(editingActive
               ? {
                   bgcolor: 'var(--accent-primary, #2563eb)',
@@ -330,7 +378,16 @@ export default function GanttToolbar({
               <Lock size={13} weight="bold" />
             )}
           </Box>
-          {editingActive ? 'Editing' : 'Edit'}
+          <Box
+            component="span"
+            sx={{
+              '@container gantt-toolbar (max-width: 720px)': {
+                display: 'none',
+              },
+            }}
+          >
+            {editingActive ? 'Editing' : 'Edit'}
+          </Box>
         </Box>
       )}
 
@@ -342,6 +399,7 @@ export default function GanttToolbar({
           disableElevation
           startIcon={<Plus size={12} />}
           onClick={onAddTask}
+          aria-label="Add task"
           sx={{
             px: '14px',
             py: '6px',
@@ -352,14 +410,32 @@ export default function GanttToolbar({
             borderRadius: '8px',
             backgroundColor: 'var(--accent-primary, #2563eb)',
             color: 'var(--accent-contrast, #fff)',
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
             animation: 'gantt-tool-pop-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
             '&:hover': {
               backgroundColor: 'var(--accent-primary, #2563eb)',
               filter: 'brightness(0.9)',
             },
+            '@container gantt-toolbar (max-width: 720px)': {
+              minWidth: 0,
+              width: 34,
+              height: 34,
+              px: 0,
+              '& .MuiButton-startIcon': { mr: 0, ml: 0 },
+            },
           }}
         >
-          Add Task
+          <Box
+            component="span"
+            sx={{
+              '@container gantt-toolbar (max-width: 720px)': {
+                display: 'none',
+              },
+            }}
+          >
+            Add Task
+          </Box>
         </Button>
       )}
 
