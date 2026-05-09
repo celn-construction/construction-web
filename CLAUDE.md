@@ -10,7 +10,6 @@
 @claudedocs/trpc-guide.md
 @claudedocs/vercel.md
 @claudedocs/csi-codes.md
-@claudedocs/gantt-drafts.md
 @claudedocs/design-systems.md
 
 ## Documentation Update Rules
@@ -23,7 +22,6 @@ When making changes that affect these docs, update them in the same task:
 - tRPC routers, procedures, or data-fetching pattern changes → update `claudedocs/trpc-guide.md`
 - Vercel env vars, deployments, or project config changes → update `claudedocs/vercel.md`
 - CSI code list changes, data sources, or selector behavior → update `claudedocs/csi-codes.md`
-- Gantt draft persistence (useGanttDraft, edit-mode auto-unlock, storage shape bumps, autoSync interaction) → update `claudedocs/gantt-drafts.md`
 - Boundary between marketing and app design systems (new shared files, new route groups, new independent surfaces, changes to `--lp-*` vs app token ownership) → update `claudedocs/design-systems.md`
 
 ## Vercel

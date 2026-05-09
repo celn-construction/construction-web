@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Prisma } from "../../../../generated/prisma";
 import { createTRPCRouter, orgProcedure, projectProcedure } from "@/server/api/trpc";
 import { canManageProjects, canApproveDocuments } from "@/lib/permissions";
 import {
@@ -15,7 +14,7 @@ import {
 import { nextSuggestedSlotName } from "@/lib/constants/slotNameLibrary";
 import { APPROVABLE_FOLDER_ID_LIST } from "@/lib/folders";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
-import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
+import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges } from "@/server/api/helpers/ganttSync";
 
 export const ganttRouter = createTRPCRouter({
   /**
@@ -76,7 +75,6 @@ export const ganttRouter = createTRPCRouter({
           csiCode: true,
           requiredSubmittals: true,
           requiredInspections: true,
-          version: true,
           parentId: true,
           parent: {
             select: { name: true },
@@ -110,7 +108,6 @@ export const ganttRouter = createTRPCRouter({
         csiCode: task.csiCode,
         requiredSubmittals: task.requiredSubmittals,
         requiredInspections: task.requiredInspections,
-        version: task.version,
         group: task.parent?.name ?? null,
         assignees: task.assignments.map((a) => a.resource),
         hasChildren: task._count.children > 0,
@@ -222,7 +219,6 @@ export const ganttRouter = createTRPCRouter({
             csiCode: true,
             baselines: true,
             orderIndex: true,
-            version: true,
           },
         }),
         ctx.db.ganttDependency.findMany({
@@ -329,56 +325,34 @@ export const ganttRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
       }
 
-      try {
-        // RepeatableRead isolation eliminates TOCTOU race between version check and update.
-        // If another transaction modifies the same row between our read and write,
-        // PostgreSQL raises a serialization error (P2034) which we catch below.
-        const result = await ctx.db.$transaction(
-          async (tx) => {
-            const phantomIdMap = new Map<string, string>();
+      // Last-write-wins: no version check, no isolation upgrade. Concurrent
+      // edits to the same field on the same task by different users will
+      // simply have the later one win.
+      return ctx.db.$transaction(async (tx) => {
+        const phantomIdMap = new Map<string, string>();
 
-            // Process changes in dependency order:
-            // 1. Tasks first (dependencies need task IDs)
-            // 2. Resources (assignments need resource IDs)
-            // 3. Dependencies (need task IDs)
-            // 4. Assignments (need task + resource IDs)
-            // 5. Time ranges (independent)
+        // Process changes in dependency order:
+        // 1. Tasks first (dependencies need task IDs)
+        // 2. Resources (assignments need resource IDs)
+        // 3. Dependencies (need task IDs)
+        // 4. Assignments (need task + resource IDs)
+        // 5. Time ranges (independent)
 
-            const taskResult = await syncTasks(tx, projectId, tasks, phantomIdMap);
-            const resourceResult = await syncResources(tx, projectId, resources, phantomIdMap);
-            const dependencyResult = await syncDependencies(tx, projectId, dependencies, phantomIdMap);
-            const assignmentResult = await syncAssignments(tx, projectId, assignments, phantomIdMap);
-            const timeRangeResult = await syncTimeRanges(tx, projectId, timeRanges, phantomIdMap);
+        const taskResult = await syncTasks(tx, projectId, tasks, phantomIdMap);
+        const resourceResult = await syncResources(tx, projectId, resources, phantomIdMap);
+        const dependencyResult = await syncDependencies(tx, projectId, dependencies, phantomIdMap);
+        const assignmentResult = await syncAssignments(tx, projectId, assignments, phantomIdMap);
+        const timeRangeResult = await syncTimeRanges(tx, projectId, timeRanges, phantomIdMap);
 
-            return {
-              success: true,
-              tasks: taskResult,
-              resources: resourceResult,
-              dependencies: dependencyResult,
-              assignments: assignmentResult,
-              timeRanges: timeRangeResult,
-            };
-          },
-          { isolationLevel: 'RepeatableRead' },
-        );
-
-        return result;
-      } catch (error) {
-        if (error instanceof VersionConflictError) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: error.message,
-          });
-        }
-        // P2034 = serialization failure from RepeatableRead (concurrent row modification)
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "Another user modified this data. Please reload and try again.",
-          });
-        }
-        throw error;
-      }
+        return {
+          success: true,
+          tasks: taskResult,
+          resources: resourceResult,
+          dependencies: dependencyResult,
+          assignments: assignmentResult,
+          timeRanges: timeRangeResult,
+        };
+      });
     }),
 
   /**
@@ -387,7 +361,7 @@ export const ganttRouter = createTRPCRouter({
   updateRequirement: orgProcedure
     .input(z.object({ projectId: z.string() }).merge(updateRequirementSchema))
     .mutation(async ({ ctx, input }) => {
-      const { projectId, taskId, field, count, version } = input;
+      const { projectId, taskId, field, count } = input;
 
       if (ctx.membership.role !== "owner" && ctx.membership.role !== "admin") {
         throw new TRPCError({ code: "FORBIDDEN", message: "Only owners and admins can set requirements" });
@@ -395,24 +369,17 @@ export const ganttRouter = createTRPCRouter({
 
       const task = await ctx.db.ganttTask.findFirst({
         where: { id: taskId, projectId, project: { organizationId: ctx.organization.id } },
-        select: { id: true, version: true },
+        select: { id: true },
       });
 
       if (!task) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Task not found in this project" });
       }
 
-      if (version != null && task.version !== version) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "This task changed since you opened it. Reload to see the latest values.",
-        });
-      }
-
       return ctx.db.ganttTask.update({
         where: { id: taskId },
-        data: { [field]: count, version: { increment: 1 } },
-        select: { id: true, requiredSubmittals: true, requiredInspections: true, version: true },
+        data: { [field]: count },
+        select: { id: true, requiredSubmittals: true, requiredInspections: true },
       });
     }),
 

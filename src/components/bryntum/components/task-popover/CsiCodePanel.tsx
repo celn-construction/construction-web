@@ -177,9 +177,8 @@ export default function CsiCodePanel({
       : filtered;
   }, [query, isSearching]);
 
-  // Mutate the Bryntum task record directly. autoSync persists the change
-  // through `gantt.sync`, which reuses the optimistic-locking version check
-  // already wired up for every Bryntum-tracked field.
+  // Mutate the Bryntum task record directly. autoSync flushes the change to
+  // `gantt.sync` on its next tick (last-write-wins, no version check).
   const writeCsiCode = useCallback(
     (next: string | null) => {
       const taskStore = ganttInstance?.project?.taskStore as

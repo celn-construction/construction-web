@@ -11,7 +11,6 @@ export const ganttLoadInputSchema = z.object({
 const taskRecordSchema = z.object({
   id: z.string().optional(),
   $PhantomId: z.string().optional(),
-  version: z.number().int().optional(),
   parentId: z.string().nullable().optional(),
   name: z.string().optional(),
   percentDone: z.number().min(0).max(100).optional(),
@@ -104,9 +103,6 @@ export const updateRequirementSchema = z.object({
   taskId: z.string(),
   field: z.enum(['requiredSubmittals', 'requiredInspections']),
   count: z.number().int().min(0).max(50).nullable(),
-  // Optimistic-locking version from the loaded taskDetail. Server compares
-  // and throws CONFLICT on mismatch; if omitted, falls through (last-write-wins).
-  version: z.number().int().optional(),
 });
 
 export type UpdateRequirementInput = z.infer<typeof updateRequirementSchema>;

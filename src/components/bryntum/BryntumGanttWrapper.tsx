@@ -11,13 +11,10 @@ import { canManageProjects } from '@/lib/permissions';
 import { createGanttConfig } from './config/ganttConfig';
 import GanttToolbar from './components/GanttToolbar';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
-import ConflictDialog from './components/ConflictDialog';
 import TaskInfoDialog from './components/TaskInfoDialog';
 import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
 import { useTaskPopover } from './hooks/useTaskPopover';
 import { useGanttControls } from './hooks/useGanttControls';
-import { useGanttDraft, hasGanttDraft } from './hooks/useGanttDraft';
-import { injectTaskVersions } from './utils/injectTaskVersions';
 import { reconcileSyncPack } from './utils/reconcileSyncPack';
 import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
 import { IBeamLoader } from '@/components/ui/IBeamLoader';
@@ -75,19 +72,14 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   const errorColor = '#D93C15';
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [conflictOpen, setConflictOpen] = useState(false);
   const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
-  // Lock mode: chart is locked by default; admin-level users can unlock to edit.
-  // If a localStorage draft is present we start unlocked — the user has unsaved
-  // work and clearly wants to keep editing rather than click a toggle first.
+  // Lock mode: chart is locked by default; admin-level users click the lock
+  // toggle in the toolbar to enter edit mode.
   const { currentOrg } = useOrgFromUrl();
   const canEditChart = canManageProjects(currentOrg?.role ?? '');
-  const [isEditMode, setIsEditMode] = useState(() => hasGanttDraft(projectId));
+  const [isEditMode, setIsEditMode] = useState(false);
   const editingUnlocked = canEditChart && isEditMode;
-
-  const isReloadingRef = useRef(false);
-  const skipVersionRef = useRef(false);
 
   // Bryntum's CrudManager "added"/"removed" bags can drop records when the
   // scheduling engine commits state between cycles. We shadow-track IDs from
@@ -105,12 +97,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
 
   useBryntumThemeAssets();
 
-  useGanttDraft({
-    getGanttInstance,
-    projectId,
-    isLoading,
-  });
-
   // Sync Bryntum's built-in readOnly flag with our edit-mode state.
   // This disables cell editing, task drag, task resize, and dependency creation.
   useEffect(() => {
@@ -120,9 +106,8 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     gantt.readOnly = !editingUnlocked;
   }, [isLoading, getGanttInstance, editingUnlocked]);
 
-  // After data loads, finalize the project so the scheduling engine is ready.
-  // delayCalculation defers the initial engine run — commitAsync triggers it.
-  // Then enable STM so undo/redo starts tracking from this clean state.
+  // After data loads, run commitAsync to settle the scheduling engine, then
+  // enable STM so undo/redo starts tracking from this clean state.
   // Do NOT call scrollToDate here — it corrupts the time axis header.
   const stmCleanupRef = useRef<(() => void) | null>(null);
   useEffect(() => {
@@ -146,26 +131,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     const gantt = getGanttInstance();
     if (!gantt?.project) return;
 
-    // Detect version conflicts BEFORE Bryntum applies the response data.
-    // `beforeResponseApply` is the only CrudManager event that passes the decoded
-    // response object for sync requests. The `sync` event does NOT include it.
-    // Returning false prevents Bryntum from applying the empty conflict response.
-    const onBeforeResponseApply = ({ requestType, response }: { requestType: string; response: Record<string, unknown> }) => {
-      if (requestType !== 'sync') return;
-      if (response.conflict) {
-        // Manually clear Bryntum's "Saving changes, please wait..." mask
-        // since returning false prevents the sync cycle from finalizing.
-        const g = getGanttInstance();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        if (g) (g as unknown as { unmask?: () => void }).unmask?.();
-
-        setConflictOpen(true);
-        return false; // Keep records dirty so "Keep My Changes" can re-sync them
-      }
-    };
-
     const onSync = () => {
-      skipVersionRef.current = false;
       // Clear only the IDs that were actually sent in this sync cycle; any IDs
       // added to pending* after `onBeforeSync` fired belong to the next sync.
       for (const id of lastSyncAddedIdsRef.current) pendingAddedIdsRef.current.delete(id);
@@ -184,14 +150,11 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     };
 
     const onSyncFail = () => {
-      skipVersionRef.current = false;
       // Keep pending IDs intact for retry; just drop the in-flight snapshot.
       lastSyncAddedIdsRef.current.clear();
       lastSyncRemovedIdsRef.current.clear();
     };
 
-    // Engine-cascaded records (successor recalculations) are intentionally NOT
-    // injected — they skip the version check.
     const onBeforeSync = ({ pack }: { pack: unknown }) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const taskStore = gantt.project.taskStore;
@@ -206,11 +169,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       // without dropping new changes that arrive mid-request.
       lastSyncAddedIdsRef.current = new Set(pendingAddedIdsRef.current);
       lastSyncRemovedIdsRef.current = new Set(pendingRemovedIdsRef.current);
-
-      // When user clicks "Proceed" after a conflict, skip version injection
-      // so the server does a last-write-wins save (no version check).
-      if (skipVersionRef.current) return;
-      injectTaskVersions(pack, taskStore as Parameters<typeof injectTaskVersions>[1]);
     };
 
     // Shadow-track added/removed IDs from the reliable taskStore events so
@@ -244,12 +202,10 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     taskStore.on('remove', onTaskRemove);
 
-    gantt.project.on('beforeResponseApply', onBeforeResponseApply);
     gantt.project.on('sync', onSync);
     gantt.project.on('syncFail', onSyncFail);
     gantt.project.on('beforeSync', onBeforeSync);
     return () => {
-      gantt.project?.un('beforeResponseApply', onBeforeResponseApply);
       gantt.project?.un('sync', onSync);
       gantt.project?.un('syncFail', onSyncFail);
       gantt.project?.un('beforeSync', onBeforeSync);
@@ -322,26 +278,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       setLoadError(error);
     },
   }));
-
-  const handleConflictProceed = useCallback(() => {
-    setConflictOpen(false);
-    skipVersionRef.current = true;
-    const g = getGanttInstance();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    if (g?.project) void g.project.sync();
-  }, [getGanttInstance]);
-
-  const handleConflictRefresh = useCallback(() => {
-    setConflictOpen(false);
-    isReloadingRef.current = true;
-    const g = getGanttInstance();
-    if (g?.project) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      void g.project.load().finally(() => { isReloadingRef.current = false; });
-    } else {
-      isReloadingRef.current = false;
-    }
-  }, [getGanttInstance]);
 
   // Undo/redo keyboard shortcuts (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z) come from
   // Bryntum's STM via `enableUndoRedoKeys` (default true).
@@ -687,12 +623,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         popoverPlacement={popoverPlacement}
         ganttInstance={getGanttInstance() as unknown as BryntumGanttInstance | null}
         onClose={closeTaskPopover}
-      />
-
-      <ConflictDialog
-        open={conflictOpen}
-        onProceed={handleConflictProceed}
-        onRefresh={handleConflictRefresh}
       />
 
       <TaskInfoDialog

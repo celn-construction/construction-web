@@ -106,10 +106,9 @@ export function TaskDetailsPopover({
         taskId,
         field,
         count,
-        version: taskDetail?.version,
       });
     },
-    [taskId, organizationId, projectId, updateRequirementMutation, taskDetail?.version]
+    [taskId, organizationId, projectId, updateRequirementMutation]
   );
 
   // ── Right panel helpers ──

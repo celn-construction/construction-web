@@ -169,11 +169,8 @@ export interface BryntumGanttInstance {
 }
 
 export type GanttConfig = {
-  height?: string;
   autoHeight?: boolean;
-  autoAdjustTimeAxis?: boolean;
   infiniteScroll?: boolean;
-  bufferCoef?: number;
   detectCSSCompatibilityIssues: boolean;
   loadMask?: string | null | Record<string, unknown>;
   syncMask?: string | null | Record<string, unknown>;
@@ -183,9 +180,7 @@ export type GanttConfig = {
     autoLoad: boolean;
     autoSync?: boolean;
     autoSyncTimeout?: number;
-    writeAllFields?: boolean;
     taskModelClass?: typeof TaskModel;
-    delayCalculation?: boolean;
     resetUndoRedoQueuesAfterLoad?: boolean;
     stm?: {
       autoRecord?: boolean;
@@ -259,23 +254,4 @@ export type GanttConfig = {
       iconCls: DomClassList | string;
     };
   }) => string | BryntumDomConfig | BryntumDomConfig[];
-  listeners: {
-    taskClick?: TaskClickHandler;
-    cellDblClick?: (event: {
-      grid: Grid;
-      record: Model;
-      column: Column;
-      cellElement: HTMLElement;
-      target: HTMLElement;
-      event: MouseEvent;
-    }) => void;
-    cellClick?: (event: {
-      grid: Grid;
-      record: Model;
-      column: Column;
-      cellElement: HTMLElement;
-      target: HTMLElement;
-      event: MouseEvent;
-    }) => void;
-  };
 };
