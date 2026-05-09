@@ -6,19 +6,6 @@ type PhantomIdMap = Map<string, string>;
 type TransactionClient = Omit<Prisma.TransactionClient, never>;
 
 /**
- * Thrown when a task update fails optimistic version check.
- * The transaction should be rolled back and the client should reload.
- */
-export class VersionConflictError extends Error {
-  public conflictedTaskIds: string[];
-  constructor(taskIds: string[]) {
-    super(`Version conflict on tasks: ${taskIds.join(', ')}`);
-    this.name = 'VersionConflictError';
-    this.conflictedTaskIds = taskIds;
-  }
-}
-
-/**
  * Process task changes (added, updated, removed)
  */
 export async function syncTasks(
@@ -27,7 +14,7 @@ export async function syncTasks(
   changes: { added?: TaskRecord[]; updated?: TaskRecord[]; removed?: { id: string }[] } | undefined,
   phantomIdMap: PhantomIdMap,
 ) {
-  const result: { rows: Array<{ $PhantomId?: string; id: string; version?: number }> } = { rows: [] };
+  const result: { rows: Array<{ $PhantomId?: string; id: string }> } = { rows: [] };
 
   if (!changes) return result;
 
@@ -200,46 +187,21 @@ export async function syncTasks(
         }
       }
 
-      // Optimistic version check: only if client sent a version (direct user edits).
-      // Engine-cascaded updates (e.g. successor recalculation) won't have version
-      // and skip the check — they're recalculated from the source change anyway.
-      if (task.version != null) {
-        const existing = await db.ganttTask.findUnique({
-          where: { id: task.id },
-          select: { version: true, projectId: true },
-        });
-
-        console.log('[Gantt:syncTasks] Version check:', task.id, '— client:', task.version, 'db:', existing?.version);
-
-        if (!existing || existing.projectId !== projectId) {
-          throw new VersionConflictError([task.id]);
-        }
-
-        if (existing.version !== task.version) {
-          console.log('[Gantt:syncTasks] CONFLICT:', task.id, '— client:', task.version, 'db:', existing.version);
-          throw new VersionConflictError([task.id]);
-        }
-      } else {
-        console.log('[Gantt:syncTasks] No version sent for', task.id, '— engine-cascaded update, skipping check');
-      }
-
-      // Always increment version atomically on every update
-      updateData.version = { increment: 1 };
-
       try {
         const updated = await db.ganttTask.update({
           where: { id: task.id, projectId },
           data: updateData,
-          select: { id: true, version: true },
+          select: { id: true },
         });
 
-        // Return new version so client stays in sync (prevents self-conflict on next save)
-        console.log('[Gantt:syncTasks] Updated:', updated.id, '→ new version:', updated.version);
-        result.rows.push({ id: updated.id, version: updated.version });
+        result.rows.push({ id: updated.id });
       } catch (error) {
-        // P2025 = record not found (another user deleted this task)
+        // P2025 = record not found (deleted concurrently or never existed —
+        // e.g. STM undo of an unsynced add sends an UPDATE for a phantom id).
+        // Skip silently; the next gantt.load resyncs the client.
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-          throw new VersionConflictError([task.id]);
+          console.warn('[Gantt:syncTasks] Skipping update for missing task:', task.id);
+          continue;
         }
         throw error;
       }

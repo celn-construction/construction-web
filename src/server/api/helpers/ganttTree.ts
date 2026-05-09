@@ -23,7 +23,6 @@ type GanttTaskSelect = {
   csiCode: string | null;
   baselines: unknown;
   orderIndex: number;
-  version: number;
 };
 
 // Bryntum expects specific field names - map DB fields to Bryntum fields
@@ -52,7 +51,6 @@ export function mapTaskToGantt(
     note: task.note,
     csiCode: task.csiCode,
     baselines: task.baselines,
-    version: task.version,
     needsReviewCount,
   };
 }

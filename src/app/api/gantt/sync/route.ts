@@ -72,19 +72,6 @@ export async function POST(request: Request) {
     // 'isBeingMaterialized')"). 200 + success:false routes through `onCrudFailure`,
     // which is safe, and the response is still surfaced via the `syncFail` listener.
     if (error instanceof TRPCError) {
-      if (error.code === 'CONFLICT') {
-        console.log('[Gantt:sync] CONFLICT:', error.message);
-        return NextResponse.json({
-          success: true,
-          conflict: true,
-          message: error.message,
-          tasks: { rows: [] },
-          dependencies: { rows: [] },
-          resources: { rows: [] },
-          assignments: { rows: [] },
-          timeRanges: { rows: [] },
-        });
-      }
       console.error('[Gantt:sync] tRPC error:', error.code, error.message);
       return NextResponse.json({
         success: false,

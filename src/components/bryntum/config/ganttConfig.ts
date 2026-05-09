@@ -2,20 +2,14 @@ import { TaskModel } from '@bryntum/gantt';
 import type { DomClassList } from '@bryntum/gantt';
 import type { GanttConfig, ColumnRendererData } from '../types';
 
-// Extend TaskModel to include the `version` field used for optimistic locking
-// and the `needsReviewCount` field that drives the review-queue badge in the
-// name column. Without explicit `fields`, Bryntum drops these from loaded data.
-class VersionedTaskModel extends TaskModel {
+// Extend TaskModel to include the `needsReviewCount` field that drives the
+// review-queue badge in the name column. Without explicit `fields`, Bryntum
+// drops it from loaded data.
+class AppTaskModel extends TaskModel {
   static override get fields() {
     return [
-      { name: 'version', type: 'int', defaultValue: 1 },
       { name: 'needsReviewCount', type: 'int', defaultValue: 0 },
     ];
-  }
-
-  override isEditable(fieldName: string): boolean {
-    if (fieldName === 'percentDone') return false;
-    return super.isEditable(fieldName);
   }
 }
 
@@ -54,15 +48,16 @@ export function createGanttConfig(
     // Virtualize the time axis so the user can switch to fine-grained presets
     // (e.g. hourAndDay) over a multi-year startDate/endDate span without
     // Bryntum throwing "Configured date range will result in a too long time axis".
-    // Only `bufferCoef × viewport` worth of ticks are rendered at once; the
-    // range slides as the user scrolls.
     infiniteScroll: true,
 
     project: {
       autoLoad: true,
-      autoSync: false,
-      writeAllFields: true,
-      taskModelClass: VersionedTaskModel,
+      autoSync: true,
+      // Coalesce rapid changes (e.g. mid-drag) into one HTTP request per
+      // window. Default is 100ms; 500ms cuts in-flight requests during a
+      // drag from ~10/sec to ~2/sec while still feeling instant on release.
+      autoSyncTimeout: 500,
+      taskModelClass: AppTaskModel,
       resetUndoRedoQueuesAfterLoad: true,
 
       stm: {
@@ -246,11 +241,6 @@ export function createGanttConfig(
         return '';
       }
       return taskRecord.name;
-    },
-
-    listeners: {
-      // scrollTaskIntoView removed — it corrupts the time axis header
-      // virtual renderer, causing all date labels to disappear after scroll.
     },
   };
 }
