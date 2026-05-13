@@ -169,11 +169,8 @@ export interface BryntumGanttInstance {
 }
 
 export type GanttConfig = {
-  height?: string;
   autoHeight?: boolean;
-  autoAdjustTimeAxis?: boolean;
   infiniteScroll?: boolean;
-  bufferCoef?: number;
   detectCSSCompatibilityIssues: boolean;
   loadMask?: string | null | Record<string, unknown>;
   syncMask?: string | null | Record<string, unknown>;
@@ -182,9 +179,8 @@ export type GanttConfig = {
   project: {
     autoLoad: boolean;
     autoSync?: boolean;
-    writeAllFields?: boolean;
+    autoSyncTimeout?: number;
     taskModelClass?: typeof TaskModel;
-    delayCalculation?: boolean;
     resetUndoRedoQueuesAfterLoad?: boolean;
     stm?: {
       autoRecord?: boolean;
@@ -238,6 +234,15 @@ export type GanttConfig = {
     cellMenu?: boolean | { cls?: string };
     scheduleMenu?: boolean | { cls?: string };
     dependencyMenu?: boolean | { cls?: string };
+    /** Dependencies — drag-to-create dep arrows (handles on task bar
+     *  edges) and auto-rescheduling on predecessor moves. Set to false
+     *  (or remove) to revert. */
+    dependencies?: boolean | {
+      allowCreate?: boolean;
+      allowDrop?: boolean;
+      drawOnScroll?: boolean;
+      showLagInTooltip?: boolean;
+    };
   };
   emptyText?: string;
   viewPreset: string;
@@ -258,23 +263,4 @@ export type GanttConfig = {
       iconCls: DomClassList | string;
     };
   }) => string | BryntumDomConfig | BryntumDomConfig[];
-  listeners: {
-    taskClick?: TaskClickHandler;
-    cellDblClick?: (event: {
-      grid: Grid;
-      record: Model;
-      column: Column;
-      cellElement: HTMLElement;
-      target: HTMLElement;
-      event: MouseEvent;
-    }) => void;
-    cellClick?: (event: {
-      grid: Grid;
-      record: Model;
-      column: Column;
-      cellElement: HTMLElement;
-      target: HTMLElement;
-      event: MouseEvent;
-    }) => void;
-  };
 };

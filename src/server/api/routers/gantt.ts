@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Prisma } from "../../../../generated/prisma";
 import { createTRPCRouter, orgProcedure, projectProcedure } from "@/server/api/trpc";
 import { canManageProjects, canApproveDocuments } from "@/lib/permissions";
 import {
@@ -13,12 +12,9 @@ import {
   type SlotKind,
 } from "@/lib/validations/gantt";
 import { nextSuggestedSlotName } from "@/lib/constants/slotNameLibrary";
-import { CSI_SUBDIVISION_MAP, CSI_DIVISION_MAP } from "@/lib/constants/csiCodes";
 import { APPROVABLE_FOLDER_ID_LIST } from "@/lib/folders";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
-import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges, VersionConflictError } from "@/server/api/helpers/ganttSync";
-import { recordRevision } from "@/server/api/helpers/ganttRevision";
-import type { RevisionChanges } from "@/server/api/helpers/ganttRevision";
+import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges } from "@/server/api/helpers/ganttSync";
 
 export const ganttRouter = createTRPCRouter({
   /**
@@ -223,7 +219,6 @@ export const ganttRouter = createTRPCRouter({
             csiCode: true,
             baselines: true,
             orderIndex: true,
-            version: true,
           },
         }),
         ctx.db.ganttDependency.findMany({
@@ -330,103 +325,33 @@ export const ganttRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
       }
 
-      try {
-        // RepeatableRead isolation eliminates TOCTOU race between version check and update.
-        // If another transaction modifies the same row between our read and write,
-        // PostgreSQL raises a serialization error (P2034) which we catch below.
-        const result = await ctx.db.$transaction(
-          async (tx) => {
-            const phantomIdMap = new Map<string, string>();
+      // Last-write-wins: no version check, no isolation upgrade. Concurrent
+      // edits to the same field on the same task by different users will
+      // simply have the later one win.
+      return ctx.db.$transaction(async (tx) => {
+        const phantomIdMap = new Map<string, string>();
 
-            // Process changes in dependency order:
-            // 1. Tasks first (dependencies need task IDs)
-            // 2. Resources (assignments need resource IDs)
-            // 3. Dependencies (need task IDs)
-            // 4. Assignments (need task + resource IDs)
-            // 5. Time ranges (independent)
+        // Process changes in dependency order:
+        // 1. Tasks first (dependencies need task IDs)
+        // 2. Resources (assignments need resource IDs)
+        // 3. Dependencies (need task IDs)
+        // 4. Assignments (need task + resource IDs)
+        // 5. Time ranges (independent)
 
-            const taskResult = await syncTasks(tx, projectId, tasks, phantomIdMap);
-            const resourceResult = await syncResources(tx, projectId, resources, phantomIdMap);
-            const dependencyResult = await syncDependencies(tx, projectId, dependencies, phantomIdMap);
-            const assignmentResult = await syncAssignments(tx, projectId, assignments, phantomIdMap);
-            const timeRangeResult = await syncTimeRanges(tx, projectId, timeRanges, phantomIdMap);
+        const taskResult = await syncTasks(tx, projectId, tasks, phantomIdMap);
+        const resourceResult = await syncResources(tx, projectId, resources, phantomIdMap);
+        const dependencyResult = await syncDependencies(tx, projectId, dependencies, phantomIdMap);
+        const assignmentResult = await syncAssignments(tx, projectId, assignments, phantomIdMap);
+        const timeRangeResult = await syncTimeRanges(tx, projectId, timeRanges, phantomIdMap);
 
-            return {
-              success: true,
-              tasks: taskResult,
-              resources: resourceResult,
-              dependencies: dependencyResult,
-              assignments: assignmentResult,
-              timeRanges: timeRangeResult,
-            };
-          },
-          { isolationLevel: 'RepeatableRead' },
-        );
-
-        // Record a revision delta (fire-and-forget, non-blocking).
-        // This runs outside the RepeatableRead transaction so it doesn't
-        // hold locks or affect sync latency.
-        const syncPayload: RevisionChanges = {
-          tasks, dependencies, resources, assignments, timeRanges,
+        return {
+          success: true,
+          tasks: taskResult,
+          resources: resourceResult,
+          dependencies: dependencyResult,
+          assignments: assignmentResult,
+          timeRanges: timeRangeResult,
         };
-        void recordRevision(ctx.db, projectId, ctx.session.user.id, syncPayload)
-          .catch((err) => console.error("Failed to record revision:", err));
-
-        return result;
-      } catch (error) {
-        if (error instanceof VersionConflictError) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: error.message,
-          });
-        }
-        // P2034 = serialization failure from RepeatableRead (concurrent row modification)
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "Another user modified this data. Please reload and try again.",
-          });
-        }
-        throw error;
-      }
-    }),
-
-  /**
-   * Update a task's CSI code from the detail popover
-   */
-  updateCsiCode: orgProcedure
-    .input(z.object({
-      projectId: z.string(),
-      taskId: z.string(),
-      csiCode: z.string().nullable().refine(
-        (val) => val === null || CSI_SUBDIVISION_MAP.has(val) || CSI_DIVISION_MAP.has(val),
-        { message: "Invalid CSI code" },
-      ),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      const { projectId, taskId, csiCode } = input;
-
-      const project = await ctx.db.project.findFirst({
-        where: { id: projectId, organizationId: ctx.organization.id },
-      });
-
-      if (!project) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
-      }
-
-      const task = await ctx.db.ganttTask.findFirst({
-        where: { id: taskId, projectId },
-        select: { id: true },
-      });
-
-      if (!task) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found in this project" });
-      }
-
-      return ctx.db.ganttTask.update({
-        where: { id: taskId },
-        data: { csiCode },
-        select: { id: true, csiCode: true },
       });
     }),
 

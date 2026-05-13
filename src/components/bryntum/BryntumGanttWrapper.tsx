@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
 import { Menu } from '@bryntum/gantt';
 import '@bryntum/gantt/gantt.css';
@@ -11,13 +11,10 @@ import { canManageProjects } from '@/lib/permissions';
 import { createGanttConfig } from './config/ganttConfig';
 import GanttToolbar from './components/GanttToolbar';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
-import ConflictDialog from './components/ConflictDialog';
 import TaskInfoDialog from './components/TaskInfoDialog';
 import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
 import { useTaskPopover } from './hooks/useTaskPopover';
 import { useGanttControls } from './hooks/useGanttControls';
-import { useGanttDraft, hasGanttDraft } from './hooks/useGanttDraft';
-import { injectTaskVersions } from './utils/injectTaskVersions';
 import { reconcileSyncPack } from './utils/reconcileSyncPack';
 import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
 import { IBeamLoader } from '@/components/ui/IBeamLoader';
@@ -72,43 +69,32 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     enableStm,
   } = ganttControls;
 
-  const errorColor = '#D93C15';
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [conflictOpen, setConflictOpen] = useState(false);
   const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
-  // Lock mode: chart is locked by default; admin-level users can unlock to edit.
-  // If a localStorage draft is present we start unlocked — the user has unsaved
-  // work and clearly wants to keep editing rather than click a toggle first.
+  // Lock mode: chart is locked by default; admin-level users click the lock
+  // toggle in the toolbar to enter edit mode.
   const { currentOrg } = useOrgFromUrl();
   const canEditChart = canManageProjects(currentOrg?.role ?? '');
-  const [isEditMode, setIsEditMode] = useState(() => hasGanttDraft(projectId));
+  const [isEditMode, setIsEditMode] = useState(false);
   const editingUnlocked = canEditChart && isEditMode;
 
-  const isReloadingRef = useRef(false);
-  const skipVersionRef = useRef(false);
-
   // Bryntum's CrudManager "added"/"removed" bags can drop records when the
-  // scheduling engine commits state between cycles (see force-sync comment below).
-  // We shadow-track IDs from the reliable taskStore events so `onBeforeSync` can
-  // reconcile the outgoing pack. `lastSync*` captures what was sent so we only
-  // clear those IDs on a successful sync (new changes during the request stay).
+  // scheduling engine commits state between cycles. We shadow-track IDs from
+  // the reliable taskStore events so `onBeforeSync` can reconcile the outgoing
+  // pack. `lastSync*` captures what was sent so we only clear those IDs on a
+  // successful sync (new changes during the request stay).
   const pendingAddedIdsRef = useRef<Set<string>>(new Set());
   const pendingRemovedIdsRef = useRef<Set<string>>(new Set());
   const lastSyncAddedIdsRef = useRef<Set<string>>(new Set());
   const lastSyncRemovedIdsRef = useRef<Set<string>>(new Set());
+  const sidebarInvalidateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { selectedTask, popoverPlacement, handleTaskClick, closeTaskPopover, isTaskPopoverOpen } =
     useTaskPopover();
 
   useBryntumThemeAssets();
-
-  useGanttDraft({
-    getGanttInstance,
-    projectId,
-    isLoading,
-  });
 
   // Sync Bryntum's built-in readOnly flag with our edit-mode state.
   // This disables cell editing, task drag, task resize, and dependency creation.
@@ -119,9 +105,8 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     gantt.readOnly = !editingUnlocked;
   }, [isLoading, getGanttInstance, editingUnlocked]);
 
-  // After data loads, finalize the project so the scheduling engine is ready.
-  // delayCalculation defers the initial engine run — commitAsync triggers it.
-  // Then enable STM so undo/redo starts tracking from this clean state.
+  // After data loads, run commitAsync to settle the scheduling engine, then
+  // enable STM so undo/redo starts tracking from this clean state.
   // Do NOT call scrollToDate here — it corrupts the time axis header.
   const stmCleanupRef = useRef<(() => void) | null>(null);
   useEffect(() => {
@@ -145,44 +130,30 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     const gantt = getGanttInstance();
     if (!gantt?.project) return;
 
-    // Detect version conflicts BEFORE Bryntum applies the response data.
-    // `beforeResponseApply` is the only CrudManager event that passes the decoded
-    // response object for sync requests. The `sync` event does NOT include it.
-    // Returning false prevents Bryntum from applying the empty conflict response.
-    const onBeforeResponseApply = ({ requestType, response }: { requestType: string; response: Record<string, unknown> }) => {
-      if (requestType !== 'sync') return;
-      if (response.conflict) {
-        // Manually clear Bryntum's "Saving changes, please wait..." mask
-        // since returning false prevents the sync cycle from finalizing.
-        const g = getGanttInstance();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        if (g) (g as unknown as { unmask?: () => void }).unmask?.();
-
-        setConflictOpen(true);
-        return false; // Keep records dirty so "Keep My Changes" can re-sync them
-      }
-    };
-
     const onSync = () => {
-      skipVersionRef.current = false;
       // Clear only the IDs that were actually sent in this sync cycle; any IDs
       // added to pending* after `onBeforeSync` fired belong to the next sync.
       for (const id of lastSyncAddedIdsRef.current) pendingAddedIdsRef.current.delete(id);
       for (const id of lastSyncRemovedIdsRef.current) pendingRemovedIdsRef.current.delete(id);
       lastSyncAddedIdsRef.current.clear();
       lastSyncRemovedIdsRef.current.clear();
-      void utils.gantt.tasks.invalidate();
+      // Trailing-edge debounce: with autoSync flushing every ~500ms during a
+      // drag, refetching on every cycle would thrash. One refetch ~1s after
+      // the last sync gives the file-tree sidebar and task-detail popover
+      // a fresh view without spam.
+      if (sidebarInvalidateTimerRef.current) clearTimeout(sidebarInvalidateTimerRef.current);
+      sidebarInvalidateTimerRef.current = setTimeout(() => {
+        void utils.gantt.tasks.invalidate();
+        void utils.gantt.taskDetail.invalidate();
+      }, 1000);
     };
 
     const onSyncFail = () => {
-      skipVersionRef.current = false;
       // Keep pending IDs intact for retry; just drop the in-flight snapshot.
       lastSyncAddedIdsRef.current.clear();
       lastSyncRemovedIdsRef.current.clear();
     };
 
-    // Engine-cascaded records (successor recalculations) are intentionally NOT
-    // injected — they skip the version check.
     const onBeforeSync = ({ pack }: { pack: unknown }) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const taskStore = gantt.project.taskStore;
@@ -197,64 +168,31 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       // without dropping new changes that arrive mid-request.
       lastSyncAddedIdsRef.current = new Set(pendingAddedIdsRef.current);
       lastSyncRemovedIdsRef.current = new Set(pendingRemovedIdsRef.current);
-
-      // When user clicks "Proceed" after a conflict, skip version injection
-      // so the server does a last-write-wins save (no version check).
-      if (skipVersionRef.current) return;
-      injectTaskVersions(pack, taskStore as Parameters<typeof injectTaskVersions>[1]);
     };
 
-    // Track changes via direct store events (add/remove/update).
-    // These fire synchronously BEFORE auto-sync, so they're reliable.
-    // We dispatch individual change events; the ganttChangesStore accumulates them.
+    // Shadow-track added/removed IDs from the reliable taskStore events so
+    // `onBeforeSync` can reconcile the outgoing pack against Bryntum's
+    // CrudManager dirty bag (which sometimes drops records when the engine
+    // commits state between cycles).
     const taskStore = gantt.project.taskStore;
 
-    const onTaskAdd = ({ records, isExpand }: { records: Array<{ id?: string; name?: string; isRoot?: boolean }>; isExpand?: boolean }) => {
-      // Skip expand/collapse visibility changes — these are not real additions
+    const onTaskAdd = ({ records, isExpand }: { records: Array<{ id?: string; isRoot?: boolean }>; isExpand?: boolean }) => {
       if (isExpand) return;
-      const tasks = records
-        .filter((r) => !r.isRoot && r.id)
-        .map((r) => ({ id: String(r.id), name: r.name ?? 'New Task' }));
-      if (tasks.length > 0) {
-        for (const t of tasks) pendingAddedIdsRef.current.add(t.id);
-        window.dispatchEvent(new CustomEvent('gantt-task-change', {
-          detail: { type: 'add', tasks },
-        }));
+      for (const r of records) {
+        if (!r.isRoot && r.id) pendingAddedIdsRef.current.add(String(r.id));
       }
     };
 
-    const onTaskRemove = ({ records, isCollapse }: { records: Array<{ id?: string; name?: string; isRoot?: boolean }>; isCollapse?: boolean }) => {
-      // Skip expand/collapse visibility changes — these are not real removals
+    const onTaskRemove = ({ records, isCollapse }: { records: Array<{ id?: string; isRoot?: boolean }>; isCollapse?: boolean }) => {
       if (isCollapse) return;
-      const tasks = records
-        .filter((r) => !r.isRoot && r.id)
-        .map((r) => ({ id: String(r.id), name: r.name ?? 'Task' }));
-      if (tasks.length > 0) {
-        for (const t of tasks) {
-          // If added then removed before sync, the two cancel out. Otherwise track
-          // the removal so we can reconcile the pack if Bryntum drops it.
-          if (pendingAddedIdsRef.current.has(t.id)) {
-            pendingAddedIdsRef.current.delete(t.id);
-          } else {
-            pendingRemovedIdsRef.current.add(t.id);
-          }
+      for (const r of records) {
+        if (r.isRoot || !r.id) continue;
+        const id = String(r.id);
+        if (pendingAddedIdsRef.current.has(id)) {
+          pendingAddedIdsRef.current.delete(id);
+        } else {
+          pendingRemovedIdsRef.current.add(id);
         }
-        window.dispatchEvent(new CustomEvent('gantt-task-change', {
-          detail: { type: 'remove', tasks },
-        }));
-      }
-    };
-
-    // Track updates only for user-initiated field changes (name, note, csiCode),
-    // NOT scheduling engine recalculations (dates, duration, percentDone, etc.)
-    const userEditableFields = new Set(['name', 'note', 'csiCode', 'manuallyScheduled']);
-    const onTaskUpdate = ({ record, changes }: { record: { id?: string; name?: string; isRoot?: boolean }; changes: Record<string, unknown> }) => {
-      if (record.isRoot || !record.id) return;
-      const userChanges = Object.keys(changes).filter((k) => userEditableFields.has(k));
-      if (userChanges.length > 0) {
-        window.dispatchEvent(new CustomEvent('gantt-task-change', {
-          detail: { type: 'update', tasks: [{ id: String(record.id), name: record.name ?? 'Task' }] },
-        }));
       }
     };
 
@@ -262,15 +200,11 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     taskStore.on('add', onTaskAdd);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     taskStore.on('remove', onTaskRemove);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    taskStore.on('update', onTaskUpdate);
 
-    gantt.project.on('beforeResponseApply', onBeforeResponseApply);
     gantt.project.on('sync', onSync);
     gantt.project.on('syncFail', onSyncFail);
     gantt.project.on('beforeSync', onBeforeSync);
     return () => {
-      gantt.project?.un('beforeResponseApply', onBeforeResponseApply);
       gantt.project?.un('sync', onSync);
       gantt.project?.un('syncFail', onSyncFail);
       gantt.project?.un('beforeSync', onBeforeSync);
@@ -278,8 +212,10 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       gantt.project?.taskStore?.un('add', onTaskAdd);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       gantt.project?.taskStore?.un('remove', onTaskRemove);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.project?.taskStore?.un('update', onTaskUpdate);
+      if (sidebarInvalidateTimerRef.current) {
+        clearTimeout(sidebarInvalidateTimerRef.current);
+        sidebarInvalidateTimerRef.current = null;
+      }
     };
   }, [isLoading, getGanttInstance, utils]);
 
@@ -342,269 +278,8 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     },
   }));
 
-  const handleConflictProceed = useCallback(() => {
-    setConflictOpen(false);
-    skipVersionRef.current = true;
-    const g = getGanttInstance();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    if (g?.project) void g.project.sync();
-  }, [getGanttInstance]);
-
-  const handleConflictRefresh = useCallback(() => {
-    setConflictOpen(false);
-    isReloadingRef.current = true;
-    const g = getGanttInstance();
-    if (g?.project) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      void g.project.load().finally(() => { isReloadingRef.current = false; });
-    } else {
-      isReloadingRef.current = false;
-    }
-  }, [getGanttInstance]);
-
-  // Listen for force-sync requests (e.g. before saving a version).
-  // We read ALL data from Bryntum's stores via project.toJSON() instead of relying
-  // on project.sync(), because Bryntum's scheduling engine internally commits store
-  // dirty state during deferred calculations — causing records added between engine
-  // cycles to fall out of the CrudManager's "added" bag and never sync to the server.
-  // Reading inlineData/toJSON captures ALL records regardless of dirty tracking.
-  useEffect(() => {
-    const handleForceSync = () => {
-      const gantt = getGanttInstance();
-      if (!gantt?.project) {
-        window.dispatchEvent(new CustomEvent('gantt-sync-done', { detail: { inlineData: null } }));
-        return;
-      }
-
-      void (async () => {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          await gantt.project.commitAsync();
-
-          // ────────────────────────────────────────────────────────────────
-          // PHANTOM RESCUE PATH
-          //
-          // Why this exists:
-          //   New tasks get a Bryntum phantom id like "_generatedTaskModel_…".
-          //   `autoSync` is false on this Gantt, and after the localStorage
-          //   draft restores via `project.json = saved`, Bryntum stops
-          //   tracking those records as "added" — so `crudStoreHasChanges()`
-          //   returns false and the regular `project.sync()` call below
-          //   silently no-ops. Result: phantoms never reach the DB, and any
-          //   downstream mutation (`updateRequirement`, `updateCsiCode`,
-          //   `pinPhoto`) throws NOT_FOUND.
-          //
-          // What this does:
-          //   Detect phantoms, POST them directly to /api/gantt/sync as
-          //   `tasks.added`, clear the stale localStorage draft (otherwise it
-          //   would restore phantom ids on next page load), then
-          //   project.load() so the local store picks up the real cuids the
-          //   server just minted. After this runs, the user can edit those
-          //   tasks immediately (no popover snackbar block).
-          // ────────────────────────────────────────────────────────────────
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            const allTasksForRescue = (gantt.project.taskStore.allRecords as Array<{
-              id?: unknown;
-              isPhantom?: boolean;
-              isRoot?: boolean;
-              data?: Record<string, unknown>;
-            }>) ?? [];
-            const phantomTasks = allTasksForRescue.filter((r) => !r.isRoot && r.isPhantom);
-
-            if (phantomTasks.length > 0 && projectId) {
-              const toIso = (v: unknown): string | null | undefined => {
-                if (v == null) return v as null | undefined;
-                if (v instanceof Date) return v.toISOString();
-                return String(v);
-              };
-
-              const added = phantomTasks.map((r) => {
-                const d = (r.data ?? (r as unknown as Record<string, unknown>)) as Record<string, unknown>;
-                return {
-                  $PhantomId: String(r.id),
-                  name: typeof d.name === 'string' ? d.name : 'New Task',
-                  parentId: d.parentId ? String(d.parentId) : null,
-                  percentDone: typeof d.percentDone === 'number' ? d.percentDone : 0,
-                  startDate: toIso(d.startDate),
-                  endDate: toIso(d.endDate),
-                  duration: typeof d.duration === 'number' ? d.duration : null,
-                  durationUnit: typeof d.durationUnit === 'string' ? d.durationUnit : 'day',
-                  effort: typeof d.effort === 'number' ? d.effort : null,
-                  effortUnit: typeof d.effortUnit === 'string' ? d.effortUnit : null,
-                  expanded: typeof d.expanded === 'boolean' ? d.expanded : false,
-                  manuallyScheduled: typeof d.manuallyScheduled === 'boolean' ? d.manuallyScheduled : false,
-                  constraintType: typeof d.constraintType === 'string' ? d.constraintType : null,
-                  constraintDate: toIso(d.constraintDate),
-                  rollup: typeof d.rollup === 'boolean' ? d.rollup : false,
-                  cls: typeof d.cls === 'string' ? d.cls : null,
-                  iconCls: typeof d.iconCls === 'string' ? d.iconCls : null,
-                  note: typeof d.note === 'string' ? d.note : null,
-                  csiCode: typeof d.csiCode === 'string' ? d.csiCode : null,
-                  orderIndex: typeof d.parentIndex === 'number'
-                    ? d.parentIndex
-                    : typeof d.orderedParentIndex === 'number'
-                      ? d.orderedParentIndex
-                      : undefined,
-                };
-              });
-
-              const rescueRes = await fetch(`/api/gantt/sync?projectId=${projectId}`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tasks: { added } }),
-              });
-              const rescueJson = await rescueRes.json() as {
-                success?: boolean;
-                conflict?: boolean;
-                message?: string;
-                tasks?: { rows?: Array<{ $PhantomId?: string; id?: string }> };
-              };
-
-              if (rescueJson.success && !rescueJson.conflict) {
-                // Clear the stale draft so the freshly-loaded real ids stick
-                // instead of getting overwritten by a draft restore on next mount.
-                try {
-                  localStorage.removeItem(`gantt-draft-v4-${projectId}`);
-                } catch {
-                  // Non-fatal: storage may be unavailable in private mode.
-                }
-
-                // Refresh from server. Bryntum preserves scroll/expansion
-                // across loads, but the local store now carries real cuids.
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-                await gantt.project.load();
-              }
-            }
-          } catch {
-            // Non-fatal — fall through to existing snapshot save flow.
-          }
-
-          // 2. Read ALL data from Bryntum's individual stores and serialize to plain objects.
-          //    We can't use project.inlineData directly because it contains Bryntum record
-          //    instances with circular parent↔children references that break JSON serialization.
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const taskStore = gantt.project.taskStore;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const allTasks = (taskStore?.allRecords as Array<{ isRoot?: boolean; toJSON?: () => Record<string, unknown>; data?: Record<string, unknown> }>) ?? [];
-          // Pick only DB-relevant fields. Do NOT use toJSON() — it includes
-          // `children` arrays (tree structure) that create massive nested duplicates.
-          const pickTaskFields = (r: Record<string, unknown>) => ({
-            id: r.id, name: r.name, parentId: r.parentId ?? null,
-            startDate: r.startDate, endDate: r.endDate,
-            duration: r.duration, durationUnit: r.durationUnit,
-            percentDone: r.percentDone, effort: r.effort, effortUnit: r.effortUnit,
-            expanded: r.expanded, manuallyScheduled: r.manuallyScheduled,
-            constraintType: r.constraintType, constraintDate: r.constraintDate,
-            rollup: r.rollup, cls: r.cls, iconCls: r.iconCls,
-            note: r.note, csiCode: r.csiCode, baselines: r.baselines,
-            orderIndex: r.parentIndex ?? r.orderedParentIndex, version: r.version,
-            coverDocumentId: r.coverDocumentId ?? null,
-          });
-          const serializedTasks = allTasks
-            .filter(r => !r.isRoot)
-            .map(r => pickTaskFields(r.data ?? r as unknown as Record<string, unknown>));
-
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const depStore = gantt.project.dependencyStore;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const allDeps = (depStore?.allRecords as Array<{ toJSON?: () => Record<string, unknown>; data?: Record<string, unknown> }>) ?? [];
-          const pickFields = (r: { data?: Record<string, unknown> }) => ({ ...(r.data ?? r) });
-          const serializedDeps = allDeps.map(pickFields);
-
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const resStore = gantt.project.resourceStore;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const allResources = (resStore?.allRecords as Array<{ data?: Record<string, unknown> }>) ?? [];
-          const serializedResources = allResources.map(pickFields);
-
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const assignStore = gantt.project.assignmentStore;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const allAssignments = (assignStore?.allRecords as Array<{ data?: Record<string, unknown> }>) ?? [];
-          const serializedAssignments = allAssignments.map(pickFields);
-
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const trStore = gantt.project.timeRangeStore;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const allTimeRanges = (trStore?.allRecords as Array<{ data?: Record<string, unknown> }>) ?? [];
-          const serializedTimeRanges = allTimeRanges.map(pickFields);
-
-          // JSON round-trip to strip any remaining class instances, circular refs,
-          // or non-serializable values (Dates become ISO strings, etc.)
-          let inlineData: Record<string, unknown>;
-          try {
-            inlineData = JSON.parse(JSON.stringify({
-              tasks: serializedTasks,
-              dependencies: serializedDeps,
-              resources: serializedResources,
-              assignments: serializedAssignments,
-              timeRanges: serializedTimeRanges,
-            })) as Record<string, unknown>;
-          } catch {
-            inlineData = { tasks: [], dependencies: [], resources: [], assignments: [], timeRanges: [] };
-          }
-
-          // 3. Also attempt CrudManager sync for best-effort DB persistence
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          if (gantt.project.crudStoreHasChanges()) {
-            try {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-              await gantt.project.sync();
-            } catch {
-              // Non-fatal — the inlineData snapshot will still have all data
-            }
-          }
-
-          window.dispatchEvent(new CustomEvent('gantt-sync-done', { detail: { inlineData } }));
-        } catch {
-          window.dispatchEvent(new CustomEvent('gantt-sync-done', { detail: { inlineData: null } }));
-        }
-      })();
-    };
-    window.addEventListener('gantt-force-sync', handleForceSync);
-    return () => window.removeEventListener('gantt-force-sync', handleForceSync);
-  }, [getGanttInstance]);
-
-  // Keyboard shortcuts for undo/redo (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMod = e.metaKey || e.ctrlKey;
-      if (!isMod) return;
-
-      // Don't intercept when typing in an input/textarea
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
-
-      if (e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        handleUndo();
-      } else if (e.key === 'z' && e.shiftKey) {
-        e.preventDefault();
-        handleRedo();
-      } else if (e.key === 'y') {
-        e.preventDefault();
-        handleRedo();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo, handleRedo]);
-
-  // Listen for external reload requests (e.g. after restoring a version)
-  useEffect(() => {
-    const handleReload = () => {
-      const gantt = getGanttInstance();
-      if (gantt?.project) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        void gantt.project.load();
-      }
-    };
-    window.addEventListener('gantt-reload', handleReload);
-    return () => window.removeEventListener('gantt-reload', handleReload);
-  }, [getGanttInstance]);
+  // Undo/redo keyboard shortcuts (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z) come from
+  // Bryntum's STM via `enableUndoRedoKeys` (default true).
 
   // Attach the taskClick listener on the Bryntum instance (not in the static config)
   // so we can use the latest handleTaskClick reference from useTaskPopover.
@@ -643,21 +318,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onCellClick = ({ record, column, event }: { record: any; column: { type: string }; event: MouseEvent }) => {
       const target = event.target as HTMLElement;
-
-      // Scroll-to-task button — centers the timeline on the task's start date.
-      // NOTE: scrollTaskIntoView corrupts the time axis header virtual renderer,
-      // so we use the timeAxis subgrid's scrollable to scroll horizontally instead.
-      const scrollBtn = target.closest('.gantt-row-scroll-btn') as HTMLElement | null;
-      if (scrollBtn && column.type === 'name') {
-        event.stopPropagation();
-        const taskRecord = record as BryntumTaskRecord;
-        const startDate = taskRecord.startDate as Date | undefined;
-        if (startDate) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-          (gantt as any).scrollToDate(startDate, { block: 'center', animate: 300 });
-        }
-        return;
-      }
 
       const btn = target.closest('.gantt-row-actions-btn') as HTMLElement | null;
       if (!btn || column.type !== 'name') return;
@@ -746,6 +406,93 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     };
   }, [isLoading, getGanttInstance, closeTaskPopover, editingUnlocked]);
 
+  // taskMenu config — passed as the top-level `taskMenuFeature` prop on
+  // <BryntumGantt> below. NOT via `features.taskMenu` in the config object —
+  // the React wrapper's `features → ${key}Feature` translation drops function
+  // values like `onItem`/`processItems`, so the menu item never receives its
+  // handler. The top-level prop is honored verbatim by the wrapper.
+  // See Bryntum docs for `features.taskMenu` config:
+  // https://bryntum.com/products/gantt/docs/api/Gantt/feature/TaskMenu
+  const taskMenuFeature = useMemo(() => ({
+    cls: 'gantt-themed-menu',
+    items: {
+      scrollToItem: {
+        text: 'Scroll to item',
+        // b-icon-search (magnifying glass) is in the bundled Bryntum CSS;
+        // FA crosshair classes aren't in the slimmed FA subset this app loads.
+        icon: 'b-icon b-icon-eye',
+        // weight 50 sits above "Show details" (default ~100), pinning the
+        // navigation action at the very top of the menu.
+        weight: 50,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onItem({ taskRecord, source }: { taskRecord: any; source: any }) {
+          const gantt = source?.client ?? getGanttInstance();
+          if (!gantt || !taskRecord?.startDate) return;
+          // scrollToDate is the proven-safe path — `scrollTaskIntoView`
+          // corrupts the time-axis header virtual renderer.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          gantt.scrollToDate(taskRecord.startDate, { block: 'center', animate: 300 });
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          gantt.selectedRecords = [taskRecord];
+        },
+      },
+    },
+    // Hide Cut/Paste from the menu (keyboard shortcuts stay bound) and
+    // attach a tooltip on each disabled item explaining why it's not
+    // clickable. Two non-obvious bits:
+    //   1. Lookup is keyed on the item REF (object property name), not on
+    //      `text` — at this lifecycle stage Bryntum's text is still a
+    //      localization key like `L{Gantt.linkTasks}` and only resolves to
+    //      a display string at render time. Refs verified at runtime for
+    //      Bryntum 7.2 (linkTasks / unlinkTasks for dep items, NOT the
+    //      docs' `addDependency` / `removeDependency`).
+    //   2. When `gantt.readOnly` is true (edit lock — see line 118),
+    //      Bryntum disables every write item at once; emit one shared
+    //      message rather than guessing per-item reasons.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    processItems({ items }: { items: Record<string, any> }) {
+      const gantt = getGanttInstance();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      const isLocked = !!(gantt as any)?.readOnly;
+
+      const reasonsByRef: Record<string, string> = {
+        // linkTasks: select 2+ tasks (Cmd-click), right-click → Bryntum
+        // chains them. With one task it's permanently disabled by design.
+        // Drag-to-create from a task edge is the alternative single-dep
+        // flow (enabled by `dependencies: true` in ganttConfig.ts).
+        linkTasks: 'Select 2 or more tasks to link them in sequence, or drag from a task\'s edge to another to create a single dependency',
+        unlinkTasks: 'Select 2 or more linked tasks to remove the dependencies between them',
+        indent: 'No task above this one to nest under',
+        outdent: 'This task is already at the top level',
+        deleteTask: 'This task cannot be deleted right now',
+        editTask: 'Editing this task is unavailable',
+        convertToMilestone: 'This task cannot be converted to a milestone',
+        add: 'Add is unavailable for this task',
+      };
+
+      for (const ref of Object.keys(items)) {
+        const item = items[ref];
+        if (ref === 'cut' || ref === 'paste') {
+          delete items[ref];
+          continue;
+        }
+        if (item && typeof item === 'object' && item.disabled && !item.tooltip) {
+          const reason = isLocked
+            ? 'Editing is locked — click the lock icon in the toolbar to unlock the chart'
+            : reasonsByRef[ref] ?? 'This action is unavailable for this task';
+          // `align: 'l-r'` pins the tooltip's LEFT edge to the item's
+          // RIGHT edge → tooltip floats out the right side of the menu.
+          // Bryntum's collision detection auto-flips left at the viewport.
+          item.tooltip = {
+            html: reason,
+            align: 'l-r',
+            cls: 'gantt-disabled-tooltip',
+          };
+        }
+      }
+    },
+  }), [getGanttInstance]);
+
   // Close any open row-action menu the moment the chart is locked.
   useEffect(() => {
     if (editingUnlocked) return;
@@ -775,7 +522,8 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       />
 
       {/* Bryntum must always render in a visible container so its internal layout
-          calculations use real dimensions.  The loading/error overlays sit on top. */}
+          calculations use real dimensions. The loading/error overlays sit on top.
+          Menu theming for all Bryntum context menus lives in globals.css. */}
       <style>{`
         .bryntum-gantt-container .b-tree-cell { cursor: pointer; }
         .bryntum-gantt-container .b-gantt-task.b-task-selected {
@@ -820,24 +568,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         .bryntum-gantt-container[data-locked="true"] .gantt-row-actions-btn {
           display: none;
         }
-        /* Scroll-to-task button — left of the ⋮ button, uses FA crosshairs icon */
-        .gantt-row-scroll-btn {
-          flex-shrink: 0;
-          background: none;
-          border: none;
-          box-shadow: none;
-          min-width: 0;
-          padding: 4px 4px;
-          cursor: pointer;
-          border-radius: 4px;
-          color: var(--text-secondary, #8D99AE);
-          font-size: 13px;
-          line-height: 1;
-        }
-        .gantt-row-scroll-btn:hover {
-          background: var(--bg-hover, rgba(0, 0, 0, 0.04));
-          color: var(--text-primary, #2B2D42);
-        }
         /* "Needs review" pill — appears in the name cell when a task has
            unapproved submittals or inspections (count rolls up to parents). */
         .gantt-needs-review-badge {
@@ -858,39 +588,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           letter-spacing: 0;
           cursor: default;
         }
-        /* Row actions dropdown menu — clean card style */
-        .b-menu:has(.gantt-action-danger) {
-          border-radius: 10px !important;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
-          border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08)) !important;
-          padding: 4px 0 !important;
-          overflow: hidden;
-        }
-        .b-menu:has(.gantt-action-danger) .b-menuitem {
-          padding: 8px 16px !important;
-          font-size: 13px !important;
-          font-weight: 500 !important;
-          border-radius: 0 !important;
-          gap: 10px !important;
-        }
-        .b-menu:has(.gantt-action-danger) .b-menuitem:hover {
-          background: var(--hover-bg, rgba(0, 0, 0, 0.04)) !important;
-        }
-        .b-menu:has(.gantt-action-danger) .b-menuitem .b-icon {
-          font-size: 14px !important;
-          width: 18px !important;
-          text-align: center;
-        }
-        .b-menu:has(.gantt-action-danger) .b-menu-separator {
-          margin: 4px 0 !important;
-        }
-        /* Delete action red text */
-        .gantt-action-danger {
-          color: ${errorColor} !important;
-        }
-        .gantt-action-danger .b-icon {
-          color: ${errorColor} !important;
-        }
       `}</style>
 
       <div
@@ -899,7 +596,11 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         data-locked={editingUnlocked ? 'false' : 'true'}
       >
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <BryntumGantt ref={ganttRef} {...ganttConfig} />
+          <BryntumGantt
+            ref={ganttRef}
+            {...ganttConfig}
+            taskMenuFeature={taskMenuFeature}
+          />
         </div>
 
         {isLoading && (
@@ -945,13 +646,8 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         taskName={selectedTask?.name ?? ''}
         taskId={selectedTask?.id}
         popoverPlacement={popoverPlacement}
+        ganttInstance={getGanttInstance() as unknown as BryntumGanttInstance | null}
         onClose={closeTaskPopover}
-      />
-
-      <ConflictDialog
-        open={conflictOpen}
-        onProceed={handleConflictProceed}
-        onRefresh={handleConflictRefresh}
       />
 
       <TaskInfoDialog

@@ -45,14 +45,14 @@ The final JSON was validated against the AGC Austin PDF (official MasterFormat 2
 | `src/lib/constants/csiCodes.ts` | TypeScript layer: exports `CSI_MASTERFORMAT`, `CSI_DIVISIONS`, `CSI_DIVISION_MAP`, `CSI_SUBDIVISION_MAP`, `formatCsiCode()` |
 | `src/components/bryntum/components/task-popover/TaskHeader.tsx` | Inline CSI chip in the popover meta row (code + truncated name when set, dashed "+ CSI code" when empty); calls `onOpenCsiPanel` to open the panel |
 | `src/components/bryntum/components/task-popover/CsiCodePanel.tsx` | Slide-in panel: accordion menu with search, optimistic updates, code selection |
-| `src/server/api/routers/gantt.ts` | tRPC mutation `updateCsiCode` with Zod `.refine()` validation |
+| `src/lib/validations/gantt.ts` | Zod `.refine()` validation for `csiCode` on the shared `gantt.sync` task schema |
 
 ### Data flow
 
 1. **Static JSON** loaded at module init, TypeScript builds O(1) lookup Maps
 2. **Trigger**: `TaskHeader` renders an inline CSI chip; clicking it calls `onOpenCsiPanel` to open the `CsiCodePanel` slide-in panel
 3. **Selection**: `CsiCodePanel` reads from `CSI_MASTERFORMAT`, filters client-side, shows accordion by division
-4. **Save**: User selects code -> optimistic update -> `gantt.updateCsiCode` mutation -> validates code exists in `CSI_SUBDIVISION_MAP` or `CSI_DIVISION_MAP` -> saves string to `GanttTask.csiCode`
+4. **Save**: User selects code -> optimistic update -> panel writes `record.csiCode = next` on the Bryntum task record -> Bryntum's `autoSync` flushes the change to `gantt.sync`, where the shared task Zod schema validates the code against `CSI_SUBDIVISION_MAP` / `CSI_DIVISION_MAP` and persists to `GanttTask.csiCode` (last-write-wins)
 5. **Display**: `formatCsiCode(code)` resolves `"03 30 00"` -> `"03 30 00 - Cast-in-Place Concrete"`
 
 ### Why static JSON (not database)
@@ -86,6 +86,6 @@ If MasterFormat releases a new edition:
 2. Replace `src/lib/constants/csiCodes.json` (same schema)
 3. Validate: all existing stored codes should still be present (superset guarantee)
 4. Run `npx tsc --noEmit` to verify — no code changes needed
-5. The Zod `.refine()` validation in `gantt.ts` auto-updates since it reads from the Maps
+5. The Zod `.refine()` validation in `src/lib/validations/gantt.ts` auto-updates since it reads from the Maps
 
 If existing codes are removed in the new edition, `formatCsiCode()` gracefully falls back to returning the raw code string (no crash).

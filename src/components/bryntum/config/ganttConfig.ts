@@ -2,20 +2,14 @@ import { TaskModel } from '@bryntum/gantt';
 import type { DomClassList } from '@bryntum/gantt';
 import type { GanttConfig, ColumnRendererData } from '../types';
 
-// Extend TaskModel to include the `version` field used for optimistic locking
-// and the `needsReviewCount` field that drives the review-queue badge in the
-// name column. Without explicit `fields`, Bryntum drops these from loaded data.
-class VersionedTaskModel extends TaskModel {
+// Extend TaskModel to include the `needsReviewCount` field that drives the
+// review-queue badge in the name column. Without explicit `fields`, Bryntum
+// drops it from loaded data.
+class AppTaskModel extends TaskModel {
   static override get fields() {
     return [
-      { name: 'version', type: 'int', defaultValue: 1 },
       { name: 'needsReviewCount', type: 'int', defaultValue: 0 },
     ];
-  }
-
-  override isEditable(fieldName: string): boolean {
-    if (fieldName === 'percentDone') return false;
-    return super.isEditable(fieldName);
   }
 }
 
@@ -31,8 +25,6 @@ function formatTooltipText(record: Record<string, unknown>, field?: string): str
 
   return String(value);
 }
-
-// Debounce timer so a double-click (edit) cancels the single-click scroll
 
 interface LoadingCallbacks {
   onLoadStart?: () => void;
@@ -56,15 +48,16 @@ export function createGanttConfig(
     // Virtualize the time axis so the user can switch to fine-grained presets
     // (e.g. hourAndDay) over a multi-year startDate/endDate span without
     // Bryntum throwing "Configured date range will result in a too long time axis".
-    // Only `bufferCoef × viewport` worth of ticks are rendered at once; the
-    // range slides as the user scrolls.
     infiniteScroll: true,
 
     project: {
       autoLoad: true,
-      autoSync: false,
-      writeAllFields: true,
-      taskModelClass: VersionedTaskModel,
+      autoSync: true,
+      // Coalesce rapid changes (e.g. mid-drag) into one HTTP request per
+      // window. Default is 100ms; 500ms cuts in-flight requests during a
+      // drag from ~10/sec to ~2/sec while still feeling instant on release.
+      autoSyncTimeout: 500,
+      taskModelClass: AppTaskModel,
       resetUndoRedoQueuesAfterLoad: true,
 
       stm: {
@@ -129,22 +122,13 @@ export function createGanttConfig(
             });
           }
 
-          children.push(
-            {
-              tag: 'button',
-              class: 'gantt-row-scroll-btn',
-              type: 'button',
-              dataset: { taskId: String(record.id) },
-              html: '<i class="fa-solid fa-arrow-right-to-bracket"></i>',
-            },
-            {
-              tag: 'button',
-              class: 'gantt-row-actions-btn',
-              type: 'button',
-              dataset: { taskId: String(record.id) },
-              html: '<i class="fa-solid fa-ellipsis-vertical"></i>',
-            },
-          );
+          children.push({
+            tag: 'button',
+            class: 'gantt-row-actions-btn',
+            type: 'button',
+            dataset: { taskId: String(record.id) },
+            html: '<i class="fa-solid fa-ellipsis-vertical"></i>',
+          });
 
           return {
             class: 'gantt-name-cell-inner',
@@ -152,8 +136,8 @@ export function createGanttConfig(
           };
         },
       },
-      // Single-clicking the name cell scrolls the timeline to the task's bar (see cellClick listener).
-      // Double-clicking starts inline name editing (Bryntum native behavior).
+      // Double-clicking the name cell starts inline name editing (Bryntum native behavior).
+      // Right-click opens the task context menu (includes "Scroll to item").
       {
         type: 'startdate',
         field: 'startDate',
@@ -202,10 +186,29 @@ export function createGanttConfig(
       // Theme all Bryntum context menus to match the app's light palette.
       // The marker class is applied to the floating `.b-menu` element so our
       // CSS overrides in globals.css stay scoped to Gantt menus.
-      taskMenu: { cls: 'gantt-themed-menu' },
+      //
+      // taskMenu intentionally NOT here — passed as the top-level
+      // `taskMenuFeature` prop on <BryntumGantt> in BryntumGanttWrapper so its
+      // `items` / `processItems` config is honored by the React wrapper. When
+      // nested under `features` here, the wrapper translates it via its
+      // `features → ${key}Feature` rewriter and the `processItems` callback
+      // never fires.
       cellMenu: { cls: 'gantt-themed-menu' },
       scheduleMenu: { cls: 'gantt-themed-menu' },
       dependencyMenu: { cls: 'gantt-themed-menu' },
+      // Dependencies — drag-to-create dep arrows (hover any task bar's
+      // edge for handles) and auto-rescheduling on predecessor moves.
+      // Does NOT light up the `linkTasks` / `unlinkTasks` items in the
+      // right-click menu — those need 2+ tasks Cmd-selected; the tooltip
+      // wired in processItems (BryntumGanttWrapper.tsx) explains this.
+      //
+      // dependencyStore already loads from /api/gantt/load and syncs via
+      // /api/gantt/sync, so creates/deletes round-trip with no API work.
+      //
+      // To revert: set false. Existing rows stay in the DB, just stop
+      // rendering. History: built+removed during the kibo-ui era
+      // (commits 856d7a6 → 22a382f → 0a2cbf7 → b0a1630 → ac717e2).
+      dependencies: true,
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
     presets: [
@@ -238,11 +241,6 @@ export function createGanttConfig(
         return '';
       }
       return taskRecord.name;
-    },
-
-    listeners: {
-      // scrollTaskIntoView removed — it corrupts the time axis header
-      // virtual renderer, causing all date labels to disappear after scroll.
     },
   };
 }

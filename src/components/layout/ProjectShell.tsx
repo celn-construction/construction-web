@@ -8,7 +8,6 @@ import { CalendarDots } from '@phosphor-icons/react';
 import { differenceInCalendarDays } from 'date-fns';
 import FilesContent from '@/components/files/FilesContent';
 import { IBeamLoader } from '@/components/ui/IBeamLoader';
-import VersionControlBar from '@/components/bryntum/components/VersionControlBar';
 import TaskProgressCard from '@/components/bryntum/components/TaskProgressCard';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
@@ -145,9 +144,6 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
                 <SchedulePill endDate={reqStats?.latestEndDate ? String(reqStats.latestEndDate) : null} />
               </>
             )}
-            <Box sx={{ flex: 1 }}>
-              <VersionControlBar />
-            </Box>
           </Box>
           <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
             <BryntumGanttWrapper

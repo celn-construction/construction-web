@@ -1,0 +1,113 @@
+name: Schema Drift
+
+# Two checks that together prevent the drift hazards described in
+# claudedocs/environment-setup.md ("Database workflow"):
+#
+#   1. migration-required: if a PR edits prisma/schema.prisma, it must also add
+#      a new file under prisma/migrations/. Catches "edited schema, forgot to
+#      run prisma migrate dev" — the most common workflow mistake.
+#
+#   2. migrations-apply-cleanly: every migration in the repo applies cleanly to
+#      a fresh Postgres instance. Catches broken raw SQL, bad ordering, missing
+#      extensions, and similar migration-file bugs.
+#
+# What this does NOT do: a full `prisma migrate diff` between the migrated DB
+# and schema.prisma. That comparison reports false positives for raw-SQL features
+# Prisma's schema language can't express (GENERATED columns, DB-level defaults
+# on @updatedAt fields, custom indexes/functions). Catching those at PR review
+# time is left to humans.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/**'
+      - '.github/workflows/schema-drift.yml'
+  push:
+    branches: [main, preview]
+    paths:
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/**'
+
+jobs:
+  migration-required:
+    name: Schema change has a migration
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for new migration when schema.prisma changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          schema_changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- prisma/schema.prisma | wc -l)
+          new_migration_dirs=$(git diff --name-only --diff-filter=A "$BASE_SHA" "$HEAD_SHA" -- 'prisma/migrations/*/migration.sql' | wc -l)
+
+          if [ "$schema_changed" -gt 0 ] && [ "$new_migration_dirs" -eq 0 ]; then
+            echo "::error::prisma/schema.prisma changed but no new migration was added."
+            echo ""
+            echo "Run: npx prisma migrate dev --name <descriptive_name>"
+            echo "Then commit the resulting prisma/migrations/<timestamp>_<name>/migration.sql file."
+            echo ""
+            echo "Never use 'prisma db push' — it skips raw SQL and causes silent drift."
+            echo "See claudedocs/environment-setup.md → 'Database workflow' for details."
+            exit 1
+          fi
+
+          echo "schema.prisma changes: $schema_changed file(s)"
+          echo "New migration files: $new_migration_dirs"
+          echo "OK"
+
+  migrations-apply-cleanly:
+    name: Migrations apply to fresh DB
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: migrate_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Enable pgvector and pg_trgm extensions
+        run: |
+          psql -h localhost -U postgres -d migrate_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          psql -h localhost -U postgres -d migrate_test -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+        env:
+          PGPASSWORD: postgres
+
+      - name: Apply all migrations to a fresh DB
+        run: npx prisma migrate deploy
+        env:
+          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/migrate_test
+          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/migrate_test

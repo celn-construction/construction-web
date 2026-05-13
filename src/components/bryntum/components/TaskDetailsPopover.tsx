@@ -10,7 +10,7 @@ import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { useOrgContext } from '@/components/providers/OrgProvider';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
-import type { PopoverPlacement } from '../types';
+import type { PopoverPlacement, BryntumGanttInstance } from '../types';
 import type { PreviewDoc, DocumentItem } from './task-popover/types';
 
 import { ArrowsInSimple, ArrowsOutSimple } from '@phosphor-icons/react';
@@ -30,6 +30,7 @@ type TaskDetailsPopoverProps = {
   taskName: string;
   taskId?: string;
   popoverPlacement: PopoverPlacement | null;
+  ganttInstance: BryntumGanttInstance | null;
   onClose: () => void;
 };
 
@@ -38,6 +39,7 @@ export function TaskDetailsPopover({
   taskName,
   taskId,
   popoverPlacement,
+  ganttInstance,
   onClose,
 }: TaskDetailsPopoverProps) {
   const { projectId, organizationId } = useProjectContext();
@@ -439,9 +441,8 @@ export function TaskDetailsPopover({
               ) : (
                 <CsiCodePanel
                   csiCode={taskDetail?.csiCode}
-                  organizationId={organizationId}
-                  projectId={projectId}
                   taskId={taskId!}
+                  ganttInstance={ganttInstance}
                   onClose={closeRightPanel}
                 />
               )}
