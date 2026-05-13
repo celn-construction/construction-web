@@ -15,7 +15,7 @@ import VersionHistoryDrawer from './VersionHistoryDrawer';
 export default function VersionControlBar() {
   const { projectId } = useProjectContext();
   const { currentOrg } = useOrgFromUrl();
-  const memberRole = (currentOrg?.role ?? 'viewer') as Role;
+  const memberRole = (currentOrg?.role ?? 'member') as Role;
 
   const [saveVersionOpen, setSaveVersionOpen] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);

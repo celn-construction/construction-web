@@ -19,15 +19,15 @@
 
 | Role | Rank | INVITE | REMOVE | MANAGE_ROLES | MANAGE_ORG | CREATE_PROJ | DELETE_PROJ | MANAGE_PROJ | VIEW_PROJ | APPROVE_DOCS |
 |------|------|--------|--------|--------------|------------|-------------|-------------|-------------|-----------|--------------|
-| owner | 4 | Y | Y | Y | Y | Y | Y | Y | Y | Y |
-| admin | 3 | Y | Y | Y | - | Y | Y | Y | Y | Y |
-| project_manager | 2 | - | - | - | - | Y | - | Y | Y | Y |
-| member | 1 | - | - | - | - | - | - | - | Y | - |
-| viewer | 0 | - | - | - | - | - | - | - | Y | - |
+| owner | 2 | Y | Y | Y | Y | Y | Y | Y | Y | Y |
+| admin | 1 | Y | Y | Y | - | Y | Y | Y | Y | Y |
+| member | 0 | - | - | - | - | - | - | - | Y | - |
 
-**Role hierarchy rule**: A user can only assign roles strictly below their own rank (e.g., admin can assign project_manager, member, viewer but not admin or owner).
+**Role hierarchy rule**: A user can only assign roles strictly below their own rank (e.g., admin can assign member but not admin or owner). Owner is reserved for the user who creates the organization and cannot be assigned through the invitation flow.
 
-`APPROVE_DOCS` gates the submittal/inspection approval toggle and the Review Queue mutations. Members and viewers see read-only badges.
+Members can view projects they are invited to and upload documents. They cannot create or manage projects, approve documents, invite teammates, or change anyone's role.
+
+`APPROVE_DOCS` gates the submittal/inspection approval toggle and the Review Queue mutations. Members see read-only badges.
 
 ## Permission Utilities
 
@@ -73,7 +73,7 @@ if (canInviteMembers(currentMember.role)) { /* show button */ }
 
 `orgProcedure` requires `{ organizationId }` in input and verifies the user has a `Membership` record.
 
-`projectProcedure` requires `{ projectId }` in input and verifies the user has a `ProjectMember` record. It auto-creates one for org owners, admins, and project_managers; org members and viewers must be explicitly invited to individual projects.
+`projectProcedure` requires `{ projectId }` in input and verifies the user has a `ProjectMember` record. It auto-creates one for org owners and admins; org members must be explicitly invited to individual projects.
 
 ## Middleware Route Protection
 

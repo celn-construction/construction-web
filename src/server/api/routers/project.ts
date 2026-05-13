@@ -45,9 +45,17 @@ export const projectRouter = createTRPCRouter({
         });
       }
 
-      // Get all projects for this organization
+      // Org owners see all projects; admins and members only see projects they belong to.
+      const projectWhere =
+        membership.role === "owner"
+          ? { organizationId }
+          : {
+              organizationId,
+              members: { some: { userId: ctx.session.user.id } },
+            };
+
       const projects = await ctx.db.project.findMany({
-        where: { organizationId },
+        where: projectWhere,
         orderBy: { createdAt: "asc" },
       });
 

@@ -164,7 +164,7 @@ describe("ApprovalToggle (employee)", () => {
       <ApprovalToggle
         {...baseProps}
         approvalStatus="approved"
-        memberRole="viewer"
+        memberRole="member"
       />,
     );
 

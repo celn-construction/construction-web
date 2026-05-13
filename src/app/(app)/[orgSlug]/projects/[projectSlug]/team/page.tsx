@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { PlusCircle } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Box, Typography, Tabs, Tab, Paper } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { api } from '@/trpc/react';
-import { canInviteMembers } from '@/lib/permissions';
+import { canInviteMembers, canRemoveMembers } from '@/lib/permissions';
 import InviteDialog from '@/components/team/InviteDialog';
 import MembersList from '@/components/team/MembersList';
+import { type MemberProject } from '@/components/team/MemberProjectStack';
 import PendingInvitesList from '@/components/team/PendingInvitesList';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 
@@ -26,13 +27,65 @@ export default function TeamPage() {
     { enabled: !!projectId }
   );
 
+  const { data: memberProjects = [] } =
+    api.projectMember.listProjectMemberships.useQuery(
+      { projectId },
+      { enabled: !!projectId },
+    );
+
+  const { data: orgProjects = [] } = api.project.list.useQuery(
+    { organizationId },
+    { enabled: !!organizationId },
+  );
+
+  const { data: orgMembers = [] } = api.member.list.useQuery(
+    { organizationId },
+    { enabled: !!organizationId },
+  );
+
+  const orgRoleByUserId = useMemo(
+    () => Object.fromEntries(orgMembers.map((m) => [m.user.id, m.role])),
+    [orgMembers],
+  );
+
+  const projectsByUserId = useMemo(() => {
+    const projectById = new Map(orgProjects.map((p) => [p.id, p]));
+    const result: Record<string, MemberProject[]> = {};
+    for (const { userId, projects } of memberProjects) {
+      const enriched: MemberProject[] = [];
+      for (const { memberId, projectId: pid, role } of projects) {
+        const project = projectById.get(pid);
+        if (!project) continue;
+        enriched.push({
+          memberId,
+          id: project.id,
+          name: project.name,
+          slug: project.slug,
+          color: project.color,
+          icon: project.icon,
+          imageUrl: project.imageUrl,
+          role,
+        });
+      }
+      result[userId] = enriched;
+    }
+    return result;
+  }, [memberProjects, orgProjects]);
+
   const { data: invitations = [], isLoading: invitationsLoading } =
     api.invitation.list.useQuery({ projectId }, { enabled: !!projectId });
 
   const { data: currentUser } = api.user.me.useQuery();
 
-  const currentMembership = members.find((m) => m.user.id === currentUser?.id);
-  const canManage = currentMembership ? canInviteMembers(currentMembership.role) : false;
+  const currentOrgRole = currentUser
+    ? orgRoleByUserId[currentUser.id]
+    : undefined;
+  const canManage = currentOrgRole ? canInviteMembers(currentOrgRole) : false;
+  const canRemove = currentOrgRole ? canRemoveMembers(currentOrgRole) : false;
+
+  const { data: organizations = [] } = api.organization.list.useQuery();
+  const organizationName =
+    organizations.find((o) => o.id === organizationId)?.name ?? '';
 
   const pendingCount = invitations.filter((inv) => inv.status === 'pending').length;
 
@@ -48,7 +101,7 @@ export default function TeamPage() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      sx={{ p: 3, maxWidth: 800, mx: 'auto' }}
+      sx={{ p: 3 }}
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
@@ -114,7 +167,18 @@ export default function TeamPage() {
                   </Typography>
                 </Box>
               )}
-              <MembersList members={members} isLoading={membersLoading} />
+              <MembersList
+                members={members}
+                isLoading={membersLoading}
+                projectsByUserId={projectsByUserId}
+                currentProjectId={projectId}
+                canRemove={canRemove}
+                canEdit={canManage}
+                currentUserId={currentUser?.id}
+                orgRoleByUserId={orgRoleByUserId}
+                organizationId={organizationId}
+                organizationName={organizationName}
+              />
             </Box>
           )}
 

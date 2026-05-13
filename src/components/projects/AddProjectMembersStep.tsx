@@ -31,9 +31,8 @@ interface AddProjectMembersStepProps {
 }
 
 const ROLE_OPTIONS: Array<{ value: AssignableRole; label: string }> = [
-  { value: 'project_manager', label: 'Project manager' },
+  { value: 'admin', label: 'Admin' },
   { value: 'member', label: 'Member' },
-  { value: 'viewer', label: 'Viewer' },
 ];
 
 function getInitials(name?: string | null, email?: string | null): string {

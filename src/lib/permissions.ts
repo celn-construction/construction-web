@@ -1,4 +1,4 @@
-export type Role = "owner" | "admin" | "project_manager" | "member" | "viewer";
+export type Role = "owner" | "admin" | "member";
 
 export type Permission =
   | "INVITE_MEMBERS"
@@ -33,16 +33,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     "VIEW_PROJECTS",
     "APPROVE_DOCUMENTS",
   ],
-  project_manager: [
-    "CREATE_PROJECTS",
-    "MANAGE_PROJECTS",
-    "VIEW_PROJECTS",
-    "APPROVE_DOCUMENTS",
-  ],
   member: [
-    "VIEW_PROJECTS",
-  ],
-  viewer: [
     "VIEW_PROJECTS",
   ],
 };
@@ -86,7 +77,6 @@ export function canApproveDocuments(role: string): boolean {
 const ORG_ROLES_WITH_IMPLICIT_PROJECT_ACCESS = new Set<Role>([
   "owner",
   "admin",
-  "project_manager",
 ]);
 
 export function hasImplicitProjectAccess(role: string): boolean {
@@ -95,11 +85,9 @@ export function hasImplicitProjectAccess(role: string): boolean {
 
 // Role rank for hierarchy enforcement (higher = more privileged)
 const ROLE_RANK: Record<Role, number> = {
-  owner: 4,
-  admin: 3,
-  project_manager: 2,
-  member: 1,
-  viewer: 0,
+  owner: 2,
+  admin: 1,
+  member: 0,
 };
 
 /**

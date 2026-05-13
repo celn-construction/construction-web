@@ -218,11 +218,10 @@ export const projectProcedure = protectedProcedure
       }
 
       // Only auto-create for org roles that imply project access.
-      // Viewers and basic members must be explicitly invited to projects.
+      // Members must be explicitly invited to projects.
       const orgRoleToProjectRole: Record<string, string> = {
         owner: "owner",
         admin: "admin",
-        project_manager: "member",
       };
 
       const role = orgRoleToProjectRole[orgMembership.role];

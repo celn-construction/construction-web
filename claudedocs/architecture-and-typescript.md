@@ -19,7 +19,7 @@ publicProcedure
 
 Every org-scoped router MUST use `orgProcedure`. Every project-scoped router MUST use `projectProcedure`. `ctx.organization.id` is always available inside `orgProcedure` handlers — no null checks needed. Do NOT redeclare `organizationId` in `.input()` when using `orgProcedure`, and do NOT redeclare `projectId` when using `projectProcedure`.
 
-`projectProcedure` auto-creates a `ProjectMember` record for org owners/admins/project_managers who access a project they don't yet have an explicit membership row for (backwards-compatibility for projects created before the `ProjectMember` table). Org `member` and `viewer` roles must be explicitly invited to projects.
+`projectProcedure` auto-creates a `ProjectMember` record for org owners/admins who access a project they don't yet have an explicit membership row for (backwards-compatibility for projects created before the `ProjectMember` table). Org `member` users must be explicitly invited to projects.
 
 ### Key Structural Rules
 

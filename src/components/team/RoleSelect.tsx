@@ -23,19 +23,9 @@ const roles = [
     description: 'Full access to all settings and team management',
   },
   {
-    value: 'project_manager',
-    label: 'Project Manager',
-    description: 'Manage projects, tasks, and team assignments',
-  },
-  {
     value: 'member',
     label: 'Member',
-    description: 'View and contribute to assigned projects',
-  },
-  {
-    value: 'viewer',
-    label: 'Viewer',
-    description: 'Read-only access to projects',
+    description: 'View projects and upload documents',
   },
 ];
 

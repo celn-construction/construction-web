@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { UserPlus } from '@phosphor-icons/react';
@@ -10,6 +11,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  FormControl,
+  MenuItem,
+  Select,
   TextField,
   Typography,
 } from '@mui/material';
@@ -37,6 +41,11 @@ export default function InviteDialog({
   const utils = api.useUtils();
   const { showSnackbar } = useSnackbar();
 
+  const { data: projects = [] } = api.project.list.useQuery(
+    { organizationId },
+    { enabled: open && !!organizationId },
+  );
+
   // Initialize form with react-hook-form + zod
   const {
     control,
@@ -53,10 +62,17 @@ export default function InviteDialog({
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      reset({ organizationId, projectId, email: '', role: 'member' });
+    }
+  }, [open, organizationId, projectId, reset]);
+
   const createInvitation = api.invitation.create.useMutation({
     onSuccess: () => {
       showSnackbar('Invitation sent successfully', 'success');
       void utils.invitation.list.invalidate();
+      void utils.projectMember.listProjectMemberships.invalidate();
       reset();
       onOpenChange(false);
     },
@@ -89,7 +105,7 @@ export default function InviteDialog({
           <DialogTitle sx={{ p: 0 }}>Invite Team Member</DialogTitle>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Send an invitation to join your project
+          Send an invitation to join any project in this organization
         </Typography>
 
         <DialogContent sx={{ p: 0 }}>
@@ -110,6 +126,36 @@ export default function InviteDialog({
                   />
                 )}
               />
+
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                  Project
+                </Typography>
+                <Controller
+                  name="projectId"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth>
+                      <Select
+                        {...field}
+                        displayEmpty
+                        sx={{ '& .MuiSelect-select': { py: 1.25 } }}
+                      >
+                        {projects.map((p) => (
+                          <MenuItem key={p.id} value={p.id}>
+                            {p.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )}
+                />
+                {errors.projectId && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                    {errors.projectId.message}
+                  </Typography>
+                )}
+              </Box>
 
               <Box>
                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>

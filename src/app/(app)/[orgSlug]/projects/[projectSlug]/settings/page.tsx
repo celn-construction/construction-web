@@ -557,7 +557,7 @@ export default function ProjectSettingsPage() {
         ) : (
           <Box sx={{ px: 3, py: 2.5 }}>
             <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
-              Only project owners, admins, and project managers can edit project settings.
+              Only project owners and admins can edit project settings.
             </Typography>
           </Box>
         )}
