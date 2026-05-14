@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ASSIGNABLE_ROLES = ["admin", "project_manager", "member", "viewer"] as const;
+export const ASSIGNABLE_ROLES = ["admin", "member"] as const;
 export type AssignableRole = typeof ASSIGNABLE_ROLES[number];
 
 /**

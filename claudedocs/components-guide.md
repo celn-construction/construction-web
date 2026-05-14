@@ -189,7 +189,9 @@ All `TextField` components use the global `MuiOutlinedInput` theme override defi
 The global style gives every input:
 - `divider` border color at rest (soft, consistent with the design system)
 - `text.primary` border at 32% opacity on hover
-- `primary.main` border + 1.5px width + subtle focus ring on focus
+- `primary.main` border color + a 3px low-opacity focus ring (boxShadow) on focus
+
+Border *width* stays at 1px in every state. Do not bump the focused border to a non-default width — MUI's `<legend>` notch and floating label are calibrated for a 1px border, and the extra width clips the top of the label letters. Use the focus ring (boxShadow) for emphasis instead.
 
 The only deliberate exception is `OtpInput.tsx` — its box-style digit appearance overrides the global styles via component-level `sx`, which takes precedence over `styleOverrides`. Do not replicate this pattern elsewhere.
 

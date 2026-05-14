@@ -128,7 +128,7 @@ describe("ReviewQueueContent (admin)", () => {
   it("does not show the read-only notice when the user can approve", () => {
     render(<ReviewQueueContent />);
     expect(
-      screen.queryByText(/only owners, admins, and project managers can approve/i),
+      screen.queryByText(/only owners and admins can approve/i),
     ).not.toBeInTheDocument();
   });
 
@@ -175,7 +175,7 @@ describe("ReviewQueueContent (admin)", () => {
   });
 });
 
-describe("ReviewQueueContent (member / viewer)", () => {
+describe("ReviewQueueContent (member)", () => {
   beforeEach(() => {
     mocks.memberRole = "member";
   });
@@ -184,7 +184,7 @@ describe("ReviewQueueContent (member / viewer)", () => {
     render(<ReviewQueueContent />);
     expect(
       screen.getByText(
-        /only owners, admins, and project managers can approve/i,
+        /only owners and admins can approve/i,
       ),
     ).toBeInTheDocument();
   });

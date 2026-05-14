@@ -67,7 +67,7 @@ export default function ReviewQueueContent() {
 
       {!canApprove && (
         <Alert severity="info" sx={{ mb: 3, fontSize: 13 }}>
-          You can view items here, but only owners, admins, and project managers can approve them.
+          You can view items here, but only owners and admins can approve them.
         </Alert>
       )}
 

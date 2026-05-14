@@ -1,6 +1,6 @@
 /**
  * Converts a snake_case role string to Title Case.
- * e.g. "project_manager" → "Project Manager"
+ * e.g. "in_progress" → "In Progress"
  */
 export function formatRole(role: string): string {
   return role

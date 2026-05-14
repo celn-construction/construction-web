@@ -190,7 +190,7 @@ describe("ApprovalToggleSwitch (employee)", () => {
         {...baseProps}
         approvalStatus="approved"
         approvedBy={{ id: "u-1", name: "Mark Diaz" }}
-        memberRole="viewer"
+        memberRole="member"
       />,
     );
 
