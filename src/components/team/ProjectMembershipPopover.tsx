@@ -27,7 +27,7 @@ interface ProjectMembershipPopoverProps {
   role: string;
 }
 
-const ELEVATED_ROLES = new Set(['owner', 'admin', 'project_manager']);
+const ELEVATED_ROLES = new Set(['owner', 'admin']);
 const EDITABLE_ROLES = ['admin', 'member'] as const;
 type EditableRole = (typeof EDITABLE_ROLES)[number];
 

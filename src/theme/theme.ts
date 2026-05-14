@@ -120,7 +120,6 @@ export const lightTheme: Theme = createTheme({
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
             borderColor: theme.palette.primary.main,
-            borderWidth: '1.5px',
           },
           '&.Mui-focused': {
             boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.08)}`,
@@ -404,7 +403,6 @@ export const darkTheme: Theme = createTheme({
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
             borderColor: theme.palette.primary.main,
-            borderWidth: '1.5px',
           },
           '&.Mui-focused': {
             boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.08)}`,

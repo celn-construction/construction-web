@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Info } from '@phosphor-icons/react';
+import { Buildings, Info } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
-import { Box, Typography, Skeleton } from '@mui/material';
+import { Box, Tooltip, Typography, Skeleton } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { formatRole } from '@/lib/utils/formatting';
 import UserAvatar from '@/components/ui/UserAvatar';
@@ -221,33 +221,21 @@ export default function MembersList({
                 {getRoleDescription(orgRoleByUserId?.[member.user.id])}
               </Typography>
 
-              {projectsByUserId && (
-                <MemberProjectStack
-                  projects={projectsByUserId[member.user.id] ?? []}
-                  currentProjectId={currentProjectId}
-                  userName={member.user.name || member.user.email}
-                  canManage={
-                    canRemove &&
-                    member.user.id !== currentUserId &&
-                    orgRoleByUserId?.[member.user.id] !== 'owner'
-                  }
-                />
-              )}
-
-              {orgRoleByUserId?.[member.user.id] === 'owner' && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.75 }}>
-                  <Info size={11} style={{ opacity: 0.5, flexShrink: 0 }} />
-                  <Typography
-                    sx={{
-                      fontSize: '0.6875rem',
-                      color: 'text.disabled',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    Owners are automatically members of all projects
-                  </Typography>
-                </Box>
-              )}
+              {projectsByUserId &&
+                (orgRoleByUserId?.[member.user.id] === 'owner' ? (
+                  <OwnerProjectsBadge
+                    count={(projectsByUserId[member.user.id] ?? []).length}
+                  />
+                ) : (
+                  <MemberProjectStack
+                    projects={projectsByUserId[member.user.id] ?? []}
+                    currentProjectId={currentProjectId}
+                    userName={member.user.name || member.user.email}
+                    canManage={
+                      canRemove && member.user.id !== currentUserId
+                    }
+                  />
+                ))}
             </Box>
           </Box>
         );
@@ -310,6 +298,61 @@ export default function MembersList({
           }
         />
       )}
+    </Box>
+  );
+}
+
+function OwnerProjectsBadge({ count }: { count: number }) {
+  const theme = useTheme();
+  return (
+    <Box sx={{ mt: 1 }}>
+      <Tooltip
+        title="Owners are automatically members of every project in this organization."
+        arrow
+        placement="top"
+      >
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.875,
+            pl: 1,
+            pr: 1.25,
+            py: 0.5,
+            borderRadius: '999px',
+            bgcolor: alpha(theme.palette.primary.main, 0.06),
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.18)}`,
+            color: theme.palette.primary.main,
+            cursor: 'default',
+            userSelect: 'none',
+          }}
+        >
+          <Buildings size={13} weight="fill" />
+          <Typography
+            sx={{
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              color: 'inherit',
+              lineHeight: 1,
+            }}
+          >
+            All projects
+            {count > 0 && (
+              <Box
+                component="span"
+                sx={{ ml: 0.5, opacity: 0.7, fontWeight: 500 }}
+              >
+                · {count}
+              </Box>
+            )}
+          </Typography>
+          <Info
+            size={11}
+            weight="regular"
+            style={{ opacity: 0.5, marginLeft: 2 }}
+          />
+        </Box>
+      </Tooltip>
     </Box>
   );
 }

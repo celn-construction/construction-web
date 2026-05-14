@@ -329,11 +329,14 @@ export const invitationRouter = createTRPCRouter({
           data: { status: INVITATION_STATUS.ACCEPTED },
         });
 
-        // Complete onboarding and set active project
+        // Complete onboarding, set active project, and trust the invite as email proof.
+        // The admin sent this invitation to `invitation.email` and the session email
+        // matches it (checked above), so possessing the token = control of the inbox.
         await tx.user.update({
           where: { id: ctx.session.user.id },
           data: {
             onboardingComplete: true,
+            emailVerified: true,
             ...(invitation.projectId ? { activeProjectId: invitation.projectId } : {}),
           },
         });

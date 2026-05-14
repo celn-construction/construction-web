@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -94,13 +94,33 @@ export default function SignUpPage() {
 
   const validateCode = api.beta.validateCode.useMutation();
 
+  // When a user lands here via an invite link, prefill+lock the email and skip
+  // the beta-code + OTP gates. The admin already vouched for this email, and
+  // possessing the invite token proves access to the inbox.
+  const inviteQuery = api.invitation.getByToken.useQuery(
+    { token: inviteToken ?? '' },
+    { enabled: !!inviteToken, retry: false },
+  );
+  const invite = inviteQuery.data;
+  const isInvitedFlow = !!invite;
+
+  useEffect(() => {
+    if (invite?.email) {
+      setEmail(invite.email);
+    }
+  }, [invite?.email]);
+
+  const acceptInvitation = api.invitation.accept.useMutation();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await validateCode.mutateAsync({ code: betaCode });
+      if (!isInvitedFlow) {
+        await validateCode.mutateAsync({ code: betaCode });
+      }
 
       const result = await signUp.email({
         name,
@@ -110,9 +130,29 @@ export default function SignUpPage() {
 
       if (result.error) {
         setError(result.error.message || 'Sign up failed');
-      } else {
-        setStep('verify-otp');
+        return;
       }
+
+      if (isInvitedFlow && inviteToken) {
+        // signUp.email auto-signs the user in (autoSignIn: true). Accept the
+        // invite now so memberships are created and emailVerified is flipped
+        // before we land on the protected route.
+        try {
+          const accepted = await acceptInvitation.mutateAsync({ token: inviteToken });
+          if (accepted.projectSlug) {
+            router.push(`/${accepted.orgSlug}/projects/${accepted.projectSlug}/gantt`);
+          } else {
+            router.push(`/${accepted.orgSlug}`);
+          }
+        } catch {
+          // Account exists and the user is signed in; let them retry on the
+          // invite page where errors (expired, revoked) render with full context.
+          router.push(`/invite/${inviteToken}`);
+        }
+        return;
+      }
+
+      setStep('verify-otp');
     } catch (err) {
       if (err instanceof TRPCClientError) {
         setError(err.message);
@@ -358,7 +398,9 @@ export default function SignUpPage() {
             </Typography>
             <Typography variant="body1" color="text.secondary">
               {step === 'register'
-                ? 'Get started with BuildTrack Pro'
+                ? isInvitedFlow && invite
+                  ? `Join ${invite.organization.name} on BuildTrack Pro`
+                  : 'Get started with BuildTrack Pro'
                 : `We sent a 6-digit code to ${email}`}
             </Typography>
           </Box>
@@ -408,7 +450,15 @@ export default function SignUpPage() {
                     placeholder="your.email@company.com"
                     fullWidth
                     required
-                    inputProps={{ 'aria-label': 'Email address' }}
+                    inputProps={{
+                      'aria-label': 'Email address',
+                      readOnly: isInvitedFlow,
+                    }}
+                    helperText={
+                      isInvitedFlow
+                        ? 'Locked to the email this invitation was sent to.'
+                        : undefined
+                    }
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -453,28 +503,30 @@ export default function SignUpPage() {
                   />
                 </Box>
 
-                <Box>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.75 }}>
-                    Beta access code
-                  </Typography>
-                  <TextField
-                    id="betaCode"
-                    type="text"
-                    value={betaCode}
-                    onChange={(e) => setBetaCode(e.target.value)}
-                    placeholder="Enter your beta code"
-                    fullWidth
-                    required
-                    inputProps={{ 'aria-label': 'Beta access code' }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Key size={18} weight="regular" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
+                {!isInvitedFlow && (
+                  <Box>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.75 }}>
+                      Beta access code
+                    </Typography>
+                    <TextField
+                      id="betaCode"
+                      type="text"
+                      value={betaCode}
+                      onChange={(e) => setBetaCode(e.target.value)}
+                      placeholder="Enter your beta code"
+                      fullWidth
+                      required
+                      inputProps={{ 'aria-label': 'Beta access code' }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Key size={18} weight="regular" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Box>
+                )}
 
                 <Button
                   type="submit"

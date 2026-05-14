@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Box,
   Dialog,
@@ -68,31 +68,24 @@ export default function EditUserDialog({
     { enabled: open && !!organizationId },
   );
 
+  // Drafts are seeded once at mount. The parent only mounts this dialog when
+  // opening (conditional render), so lazy initializers are enough — and avoid
+  // a reset effect that would re-fire on every parent re-render (the props
+  // currentProjectIds / roleByProjectId are freshly allocated each render).
   const [orgRoleDraft, setOrgRoleDraft] = useState(orgRole);
   const [projectMembershipDraft, setProjectMembershipDraft] = useState<Set<string>>(
-    new Set(currentProjectIds),
+    () => new Set(currentProjectIds),
   );
-  // Per-project role draft — populated for checked projects
-  const [projectRoleDraft, setProjectRoleDraft] = useState<Record<string, 'admin' | 'member'>>({});
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setOrgRoleDraft(orgRole);
-      setProjectMembershipDraft(new Set(currentProjectIds));
-      // Initialize roles from existing memberships
+  const [projectRoleDraft, setProjectRoleDraft] = useState<Record<string, 'admin' | 'member'>>(
+    () => {
       const initial: Record<string, 'admin' | 'member'> = {};
       for (const [projectId, role] of Object.entries(roleByProjectId)) {
-        if (role === 'admin' || role === 'member') {
-          initial[projectId] = role;
-        } else {
-          // 'owner' or unknown — default to 'member' for new additions
-          initial[projectId] = 'member';
-        }
+        initial[projectId] = role === 'admin' ? 'admin' : 'member';
       }
-      setProjectRoleDraft(initial);
-    }
-  }, [open, orgRole, currentProjectIds, roleByProjectId]);
+      return initial;
+    },
+  );
+  const [saving, setSaving] = useState(false);
 
   const updateOrgRoleMutation = api.member.updateRole.useMutation();
   const bulkAddMutation = api.projectMember.bulkAdd.useMutation();

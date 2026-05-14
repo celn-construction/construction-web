@@ -100,8 +100,10 @@ export const memberRouter = createTRPCRouter({
           data: { role: input.role },
         });
 
-        // When demoting to member, downgrade auto-created admin project roles.
-        // Owner project roles are explicit grants and are left unchanged.
+        // When demoting to member, cascade-downgrade every admin ProjectMember
+        // for this user in the org. We can't distinguish auto-elevations from
+        // explicit admin grants, so we err on the side of preventing privilege
+        // re-escalation. Project owner grants are kept intact.
         if (input.role === "member") {
           await tx.projectMember.updateMany({
             where: {
