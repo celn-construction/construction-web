@@ -3,8 +3,10 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  ArrowLeft,
   ArrowRight,
   Image as ImageIcon,
+  ListBullets,
   Swatches,
   UploadSimple,
   X,
@@ -57,10 +59,19 @@ interface ProjectFormBodyProps {
   organizationId: string;
   title: string;
   subtitle: string;
+  template?: 'BLANK';
   onCancel?: () => void;
+  onBack?: () => void;
   onSuccess?: (project: { id: string; slug: string; name: string }) => void;
   replaceOnNavigate?: boolean;
 }
+
+const TEMPLATE_LABELS: Record<'BLANK', { name: string; hint: string }> = {
+  BLANK: {
+    name: 'Blank',
+    hint: 'Empty Gantt — build your own WBS task by task.',
+  },
+};
 
 function LocationAutocompleteField({
   value,
@@ -183,7 +194,9 @@ export default function ProjectFormBody({
   organizationId,
   title,
   subtitle,
+  template = 'BLANK',
   onCancel,
+  onBack,
   onSuccess,
   replaceOnNavigate,
 }: ProjectFormBodyProps) {
@@ -214,7 +227,7 @@ export default function ProjectFormBody({
       location: '',
       icon: 'building',
       color: 'slate',
-      template: 'BLANK',
+      template,
     },
   });
 
@@ -871,6 +884,57 @@ export default function ProjectFormBody({
           </Box>
         </Box>
 
+        {/* Template confirmation strip */}
+        <Box
+          sx={{
+            mt: 1.75,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            p: '10px 12px',
+            borderRadius: '8px',
+            bgcolor: alpha(theme.palette.primary.main, 0.06),
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
+          }}
+        >
+          <Box
+            sx={{
+              width: 26,
+              height: 26,
+              borderRadius: '6px',
+              bgcolor: alpha(theme.palette.primary.main, 0.12),
+              color: 'primary.main',
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <ListBullets size={14} weight="regular" />
+          </Box>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography
+              sx={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'text.primary',
+                lineHeight: 1.2,
+              }}
+            >
+              {TEMPLATE_LABELS[template].name} template selected
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: '0.6875rem',
+                color: 'text.secondary',
+                mt: 0.25,
+                lineHeight: 1.3,
+              }}
+            >
+              {TEMPLATE_LABELS[template].hint}
+            </Typography>
+          </Box>
+        </Box>
+
         {/* Live sidebar preview — how the project appears in the nav */}
         <SidebarRowPreview
           name={watch('name')}
@@ -907,6 +971,27 @@ export default function ProjectFormBody({
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 1, ml: 'auto', flexShrink: 0 }}>
+            {onBack && (
+              <Button
+                variant="text"
+                onClick={onBack}
+                startIcon={<ArrowLeft size={14} />}
+                sx={{
+                  color: 'text.secondary',
+                  fontWeight: 500,
+                  fontSize: '0.8125rem',
+                  px: 1.75,
+                  borderRadius: '8px',
+                  whiteSpace: 'nowrap',
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.divider, 0.18),
+                    color: 'text.primary',
+                  },
+                }}
+              >
+                Back
+              </Button>
+            )}
             {onCancel && (
               <Button
                 variant="text"
