@@ -129,23 +129,16 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
             lineHeight: 1,
             letterSpacing: '-0.01em',
             whiteSpace: 'nowrap',
+            flex: 1,
           }}
         >
           BuildTrack Pro
         </Typography>
-      </Box>
-
-      {/* Org Header */}
-      <Box sx={{ position: 'relative' }}>
-        <OrgSwitcher />
-        {/* Close button — overlaid top-right */}
         <IconButton
           onClick={onClose}
           aria-label="Close menu"
           sx={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
+            flexShrink: 0,
             p: '6px',
             borderRadius: '8px',
             color: 'text.secondary',
@@ -160,6 +153,9 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
           <X size={15} weight="bold" />
         </IconButton>
       </Box>
+
+      {/* Org Header */}
+      <OrgSwitcher />
 
       {/* Navigation */}
       <Box
