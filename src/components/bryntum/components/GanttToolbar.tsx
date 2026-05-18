@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Box, MenuItem, Select, Stack } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Button } from '@/components/ui/button';
@@ -117,6 +117,43 @@ export default function GanttToolbar({
   const [activePreset, setActivePreset] = useState('weekAndDayLetterCompact');
   const theme = useTheme();
 
+  // Segmented control: measure active segment so a single shared indicator can
+  // slide between presets (instead of each segment owning its own background).
+  const segmentTrackRef = useRef<HTMLDivElement | null>(null);
+  const segmentRefs = useRef<Record<string, HTMLLabelElement | null>>({});
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+
+  const measureIndicator = () => {
+    const track = segmentTrackRef.current;
+    const target = segmentRefs.current[activePreset];
+    if (!track || !target) return;
+    const trackRect = track.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const next = {
+      left: targetRect.left - trackRect.left,
+      width: targetRect.width,
+    };
+    setIndicator((prev) => {
+      if (prev && prev.left === next.left && prev.width === next.width) return prev;
+      return next;
+    });
+  };
+
+  useLayoutEffect(() => {
+    measureIndicator();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePreset]);
+
+  useEffect(() => {
+    const track = segmentTrackRef.current;
+    if (!track || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => measureIndicator());
+    ro.observe(track);
+    Object.values(segmentRefs.current).forEach((el) => el && ro.observe(el));
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePreset]);
+
   const handlePresetClick = (preset: string) => {
     setActivePreset(preset);
     onPresetChange?.(preset);
@@ -134,24 +171,24 @@ export default function GanttToolbar({
     fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
     cursor: 'pointer',
     userSelect: 'none' as const,
-    color: isActive
-      ? theme.palette.text.primary
-      : theme.palette.text.secondary,
-    bgcolor: isActive ? theme.palette.background.paper : 'transparent',
+    color: isActive ? theme.palette.text.primary : theme.palette.text.secondary,
     borderRadius: '6px',
-    transition: 'color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, font-weight 0.2s ease, transform 0.1s ease',
+    transition:
+      'color 0.28s cubic-bezier(0.16, 1, 0.3, 1), font-weight 0.28s ease, letter-spacing 0.28s ease, transform 0.12s ease',
     zIndex: 1,
     lineHeight: 1,
     letterSpacing: isActive ? '-0.01em' : '0',
-    boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.04)' : 'none',
     ...(!isActive && {
       '&:hover': {
         color: theme.palette.text.primary,
-        bgcolor: theme.palette.action.hover,
       },
     }),
     '&:active': {
-      transform: 'scale(0.96)',
+      transform: 'scale(0.94)',
+    },
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: 'color 0.01s, font-weight 0.01s',
+      '&:active': { transform: 'none' },
     },
   });
 
@@ -174,7 +211,9 @@ export default function GanttToolbar({
     >
       {/* ── View Preset Picker — segmented (hidden ≤560px) ──────────────── */}
       <Box
+        ref={segmentTrackRef}
         sx={{
+          position: 'relative',
           display: 'flex',
           alignItems: 'center',
           height: 32,
@@ -188,10 +227,60 @@ export default function GanttToolbar({
           },
         }}
       >
+        {/* Shared sliding indicator — translateX is GPU-composited (skips layout/paint) */}
+        <Box
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            top: 3,
+            bottom: 3,
+            left: 0,
+            width: indicator?.width ?? 0,
+            transform: `translate3d(${indicator?.left ?? 0}px, 0, 0)`,
+            bgcolor: 'background.paper',
+            borderRadius: '6px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.04)',
+            willChange: 'transform, width',
+            transition:
+              'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), width 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease',
+            opacity: indicator ? 1 : 0,
+            zIndex: 0,
+            pointerEvents: 'none',
+            '@media (prefers-reduced-motion: reduce)': {
+              transition: 'opacity 0.2s ease',
+            },
+          }}
+        >
+          {/* Activation pulse — animates opacity + scale (GPU), not box-shadow (paint) */}
+          <Box
+            key={activePreset}
+            aria-hidden
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: 'inherit',
+              border: '1.5px solid rgba(43, 45, 66, 0.45)',
+              pointerEvents: 'none',
+              willChange: 'transform, opacity',
+              animation: 'gantt-segment-pulse 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              '@media (prefers-reduced-motion: reduce)': {
+                animation: 'none',
+              },
+            }}
+          />
+        </Box>
+
         {VIEW_PRESETS.map((preset) => {
           const isActive = activePreset === preset.value;
           return (
-            <Box key={preset.value} component="label" sx={getSegmentSx(isActive)}>
+            <Box
+              key={preset.value}
+              component="label"
+              ref={(el: HTMLLabelElement | null) => {
+                segmentRefs.current[preset.value] = el;
+              }}
+              sx={getSegmentSx(isActive)}
+            >
               <input
                 type="radio"
                 name="gantt-view-preset"
@@ -454,9 +543,14 @@ export default function GanttToolbar({
               60%  { opacity: 1; transform: rotate(6deg) scale(1.08); }
               100% { opacity: 1; transform: rotate(0) scale(1); }
             }
+            @keyframes gantt-segment-pulse {
+              0%   { opacity: 0.55; transform: scale(1); }
+              100% { opacity: 0;    transform: scale(1.22); }
+            }
             @media (prefers-reduced-motion: reduce) {
-              @keyframes gantt-tool-pop-in { from, to { opacity: 1; transform: none; } }
-              @keyframes gantt-icon-swap   { from, to { opacity: 1; transform: none; } }
+              @keyframes gantt-tool-pop-in    { from, to { opacity: 1; transform: none; } }
+              @keyframes gantt-icon-swap      { from, to { opacity: 1; transform: none; } }
+              @keyframes gantt-segment-pulse  { from, to { opacity: 0; transform: none; } }
             }
           `,
         }}
