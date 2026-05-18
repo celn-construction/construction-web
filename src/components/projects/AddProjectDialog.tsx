@@ -9,13 +9,16 @@ import { useSession } from '@/lib/auth-client';
 import { api } from '@/trpc/react';
 import ProjectFormBody from '@/components/projects/ProjectFormBody';
 import AddProjectMembersStep from '@/components/projects/AddProjectMembersStep';
+import TemplatePickerStep, {
+  type ProjectTemplateOption,
+} from '@/components/projects/TemplatePickerStep';
 
 interface AddProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-type Step = 'create' | 'members';
+type Step = 'template' | 'create' | 'members';
 
 interface CreatedProject {
   id: string;
@@ -32,7 +35,9 @@ export default function AddProjectDialog({
   const { showSnackbar } = useSnackbar();
   const currentUserId = session?.user?.id;
 
-  const [step, setStep] = useState<Step>('create');
+  const [step, setStep] = useState<Step>('template');
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<ProjectTemplateOption>('BLANK');
   const [createdProject, setCreatedProject] = useState<CreatedProject | null>(
     null
   );
@@ -40,7 +45,8 @@ export default function AddProjectDialog({
   // Reset step state whenever dialog re-opens
   useEffect(() => {
     if (open) {
-      setStep('create');
+      setStep('template');
+      setSelectedTemplate('BLANK');
       setCreatedProject(null);
     }
   }, [open]);
@@ -97,7 +103,11 @@ export default function AddProjectDialog({
     handleClose();
   };
 
-  const showStepper = !!currentUserId && !confirmedNoOtherMembers;
+  // Members step only appears when the org has other members. Until the query
+  // resolves we assume it might appear (3-dot stepper). After it resolves we
+  // can confidently shrink to a 2-dot stepper for solo orgs.
+  const willHaveMembersStep = !!currentUserId && !confirmedNoOtherMembers;
+  const totalSteps = willHaveMembersStep ? 3 : 2;
 
   return (
     <Dialog
@@ -114,8 +124,15 @@ export default function AddProjectDialog({
         },
       }}
     >
-      {showStepper && (
-        <Stepper currentStep={step} />
+      <Stepper currentStep={step} totalSteps={totalSteps} />
+
+      {step === 'template' && (
+        <TemplatePickerStep
+          selected={selectedTemplate}
+          onSelect={setSelectedTemplate}
+          onContinue={() => setStep('create')}
+          onCancel={handleClose}
+        />
       )}
 
       {step === 'create' && (
@@ -124,7 +141,9 @@ export default function AddProjectDialog({
           organizationId={activeOrganizationId}
           title="New project"
           subtitle="Track schedule, documents and team in one place."
+          template={selectedTemplate}
           onCancel={handleClose}
+          onBack={() => setStep('template')}
           onSuccess={handleProjectCreated}
         />
       )}
@@ -143,9 +162,25 @@ export default function AddProjectDialog({
   );
 }
 
-function Stepper({ currentStep }: { currentStep: Step }) {
-  const step1Done = currentStep === 'members';
-  const step2Active = currentStep === 'members';
+function Stepper({
+  currentStep,
+  totalSteps,
+}: {
+  currentStep: Step;
+  totalSteps: 2 | 3;
+}) {
+  // template (1) → create (2) → members (3)
+  const currentIndex =
+    currentStep === 'template' ? 1 : currentStep === 'create' ? 2 : 3;
+
+  const dots: Array<{ index: number; state: 'done' | 'active' | 'pending' }> = [];
+  for (let i = 1; i <= totalSteps; i++) {
+    dots.push({
+      index: i,
+      state: i < currentIndex ? 'done' : i === currentIndex ? 'active' : 'pending',
+    });
+  }
+
   return (
     <Box
       sx={{
@@ -155,20 +190,32 @@ function Stepper({ currentStep }: { currentStep: Step }) {
         gap: 0.75,
         mb: 1.5,
       }}
-      aria-label={`Step ${step2Active ? 2 : 1} of 2`}
+      aria-label={`Step ${currentIndex} of ${totalSteps}`}
     >
-      <StepDot state={step1Done ? 'done' : 'active'}>
-        {step1Done ? <Check size={11} weight="bold" /> : '1'}
-      </StepDot>
-      <Box
-        sx={{
-          width: 14,
-          height: 2,
-          borderRadius: '1px',
-          bgcolor: step1Done ? 'primary.main' : 'divider',
-        }}
-      />
-      <StepDot state={step2Active ? 'active' : 'pending'}>2</StepDot>
+      {dots.map((dot, idx) => (
+        <Box
+          key={dot.index}
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}
+        >
+          <StepDot state={dot.state}>
+            {dot.state === 'done' ? (
+              <Check size={11} weight="bold" />
+            ) : (
+              dot.index
+            )}
+          </StepDot>
+          {idx < dots.length - 1 && (
+            <Box
+              sx={{
+                width: 14,
+                height: 2,
+                borderRadius: '1px',
+                bgcolor: dot.state === 'done' ? 'primary.main' : 'divider',
+              }}
+            />
+          )}
+        </Box>
+      ))}
     </Box>
   );
 }
