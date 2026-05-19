@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, SealCheck, CaretRight, CaretLineLeft, CaretLineRight, type Icon } from '@phosphor-icons/react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, SealCheck, MapPin, CaretRight, CaretLineLeft, CaretLineRight, type Icon } from '@phosphor-icons/react';
 import { Box, Typography, Tooltip } from '@mui/material';
-import { projectNavItems, getProjectNavHref, SIDEBAR_SECTIONS } from './navItems';
+import { projectNavItems, orgNavItems, getProjectNavHref, getOrgNavHref, SIDEBAR_SECTIONS, type NavItem } from './navItems';
 import OrgSwitcher from './OrgSwitcher';
 
 import { api } from '@/trpc/react';
@@ -23,6 +23,7 @@ const iconMap: Record<string, Icon> = {
   SealCheck,
   GearSix,
   UsersThree,
+  MapPin,
 };
 
 interface SidebarProps {
@@ -190,8 +191,11 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
       >
         {/* Grouped Nav Sections */}
         {SIDEBAR_SECTIONS.map((section, sectionIdx) => {
-          const items = projectNavItems.filter((i) => i.section === section.id);
-          if (items.length === 0) return null;
+          const sectionItems: NavItem[] = [
+            ...orgNavItems.filter((i) => i.section === section.id),
+            ...projectNavItems.filter((i) => i.section === section.id),
+          ];
+          if (sectionItems.length === 0) return null;
 
           return (
             <Box key={section.id} sx={{ mb: sectionIdx < SIDEBAR_SECTIONS.length - 1 ? 2 : 0 }}>
@@ -213,11 +217,16 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
               )}
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                {items.map((item) => {
+                {sectionItems.map((item) => {
                   const NavIcon = iconMap[item.icon] ?? ChartBar;
-                  const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
-                  const isActive = !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
-                  const isDisabled = !projectSlug;
+                  const isOrgScope = item.scope === 'org';
+                  const href = isOrgScope
+                    ? (orgSlug ? getOrgNavHref(item.segment, orgSlug) : '#')
+                    : getProjectNavHref(item.segment, orgSlug, projectSlug);
+                  const isActive = isOrgScope
+                    ? !!(orgSlug && pathname === `/${orgSlug}/${item.segment}`)
+                    : !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
+                  const isDisabled = isOrgScope ? !orgSlug : !projectSlug;
                   const badgeCount = item.id === 'team' && !isDisabled ? memberCount : null;
 
                   const content = (

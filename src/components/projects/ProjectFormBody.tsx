@@ -41,7 +41,7 @@ import {
   PROJECT_COLOR_OPTIONS,
   type ProjectColor,
 } from '@/lib/constants/projectColors';
-import usePlacesAutocomplete, { getGeocode } from 'use-places-autocomplete';
+import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { trackUpload } from '@/store/uploadStatusStore';
@@ -80,7 +80,7 @@ function LocationAutocompleteField({
   helperText,
 }: {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, coords?: { lat: number; lng: number }) => void;
   error?: boolean;
   helperText?: string;
 }) {
@@ -113,12 +113,18 @@ function LocationAutocompleteField({
   const handleSelect = useCallback(
     async (_event: React.SyntheticEvent, newValue: string | null) => {
       if (newValue) {
-        onChange(newValue);
         clearSuggestions();
         try {
-          await getGeocode({ address: newValue });
+          const result = await getGeocode({ address: newValue });
+          const first = result[0];
+          if (first) {
+            const { lat, lng } = await getLatLng(first);
+            onChange(newValue, { lat, lng });
+            return;
+          }
+          onChange(newValue);
         } catch {
-          // address selected from autocomplete; keep it even if geocode fails
+          onChange(newValue);
         }
       } else {
         onChange('');
@@ -225,6 +231,8 @@ export default function ProjectFormBody({
     defaultValues: {
       name: '',
       location: '',
+      latitude: undefined,
+      longitude: undefined,
       icon: 'building',
       color: 'slate',
       template,
@@ -867,7 +875,16 @@ export default function ProjectFormBody({
               useGooglePlaces ? (
                 <LocationAutocompleteField
                   value={field.value ?? ''}
-                  onChange={field.onChange}
+                  onChange={(v, coords) => {
+                    field.onChange(v);
+                    if (coords) {
+                      setValue('latitude', coords.lat);
+                      setValue('longitude', coords.lng);
+                    } else {
+                      setValue('latitude', undefined);
+                      setValue('longitude', undefined);
+                    }
+                  }}
                   error={!!errors.location}
                   helperText={errors.location?.message}
                 />

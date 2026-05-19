@@ -47,6 +47,16 @@ These must be set correctly per environment via Vercel CLI:
 
 `APP_URL` is the single source of truth — it drives Better Auth's base URL, trusted origins, invite email links, and password reset links.
 
+`NEXT_PUBLIC_MAPBOX_TOKEN` is required per environment for the Projects → Map view. Set the same Mapbox public token in development, preview, and production:
+
+```bash
+vercel env add NEXT_PUBLIC_MAPBOX_TOKEN production --scope celn
+vercel env add NEXT_PUBLIC_MAPBOX_TOKEN preview --scope celn
+vercel env add NEXT_PUBLIC_MAPBOX_TOKEN development --scope celn
+```
+
+URL-restrict the token in the Mapbox dashboard to `celn.app`, `preview.celn.app`, `*.vercel.app`, and `localhost:*` — the token is publicly visible in the bundle.
+
 ## Database Environment Variables
 
 Only two DB vars exist in Vercel — `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING` — set per environment:

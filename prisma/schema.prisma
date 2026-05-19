@@ -121,6 +121,8 @@ model Project {
     id             String          @id @default(cuid())
     name           String
     location       String          @default("")
+    latitude       Float?
+    longitude      Float?
     slug           String
     icon           String          @default("building")
     color          String?
