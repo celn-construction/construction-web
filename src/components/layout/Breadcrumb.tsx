@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import { Box, Typography } from '@mui/material';
 import ProjectSwitcher from './ProjectSwitcher';
@@ -52,6 +53,31 @@ export default function Breadcrumb() {
   // Inside a project — render: [Project chip] / [trailing static label?]
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.125, minWidth: 0 }}>
+      {/* "Projects" crumb — links to the portfolio page (Timeline | Map | List). */}
+      <Box
+        component={Link}
+        href={`/${orgSlug}/projects`}
+        sx={{
+          fontSize: '14.5px',
+          color: 'text.secondary',
+          textDecoration: 'none',
+          px: 1,
+          py: 0.75,
+          borderRadius: '6px',
+          lineHeight: 1,
+          transition: 'background-color 0.15s, color 0.15s',
+          '&:hover': {
+            bgcolor: 'action.hover',
+            color: 'text.primary',
+          },
+        }}
+      >
+        Projects
+      </Box>
+
+      <Separator />
+
+      {/* Active project chip — outlined button that opens the project switcher */}
       <ProjectSwitcher />
 
       {trailingLabel && (
