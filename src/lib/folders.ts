@@ -93,3 +93,19 @@ export function isApprovableFolder(folderId: string | null | undefined): boolean
 }
 
 export const APPROVABLE_FOLDER_ID_LIST: string[] = Array.from(APPROVABLE_FOLDER_IDS);
+
+const SUBMITTAL_FOLDER_IDS = new Set(expandFolderIds("submittals"));
+const INSPECTION_FOLDER_IDS = new Set(expandFolderIds("inspections"));
+
+/**
+ * Maps a folder to the slot kind a document there should bind to.
+ * Returns null for non-trackable folders (RFI, change orders, photos).
+ */
+export function slotKindForFolder(
+  folderId: string | null | undefined,
+): "submittal" | "inspection" | null {
+  if (!folderId) return null;
+  if (SUBMITTAL_FOLDER_IDS.has(folderId)) return "submittal";
+  if (INSPECTION_FOLDER_IDS.has(folderId)) return "inspection";
+  return null;
+}

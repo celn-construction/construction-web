@@ -36,7 +36,12 @@ export interface FolderContentProps {
   docs: DocumentItem[];
   onSelectDoc: (doc: PreviewDoc) => void;
   selectedDocId: string | null;
-  onUpload: () => void;
+  /**
+   * Open the upload dialog for this folder. Pass a `slotId` to bind the
+   * upload to a specific slot (per-slot upload button on a trackable folder);
+   * omit it to let the server auto-link to the first empty slot.
+   */
+  onUpload: (slotId?: string) => void;
   folderName: string;
   // Optional pin context — only consumed by the Photos folder
   projectId?: string;

@@ -100,9 +100,9 @@ export const approvalRouter = createTRPCRouter({
     }),
 
   /**
-   * Slots whose dueDate has passed and don't yet have an upload mapped to them.
-   * Maps a slot to "filled" by index: if N docs exist under the kind's folder
-   * for that task, slots 0..N-1 are filled. Mirrors the per-task popover logic.
+   * Slots whose dueDate has passed and have no document bound to them via
+   * Document.slotId. Phase 3 replaced positional "slots 0..N-1 are filled by
+   * docs 0..N-1" with this explicit FK check.
    */
   listOverdueSlots: orgProcedure
     .input(z.object({ projectId: z.string() }))
@@ -116,10 +116,11 @@ export const approvalRouter = createTRPCRouter({
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const candidates = await ctx.db.taskRequirementSlot.findMany({
+      const overdue = await ctx.db.taskRequirementSlot.findMany({
         where: {
           dueDate: { not: null, lt: today },
           task: { projectId: input.projectId },
+          documents: { none: {} },
         },
         orderBy: { dueDate: "asc" },
         include: {
@@ -128,49 +129,16 @@ export const approvalRouter = createTRPCRouter({
         },
       });
 
-      if (candidates.length === 0) return [];
-
-      const taskIds = Array.from(new Set(candidates.map((c) => c.task.id)));
-      const submittalIds = expandFolderIds("submittals");
-      const inspectionIds = expandFolderIds("inspections");
-
-      const grouped = await ctx.db.document.groupBy({
-        by: ["taskId", "folderId"],
-        where: {
-          projectId: input.projectId,
-          taskId: { in: taskIds },
-          folderId: { in: [...submittalIds, ...inspectionIds] },
-        },
-        _count: { _all: true },
-      });
-
-      // count[taskId][kind] = number of docs uploaded under that folder family
-      const counts = new Map<string, { submittal: number; inspection: number }>();
-      for (const row of grouped) {
-        // The where clause constrains taskId/folderId to non-null IN-lists, so guards are belt-and-suspenders.
-        if (!row.taskId || !row.folderId) continue;
-        const bucket = counts.get(row.taskId) ?? { submittal: 0, inspection: 0 };
-        if (submittalIds.includes(row.folderId)) bucket.submittal += row._count._all;
-        if (inspectionIds.includes(row.folderId)) bucket.inspection += row._count._all;
-        counts.set(row.taskId, bucket);
-      }
-
-      return candidates
-        .filter((slot) => {
-          const c = counts.get(slot.task.id) ?? { submittal: 0, inspection: 0 };
-          const filledForKind = slot.kind === "submittal" ? c.submittal : c.inspection;
-          return slot.index >= filledForKind;
-        })
-        .map((slot) => ({
-          id: slot.id,
-          taskId: slot.task.id,
-          taskName: slot.task.name,
-          kind: slot.kind as SlotKind,
-          index: slot.index,
-          name: slot.name,
-          dueDate: slot.dueDate!,
-          approver: slot.approver,
-        }));
+      return overdue.map((slot) => ({
+        id: slot.id,
+        taskId: slot.task.id,
+        taskName: slot.task.name,
+        kind: slot.kind as SlotKind,
+        index: slot.index,
+        name: slot.name,
+        dueDate: slot.dueDate!,
+        approver: slot.approver,
+      }));
     }),
 
   /**
@@ -264,48 +232,19 @@ export const approvalRouter = createTRPCRouter({
 });
 
 /**
- * Returns the number of slots whose dueDate has passed and which don't yet
- * have an upload covering them. Used by `summary` for the overdue badge.
+ * Returns the number of slots whose dueDate has passed and have no
+ * document bound to them via Document.slotId. Used by `summary` for the
+ * overdue badge in the sidebar.
  */
 async function countOverdueSlots(db: PrismaClient, projectId: string): Promise<number> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const candidates = await db.taskRequirementSlot.findMany({
+  return db.taskRequirementSlot.count({
     where: {
       dueDate: { not: null, lt: today },
       task: { projectId },
+      documents: { none: {} },
     },
-    select: { id: true, taskId: true, kind: true, index: true },
   });
-  if (candidates.length === 0) return 0;
-
-  const taskIds = Array.from(new Set(candidates.map((c) => c.taskId)));
-  const submittalIds = expandFolderIds("submittals");
-  const inspectionIds = expandFolderIds("inspections");
-
-  const grouped = await db.document.groupBy({
-    by: ["taskId", "folderId"],
-    where: {
-      projectId,
-      taskId: { in: taskIds },
-      folderId: { in: [...submittalIds, ...inspectionIds] },
-    },
-    _count: { _all: true },
-  });
-
-  const counts = new Map<string, { submittal: number; inspection: number }>();
-  for (const row of grouped) {
-    if (!row.taskId || !row.folderId) continue;
-    const bucket = counts.get(row.taskId) ?? { submittal: 0, inspection: 0 };
-    if (submittalIds.includes(row.folderId)) bucket.submittal += row._count._all;
-    if (inspectionIds.includes(row.folderId)) bucket.inspection += row._count._all;
-    counts.set(row.taskId, bucket);
-  }
-
-  return candidates.filter((slot) => {
-    const c = counts.get(slot.taskId) ?? { submittal: 0, inspection: 0 };
-    const filledForKind = slot.kind === "submittal" ? c.submittal : c.inspection;
-    return slot.index >= filledForKind;
-  }).length;
 }

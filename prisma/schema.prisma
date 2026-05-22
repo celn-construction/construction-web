@@ -167,6 +167,7 @@ model Document {
     searchVector   Unsupported("tsvector")?
     taskId         String?
     folderId       String?
+    slotId         String?
     projectId      String
     uploadedById   String
     approvalStatus String                         @default("unapproved")
@@ -174,14 +175,16 @@ model Document {
     approvedAt     DateTime?
     createdAt      DateTime                       @default(now())
 
-    project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-    uploadedBy    User       @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
-    approvedBy    User?      @relation("ApprovedByUser", fields: [approvedById], references: [id], onDelete: SetNull)
-    coverForTasks GanttTask[] @relation("TaskCoverDocument")
+    project       Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    uploadedBy    User                 @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+    approvedBy    User?                @relation("ApprovedByUser", fields: [approvedById], references: [id], onDelete: SetNull)
+    slot          TaskRequirementSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
+    coverForTasks GanttTask[]          @relation("TaskCoverDocument")
 
     @@index([projectId, taskId, folderId])
     @@index([projectId])
     @@index([projectId, approvalStatus])
+    @@index([slotId])
 }
 
 model Membership {
@@ -312,8 +315,9 @@ model TaskRequirementSlot {
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
 
-    task     GanttTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-    approver User?     @relation("SlotApprover", fields: [approverId], references: [id], onDelete: SetNull)
+    task      GanttTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+    approver  User?      @relation("SlotApprover", fields: [approverId], references: [id], onDelete: SetNull)
+    documents Document[]
 
     @@unique([taskId, kind, index])
     @@index([taskId, kind])

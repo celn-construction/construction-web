@@ -43,7 +43,7 @@ interface FolderRowProps {
   onToggle: () => void;
   count: number;
   docs: DocumentItem[];
-  onUpload: (folder: { id: string; name: string }) => void;
+  onUpload: (folder: { id: string; name: string }, slotId?: string) => void;
   onSelectDoc: (doc: PreviewDoc) => void;
   selectedDocId: string | null;
   // Tracking props (only used for trackable folders)
@@ -95,7 +95,7 @@ function FolderRowInner({
     docs,
     onSelectDoc,
     selectedDocId,
-    onUpload: () => onUpload({ id: folder.id, name: folder.name }),
+    onUpload: (slotId?: string) => onUpload({ id: folder.id, name: folder.name }, slotId),
     folderName: folder.name,
     projectId,
     taskId,

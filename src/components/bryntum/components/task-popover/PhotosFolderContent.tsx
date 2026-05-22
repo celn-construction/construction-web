@@ -42,7 +42,7 @@ function PhotosFolderContentInner({
   const AddPhotoTile = (
     <Box
       component="button"
-      onClick={onUpload}
+      onClick={() => onUpload()}
       aria-label="Add photo"
       sx={{
         height: 70,

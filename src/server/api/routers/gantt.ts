@@ -12,6 +12,7 @@ import {
 } from "@/lib/validations/gantt";
 import { nextSuggestedSlotName } from "@/lib/constants/slotNameLibrary";
 import { APPROVABLE_FOLDER_ID_LIST } from "@/lib/folders";
+import { documentProxyUrl } from "@/lib/blobProxy";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
 import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges } from "@/server/api/helpers/ganttSync";
 
@@ -356,7 +357,9 @@ export const ganttRouter = createTRPCRouter({
 
   /**
    * Project-wide requirement stats for the toolbar progress card.
-   * Returns total required and total uploaded across all tasks.
+   * Returns total required and total uploaded across all tasks. Uses the
+   * Document.slotId FK to count satisfied slots; uploads that aren't bound
+   * to a slot (overflow, or dropped outside a slot button) don't count.
    */
   requirementStats: orgProcedure
     .input(z.object({ projectId: z.string() }))
@@ -371,8 +374,7 @@ export const ganttRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
       }
 
-      // Get the latest task end date and all tasks with requirements in parallel
-      const [latestEndDate, tasksWithReqs] = await Promise.all([
+      const [latestEndDate, tasksWithReqs, filledSlots] = await Promise.all([
         ctx.db.ganttTask.aggregate({
           where: { projectId, endDate: { not: null } },
           _max: { endDate: true },
@@ -391,63 +393,25 @@ export const ganttRouter = createTRPCRouter({
             requiredInspections: true,
           },
         }),
+        ctx.db.taskRequirementSlot.count({
+          where: {
+            task: { projectId },
+            documents: { some: {} },
+          },
+        }),
       ]);
 
-      if (tasksWithReqs.length === 0) {
-        return { totalRequired: 0, totalUploaded: 0, latestEndDate: latestEndDate._max.endDate ?? null };
-      }
-
-      // Sum all required counts
       let totalRequired = 0;
       for (const t of tasksWithReqs) {
         totalRequired += t.requiredSubmittals ?? 0;
         totalRequired += t.requiredInspections ?? 0;
       }
 
-      // Count documents in submittal/inspection folders for these tasks
-      const taskIds = tasksWithReqs.map((t) => t.id);
-      const docCounts = await ctx.db.document.groupBy({
-        by: ["taskId", "folderId"],
-        where: {
-          projectId,
-          taskId: { in: taskIds },
-          folderId: {
-            startsWith: "submittals",
-          },
-        },
-        _count: { id: true },
-      });
-
-      const inspectionDocs = await ctx.db.document.groupBy({
-        by: ["taskId", "folderId"],
-        where: {
-          projectId,
-          taskId: { in: taskIds },
-          folderId: {
-            startsWith: "inspections",
-          },
-        },
-        _count: { id: true },
-      });
-
-      // Sum uploaded per task, capped by their requirement
-      let totalUploaded = 0;
-      for (const t of tasksWithReqs) {
-        if (t.requiredSubmittals != null) {
-          const uploaded = docCounts
-            .filter((d) => d.taskId === t.id)
-            .reduce((sum, d) => sum + d._count.id, 0);
-          totalUploaded += Math.min(uploaded, t.requiredSubmittals);
-        }
-        if (t.requiredInspections != null) {
-          const uploaded = inspectionDocs
-            .filter((d) => d.taskId === t.id)
-            .reduce((sum, d) => sum + d._count.id, 0);
-          totalUploaded += Math.min(uploaded, t.requiredInspections);
-        }
-      }
-
-      return { totalRequired, totalUploaded, latestEndDate: latestEndDate._max.endDate ?? null };
+      return {
+        totalRequired,
+        totalUploaded: filledSlots,
+        latestEndDate: latestEndDate._max.endDate ?? null,
+      };
     }),
 
   // ─── Per-slot tracking (Tier 2/3) ──────────────────────────────────────
@@ -469,36 +433,66 @@ export const ganttRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
       }
 
+      const slotInclude = {
+        approver: { select: { id: true, name: true, email: true, image: true } },
+        documents: {
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: {
+            id: true,
+            name: true,
+            blobUrl: true,
+            mimeType: true,
+            size: true,
+            folderId: true,
+            createdAt: true,
+            approvalStatus: true,
+            approvedAt: true,
+            approvedBy: { select: { id: true, name: true, email: true } },
+            uploadedBy: { select: { id: true, name: true, email: true } },
+          },
+        },
+      } as const;
+
       const existing = await ctx.db.taskRequirementSlot.findMany({
         where: { taskId, kind },
         orderBy: { index: "asc" },
-        include: {
-          approver: { select: { id: true, name: true, email: true, image: true } },
-        },
+        include: slotInclude,
       });
 
       const legacyCount = legacyCountForKind(task, kind);
 
       // Lazy backfill: legacy count > 0 but no slot rows yet → create N anonymous slots.
-      if (existing.length === 0 && legacyCount > 0) {
-        await ctx.db.taskRequirementSlot.createMany({
-          data: Array.from({ length: legacyCount }, (_, i) => ({
-            taskId,
-            kind,
-            index: i,
-          })),
-          skipDuplicates: true,
-        });
-        return ctx.db.taskRequirementSlot.findMany({
-          where: { taskId, kind },
-          orderBy: { index: "asc" },
-          include: {
-            approver: { select: { id: true, name: true, email: true, image: true } },
-          },
-        });
-      }
+      const slots =
+        existing.length === 0 && legacyCount > 0
+          ? await (async () => {
+              await ctx.db.taskRequirementSlot.createMany({
+                data: Array.from({ length: legacyCount }, (_, i) => ({
+                  taskId,
+                  kind,
+                  index: i,
+                })),
+                skipDuplicates: true,
+              });
+              return ctx.db.taskRequirementSlot.findMany({
+                where: { taskId, kind },
+                orderBy: { index: "asc" },
+                include: slotInclude,
+              });
+            })()
+          : existing;
 
-      return existing;
+      // Flatten: collapse `documents[0]` into a single `document` field with a
+      // proxied blob URL the client can render. The partial unique index on
+      // Document.slotId enforces at-most-one bound document per slot, so
+      // `take: 1` is precisely the bound document.
+      return slots.map(({ documents, ...slot }) => {
+        const doc = documents[0] ?? null;
+        return {
+          ...slot,
+          document: doc ? { ...doc, blobUrl: documentProxyUrl(doc.id) } : null,
+        };
+      });
     }),
 
   setSlotCount: orgProcedure
