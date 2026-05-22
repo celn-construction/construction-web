@@ -129,6 +129,18 @@ export async function syncTasks(
 
       if (task.$PhantomId) {
         result.rows.push({ $PhantomId: task.$PhantomId, id });
+      } else {
+        // No $PhantomId means Bryntum's afterSyncAttempt can't pair this row
+        // back to the phantom record on the client — the record stays phantom
+        // and gets resent on the next sync (duplicate-task / "task won't save"
+        // symptom). The row was still written to the DB, so this is silent
+        // data corruption. Warn loudly so the contract violation is visible
+        // in the server terminal next time a client path regresses.
+        console.warn('[Gantt:syncTasks] Added task without $PhantomId — Bryntum cannot materialize this on the client:', {
+          dbId: id,
+          name: task.name,
+          hint: 'Check reconcileSyncPack and the outgoing pack — every added record must carry $PhantomId',
+        });
       }
     }
   }

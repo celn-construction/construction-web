@@ -1,5 +1,5 @@
 interface ReconcileTaskStore {
-  getById?: (id: string) => { data?: Record<string, unknown> } | null;
+  getById?: (id: string) => { data?: Record<string, unknown>; $PhantomId?: string } | null;
 }
 
 interface SyncPack {
@@ -32,7 +32,12 @@ export function reconcileSyncPack(
       for (const id of missing) {
         const record = taskStore.getById(id);
         if (record?.data) {
-          typed.tasks.added.push({ ...record.data });
+          // $PhantomId can live on record.data OR directly on the record object
+          // (Bryntum places it on the record). The server uses it to echo a
+          // phantom→real id mapping back; without it, the record stays phantom
+          // and Bryntum's afterSyncAttempt crashes trying to materialize it.
+          const phantomId = (record.data.$PhantomId as string | undefined) ?? record.$PhantomId ?? id;
+          typed.tasks.added.push({ ...record.data, $PhantomId: phantomId });
         }
       }
     }

@@ -130,7 +130,16 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     const gantt = getGanttInstance();
     if (!gantt?.project) return;
 
-    const onSync = () => {
+    const onSync = (event: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = (event as any)?.response;
+      console.log('[Gantt:client] sync OK', {
+        success: response?.success,
+        tasksReturned: response?.tasks?.rows?.length ?? 0,
+        sentAdded: lastSyncAddedIdsRef.current.size,
+        sentRemoved: lastSyncRemovedIdsRef.current.size,
+      });
+
       // Clear only the IDs that were actually sent in this sync cycle; any IDs
       // added to pending* after `onBeforeSync` fired belong to the next sync.
       for (const id of lastSyncAddedIdsRef.current) pendingAddedIdsRef.current.delete(id);
@@ -148,7 +157,18 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       }, 1000);
     };
 
-    const onSyncFail = () => {
+    const onSyncFail = (event: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const e = event as any;
+      console.error('[Gantt:client] syncFail', {
+        message: e?.response?.message ?? e?.responseText ?? e?.error?.message,
+        code: e?.response?.code,
+        status: e?.response?.status,
+        sentAdded: Array.from(lastSyncAddedIdsRef.current),
+        sentRemoved: Array.from(lastSyncRemovedIdsRef.current),
+        raw: e?.response ?? e?.responseText ?? e,
+      });
+
       // Keep pending IDs intact for retry; just drop the in-flight snapshot.
       lastSyncAddedIdsRef.current.clear();
       lastSyncRemovedIdsRef.current.clear();
@@ -168,6 +188,16 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       // without dropping new changes that arrive mid-request.
       lastSyncAddedIdsRef.current = new Set(pendingAddedIdsRef.current);
       lastSyncRemovedIdsRef.current = new Set(pendingRemovedIdsRef.current);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const p = pack as any;
+      console.log('[Gantt:client] beforeSync — pack about to POST', {
+        addedTasks: p?.tasks?.added?.length ?? 0,
+        updatedTasks: p?.tasks?.updated?.length ?? 0,
+        removedTasks: p?.tasks?.removed?.length ?? 0,
+        firstAdded: p?.tasks?.added?.[0],
+        firstUpdated: p?.tasks?.updated?.[0],
+      });
     };
 
     // Shadow-track added/removed IDs from the reliable taskStore events so
@@ -178,8 +208,18 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
 
     const onTaskAdd = ({ records, isExpand }: { records: Array<{ id?: string; isRoot?: boolean }>; isExpand?: boolean }) => {
       if (isExpand) return;
+      const tracked: string[] = [];
       for (const r of records) {
-        if (!r.isRoot && r.id) pendingAddedIdsRef.current.add(String(r.id));
+        if (!r.isRoot && r.id) {
+          pendingAddedIdsRef.current.add(String(r.id));
+          tracked.push(String(r.id));
+        }
+      }
+      if (tracked.length > 0) {
+        console.log('[Gantt:client] taskStore.add — pending add IDs', {
+          newlyTracked: tracked,
+          totalPendingAdds: pendingAddedIdsRef.current.size,
+        });
       }
     };
 

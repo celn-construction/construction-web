@@ -47,6 +47,12 @@ export async function POST(request: Request) {
       'tasks: +' + (taskChanges?.added?.length ?? 0),
       '~' + (taskChanges?.updated?.length ?? 0),
       '-' + (taskChanges?.removed?.length ?? 0));
+    if ((taskChanges?.added?.length ?? 0) > 0) {
+      console.log('[Gantt:sync] Added task payload:', JSON.stringify(taskChanges?.added?.[0], null, 2));
+    }
+    if ((taskChanges?.updated?.length ?? 0) > 0) {
+      console.log('[Gantt:sync] First updated task payload:', JSON.stringify(taskChanges?.updated?.[0], null, 2));
+    }
 
     // Create tRPC context and caller
     const ctx = await createTRPCContext({

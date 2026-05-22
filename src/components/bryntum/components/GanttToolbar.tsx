@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Box, MenuItem, Select, Stack } from '@mui/material';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { Box, MenuItem, Select, Stack, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Button } from '@/components/ui/button';
 import {
   ArrowUUpLeft,
   ArrowUUpRight,
+  ArrowsOutSimple,
   CaretDoubleLeft,
   CaretDoubleRight,
   DownloadSimple,
@@ -14,8 +15,12 @@ import {
   DotsThreeVertical,
   Lock,
   LockOpen,
+  Minus,
   Plus,
 } from '@phosphor-icons/react';
+
+// ─── Pulse variants — semantic motion per action ──────────────────────────────
+type PulseVariant = 'scale-out' | 'scale-in' | 'wobble' | 'slide-left' | 'slide-right';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const VIEW_PRESETS = [
@@ -56,11 +61,80 @@ const cardItemSx = {
   fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
   letterSpacing: '-0.01em',
   lineHeight: 1,
-  transition: 'background-color 0.15s, color 0.15s',
+  transition: 'background-color 0.15s ease, color 0.15s ease, transform 0.12s ease',
+  outline: 'none',
   '&:hover': {
     bgcolor: 'action.hover',
+    color: 'var(--text-primary)',
+  },
+  '&:active': {
+    transform: 'scale(0.9)',
+  },
+  '&:focus-visible': {
+    boxShadow: 'inset 0 0 0 2px var(--focus-ring, rgba(43, 45, 66, 0.45))',
+  },
+  '@media (prefers-reduced-motion: reduce)': {
+    transition: 'background-color 0.01s, color 0.01s',
+    '&:active': { transform: 'none' },
   },
 } as const;
+
+/**
+ * Toolbar button that re-runs a pulse animation on every click via a key-bump.
+ * `:active` alone is too brief (~80ms held) for noticeable motion — remounting
+ * the inner span on each click cleanly restarts the CSS animation.
+ */
+function ToolbarPulseButton({
+  onClick,
+  ariaLabel,
+  tooltip,
+  shortcut,
+  pulseVariant,
+  children,
+}: {
+  onClick?: () => void;
+  ariaLabel: string;
+  tooltip: string;
+  shortcut?: string;
+  pulseVariant: PulseVariant;
+  children: ReactNode;
+}) {
+  const [pulseKey, setPulseKey] = useState(0);
+  const handleClick = () => {
+    setPulseKey((k) => k + 1);
+    onClick?.();
+  };
+  const tooltipTitle = shortcut ? `${tooltip} (${shortcut})` : tooltip;
+  return (
+    <Tooltip title={tooltipTitle} placement="bottom" enterDelay={400} enterNextDelay={200} arrow>
+      <Box
+        component="button"
+        type="button"
+        aria-label={ariaLabel}
+        onClick={handleClick}
+        sx={cardItemSx}
+      >
+        <Box
+          key={pulseKey}
+          aria-hidden
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            willChange: pulseKey > 0 ? 'transform' : 'auto',
+            animation:
+              pulseKey > 0
+                ? `gantt-pulse-${pulseVariant} 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.2) both`
+                : 'none',
+            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+          }}
+        >
+          {children}
+        </Box>
+      </Box>
+    </Tooltip>
+  );
+}
 
 /** Thin vertical separator inside a card */
 const cardDividerSx = {
@@ -328,26 +402,65 @@ export default function GanttToolbar({
       </Select>
 
       {/* ── Zoom + Nav Controls ──────────────────────────────────────────── */}
-      <Box sx={cardContainerSx}>
-        <Box component="button" sx={cardItemSx} onClick={onZoomOut} title="Zoom out">
-          –
-        </Box>
+      <Box
+        sx={{
+          ...cardContainerSx,
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          '&:hover': {
+            borderColor: 'var(--border-color)',
+            boxShadow:
+              '0 2px 6px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
+          },
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+        }}
+      >
+        <ToolbarPulseButton
+          ariaLabel="Zoom out"
+          tooltip="Zoom out"
+          pulseVariant="scale-in"
+          onClick={onZoomOut}
+        >
+          <Minus size={12} weight="bold" />
+        </ToolbarPulseButton>
         <Box sx={cardDividerSx} />
-        <Box component="button" sx={cardItemSx} onClick={onZoomIn} title="Zoom in">
-          +
-        </Box>
+        <ToolbarPulseButton
+          ariaLabel="Zoom in"
+          tooltip="Zoom in"
+          pulseVariant="scale-out"
+          onClick={onZoomIn}
+        >
+          <Plus size={12} weight="bold" />
+        </ToolbarPulseButton>
         <Box sx={cardDividerSx} />
-        <Box component="button" sx={cardItemSx} onClick={onZoomToFit} title="Fit all tasks">
-          Fit
-        </Box>
+        <ToolbarPulseButton
+          ariaLabel="Fit all tasks"
+          tooltip="Fit all tasks"
+          pulseVariant="wobble"
+          onClick={onZoomToFit}
+        >
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+            <ArrowsOutSimple size={11} weight="bold" />
+            <Box component="span">Fit</Box>
+          </Box>
+        </ToolbarPulseButton>
         <Box sx={cardDividerSx} />
-        <Box component="button" sx={cardItemSx} onClick={onShiftPrevious} title="Previous time span">
+        <ToolbarPulseButton
+          ariaLabel="Previous time span"
+          tooltip="Previous time span"
+          pulseVariant="slide-left"
+          onClick={onShiftPrevious}
+        >
           <CaretDoubleLeft size={12} weight="bold" />
-        </Box>
+        </ToolbarPulseButton>
         <Box sx={cardDividerSx} />
-        <Box component="button" sx={cardItemSx} onClick={onShiftNext} title="Next time span">
+        <ToolbarPulseButton
+          ariaLabel="Next time span"
+          tooltip="Next time span"
+          pulseVariant="slide-right"
+          onClick={onShiftNext}
+        >
           <CaretDoubleRight size={12} weight="bold" />
-        </Box>
+        </ToolbarPulseButton>
       </Box>
 
       {/* ── Undo / Redo (only active in edit mode) ───────────────────── */}
@@ -547,10 +660,41 @@ export default function GanttToolbar({
               0%   { opacity: 0.55; transform: scale(1); }
               100% { opacity: 0;    transform: scale(1.22); }
             }
+            @keyframes gantt-pulse-scale-out {
+              0%   { transform: scale(1); }
+              40%  { transform: scale(1.35); }
+              100% { transform: scale(1); }
+            }
+            @keyframes gantt-pulse-scale-in {
+              0%   { transform: scale(1); }
+              40%  { transform: scale(0.65); }
+              100% { transform: scale(1); }
+            }
+            @keyframes gantt-pulse-wobble {
+              0%   { transform: scale(1, 1); }
+              30%  { transform: scale(1.12, 0.92); }
+              60%  { transform: scale(0.96, 1.06); }
+              100% { transform: scale(1, 1); }
+            }
+            @keyframes gantt-pulse-slide-left {
+              0%   { transform: translateX(0); }
+              40%  { transform: translateX(-4px); }
+              100% { transform: translateX(0); }
+            }
+            @keyframes gantt-pulse-slide-right {
+              0%   { transform: translateX(0); }
+              40%  { transform: translateX(4px); }
+              100% { transform: translateX(0); }
+            }
             @media (prefers-reduced-motion: reduce) {
-              @keyframes gantt-tool-pop-in    { from, to { opacity: 1; transform: none; } }
-              @keyframes gantt-icon-swap      { from, to { opacity: 1; transform: none; } }
-              @keyframes gantt-segment-pulse  { from, to { opacity: 0; transform: none; } }
+              @keyframes gantt-tool-pop-in       { from, to { opacity: 1; transform: none; } }
+              @keyframes gantt-icon-swap         { from, to { opacity: 1; transform: none; } }
+              @keyframes gantt-segment-pulse     { from, to { opacity: 0; transform: none; } }
+              @keyframes gantt-pulse-scale-out   { from, to { transform: none; } }
+              @keyframes gantt-pulse-scale-in    { from, to { transform: none; } }
+              @keyframes gantt-pulse-wobble      { from, to { transform: none; } }
+              @keyframes gantt-pulse-slide-left  { from, to { transform: none; } }
+              @keyframes gantt-pulse-slide-right { from, to { transform: none; } }
             }
           `,
         }}
