@@ -61,3 +61,7 @@ generated/
 # serena mcp (local agent cache and memories)
 .serena/
 .env*.local
+
+# visual designs / plans (local-only, never commit)
+visual-plans/
+

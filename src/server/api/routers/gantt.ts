@@ -5,7 +5,6 @@ import { canManageProjects, canApproveDocuments } from "@/lib/permissions";
 import {
   ganttLoadInputSchema,
   ganttSyncInputSchema,
-  updateRequirementSchema,
   listSlotsSchema,
   setSlotCountSchema,
   updateSlotSchema,
@@ -352,34 +351,6 @@ export const ganttRouter = createTRPCRouter({
           assignments: assignmentResult,
           timeRanges: timeRangeResult,
         };
-      });
-    }),
-
-  /**
-   * Update a task's required submittal/inspection count
-   */
-  updateRequirement: orgProcedure
-    .input(z.object({ projectId: z.string() }).merge(updateRequirementSchema))
-    .mutation(async ({ ctx, input }) => {
-      const { projectId, taskId, field, count } = input;
-
-      if (ctx.membership.role !== "owner" && ctx.membership.role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Only owners and admins can set requirements" });
-      }
-
-      const task = await ctx.db.ganttTask.findFirst({
-        where: { id: taskId, projectId, project: { organizationId: ctx.organization.id } },
-        select: { id: true },
-      });
-
-      if (!task) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found in this project" });
-      }
-
-      return ctx.db.ganttTask.update({
-        where: { id: taskId },
-        data: { [field]: count },
-        select: { id: true, requiredSubmittals: true, requiredInspections: true },
       });
     }),
 
