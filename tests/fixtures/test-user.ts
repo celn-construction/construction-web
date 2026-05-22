@@ -22,6 +22,10 @@ export interface TestUserWithOrg {
   organization: { id: string; name: string; slug: string };
 }
 
+export interface TestUserWithProject extends TestUserWithOrg {
+  project: { id: string; name: string; slug: string };
+}
+
 /**
  * Creates a test user with a credential account in the database.
  * Returns the user record with the plaintext password for sign-in tests.
@@ -99,6 +103,41 @@ export async function createUserWithOrg(
   });
 
   return { user, organization: { id: organization.id, name: orgName, slug } };
+}
+
+/**
+ * Creates a verified user with an organization and a project; user is owner of both.
+ * Cleanup is handled by cleanupUser → cascades through Organization → Project.
+ */
+export async function createUserWithProject(
+  options: CreateTestUserOptions & { orgName?: string; projectName?: string } = {},
+): Promise<TestUserWithProject> {
+  const { user, organization } = await createUserWithOrg(options);
+
+  const projectName = options.projectName ?? `Test Project ${randomUUID().slice(0, 8)}`;
+  const slug = `${projectName.toLowerCase().replace(/\s+/g, "-")}-${randomUUID().slice(0, 6)}`;
+
+  const project = await testDb.project.create({
+    data: {
+      name: projectName,
+      slug,
+      organizationId: organization.id,
+    },
+  });
+
+  await testDb.projectMember.create({
+    data: {
+      role: "owner",
+      userId: user.id,
+      projectId: project.id,
+    },
+  });
+
+  return {
+    user,
+    organization,
+    project: { id: project.id, name: projectName, slug },
+  };
 }
 
 /**

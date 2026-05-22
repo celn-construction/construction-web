@@ -3,10 +3,12 @@ import {
   createTestUser,
   createVerifiedUser,
   createUserWithOrg,
+  createUserWithProject,
   cleanupUser,
   cleanupVerifications,
   type TestUser,
   type TestUserWithOrg,
+  type TestUserWithProject,
 } from "./test-user";
 import { signInTestUser } from "./auth";
 import { SignUpPage } from "../pages/sign-up.page";
@@ -21,6 +23,7 @@ type TestFixtures = {
   testUser: TestUser;
   verifiedUser: TestUser;
   userWithOrg: TestUserWithOrg;
+  userWithProject: TestUserWithProject;
 
   // Page Object Models — auto-instantiated
   signUpPage: SignUpPage;
@@ -63,6 +66,14 @@ export const test = base.extend<TestFixtures>({
   userWithOrg: async ({}, use) => {
     const result = await createUserWithOrg();
     await use(result);
+    await cleanupUser(result.user.email);
+    await cleanupVerifications(result.user.email);
+  },
+
+  userWithProject: async ({}, use) => {
+    const result = await createUserWithProject();
+    await use(result);
+    // cleanupUser cascades through org → project (user is sole org member)
     await cleanupUser(result.user.email);
     await cleanupVerifications(result.user.email);
   },

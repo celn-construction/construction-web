@@ -3,7 +3,9 @@ import { describe, it, expect } from "vitest";
 import { reconcileSyncPack } from "./reconcileSyncPack";
 
 // Mimic Bryntum's Store/Record API surface that reconcileSyncPack actually touches.
-function makeTaskStore(records: Record<string, { data: Record<string, unknown> }>) {
+function makeTaskStore(
+  records: Record<string, { data: Record<string, unknown>; $PhantomId?: string }>,
+) {
   return {
     getById: (id: string) => records[id] ?? null,
   };
@@ -71,29 +73,44 @@ describe("reconcileSyncPack — added-task injection", () => {
     expect(pack.tasks!.added![0]!.$PhantomId).toBe("_phant_1");
   });
 
-  // Documents a suspected Bryntum failure mode: when $PhantomId lives on the
-  // record itself rather than inside `record.data`, the current
-  // `{ ...record.data }` spread drops it and the server-side phantom→real
-  // swap silently breaks. The assertion expresses the desired behavior, and
-  // `it.fails` pins the known bug so this test stays green until
-  // reconcileSyncPack is updated to also read $PhantomId off the record.
-  // When that fix lands, drop `.fails`.
-  it.fails(
-    "injects $PhantomId even when it lives on the record rather than record.data",
-    () => {
-      const pack: { tasks?: { added?: Array<Record<string, unknown>> } } = {
-        tasks: { added: [] },
-      };
-      const taskStore = makeTaskStore({
-        _phant_1: {
-          data: { id: "_phant_1", name: "Task A" },
-        },
-      });
+  // When $PhantomId isn't on record.data, reconcileSyncPack reads it from the
+  // record object directly. The outgoing pack carries $PhantomId so the server
+  // can echo a phantom→real id mapping; without it Bryntum's afterSyncAttempt
+  // crashes trying to materialize an undefined record (the "silent autosave
+  // failure" symptom).
+  it("injects $PhantomId from the record object when record.data doesn't carry it", () => {
+    const pack: { tasks?: { added?: Array<Record<string, unknown>> } } = {
+      tasks: { added: [] },
+    };
+    const taskStore = makeTaskStore({
+      _phant_1: {
+        $PhantomId: "_phant_1",
+        data: { id: "_phant_1", name: "Task A" },
+      },
+    });
 
-      reconcileSyncPack(pack, taskStore, new Set(["_phant_1"]), new Set());
+    reconcileSyncPack(pack, taskStore, new Set(["_phant_1"]), new Set());
 
-      const injected = pack.tasks!.added![0]!;
-      expect(injected.$PhantomId).toBe("_phant_1");
-    },
-  );
+    const injected = pack.tasks!.added![0]!;
+    expect(injected.$PhantomId).toBe("_phant_1");
+  });
+
+  // Last-resort fallback: if $PhantomId is missing on both record.data and the
+  // record object, reconcileSyncPack uses the local id from pendingAddedIds so
+  // the server still gets a phantom marker it can echo back.
+  it("falls back to the local id when $PhantomId is missing on both record and record.data", () => {
+    const pack: { tasks?: { added?: Array<Record<string, unknown>> } } = {
+      tasks: { added: [] },
+    };
+    const taskStore = makeTaskStore({
+      _phant_1: {
+        data: { id: "_phant_1", name: "Task A" },
+      },
+    });
+
+    reconcileSyncPack(pack, taskStore, new Set(["_phant_1"]), new Set());
+
+    const injected = pack.tasks!.added![0]!;
+    expect(injected.$PhantomId).toBe("_phant_1");
+  });
 });

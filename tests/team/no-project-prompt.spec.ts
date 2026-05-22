@@ -29,7 +29,12 @@ test.describe("No project prompt (inline)", () => {
     // Click Create Project button to open dialog
     await page.getByRole("button", { name: "Create Project" }).click();
 
-    // AddProjectDialog should open
+    // AddProjectDialog opens on the template-picker step first (added in #153).
+    await expect(page.getByText("Choose a template")).toBeVisible({ timeout: 5000 });
+
+    // Blank is pre-selected — advance to the create-form step.
+    await page.getByRole("button", { name: "Continue" }).click();
+
     await expect(page.getByText("New project")).toBeVisible({ timeout: 5000 });
     await expect(
       page.getByText("Track schedule, documents and team in one place.")

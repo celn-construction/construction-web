@@ -210,6 +210,70 @@ describe("gantt.sync — add task", () => {
     expect(childCall!.parentId).not.toBe("_parent");
   });
 
+  // The Bryntum sync contract: every added task that carries $PhantomId MUST get
+  // a corresponding row in the response. Without it, Bryntum's afterSyncAttempt
+  // throws "Cannot set properties of undefined (setting 'isBeingMaterialized')"
+  // and the client-side record stays phantom (silent autosave failure / dupes).
+  // This test pins the positive direction of the contract.
+  it("returns a tasks.rows entry for every added task that carries $PhantomId", async () => {
+    const ctx = makeCtx();
+
+    const result = await sync._handler({
+      ctx,
+      input: {
+        organizationId: ORG_ID,
+        projectId: PROJECT_ID,
+        tasks: {
+          added: [
+            { $PhantomId: "_p1", name: "Task A" },
+            { $PhantomId: "_p2", name: "Task B" },
+            { $PhantomId: "_p3", name: "Task C" },
+          ],
+        },
+      },
+    });
+
+    expect(result.tasks.rows).toHaveLength(3);
+
+    const returnedPhantomIds = result.tasks.rows.map((r) => r.$PhantomId).sort();
+    expect(returnedPhantomIds).toEqual(["_p1", "_p2", "_p3"]);
+
+    // Every returned row must have a real DB id distinct from its phantom id
+    for (const row of result.tasks.rows) {
+      expect(row.id).toEqual(expect.any(String));
+      expect(row.id).not.toBe(row.$PhantomId);
+    }
+  });
+
+  // The contract-violation direction: if an added task arrives without $PhantomId
+  // (e.g., reconcileSyncPack regresses), the server warns instead of silently
+  // dropping the row — turning an opaque client crash into a visible terminal log.
+  it("warns when an added task arrives without $PhantomId (visibility for client regressions)", async () => {
+    const ctx = makeCtx();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await sync._handler({
+      ctx,
+      input: {
+        organizationId: ORG_ID,
+        projectId: PROJECT_ID,
+        tasks: {
+          added: [{ name: "Phantomless task" }],
+        },
+      },
+    });
+
+    // DB row was still written — the warning is purely informational
+    expect(ctx.tx.ganttTask.create).toHaveBeenCalledTimes(1);
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Added task without $PhantomId"),
+      expect.objectContaining({ name: "Phantomless task" }),
+    );
+
+    warnSpy.mockRestore();
+  });
+
   it("nulls parentId when the referenced parent does not exist (orphan defense)", async () => {
     const ctx = makeCtx();
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
