@@ -15,7 +15,7 @@ function BaseFolderContentInner({
   if (docs.length === 0) {
     return (
       <Box
-        onClick={onUpload}
+        onClick={() => onUpload()}
         sx={{
           ml: '36px',
           mr: 0.75,

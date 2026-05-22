@@ -15,7 +15,6 @@ interface TrackableFolderContentProps extends FolderContentProps {
 }
 
 function TrackableFolderContentInner({
-  docs,
   onSelectDoc,
   selectedDocId,
   onUpload,
@@ -33,12 +32,14 @@ function TrackableFolderContentInner({
   const canShowApproval =
     !!organizationId && typeof memberRole === 'string';
 
-  // Slot metadata (names) — shares the React Query cache with SubmittalDrawer.
+  // Slots now carry their bound document (Document.slotId FK). The first
+  // element of slot.documents is the doc; null means the slot is empty.
   const slotsQuery = api.gantt.listSlots.useQuery(
     { organizationId: organizationId!, projectId: projectId!, taskId: taskId!, kind: kind! },
     { enabled: !!kind && !!taskId && !!projectId && !!organizationId && (required ?? 0) > 0 },
   );
-  const slotMeta = slotsQuery.data ?? [];
+  const slots = slotsQuery.data ?? [];
+
   // No requirement set — empty state (no dropzones until a requirement is configured)
   if (required === null || required === 0) {
     return (
@@ -64,17 +65,13 @@ function TrackableFolderContentInner({
     );
   }
 
-  // Requirement is set — render N slots
   const singularName = folderName.replace(/s$/i, '');
-  const slots = Array.from({ length: required }, (_, i) => {
-    const doc = docs[i] ?? null;
-    return { index: i, doc };
-  });
 
   return (
     <Box sx={{ pl: '20px', display: 'flex', flexDirection: 'column', gap: '4px', py: 0.75 }}>
-      {slots.map(({ index, doc }) => {
-        const slotNum = index + 1;
+      {slots.map((slot) => {
+        const slotNum = slot.index + 1;
+        const doc = slot.document;
         const isFilled = !!doc;
         const isSelected = isFilled && selectedDocId === doc.id;
 
@@ -87,7 +84,7 @@ function TrackableFolderContentInner({
             size: doc.size,
             createdAt: doc.createdAt,
             uploadedBy: doc.uploadedBy ?? null,
-            folderId: doc.folderId,
+            folderId: doc.folderId ?? '',
             approvalStatus: doc.approvalStatus,
             approvedAt: doc.approvedAt,
             approvedBy: doc.approvedBy,
@@ -96,7 +93,7 @@ function TrackableFolderContentInner({
 
           return (
             <Box
-              key={doc.id}
+              key={slot.id}
               onClick={() => onSelectDoc(preview)}
               sx={{
                 display: 'flex',
@@ -171,11 +168,11 @@ function TrackableFolderContentInner({
           );
         }
 
-        // Empty slot — mini dropzone
+        // Empty slot — clicking pins the upload to this specific slot via slotId.
         return (
           <Box
-            key={`empty-${index}`}
-            onClick={onUpload}
+            key={slot.id}
+            onClick={() => onUpload(slot.id)}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -224,7 +221,7 @@ function TrackableFolderContentInner({
                 minWidth: 0,
               }}
             >
-              {slotMeta[index]?.name?.trim() || `${singularName} ${slotNum}`}
+              {slot.name?.trim() || `${singularName} ${slotNum}`}
             </Typography>
           </Box>
         );

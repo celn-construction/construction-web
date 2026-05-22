@@ -25,6 +25,12 @@ interface UploadDialogProps {
   taskId: string;
   folderId: string;
   folderName: string;
+  /**
+   * Pin this upload to a specific TaskRequirementSlot. When set, the server
+   * binds Document.slotId to this slot instead of auto-linking to the first
+   * empty slot of the matching kind.
+   */
+  slotId?: string;
   onUploadComplete: () => void;
 }
 
@@ -35,6 +41,7 @@ export default function UploadDialog({
   taskId,
   folderId,
   folderName,
+  slotId,
   onUploadComplete,
 }: UploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -126,6 +133,7 @@ export default function UploadDialog({
       formData.append('projectId', projectId);
       formData.append('taskId', taskId);
       formData.append('folderId', folderId);
+      if (slotId) formData.append('slotId', slotId);
       if (title.trim()) formData.append('title', title.trim());
       if (notes.trim()) formData.append('notes', notes.trim());
 

@@ -66,10 +66,14 @@ interface SubmittalDrawerProps {
   taskId: string;
   taskName: string;
   initialKind?: SlotKind;
-  /** Documents already uploaded under this task — used to mark slots as filled in order. */
+  /** Documents already uploaded under this task — used for the tab badge counts. */
   docsByKind: Record<SlotKind, DocumentItem[]>;
-  /** Open the upload dialog for a given folder. Reuses the existing UploadDialog flow. */
-  onUploadToFolder: (folderId: 'submittals' | 'inspections') => void;
+  /**
+   * Open the upload dialog for a given folder. Pass a `slotId` to bind the
+   * upload to a specific slot; omit it to let the server auto-link to the
+   * first empty slot.
+   */
+  onUploadToFolder: (folderId: 'submittals' | 'inspections', slotId?: string) => void;
 }
 
 export default function SubmittalDrawer({
@@ -123,8 +127,7 @@ export default function SubmittalDrawer({
         projectId={projectId}
         taskId={taskId}
         kind={activeKind}
-        docs={docsByKind[activeKind]}
-        onUploadToFolder={() => onUploadToFolder(KIND_META[activeKind].folderId)}
+        onUploadToFolder={(slotId) => onUploadToFolder(KIND_META[activeKind].folderId, slotId)}
       />
     </Drawer>
   );
@@ -293,15 +296,13 @@ function DrawerContent({
   projectId,
   taskId,
   kind,
-  docs,
   onUploadToFolder,
 }: {
   organizationId: string;
   projectId: string;
   taskId: string;
   kind: SlotKind;
-  docs: DocumentItem[];
-  onUploadToFolder: () => void;
+  onUploadToFolder: (slotId?: string) => void;
 }) {
   const meta = KIND_META[kind];
   const utils = api.useUtils();
@@ -336,13 +337,19 @@ function DrawerContent({
   // Decrement-with-data confirm state.
   const [confirmRemove, setConfirmRemove] = useState<null | { trailingFilled: number; nextCount: number }>(null);
 
-  const filledCount = Math.min(docs.length, slots.length);
+  // "Filled" now means a slot has a bound document via Document.slotId — no
+  // more docs[i]↔slot[i] positional pairing.
+  const filledCount = slots.reduce((n, s) => n + (s.document ? 1 : 0), 0);
 
   const handleStepCount = (next: number) => {
     if (next < 0 || next > 50) return;
     if (next < slots.length) {
-      // Removing slots — warn if any of the trailing slots map to an uploaded file.
-      const trailingFilled = Math.max(0, filledCount - next);
+      // Removing trailing slots — warn if any are bound. The FK is ON DELETE
+      // SET NULL, so the documents survive (just become unbound); the warning
+      // is about the user's intent, not data loss.
+      const trailingFilled = slots
+        .slice(next)
+        .reduce((n, s) => n + (s.document ? 1 : 0), 0);
       if (trailingFilled > 0) {
         setConfirmRemove({ trailingFilled, nextCount: next });
         return;
@@ -427,12 +434,12 @@ function DrawerContent({
           <EmptyState kind={kind} onSeed={(count) => setCountMutation.mutate({ organizationId, projectId, taskId, kind, count })} />
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {slots.map((slot, i) => (
+            {slots.map((slot) => (
               <SlotCard
                 key={slot.id}
                 slot={slot}
                 kind={kind}
-                doc={docs[i] ?? null}
+                doc={slot.document}
                 members={members}
                 onRename={(name) =>
                   updateSlotMutation.mutate({ organizationId, projectId, slotId: slot.id, name })
@@ -443,7 +450,7 @@ function DrawerContent({
                 onSetApprover={(approverId) =>
                   updateSlotMutation.mutate({ organizationId, projectId, slotId: slot.id, approverId })
                 }
-                onUpload={onUploadToFolder}
+                onUpload={() => onUploadToFolder(slot.id)}
               />
             ))}
           </Box>
@@ -545,13 +552,15 @@ function SlotSummary({
   slots,
   filledCount,
 }: {
-  slots: { dueDate: Date | null }[];
+  slots: { dueDate: Date | null; document: { id: string } | null }[];
   filledCount: number;
 }) {
   const today = startOfDay(new Date());
-  const overdue = slots
-    .slice(filledCount) // only count *unfilled* slots as overdue
-    .filter((s) => s.dueDate && isBefore(new Date(s.dueDate), today)).length;
+  // FK semantics: a slot is overdue when its dueDate has passed and it has
+  // no bound document. Position no longer determines filled-ness.
+  const overdue = slots.filter(
+    (s) => !s.document && s.dueDate && isBefore(new Date(s.dueDate), today),
+  ).length;
   const pending = slots.length - filledCount;
   const parts: React.ReactNode[] = [];
   if (filledCount > 0) {
@@ -598,6 +607,14 @@ type SlotData = {
   approver: { id: string; name: string | null; email: string; image: string | null } | null;
 };
 
+// SlotCard only renders the bound document's name + upload date in the
+// footer, so we type doc minimally to accept whatever listSlots returns.
+type SlotBoundDoc = {
+  id: string;
+  name: string;
+  createdAt: Date | string | null;
+};
+
 type Member = {
   user: { id: string; name: string | null; email: string; image: string | null };
 };
@@ -614,7 +631,7 @@ function SlotCard({
 }: {
   slot: SlotData;
   kind: SlotKind;
-  doc: DocumentItem | null;
+  doc: SlotBoundDoc | null;
   members: Member[];
   onRename: (name: string | null) => void;
   onSetDueDate: (dueDate: string | null) => void;

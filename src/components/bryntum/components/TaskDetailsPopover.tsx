@@ -48,9 +48,16 @@ export function TaskDetailsPopover({
   const canManageSlots = canApproveDocuments(memberRole);
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
-  const [uploadFolder, setUploadFolder] = useState<{ id: string; name: string } | null>(null);
+  const [uploadTarget, setUploadTarget] = useState<{ folder: { id: string; name: string }; slotId?: string } | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
   const [drawerKind, setDrawerKind] = useState<SlotKind | null>(null);
+
+  const openUploadDialog = useCallback(
+    (folder: { id: string; name: string }, slotId?: string) => {
+      setUploadTarget({ folder, slotId });
+    },
+    [],
+  );
 
   // ── Drag state ──
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -158,7 +165,13 @@ export function TaskDetailsPopover({
     void utils.document.countByTask.invalidate({ organizationId, projectId, taskId: taskId! });
     void utils.document.listByTask.invalidate({ organizationId, projectId, taskId: taskId! });
     void utils.document.listByFolder.invalidate({ organizationId, projectId, taskId: taskId! });
-    setUploadFolder(null);
+    // listSlots now embeds the bound document; refresh both kinds so the slot
+    // row that just received an upload re-renders as filled.
+    void utils.gantt.listSlots.invalidate({ organizationId, projectId, taskId: taskId! });
+    void utils.gantt.requirementStats.invalidate({ projectId });
+    void utils.approval.summary.invalidate({ projectId });
+    void utils.approval.listOverdueSlots.invalidate({ projectId });
+    setUploadTarget(null);
   }, [organizationId, projectId, taskId, utils]);
 
   const handleClose = () => {
@@ -408,7 +421,7 @@ export function TaskDetailsPopover({
                       onToggle={() => toggleFolder(folder.id)}
                       count={count}
                       docs={folderDocs}
-                      onUpload={setUploadFolder}
+                      onUpload={openUploadDialog}
                       onSelectDoc={openPreview}
                       selectedDocId={selectedDocId}
                       // Tracking props
@@ -464,16 +477,17 @@ export function TaskDetailsPopover({
       </Popover>
 
       {/* Upload dialog */}
-      {uploadFolder && taskId && (
+      {uploadTarget && taskId && (
         <UploadDialog
           open
           onOpenChange={(isOpen) => {
-            if (!isOpen) setUploadFolder(null);
+            if (!isOpen) setUploadTarget(null);
           }}
           projectId={projectId}
           taskId={taskId}
-          folderId={uploadFolder.id}
-          folderName={uploadFolder.name}
+          folderId={uploadTarget.folder.id}
+          folderName={uploadTarget.folder.name}
+          slotId={uploadTarget.slotId}
           onUploadComplete={handleUploadComplete}
         />
       )}
@@ -496,9 +510,9 @@ export function TaskDetailsPopover({
               expandFolderIds('inspections').includes(d.folderId),
             ),
           }}
-          onUploadToFolder={(folderId) => {
+          onUploadToFolder={(folderId, slotId) => {
             const folder = folderData.find((f) => f.id === folderId);
-            if (folder) setUploadFolder({ id: folder.id, name: folder.name });
+            if (folder) openUploadDialog({ id: folder.id, name: folder.name }, slotId);
           }}
         />
       )}
