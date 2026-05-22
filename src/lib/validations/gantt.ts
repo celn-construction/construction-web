@@ -98,15 +98,6 @@ export const ganttSyncInputSchema = z.object({
   timeRanges: storeChangesSchema(timeRangeRecordSchema).optional(),
 });
 
-// Requirement tracking schema
-export const updateRequirementSchema = z.object({
-  taskId: z.string(),
-  field: z.enum(['requiredSubmittals', 'requiredInspections']),
-  count: z.number().int().min(0).max(50).nullable(),
-});
-
-export type UpdateRequirementInput = z.infer<typeof updateRequirementSchema>;
-
 // Per-slot tracking schemas (Tier 2/3)
 export const slotKindSchema = z.enum(['submittal', 'inspection']);
 export type SlotKind = z.infer<typeof slotKindSchema>;

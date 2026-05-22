@@ -91,24 +91,36 @@ export function TaskDetailsPopover({
   );
 
   // ── Requirement mutation ──
-  const updateRequirementMutation = api.gantt.updateRequirement.useMutation({
-    onSuccess: () => {
+  // Routed through setSlotCount so the popover stepper, the drawer, and the
+  // slot table all share a single write path. Updating only the legacy column
+  // here used to leave orphan TaskRequirementSlot rows that silently reappeared
+  // on the next increment.
+  const setSlotCountMutation = api.gantt.setSlotCount.useMutation({
+    onSuccess: (_data, variables) => {
       void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId: taskId! });
+      void utils.gantt.listSlots.invalidate({
+        organizationId,
+        projectId,
+        taskId: taskId!,
+        kind: variables.kind,
+      });
+      void utils.gantt.requirementStats.invalidate({ projectId });
     },
   });
 
   const handleSaveRequirement = useCallback(
     (field: 'requiredSubmittals' | 'requiredInspections', count: number | null) => {
       if (!taskId) return;
-      updateRequirementMutation.mutate({
+      const kind: SlotKind = field === 'requiredSubmittals' ? 'submittal' : 'inspection';
+      setSlotCountMutation.mutate({
         organizationId,
         projectId,
         taskId,
-        field,
-        count,
+        kind,
+        count: count ?? 0,
       });
     },
-    [taskId, organizationId, projectId, updateRequirementMutation]
+    [taskId, organizationId, projectId, setSlotCountMutation]
   );
 
   // ── Right panel helpers ──
@@ -410,7 +422,7 @@ export function TaskDetailsPopover({
                           ? (count) => handleSaveRequirement(folder.requirementField!, count)
                           : undefined
                       }
-                      isRequirementPending={updateRequirementMutation.isPending}
+                      isRequirementPending={setSlotCountMutation.isPending}
                       projectId={projectId}
                       taskId={taskId}
                       organizationId={organizationId}
