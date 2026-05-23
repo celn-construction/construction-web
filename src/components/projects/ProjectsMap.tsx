@@ -10,11 +10,9 @@ import Map, {
   NavigationControl,
   type MapRef,
 } from 'react-map-gl/mapbox';
-import 'mapbox-gl/mapbox-gl.css';
-import { api } from '@/trpc/react';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { env } from '@/env';
 import { useThemeMode } from '@/components/providers/ThemeRegistry';
-import { useSnackbar } from '@/hooks/useSnackbar';
 import type { ProjectListItem } from './ProjectsListPane';
 
 interface ProjectsMapProps {
@@ -203,7 +201,7 @@ export default function ProjectsMap({
           onClose={() => onSelect(null)}
           maxWidth="280px"
         >
-          <ProjectPopupContent project={selected} orgSlug={orgSlug} isActive={activeProjectId === selected.id} />
+          <ProjectPopupContent project={selected} orgSlug={orgSlug} />
         </Popup>
       )}
     </Map>
