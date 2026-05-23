@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Image as ImageIcon,
-  ListBullets,
   Swatches,
   UploadSimple,
   X,
@@ -59,19 +58,12 @@ interface ProjectFormBodyProps {
   organizationId: string;
   title: string;
   subtitle: string;
-  template?: 'BLANK';
+  template?: 'BLANK' | 'RESIDENTIAL';
   onCancel?: () => void;
   onBack?: () => void;
   onSuccess?: (project: { id: string; slug: string; name: string }) => void;
   replaceOnNavigate?: boolean;
 }
-
-const TEMPLATE_LABELS: Record<'BLANK', { name: string; hint: string }> = {
-  BLANK: {
-    name: 'Blank',
-    hint: 'Empty Gantt — build your own WBS task by task.',
-  },
-};
 
 function LocationAutocompleteField({
   value,
@@ -898,57 +890,6 @@ export default function ProjectFormBody({
               )
             }
           />
-          </Box>
-        </Box>
-
-        {/* Template confirmation strip */}
-        <Box
-          sx={{
-            mt: 1.75,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.25,
-            p: '10px 12px',
-            borderRadius: '8px',
-            bgcolor: alpha(theme.palette.primary.main, 0.06),
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
-          }}
-        >
-          <Box
-            sx={{
-              width: 26,
-              height: 26,
-              borderRadius: '6px',
-              bgcolor: alpha(theme.palette.primary.main, 0.12),
-              color: 'primary.main',
-              display: 'grid',
-              placeItems: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <ListBullets size={14} weight="regular" />
-          </Box>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography
-              sx={{
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color: 'text.primary',
-                lineHeight: 1.2,
-              }}
-            >
-              {TEMPLATE_LABELS[template].name} template selected
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.6875rem',
-                color: 'text.secondary',
-                mt: 0.25,
-                lineHeight: 1.3,
-              }}
-            >
-              {TEMPLATE_LABELS[template].hint}
-            </Typography>
           </Box>
         </Box>
 

@@ -9,16 +9,19 @@ import { useSession } from '@/lib/auth-client';
 import { api } from '@/trpc/react';
 import ProjectFormBody from '@/components/projects/ProjectFormBody';
 import AddProjectMembersStep from '@/components/projects/AddProjectMembersStep';
-import TemplatePickerStep, {
+import StartingPointStep, {
   type ProjectTemplateOption,
-} from '@/components/projects/TemplatePickerStep';
+} from '@/components/projects/StartingPointStep';
+import ResidentialPreviewStep from '@/components/projects/ResidentialPreviewStep';
 
 interface AddProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-type Step = 'template' | 'create' | 'members';
+// 'picker' and 'residential-preview' are both sub-screens of stepper dot 1;
+// the dot only advances when we hit 'create'.
+type Step = 'picker' | 'residential-preview' | 'create' | 'members';
 
 interface CreatedProject {
   id: string;
@@ -35,7 +38,7 @@ export default function AddProjectDialog({
   const { showSnackbar } = useSnackbar();
   const currentUserId = session?.user?.id;
 
-  const [step, setStep] = useState<Step>('template');
+  const [step, setStep] = useState<Step>('picker');
   const [selectedTemplate, setSelectedTemplate] =
     useState<ProjectTemplateOption>('BLANK');
   const [createdProject, setCreatedProject] = useState<CreatedProject | null>(
@@ -45,7 +48,7 @@ export default function AddProjectDialog({
   // Reset step state whenever dialog re-opens
   useEffect(() => {
     if (open) {
-      setStep('template');
+      setStep('picker');
       setSelectedTemplate('BLANK');
       setCreatedProject(null);
     }
@@ -70,13 +73,18 @@ export default function AddProjectDialog({
     onOpenChange(false);
   };
 
+  const successSuffix =
+    selectedTemplate === 'RESIDENTIAL'
+      ? ' with the Residential template'
+      : '';
+
   const handleProjectCreated = (project: CreatedProject) => {
     setCreatedProject(project);
     if (currentUserId && !confirmedNoOtherMembers) {
       setStep('members');
     } else {
       showSnackbar(
-        `"${project.name}" created — switch to it in the project dropdown`,
+        `"${project.name}" created${successSuffix} — switch to it in the project dropdown`,
         'success'
       );
       handleClose();
@@ -96,11 +104,19 @@ export default function AddProjectDialog({
   const handleMembersSkip = () => {
     if (createdProject) {
       showSnackbar(
-        `"${createdProject.name}" created — switch to it in the project dropdown`,
+        `"${createdProject.name}" created${successSuffix} — switch to it in the project dropdown`,
         'success'
       );
     }
     handleClose();
+  };
+
+  const handlePickerContinue = () => {
+    if (selectedTemplate === 'RESIDENTIAL') {
+      setStep('residential-preview');
+    } else {
+      setStep('create');
+    }
   };
 
   // Members step only appears when the org has other members. Until the query
@@ -126,12 +142,19 @@ export default function AddProjectDialog({
     >
       <Stepper currentStep={step} totalSteps={totalSteps} />
 
-      {step === 'template' && (
-        <TemplatePickerStep
+      {step === 'picker' && (
+        <StartingPointStep
           selected={selectedTemplate}
           onSelect={setSelectedTemplate}
-          onContinue={() => setStep('create')}
+          onContinue={handlePickerContinue}
           onCancel={handleClose}
+        />
+      )}
+
+      {step === 'residential-preview' && (
+        <ResidentialPreviewStep
+          onBack={() => setStep('picker')}
+          onContinue={() => setStep('create')}
         />
       )}
 
@@ -143,7 +166,13 @@ export default function AddProjectDialog({
           subtitle="Track schedule, documents and team in one place."
           template={selectedTemplate}
           onCancel={handleClose}
-          onBack={() => setStep('template')}
+          onBack={() =>
+            setStep(
+              selectedTemplate === 'RESIDENTIAL'
+                ? 'residential-preview'
+                : 'picker'
+            )
+          }
           onSuccess={handleProjectCreated}
         />
       )}
@@ -169,9 +198,14 @@ function Stepper({
   currentStep: Step;
   totalSteps: 2 | 3;
 }) {
-  // template (1) → create (2) → members (3)
+  // picker + residential-preview both map to dot 1 (preview is a sub-screen).
+  // create → 2, members → 3.
   const currentIndex =
-    currentStep === 'template' ? 1 : currentStep === 'create' ? 2 : 3;
+    currentStep === 'picker' || currentStep === 'residential-preview'
+      ? 1
+      : currentStep === 'create'
+        ? 2
+        : 3;
 
   const dots: Array<{ index: number; state: 'done' | 'active' | 'pending' }> = [];
   for (let i = 1; i <= totalSteps; i++) {

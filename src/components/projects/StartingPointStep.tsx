@@ -2,82 +2,66 @@
 
 import {
   Box,
-  Tooltip,
   Typography,
   alpha,
   useTheme,
 } from '@mui/material';
 import {
   ArrowRight,
-  Buildings,
+  CaretRight,
   Check,
   HouseLine,
   ListBullets,
-  Wrench,
 } from '@phosphor-icons/react';
 import type { ComponentType } from 'react';
 import { Button } from '@/components/ui/button';
+import { RESIDENTIAL_LEAF_COUNT } from '@/lib/templates/residential';
 
-export type ProjectTemplateOption = 'BLANK';
+export type ProjectTemplateOption = 'BLANK' | 'RESIDENTIAL';
 
-interface TemplateCard {
-  id: ProjectTemplateOption | 'RESIDENTIAL' | 'COMMERCIAL' | 'RENOVATION';
+interface PathDef {
+  id: ProjectTemplateOption;
   name: string;
   meta: string;
-  bullets: [string, string];
   Icon: ComponentType<{ size?: number; weight?: 'regular' | 'fill' | 'bold' }>;
-  available: boolean;
+  /** True when selecting this path opens a follow-up sub-screen (shows › instead of ✓). */
+  hasPreview: boolean;
 }
 
-const TEMPLATES: TemplateCard[] = [
+const PATHS: PathDef[] = [
   {
     id: 'BLANK',
     name: 'Blank',
-    meta: 'No tasks · default',
-    bullets: ['Empty Gantt chart', 'Build your own WBS'],
+    meta: 'Empty schedule — build your own WBS from scratch',
     Icon: ListBullets,
-    available: true,
+    hasPreview: false,
   },
   {
     id: 'RESIDENTIAL',
-    name: 'Residential',
-    meta: 'Coming soon',
-    bullets: ['Site, foundation, framing', 'MEP, finishes, closeout'],
+    name: 'Residential template',
+    meta: `${RESIDENTIAL_LEAF_COUNT} tasks · CSI tagged · single-family build`,
     Icon: HouseLine,
-    available: false,
-  },
-  {
-    id: 'COMMERCIAL',
-    name: 'Commercial',
-    meta: 'Coming soon',
-    bullets: ['Permits, sitework, structure', 'Tenant fit-out, commissioning'],
-    Icon: Buildings,
-    available: false,
-  },
-  {
-    id: 'RENOVATION',
-    name: 'Renovation',
-    meta: 'Coming soon',
-    bullets: ['Demo, rough-in, finish', 'Punchlist & closeout'],
-    Icon: Wrench,
-    available: false,
+    hasPreview: true,
   },
 ];
 
-interface TemplatePickerStepProps {
+interface StartingPointStepProps {
   selected: ProjectTemplateOption;
-  onSelect: (template: ProjectTemplateOption) => void;
+  onSelect: (option: ProjectTemplateOption) => void;
   onContinue: () => void;
   onCancel: () => void;
 }
 
-export default function TemplatePickerStep({
+export default function StartingPointStep({
   selected,
   onSelect,
   onContinue,
   onCancel,
-}: TemplatePickerStepProps) {
+}: StartingPointStepProps) {
   const theme = useTheme();
+  const selectedPath = PATHS.find((p) => p.id === selected);
+  const continueLabel =
+    selectedPath && selectedPath.hasPreview ? 'Preview template' : 'Continue';
 
   return (
     <Box>
@@ -91,7 +75,7 @@ export default function TemplatePickerStep({
             lineHeight: 1.25,
           }}
         >
-          Choose a template
+          How do you want to start?
         </Typography>
         <Typography
           sx={{
@@ -101,43 +85,33 @@ export default function TemplatePickerStep({
             lineHeight: 1.4,
           }}
         >
-          Start with a structured WBS or a clean slate.
+          Pick a starting point — you can edit everything later.
         </Typography>
       </Box>
 
       <Box
         role="radiogroup"
-        aria-label="Project template"
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gridAutoRows: 'minmax(0, 1fr)',
-          gap: 1,
-        }}
+        aria-label="Project starting point"
+        sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
       >
-        {TEMPLATES.map((tpl) => {
-          const isSelected = tpl.available && selected === tpl.id;
-          const card = (
+        {PATHS.map((path) => {
+          const isSelected = selected === path.id;
+          return (
             <Box
+              key={path.id}
               component="button"
               type="button"
               role="radio"
               aria-checked={isSelected}
-              aria-disabled={!tpl.available}
-              disabled={!tpl.available}
-              onClick={() => {
-                if (tpl.available && tpl.id === 'BLANK') onSelect(tpl.id);
-              }}
+              onClick={() => onSelect(path.id)}
               sx={{
                 position: 'relative',
                 width: '100%',
-                height: '100%',
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: 1,
+                alignItems: 'center',
+                gap: 1.5,
                 textAlign: 'left',
-                p: '12px 12px 11px',
+                p: '14px 16px',
                 borderRadius: '12px',
                 border: '1.5px solid',
                 borderColor: isSelected ? 'primary.main' : 'divider',
@@ -145,114 +119,94 @@ export default function TemplatePickerStep({
                   ? alpha(theme.palette.primary.main, 0.08)
                   : 'background.paper',
                 color: 'text.primary',
-                cursor: tpl.available ? 'pointer' : 'not-allowed',
-                opacity: tpl.available ? 1 : 0.55,
+                cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition:
                   'border-color 0.12s ease, background-color 0.12s ease',
-                '&:hover': tpl.available
-                  ? {
-                      borderColor: isSelected
-                        ? 'primary.main'
-                        : alpha(theme.palette.text.primary, 0.32),
-                      bgcolor: isSelected
-                        ? alpha(theme.palette.primary.main, 0.1)
-                        : 'action.hover',
-                    }
-                  : {},
+                '&:hover': {
+                  borderColor: isSelected
+                    ? 'primary.main'
+                    : alpha(theme.palette.text.primary, 0.32),
+                  bgcolor: isSelected
+                    ? alpha(theme.palette.primary.main, 0.1)
+                    : 'action.hover',
+                },
                 '&:focus-visible': {
                   outline: `2px solid ${theme.palette.primary.main}`,
                   outlineOffset: 2,
                 },
               }}
             >
-              {isSelected && (
-                <Box
-                  aria-hidden
-                  sx={{
-                    position: 'absolute',
-                    top: 10,
-                    right: 10,
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    bgcolor: 'primary.main',
-                    color: 'primary.contrastText',
-                    display: 'grid',
-                    placeItems: 'center',
-                  }}
-                >
-                  <Check size={11} weight="bold" />
-                </Box>
-              )}
-
               <Box
                 sx={{
-                  width: 32,
-                  height: 32,
+                  width: 36,
+                  height: 36,
                   borderRadius: '8px',
                   bgcolor: alpha(theme.palette.primary.main, 0.08),
                   color: 'primary.main',
                   display: 'grid',
                   placeItems: 'center',
+                  flexShrink: 0,
                 }}
               >
-                <tpl.Icon size={16} weight="regular" />
+                <path.Icon size={18} weight="regular" />
               </Box>
 
-              <Box sx={{ width: '100%' }}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography
                   sx={{
-                    fontSize: '0.8125rem',
-                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
                     color: 'text.primary',
                     lineHeight: 1.2,
                   }}
                 >
-                  {tpl.name}
+                  {path.name}
                 </Typography>
                 <Typography
                   sx={{
-                    fontSize: '0.6875rem',
+                    fontSize: '0.75rem',
                     color: 'text.secondary',
-                    mt: 0.25,
-                    lineHeight: 1.3,
+                    mt: 0.375,
+                    lineHeight: 1.35,
                   }}
                 >
-                  {tpl.meta}
+                  {path.meta}
                 </Typography>
               </Box>
 
-              <Box
-                component="ul"
-                sx={{
-                  m: 0,
-                  pl: '14px',
-                  fontSize: '0.6875rem',
-                  color: 'text.secondary',
-                  lineHeight: 1.4,
-                }}
-              >
-                {tpl.bullets.map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
-              </Box>
+              {isSelected ? (
+                <Box
+                  aria-hidden
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Check size={12} weight="bold" />
+                </Box>
+              ) : (
+                <Box
+                  aria-hidden
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'text.disabled',
+                    flexShrink: 0,
+                  }}
+                >
+                  <CaretRight size={14} weight="bold" />
+                </Box>
+              )}
             </Box>
-          );
-
-          return tpl.available ? (
-            <Box key={tpl.id} sx={{ display: 'flex' }}>
-              {card}
-            </Box>
-          ) : (
-            <Tooltip
-              key={tpl.id}
-              title="Construction templates are coming soon"
-              arrow
-              placement="top"
-            >
-              <Box sx={{ display: 'flex' }}>{card}</Box>
-            </Tooltip>
           );
         })}
       </Box>
@@ -306,7 +260,7 @@ export default function TemplatePickerStep({
             },
           }}
         >
-          Continue
+          {continueLabel}
         </Button>
       </Box>
     </Box>

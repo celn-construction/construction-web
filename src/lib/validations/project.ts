@@ -10,7 +10,7 @@ export const createProjectSchema = z.object({
   icon: z.enum(VALID_PROJECT_ICONS).default("building").optional(),
   color: z.enum(VALID_PROJECT_COLORS).optional(),
   imageUrl: z.string().url().optional(),
-  template: z.enum(["BLANK"]).default("BLANK").optional(),
+  template: z.enum(["BLANK", "RESIDENTIAL"]).default("BLANK").optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { del } from "@vercel/blob";
+import { createId } from "@paralleldrive/cuid2";
 import { createTRPCRouter, protectedProcedure, projectProcedure } from "@/server/api/trpc";
 import { createProjectSchema, updateProjectSchema, deleteProjectSchema } from "@/lib/validations/project";
 import { canDeleteProjects, canManageProjects } from "@/lib/permissions";
@@ -209,18 +210,54 @@ export const projectRouter = createTRPCRouter({
         },
       });
 
-      // Seed template tasks and resources
+      // Seed template tasks and resources.
+      //
+      // Tasks may reference each other via `parentKey`, so we pre-generate cuids
+      // in a single pass and resolve parent references in app code. This lets us
+      // use a single `createMany` instead of two passes (parents → children).
+      // The schedule anchor is the project's start date if set, otherwise now.
       if (templateData.tasks.length > 0) {
+        const scheduleAnchor = project.startDate ?? new Date();
+        const dayMs = 24 * 60 * 60 * 1000;
+        const idByKey = new Map<string, string>();
+        for (const task of templateData.tasks) {
+          idByKey.set(task.key, createId());
+        }
+
         await ctx.db.ganttTask.createMany({
-          data: templateData.tasks.map((task, index) => ({
-            projectId: project.id,
-            name: task.name,
-            duration: task.duration,
-            durationUnit: task.durationUnit ?? "day",
-            percentDone: task.percentDone ?? 0,
-            expanded: task.expanded ?? false,
-            orderIndex: task.orderIndex ?? index,
-          })),
+          data: templateData.tasks.map((task, index) => {
+            const id = idByKey.get(task.key)!;
+            const parentId = task.parentKey
+              ? idByKey.get(task.parentKey) ?? null
+              : null;
+            // Leaf tasks get explicit start/end dates so Bryntum renders them
+            // on the timeline immediately. Parents stay date-less and roll up
+            // from their children.
+            const startDate =
+              task.startOffsetDays !== undefined
+                ? new Date(
+                    scheduleAnchor.getTime() + task.startOffsetDays * dayMs
+                  )
+                : null;
+            const endDate =
+              startDate && task.duration
+                ? new Date(startDate.getTime() + task.duration * dayMs)
+                : null;
+            return {
+              id,
+              projectId: project.id,
+              parentId,
+              name: task.name,
+              duration: task.duration ?? null,
+              durationUnit: task.durationUnit ?? "day",
+              startDate,
+              endDate,
+              csiCode: task.csiCode ?? null,
+              percentDone: task.percentDone ?? 0,
+              expanded: task.expanded ?? false,
+              orderIndex: task.orderIndex ?? index,
+            };
+          }),
         });
       }
 

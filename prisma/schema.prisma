@@ -115,6 +115,7 @@ model Organization {
 
 enum ProjectTemplate {
     BLANK
+    RESIDENTIAL
 }
 
 model Project {
