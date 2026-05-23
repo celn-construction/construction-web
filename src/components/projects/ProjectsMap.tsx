@@ -242,23 +242,10 @@ function PinCircle({
 function ProjectPopupContent({
   project,
   orgSlug,
-  isActive,
 }: {
   project: ProjectListItem;
   orgSlug: string;
-  isActive: boolean;
 }) {
-  const { showSnackbar } = useSnackbar();
-  const utils = api.useUtils();
-  const setActive = api.project.setActive.useMutation({
-    onSuccess: () => {
-      void utils.project.list.invalidate();
-      void utils.project.getActive.invalidate();
-      showSnackbar(`Switched to ${project.name}`, 'success');
-    },
-    onError: (err) => showSnackbar(err.message || 'Failed to switch project', 'error'),
-  });
-
   return (
     <Box sx={{ minWidth: 220, p: 0.5 }}>
       <Typography
@@ -286,57 +273,30 @@ function ProjectPopupContent({
           {project.completionPercent}% complete
         </Typography>
       </Box>
-      <Box sx={{ display: 'flex', gap: 0.625 }}>
-        <Link
-          href={`/${orgSlug}/projects/${project.slug}/gantt`}
-          style={{ textDecoration: 'none', flex: 1 }}
+      <Link
+        href={`/${orgSlug}/projects/${project.slug}/gantt`}
+        style={{ textDecoration: 'none', display: 'block' }}
+      >
+        <Box
+          component="button"
+          type="button"
+          sx={{
+            width: '100%',
+            border: 0,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '0.6875rem',
+            fontWeight: 600,
+            py: 0.625,
+            px: 1,
+            borderRadius: '6px',
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+          }}
         >
-          <Box
-            component="button"
-            type="button"
-            sx={{
-              width: '100%',
-              border: 0,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              py: 0.625,
-              px: 1,
-              borderRadius: '6px',
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-            }}
-          >
-            Open project
-          </Box>
-        </Link>
-        {!isActive && (
-          <Box
-            component="button"
-            type="button"
-            onClick={() => setActive.mutate({ projectId: project.id })}
-            disabled={setActive.isPending}
-            sx={{
-              flex: 1,
-              border: '1px solid',
-              borderColor: 'divider',
-              cursor: setActive.isPending ? 'default' : 'pointer',
-              fontFamily: 'inherit',
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              py: 0.625,
-              px: 1,
-              borderRadius: '6px',
-              bgcolor: 'background.paper',
-              color: 'text.primary',
-              '&:hover': { bgcolor: 'action.hover' },
-            }}
-          >
-            Set as active
-          </Box>
-        )}
-      </Box>
+          Open project
+        </Box>
+      </Link>
     </Box>
   );
 }
