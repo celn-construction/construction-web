@@ -30,7 +30,7 @@ export default function ProjectSwitcher() {
   const theme = useTheme();
 
   const { orgSlug, activeOrganizationId } = useOrgFromUrl();
-  const { projects, currentProject, switchProject } = useProjectSwitcher(activeOrganizationId, orgSlug);
+  const { projects, effectiveProject, switchProject } = useProjectSwitcher(activeOrganizationId, orgSlug);
 
   const open = Boolean(anchorEl);
 
@@ -49,7 +49,8 @@ export default function ProjectSwitcher() {
     setSearch('');
   };
 
-  const hasProject = !!(projectSlug && currentProject);
+  const displayedProject = effectiveProject;
+  const hasProject = !!displayedProject;
 
   return (
     <>
@@ -80,9 +81,9 @@ export default function ProjectSwitcher() {
         }}
       >
         <ProjectAvatar
-          imageUrl={currentProject?.imageUrl}
-          icon={currentProject?.icon}
-          colorId={currentProject?.imageUrl ? null : currentProject?.color}
+          imageUrl={displayedProject?.imageUrl}
+          icon={displayedProject?.icon}
+          colorId={displayedProject?.imageUrl ? null : displayedProject?.color}
           size={28}
           borderRadius="6px"
           color="var(--text-secondary)"
@@ -110,9 +111,9 @@ export default function ProjectSwitcher() {
               maxWidth: 240,
             }}
           >
-            {hasProject ? currentProject.name : 'Select project'}
+            {hasProject ? displayedProject.name : 'Select project'}
           </Typography>
-          {hasProject && currentProject.location && (
+          {hasProject && displayedProject.location && (
             <Box
               sx={{
                 display: 'inline-flex',
@@ -135,7 +136,7 @@ export default function ProjectSwitcher() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {currentProject.location}
+                {displayedProject.location}
               </Typography>
             </Box>
           )}
@@ -209,7 +210,7 @@ export default function ProjectSwitcher() {
         {/* Project List */}
         <Box sx={{ py: 0.5, px: 0.75, maxHeight: 340, overflowY: 'auto' }}>
           {filtered.map((project) => {
-            const isActive = project.slug === projectSlug;
+            const isActive = project.slug === (projectSlug ?? displayedProject?.slug);
             const hasImage = !!project.imageUrl;
             return (
               <Box

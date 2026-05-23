@@ -273,30 +273,27 @@ function ProjectPopupContent({
           {project.completionPercent}% complete
         </Typography>
       </Box>
-      <Link
+      <Box
+        component={Link}
         href={`/${orgSlug}/projects/${project.slug}/gantt`}
-        style={{ textDecoration: 'none', display: 'block' }}
+        sx={{
+          display: 'block',
+          width: '100%',
+          textAlign: 'center',
+          textDecoration: 'none',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          fontSize: '0.6875rem',
+          fontWeight: 600,
+          py: 0.625,
+          px: 1,
+          borderRadius: '6px',
+          bgcolor: 'primary.main',
+          color: 'primary.contrastText',
+        }}
       >
-        <Box
-          component="button"
-          type="button"
-          sx={{
-            width: '100%',
-            border: 0,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            fontSize: '0.6875rem',
-            fontWeight: 600,
-            py: 0.625,
-            px: 1,
-            borderRadius: '6px',
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
-          }}
-        >
-          Open project
-        </Box>
-      </Link>
+        Open project
+      </Box>
     </Box>
   );
 }

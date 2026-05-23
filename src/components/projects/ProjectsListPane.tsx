@@ -333,26 +333,8 @@ function ProjectRow({
         </Box>
       </Box>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.375, flexShrink: 0 }}>
-        <Link
-          href={`/${orgSlug}/projects/${project.slug}/gantt`}
-          style={{ textDecoration: 'none' }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Typography
-            sx={{
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              color: 'primary.main',
-              cursor: 'pointer',
-              lineHeight: 1,
-              '&:hover': { textDecoration: 'underline' },
-            }}
-          >
-            Open
-          </Typography>
-        </Link>
-        {!isActive && (
+      {!isActive && (
+        <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
           <Box
             component="button"
             type="button"
@@ -364,20 +346,20 @@ function ProjectRow({
             sx={{
               border: 0,
               bgcolor: 'transparent',
-              color: 'text.secondary',
+              color: 'primary.main',
               fontFamily: 'inherit',
-              fontSize: '0.625rem',
-              fontWeight: 500,
+              fontSize: '0.6875rem',
+              fontWeight: 600,
               p: 0,
               cursor: setActive.isPending ? 'default' : 'pointer',
               lineHeight: 1,
-              '&:hover': { color: 'text.primary' },
+              '&:hover': { textDecoration: 'underline' },
             }}
           >
             Set active
           </Box>
-        )}
-      </Box>
+        </Box>
+      )}
     </Box>
   );
 }

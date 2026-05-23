@@ -37,8 +37,12 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const { orgSlug, projectSlug } = params;
 
   const { activeOrganizationId } = useOrgFromUrl();
-  const { currentProject } = useProjectSwitcher(activeOrganizationId, orgSlug ?? '');
-  const projectId = currentProject?.id ?? '';
+  const { effectiveProject, effectiveProjectSlug } = useProjectSwitcher(
+    activeOrganizationId,
+    orgSlug ?? '',
+  );
+  const projectId = effectiveProject?.id ?? '';
+  const navProjectSlug = projectSlug ?? effectiveProjectSlug ?? undefined;
   const { data: projectMembers = [] } = api.projectMember.list.useQuery(
     { projectId },
     { enabled: !!projectId, retry: false },
@@ -222,11 +226,11 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                   const isOrgScope = item.scope === 'org';
                   const href = isOrgScope
                     ? (orgSlug ? getOrgNavHref(item.segment, orgSlug) : '#')
-                    : getProjectNavHref(item.segment, orgSlug, projectSlug);
+                    : getProjectNavHref(item.segment, orgSlug, navProjectSlug);
                   const isActive = isOrgScope
                     ? !!(orgSlug && pathname === `/${orgSlug}/${item.segment}`)
                     : !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
-                  const isDisabled = isOrgScope ? !orgSlug : !projectSlug;
+                  const isDisabled = isOrgScope ? !orgSlug : !navProjectSlug;
                   const badgeCount = item.id === 'team' && !isDisabled ? memberCount : null;
 
                   const content = (

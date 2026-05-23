@@ -5,14 +5,20 @@ import { useParams, usePathname } from 'next/navigation';
 import { Box, Typography } from '@mui/material';
 import ProjectSwitcher from './ProjectSwitcher';
 import { projectNavItems } from './navItems';
+import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
+import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 
 const PROJECT_PAGE_LABELS: Record<string, string> = Object.fromEntries(
   projectNavItems.map((item) => [item.segment, item.label]),
 );
 
-function getTrailingLabel(segment: string | undefined): string | null {
-  if (!segment) return null;
-  return PROJECT_PAGE_LABELS[segment] ?? null;
+const ORG_PAGE_LABELS: Record<string, string> = {
+  projects: 'Projects',
+};
+
+function getTrailingLabel(segment: string | undefined, isProject: boolean): string | null {
+  if (!segment) return isProject ? null : 'Dashboard';
+  return (isProject ? PROJECT_PAGE_LABELS[segment] : ORG_PAGE_LABELS[segment]) ?? null;
 }
 
 export default function Breadcrumb() {
@@ -20,16 +26,21 @@ export default function Breadcrumb() {
   const pathname = usePathname();
   const { orgSlug, projectSlug } = params;
 
-  // Determine the trailing page segment. For project routes, it's the segment after [projectSlug].
-  // For org-root, there is no trailing segment.
+  const { activeOrganizationId } = useOrgFromUrl();
+  const { effectiveProject } = useProjectSwitcher(activeOrganizationId, orgSlug ?? '');
+
+  // Determine the trailing page segment.
+  // - Project routes: segment after [projectSlug]
+  // - Org routes: first segment after [orgSlug] (e.g. "projects" for /[orgSlug]/projects)
   const segments = pathname.split('/').filter(Boolean);
   const projectIdx = segments.indexOf('projects');
-  const trailingSegment =
-    projectIdx >= 0 && projectSlug ? segments[projectIdx + 2] : undefined;
-  const trailingLabel = getTrailingLabel(trailingSegment);
+  const trailingSegment = projectSlug
+    ? segments[projectIdx + 2]
+    : segments[1]; // segments: [orgSlug, ...rest]
+  const trailingLabel = getTrailingLabel(trailingSegment, !!projectSlug);
 
-  // Org root — show a single static "Dashboard" crumb.
-  if (!projectSlug) {
+  // No active project at all — fall back to the simple page label.
+  if (!projectSlug && !effectiveProject) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
         <Typography
@@ -44,38 +55,42 @@ export default function Breadcrumb() {
             userSelect: 'none',
           }}
         >
-          Dashboard
+          {trailingLabel ?? 'Dashboard'}
         </Typography>
       </Box>
     );
   }
 
-  // Inside a project — render: [Project chip] / [trailing static label?]
+  // Render: [Projects link] / [Project chip] / [trailing static label?]
+  // The "Projects" link is only shown inside an actual project route — on org-root
+  // pages the trailing label often already says "Projects" (the portfolio).
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.125, minWidth: 0 }}>
-      {/* "Projects" crumb — links to the portfolio page (Timeline | Map | List). */}
-      <Box
-        component={Link}
-        href={`/${orgSlug}/projects`}
-        sx={{
-          fontSize: '14.5px',
-          color: 'text.secondary',
-          textDecoration: 'none',
-          px: 1,
-          py: 0.75,
-          borderRadius: '6px',
-          lineHeight: 1,
-          transition: 'background-color 0.15s, color 0.15s',
-          '&:hover': {
-            bgcolor: 'action.hover',
-            color: 'text.primary',
-          },
-        }}
-      >
-        Projects
-      </Box>
-
-      <Separator />
+      {projectSlug && (
+        <>
+          <Box
+            component={Link}
+            href={`/${orgSlug}/projects`}
+            sx={{
+              fontSize: '14.5px',
+              color: 'text.secondary',
+              textDecoration: 'none',
+              px: 1,
+              py: 0.75,
+              borderRadius: '6px',
+              lineHeight: 1,
+              transition: 'background-color 0.15s, color 0.15s',
+              '&:hover': {
+                bgcolor: 'action.hover',
+                color: 'text.primary',
+              },
+            }}
+          >
+            Projects
+          </Box>
+          <Separator />
+        </>
+      )}
 
       {/* Active project chip — outlined button that opens the project switcher */}
       <ProjectSwitcher />
