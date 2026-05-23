@@ -117,7 +117,6 @@ export const updateSlotSchema = z.object({
   slotId: z.string(),
   name: z.string().trim().max(200).nullable().optional(),
   dueDate: z.string().or(z.date()).nullable().optional(),
-  approverId: z.string().nullable().optional(),
 });
 
 export type ListSlotsInput = z.infer<typeof listSlotsSchema>;

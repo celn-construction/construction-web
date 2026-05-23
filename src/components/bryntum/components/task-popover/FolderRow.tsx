@@ -13,7 +13,6 @@ import {
   CaretDown,
   CaretRight,
   Plus,
-  Sliders,
   CheckCircle,
   Clock,
   type Icon as PhosphorIcon,
@@ -250,11 +249,11 @@ export default FolderRow;
 /**
  * Inline progress + state-driven chip for trackable folder headers (admins).
  *
- * Four states derived from (required, approved, pending):
- *   - Not set up        → required is null/0          → "Set up" chip
- *   - In progress       → uploads exist, not complete → "Manage" chip
+ * States derived from (required, approved, pending):
+ *   - Not set up        → required is null/0          → row renders nothing
+ *   - In progress       → uploads exist, not complete → progress segments + count
  *   - Pending review    → some uploads awaiting       → "N in review" indigo pill
- *   - Complete          → approved >= required         → no chip; ✓ next to count
+ *   - Complete          → approved >= required         → ✓ next to count
  */
 function ManageChipRow({
   current,
@@ -275,20 +274,10 @@ function ManageChipRow({
   const isComplete = total > 0 && approved >= total;
   const hasPending = pending > 0;
 
-  // State 1 — Not set up: just the chip.
+  // State 1 — Not set up: render a flex spacer so the trailing "+" upload
+  // button stays right-aligned, matching non-trackable folder rows.
   if (total === 0) {
-    return (
-      <Box
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-        sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, ml: 0.5 }}
-      >
-        <Box sx={{ flex: 1 }} />
-        <ChipButton color={folderColor} onClick={onManage} ariaLabel="Set up">
-          <Sliders size={10} weight="bold" />
-          Set up
-        </ChipButton>
-      </Box>
-    );
+    return <Box sx={{ flex: 1 }} />;
   }
 
   // Segment fill rule (left-to-right):
@@ -374,8 +363,8 @@ function ManageChipRow({
         </Typography>
       )}
 
-      {/* Trailing chip — varies by state */}
-      {isComplete ? null : hasPending ? (
+      {/* Trailing status pill — only shown when items are awaiting approval. */}
+      {!isComplete && hasPending && (
         <ChipButton
           color="#4f46e5"
           onClick={onManage}
@@ -383,11 +372,6 @@ function ManageChipRow({
         >
           <Clock size={10} weight="bold" />
           {pending} in review
-        </ChipButton>
-      ) : (
-        <ChipButton color={folderColor} onClick={onManage} ariaLabel="Manage requirements">
-          <Sliders size={10} weight="bold" />
-          Manage
         </ChipButton>
       )}
     </Box>

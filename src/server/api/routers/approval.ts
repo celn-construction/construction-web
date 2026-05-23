@@ -125,7 +125,6 @@ export const approvalRouter = createTRPCRouter({
         orderBy: { dueDate: "asc" },
         include: {
           task: { select: { id: true, name: true } },
-          approver: { select: { id: true, name: true, email: true, image: true } },
         },
       });
 
@@ -137,7 +136,6 @@ export const approvalRouter = createTRPCRouter({
         index: slot.index,
         name: slot.name,
         dueDate: slot.dueDate!,
-        approver: slot.approver,
       }));
     }),
 

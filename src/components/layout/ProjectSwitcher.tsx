@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { CaretUpDown, MagnifyingGlass, Check, Plus } from '@phosphor-icons/react';
+import { CaretUpDown, MagnifyingGlass, Check, Plus, MapPin } from '@phosphor-icons/react';
 import { Box, Typography, Menu, ButtonBase, alpha, useTheme } from '@mui/material';
 import ProjectAvatar from '@/components/ui/ProjectAvatar';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
@@ -59,9 +59,9 @@ export default function ProjectSwitcher() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: 1,
-          pl: 0.75,
+          pl: 0.625,
           pr: 1,
-          py: 0.875,
+          py: 0.5,
           bgcolor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
@@ -69,10 +69,7 @@ export default function ProjectSwitcher() {
           boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
           transition: 'background-color 0.15s, border-color 0.15s, box-shadow 0.15s',
           color: 'text.primary',
-          fontSize: '14.5px',
-          fontWeight: 600,
           letterSpacing: '-0.005em',
-          lineHeight: 1,
           minWidth: 0,
           maxWidth: 320,
           '&:hover': {
@@ -86,26 +83,63 @@ export default function ProjectSwitcher() {
           imageUrl={currentProject?.imageUrl}
           icon={currentProject?.icon}
           colorId={currentProject?.imageUrl ? null : currentProject?.color}
-          size={22}
-          borderRadius="5px"
+          size={28}
+          borderRadius="6px"
           color="var(--text-secondary)"
         />
-        <Typography
-          component="span"
+        <Box
           sx={{
-            fontSize: '14.5px',
-            fontWeight: 600,
-            letterSpacing: '-0.005em',
-            color: hasProject ? 'text.primary' : 'text.secondary',
-            lineHeight: 1,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '1px',
             minWidth: 0,
           }}
         >
-          {hasProject ? currentProject.name : 'Select project'}
-        </Typography>
+          <Typography
+            component="span"
+            sx={{
+              fontSize: '13.5px',
+              fontWeight: 600,
+              letterSpacing: '-0.005em',
+              color: hasProject ? 'text.primary' : 'text.secondary',
+              lineHeight: 1.15,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: 240,
+            }}
+          >
+            {hasProject ? currentProject.name : 'Select project'}
+          </Typography>
+          {hasProject && currentProject.location && (
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                maxWidth: 240,
+                minWidth: 0,
+              }}
+            >
+              <MapPin size={10} weight="bold" style={{ flexShrink: 0, opacity: 0.55 }} />
+              <Typography
+                component="span"
+                sx={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  color: 'text.secondary',
+                  lineHeight: 1.15,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {currentProject.location}
+              </Typography>
+            </Box>
+          )}
+        </Box>
         <CaretUpDown size={14} style={{ flexShrink: 0, color: 'var(--text-secondary)' }} />
       </ButtonBase>
 
@@ -273,6 +307,26 @@ export default function ProjectSwitcher() {
                       <Check size={13} weight="bold" style={{ flexShrink: 0, color: theme.palette.primary.main }} />
                     )}
                   </Box>
+
+                  {/* Address */}
+                  {project.location && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px', mt: 0.5, minWidth: 0 }}>
+                      <MapPin size={10} weight="bold" style={{ flexShrink: 0, opacity: 0.55, color: theme.palette.text.secondary }} />
+                      <Typography
+                        sx={{
+                          fontSize: '0.6875rem',
+                          fontWeight: 500,
+                          color: 'text.secondary',
+                          lineHeight: 1.2,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {project.location}
+                      </Typography>
+                    </Box>
+                  )}
 
                   {/* Progress bar */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.75 }}>

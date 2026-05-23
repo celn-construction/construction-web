@@ -7,7 +7,7 @@
 // touched only the integer column, and `gantt.setSlotCount` (drawer) which
 // updated both the integer column AND the TaskRequirementSlot rows in one
 // transaction. The two paths could desync — a popover decrement would orphan
-// slot rows with names/dueDates/approvers that silently reappeared on the next
+// slot rows with names/dueDates that silently reappeared on the next
 // increment.
 //
 // Post Phase 1, `updateRequirement` is removed and `setSlotCount` is the only
@@ -70,7 +70,7 @@ function makeCtx(existingSlots: Array<{ id: string; index: number; name: string 
             }),
           );
         }
-        return Promise.resolve(finalSlots.map((s) => ({ ...s, approver: null })));
+        return Promise.resolve(finalSlots);
       }),
       createMany: vi.fn().mockImplementation(({ data }: { data: Array<{ index: number; name: string | null }> }) => {
         for (const row of data) {

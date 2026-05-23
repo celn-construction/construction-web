@@ -71,7 +71,7 @@ export default function Header({ onMenuOpen }: HeaderProps) {
       </Box>
 
       {/* Right: weather (when applicable) + notifications + identity */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
         {currentProject?.location && activeOrganizationId && (
           <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
             <LocationWeather

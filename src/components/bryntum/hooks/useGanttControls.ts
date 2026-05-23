@@ -16,16 +16,55 @@ export function useGanttControls() {
   const handleAddTask = useCallback(() => {
     const gantt = getGanttInstance();
     if (!gantt) return;
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    gantt.taskStore.add({
-      name: 'New Task',
-      startDate: now,
-      endDate: tomorrow,
-      duration: 1,
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+    const taskStore = gantt.taskStore;
+
+    // Seed each task with a unique "Task N". Picking N from the existing
+    // names (not just count+1) avoids collisions after deletes, and giving
+    // every row a real name up-front means an auto-sync mid-edit can't
+    // ship an empty name to the server.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const existing = new Set<string>(
+      (taskStore.allRecords as Array<{ name?: string }>).map((r) => r.name ?? '')
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    let n = (taskStore.count as number) + 1;
+    while (existing.has(`Task ${n}`)) n++;
+
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 5);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+    const added = taskStore.add({
+      name: `Task ${n}`,
+      startDate,
+      endDate,
+      duration: 5,
     });
+    const record = (Array.isArray(added) ? added[0] : added) as
+      | { startDate: Date }
+      | undefined;
+    if (!record) return;
+
+    // The new task isn't fully materialized in the project graph until the
+    // next commit. Touching it before then (selectedRecords setter, then
+    // startEditing) reaches into a half-built record and throws
+    // "Cannot set properties of undefined (setting 'isBeingMaterialized')".
+    // commitAsync resolves once the project finishes propagating the add.
+    void (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      await gantt.project?.commitAsync?.();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      await gantt.scrollRowIntoView(record);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.scrollToDate?.(record.startDate, { block: 'center' });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      gantt.selectedRecords = [record];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.startEditing({ record, field: 'name' });
+    })();
   }, [getGanttInstance]);
 
   const handleIndent = useCallback(() => {

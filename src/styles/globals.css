@@ -746,11 +746,9 @@ body {
   display: none !important;
 }
 
-/* Destructive items — Delete by built-in trash icon, plus opt-in classes
-   for menus we author programmatically (row-action `gantt-action-danger`,
-   future `menu-item-danger`). */
+/* Destructive items — Delete by built-in trash icon, plus opt-in
+   `menu-item-danger` class for menus we author programmatically. */
 .b-menu.b-popup .b-menu-item:has(.b-icon-trash),
-.b-menu.b-popup .b-menu-item.gantt-action-danger,
 .b-menu.b-popup .b-menu-item.menu-item-danger {
   --b-menu-item-color: var(--status-red);
   --b-menu-item-icon-color: var(--status-red);
@@ -763,7 +761,6 @@ body {
 }
 
 .b-menu.b-popup .b-menu-item:has(.b-icon-trash):active,
-.b-menu.b-popup .b-menu-item.gantt-action-danger:active,
 .b-menu.b-popup .b-menu-item.menu-item-danger:active {
   --b-menu-item-hover-background: var(--menu-danger-active-bg);
   --b-menu-item-focus-background: var(--menu-danger-active-bg);

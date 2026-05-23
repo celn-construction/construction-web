@@ -65,9 +65,4 @@ describe("updateSlotSchema", () => {
   it("accepts null dueDate to clear it", () => {
     expect(updateSlotSchema.parse({ slotId: "s1", dueDate: null }).dueDate).toBeNull();
   });
-
-  it("accepts approverId as nullable string", () => {
-    expect(updateSlotSchema.parse({ slotId: "s1", approverId: "u1" }).approverId).toBe("u1");
-    expect(updateSlotSchema.parse({ slotId: "s1", approverId: null }).approverId).toBeNull();
-  });
 });

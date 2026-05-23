@@ -192,7 +192,15 @@ export const ganttRouter = createTRPCRouter({
       }
 
       // Fetch all Gantt data in parallel with optimized queries
-      const [tasks, dependencies, resources, assignments, timeRanges, needsReviewRows] = await Promise.all([
+      const [
+        tasks,
+        dependencies,
+        resources,
+        assignments,
+        timeRanges,
+        needsReviewRows,
+        filledSlotRows,
+      ] = await Promise.all([
         ctx.db.ganttTask.findMany({
           where: { projectId },
           orderBy: { orderIndex: "asc" },
@@ -219,6 +227,8 @@ export const ganttRouter = createTRPCRouter({
             csiCode: true,
             baselines: true,
             orderIndex: true,
+            requiredSubmittals: true,
+            requiredInspections: true,
           },
         }),
         ctx.db.ganttDependency.findMany({
@@ -242,6 +252,18 @@ export const ganttRouter = createTRPCRouter({
           },
           _count: { _all: true },
         }),
+        // Count requirement slots that have at least one bound document, grouped by task.
+        // The partial unique index on Document.slotId enforces at-most-one doc per slot,
+        // so counting documents-with-slotId equals counting filled slots.
+        ctx.db.document.groupBy({
+          by: ["taskId"],
+          where: {
+            projectId,
+            taskId: { not: null },
+            slotId: { not: null },
+          },
+          _count: { _all: true },
+        }),
       ]);
 
       // Build needsReviewCount map per task (rolled up to parents in buildTaskTree)
@@ -252,8 +274,17 @@ export const ganttRouter = createTRPCRouter({
         }
       }
 
+      // Build filled-slot count per task. requirementsTotal comes from each task's
+      // legacy required* columns (already selected). Bars show a % when total > 0.
+      const filledSlotCounts = new Map<string, number>();
+      for (const row of filledSlotRows) {
+        if (row.taskId) {
+          filledSlotCounts.set(row.taskId, row._count._all);
+        }
+      }
+
       // Build hierarchical task tree
-      const taskTree = buildTaskTree(tasks, needsReviewCounts);
+      const taskTree = buildTaskTree(tasks, needsReviewCounts, filledSlotCounts);
 
       // Map other entities to Gantt format
       const ganttDependencies = dependencies.map(mapDependencyToGantt);
@@ -416,9 +447,9 @@ export const ganttRouter = createTRPCRouter({
 
   // ─── Per-slot tracking (Tier 2/3) ──────────────────────────────────────
   // Slots carry the metadata that the legacy requiredSubmittals/Inspections
-  // integers don't: name, due date, approver. They are kept in sync with those
-  // count columns by setSlotCount so the popover and existing readers keep
-  // working. listSlots auto-backfills from the legacy count on first read.
+  // integers don't: name, due date. They are kept in sync with those count
+  // columns by setSlotCount so the popover and existing readers keep working.
+  // listSlots auto-backfills from the legacy count on first read.
 
   listSlots: orgProcedure
     .input(z.object({ projectId: z.string() }).merge(listSlotsSchema))
@@ -434,7 +465,6 @@ export const ganttRouter = createTRPCRouter({
       }
 
       const slotInclude = {
-        approver: { select: { id: true, name: true, email: true, image: true } },
         documents: {
           orderBy: { createdAt: "asc" },
           take: 1,
@@ -556,9 +586,6 @@ export const ganttRouter = createTRPCRouter({
         return tx.taskRequirementSlot.findMany({
           where: { taskId, kind },
           orderBy: { index: "asc" },
-          include: {
-            approver: { select: { id: true, name: true, email: true, image: true } },
-          },
         });
       });
     }),
@@ -587,25 +614,6 @@ export const ganttRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Slot not found" });
       }
 
-      // If approverId is provided, verify the user is a member of this org.
-      if (patch.approverId) {
-        const member = await ctx.db.membership.findUnique({
-          where: {
-            userId_organizationId: {
-              userId: patch.approverId,
-              organizationId: ctx.organization.id,
-            },
-          },
-          select: { id: true },
-        });
-        if (!member) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Approver must be a member of this organization",
-          });
-        }
-      }
-
       const data: Record<string, unknown> = {};
       if (patch.name !== undefined) {
         data.name = patch.name === null ? null : patch.name.trim() || null;
@@ -613,14 +621,10 @@ export const ganttRouter = createTRPCRouter({
       if (patch.dueDate !== undefined) {
         data.dueDate = patch.dueDate === null ? null : new Date(patch.dueDate);
       }
-      if (patch.approverId !== undefined) data.approverId = patch.approverId;
 
       return ctx.db.taskRequirementSlot.update({
         where: { id: slotId },
         data,
-        include: {
-          approver: { select: { id: true, name: true, email: true, image: true } },
-        },
       });
     }),
 });

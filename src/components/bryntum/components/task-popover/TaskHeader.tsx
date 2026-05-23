@@ -108,6 +108,12 @@ interface TaskHeaderProps {
   onClose: () => void;
   onOpenCsiPanel: () => void;
   onScrollToRequirements?: () => void;
+  /**
+   * Open the Manage submittals/inspections drawer. When provided, the empty
+   * "No requirements yet" CTA uses this instead of `onScrollToRequirements`
+   * so admins can create their first slot directly.
+   */
+  onOpenRequirementsDrawer?: () => void;
   /** Number of documents uploaded across all submittal folders */
   submittalsCurrent?: number;
   /** Number of documents uploaded across all inspection folders */
@@ -121,9 +127,11 @@ export default function TaskHeader({
   onClose,
   onOpenCsiPanel,
   onScrollToRequirements,
+  onOpenRequirementsDrawer,
   submittalsCurrent = 0,
   inspectionsCurrent = 0,
 }: TaskHeaderProps) {
+  const emptyCtaAction = onOpenRequirementsDrawer ?? onScrollToRequirements;
   const theme = useTheme();
 
   // Progress derived from requirements
@@ -481,10 +489,10 @@ export default function TaskHeader({
                 </Typography>
               )}
             </Box>
-            {onScrollToRequirements && (
+            {emptyCtaAction && (
               <Box
                 component="button"
-                onClick={onScrollToRequirements}
+                onClick={emptyCtaAction}
                 sx={{
                   background: 'transparent',
                   border: 'none',
@@ -505,7 +513,7 @@ export default function TaskHeader({
         ) : showEmptyProgressCta ? (
           <Box
             component="button"
-            onClick={onScrollToRequirements}
+            onClick={emptyCtaAction}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -516,11 +524,11 @@ export default function TaskHeader({
               border: '1px dashed',
               borderColor: 'divider',
               bgcolor: 'action.hover',
-              cursor: onScrollToRequirements ? 'pointer' : 'default',
+              cursor: emptyCtaAction ? 'pointer' : 'default',
               textAlign: 'left',
               transition: 'all 0.15s',
               width: '100%',
-              '&:hover': onScrollToRequirements
+              '&:hover': emptyCtaAction
                 ? {
                     borderColor: 'text.disabled',
                     borderStyle: 'solid',
@@ -552,7 +560,7 @@ export default function TaskHeader({
                 Add submittals or inspections to track progress.
               </Typography>
             </Box>
-            {onScrollToRequirements && (
+            {emptyCtaAction && (
               <Typography
                 component="span"
                 sx={{

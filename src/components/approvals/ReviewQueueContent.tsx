@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Box, Typography, Tabs, Tab, ToggleButton, ToggleButtonGroup, Alert, Avatar } from '@mui/material';
+import { Box, Typography, Tabs, Tab, ToggleButton, ToggleButtonGroup, Alert } from '@mui/material';
 import { SealCheck, Clock, WarningCircle, PaperPlaneTilt, ClipboardText } from '@phosphor-icons/react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { api } from '@/trpc/react';
@@ -229,7 +229,6 @@ interface OverdueSlot {
   index: number;
   name: string | null;
   dueDate: Date | string;
-  approver: { id: string; name: string | null; email: string; image: string | null } | null;
 }
 
 function OverdueSlotRow({ slot }: { slot: OverdueSlot }) {
@@ -296,17 +295,6 @@ function OverdueSlotRow({ slot }: { slot: OverdueSlot }) {
           {slot.taskName}
         </Typography>
       </Box>
-      {slot.approver && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0, color: 'text.secondary' }}>
-          <Avatar
-            src={slot.approver.image ?? undefined}
-            sx={{ width: 18, height: 18, fontSize: 9, fontWeight: 600 }}
-          >
-            {(slot.approver.name ?? slot.approver.email).charAt(0).toUpperCase()}
-          </Avatar>
-          <Typography sx={{ fontSize: 11 }}>{slot.approver.name ?? slot.approver.email}</Typography>
-        </Box>
-      )}
       <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
         <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'warning.main' }}>
           Due {format(due, 'MMM d')}

@@ -35,7 +35,6 @@ model User {
     invitations        Invitation[]     @relation("InvitedByUser")
     documents          Document[]
     approvedDocuments  Document[]       @relation("ApprovedByUser")
-    approverSlots      TaskRequirementSlot[] @relation("SlotApprover")
     notifications      Notification[]
     activeOrganization Organization?    @relation("ActiveOrganization", fields: [activeOrganizationId], references: [id], onDelete: SetNull)
     activeProject      Project?         @relation("ActiveProject", fields: [activeProjectId], references: [id], onDelete: SetNull)
@@ -311,17 +310,14 @@ model TaskRequirementSlot {
     index       Int
     name        String?
     dueDate     DateTime?
-    approverId  String?
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
 
     task      GanttTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
-    approver  User?      @relation("SlotApprover", fields: [approverId], references: [id], onDelete: SetNull)
     documents Document[]
 
     @@unique([taskId, kind, index])
     @@index([taskId, kind])
-    @@index([approverId])
     @@index([dueDate])
 }
 
