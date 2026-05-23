@@ -29,6 +29,13 @@ export function reconcileSyncPack(
     if (missing.length > 0) {
       typed.tasks = typed.tasks ?? {};
       typed.tasks.added = typed.tasks.added ?? [];
+      const injected: Array<{
+        id: string;
+        $PhantomId: string;
+        parentIdInData: unknown;
+        dataKeys: string[];
+      }> = [];
+      const skipped: Array<{ id: string; reason: string }> = [];
       for (const id of missing) {
         const record = taskStore.getById(id);
         if (record?.data) {
@@ -38,7 +45,22 @@ export function reconcileSyncPack(
           // and Bryntum's afterSyncAttempt crashes trying to materialize it.
           const phantomId = (record.data.$PhantomId as string | undefined) ?? record.$PhantomId ?? id;
           typed.tasks.added.push({ ...record.data, $PhantomId: phantomId });
+          injected.push({
+            id,
+            $PhantomId: phantomId,
+            parentIdInData: (record.data as Record<string, unknown>).parentId,
+            dataKeys: Object.keys(record.data),
+          });
+        } else {
+          skipped.push({ id, reason: record ? 'no record.data' : 'getById returned null' });
         }
+      }
+      if (injected.length > 0 || skipped.length > 0) {
+        console.log('[Gantt:reconcileSyncPack] injected missing added records', {
+          injected,
+          skipped,
+          bagAddedIds: Array.from(bagAddedIds),
+        });
       }
     }
   }

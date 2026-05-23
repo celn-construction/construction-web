@@ -47,6 +47,10 @@ export default function ApprovalToggleSwitch({
       void utils.document.aiSearch.invalidate();
       void utils.document.listByFolder.invalidate();
       void utils.document.listByTask.invalidate();
+      // Refresh slot state so the SubmittalDrawer pill + ApprovedByLine
+      // update after the user approves a bound submittal/inspection.
+      void utils.gantt.listSlots.invalidate();
+      void utils.gantt.taskDetail.invalidate();
     },
     onError: () => setOptimistic(null),
   });

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import {
-  MapPin,
   Clock,
   Sun,
   Moon,
@@ -107,19 +106,10 @@ export default function LocationWeather({ location, organizationId }: LocationWe
     return () => clearInterval(interval);
   }, [weather?.timezoneOffset]);
 
-  const shortLocation = location.length > 30 ? location.slice(0, 28) + '\u2026' : location;
   const weatherInfo = weather ? getWeatherIcon(weather.icon) : null;
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-      {/* Location chip */}
-      <Box sx={chipSx}>
-        <MapPin size={13} weight="bold" style={{ flexShrink: 0, opacity: 0.55 }} />
-        <Typography sx={labelSx}>
-          {shortLocation}
-        </Typography>
-      </Box>
-
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
       {/* Weather chip — condition-tinted background */}
       {weather && weatherInfo && (
         <Box

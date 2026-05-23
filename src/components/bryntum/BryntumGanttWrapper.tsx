@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, type CSSProperties } from 'react';
 import { BryntumGantt } from '@bryntum/gantt-react';
-import { Menu } from '@bryntum/gantt';
 import '@bryntum/gantt/gantt.css';
 import { Box } from '@mui/material';
 import { api } from '@/trpc/react';
@@ -130,20 +129,112 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     const gantt = getGanttInstance();
     if (!gantt?.project) return;
 
+    // Intercept the sync POST itself so we capture the raw response BEFORE
+    // Bryntum's afterSyncAttempt iterates it. afterSyncAttempt can throw
+    // ("Cannot set properties of undefined (setting 'isBeingMaterialized')")
+    // and when it does, our `sync` event listener never fires — so the only
+    // way to see what the server returned is to tee the response here.
+    //
+    // Dev-only: this reassigns `window.fetch` globally for the page lifetime
+    // and we don't want production traffic paying the wrapper cost (or risking
+    // collisions with other fetch interceptors across HMR cycles). The whole
+    // block is dead-code-eliminated in production builds.
+    const fetchDebugEnabled = process.env.NODE_ENV !== 'production';
+    const originalFetch = window.fetch;
+    const wrappedFetch: typeof window.fetch = async (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const isGanttSync = typeof url === 'string' && url.includes('/api/gantt/sync');
+      if (!isGanttSync) return originalFetch(input, init);
+
+      // Log the outgoing request body too — confirms what really hit the wire.
+      if (init?.body) {
+        try {
+          const parsed = JSON.parse(String(init.body)) as { tasks?: { added?: Array<Record<string, unknown>> } };
+          console.log('[Gantt:fetch] POST /api/gantt/sync → outgoing body', {
+            addedCount: parsed.tasks?.added?.length ?? 0,
+            added: (parsed.tasks?.added ?? []).map((t) => ({
+              id: t.id,
+              $PhantomId: t.$PhantomId,
+              parentId: t.parentId,
+              name: t.name,
+            })),
+          });
+        } catch {
+          /* not JSON */
+        }
+      }
+
+      const response = await originalFetch(input, init);
+      // Clone so Bryntum can still consume the body unmodified.
+      const clone = response.clone();
+      void clone.text().then((text) => {
+        try {
+          const json = JSON.parse(text) as {
+            success?: boolean;
+            message?: string;
+            tasks?: { rows?: Array<{ id?: string; $PhantomId?: string }> };
+          };
+          console.log('[Gantt:fetch] /api/gantt/sync → raw response (clone)', {
+            httpStatus: response.status,
+            success: json.success,
+            message: json.message,
+            taskRowsCount: json.tasks?.rows?.length ?? 0,
+            rows: json.tasks?.rows,
+          });
+        } catch {
+          console.warn('[Gantt:fetch] /api/gantt/sync → non-JSON response', { httpStatus: response.status, text });
+        }
+      });
+      return response;
+    };
+    if (fetchDebugEnabled) {
+      window.fetch = wrappedFetch;
+    }
+
     const onSync = (event: unknown) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = (event as any)?.response;
-      console.log('[Gantt:client] sync OK', {
-        success: response?.success,
-        tasksReturned: response?.tasks?.rows?.length ?? 0,
-        sentAdded: lastSyncAddedIdsRef.current.size,
-        sentRemoved: lastSyncRemovedIdsRef.current.size,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const sentIds = Array.from(lastSyncAddedIdsRef.current);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const responseRows: Array<{ id?: string; $PhantomId?: string }> = (response?.tasks?.rows ?? []) as any[];
+      const responsePhantomIds = new Set(
+        responseRows.map((r) => r?.$PhantomId).filter(Boolean) as string[],
+      );
+      const sentButNotReturned = sentIds.filter((id) => !responsePhantomIds.has(id));
+
+      // Inspect each sent record AFTER the response was applied — if it's still
+      // phantom, Bryntum failed to materialize the phantom→real id swap and
+      // the row will stay stuck (snackbar "Saving task — try again in a moment").
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      const stillPhantom = sentIds.map((id) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        const r = gantt.project.taskStore.getById(id) as
+          | { id?: string; isPhantom?: boolean; parentId?: string | null; parent?: { id?: string } | null; name?: string }
+          | null;
+        return r
+          ? {
+              sentId: id,
+              currentId: r.id,
+              isPhantom: r.isPhantom,
+              parentId: r.parentId ?? r.parent?.id ?? null,
+              name: r.name,
+            }
+          : { sentId: id, lookup: 'null — record gone' };
       });
 
-      // Clear only the IDs that were actually sent in this sync cycle; any IDs
-      // added to pending* after `onBeforeSync` fired belong to the next sync.
-      for (const id of lastSyncAddedIdsRef.current) pendingAddedIdsRef.current.delete(id);
-      for (const id of lastSyncRemovedIdsRef.current) pendingRemovedIdsRef.current.delete(id);
+      console.log('[Gantt:client] sync OK', {
+        success: response?.success,
+        tasksReturned: responseRows.length,
+        rowsMapping: responseRows.map((r) => ({ phantom: r?.$PhantomId, real: r?.id })),
+        sentAdded: sentIds,
+        sentButNotReturned,
+        sentRemoved: Array.from(lastSyncRemovedIdsRef.current),
+        afterReconcile: stillPhantom,
+      });
+
+      // Pending refs are dormant (reconcile disabled). Just clear the
+      // in-flight snapshot.
       lastSyncAddedIdsRef.current.clear();
       lastSyncRemovedIdsRef.current.clear();
       // Trailing-edge debounce: with autoSync flushing every ~500ms during a
@@ -175,28 +266,65 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     };
 
     const onBeforeSync = ({ pack }: { pack: unknown }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const taskStore = gantt.project.taskStore;
-      reconcileSyncPack(
-        pack,
-        taskStore as Parameters<typeof reconcileSyncPack>[1],
-        pendingAddedIdsRef.current,
-        pendingRemovedIdsRef.current,
-      );
+      // reconcileSyncPack DISABLED — it was the root cause of duplicate
+      // adds: it tracked record ids at taskStore.add time, but Bryntum's
+      // scheduling engine re-creates records during commitAsync (new id),
+      // so the bag and our pending tracker held DIFFERENT ids for the same
+      // record. Reconcile then injected the old id as "missing", producing
+      // duplicate rows server-side and a $PhantomId in the response that
+      // didn't match any client record → afterSyncAttempt crashed with
+      // "Cannot set properties of undefined (setting 'isBeingMaterialized')".
+      // Bryntum 7.2 + commitAsync (in handleAddTask) appears to keep the
+      // bag reliable on its own; we trust it as the single source of truth.
 
-      // Snapshot IDs actually being sent so `onSync` can clear only these on success,
-      // without dropping new changes that arrive mid-request.
-      lastSyncAddedIdsRef.current = new Set(pendingAddedIdsRef.current);
-      lastSyncRemovedIdsRef.current = new Set(pendingRemovedIdsRef.current);
+      // Snapshot IDs actually in the outgoing pack so `onSync` knows which
+      // pending entries to clear. Source of truth is now the bag, not our
+      // pending tracker.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const packAddedIds = new Set<string>(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (((pack as any)?.tasks?.added ?? []) as Array<{ id?: string }>)
+          .map((t) => String(t.id ?? '')),
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const packRemovedIds = new Set<string>(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (((pack as any)?.tasks?.removed ?? []) as Array<{ id?: string }>)
+          .map((t) => String(t.id ?? '')),
+      );
+      lastSyncAddedIdsRef.current = packAddedIds;
+      lastSyncRemovedIdsRef.current = packRemovedIds;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const p = pack as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const summarizeAdded = (t: any) => ({
+        id: t?.id,
+        $PhantomId: t?.$PhantomId,
+        parentId: t?.parentId,
+        name: t?.name,
+        // Bryntum sometimes uses `parentIndex` to position; surface it so we can
+        // see whether a subtask is missing parentId but has positional intent.
+        parentIndex: t?.parentIndex,
+        keys: t ? Object.keys(t) : [],
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const summarizeUpdated = (t: any) => ({
+        id: t?.id,
+        parentId: t?.parentId,
+        name: t?.name,
+        changedKeys: t ? Object.keys(t).filter((k) => k !== 'id') : [],
+      });
+
       console.log('[Gantt:client] beforeSync — pack about to POST', {
         addedTasks: p?.tasks?.added?.length ?? 0,
         updatedTasks: p?.tasks?.updated?.length ?? 0,
         removedTasks: p?.tasks?.removed?.length ?? 0,
-        firstAdded: p?.tasks?.added?.[0],
-        firstUpdated: p?.tasks?.updated?.[0],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        added: (p?.tasks?.added ?? []).map(summarizeAdded),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        updated: (p?.tasks?.updated ?? []).map(summarizeUpdated),
+        removed: p?.tasks?.removed,
       });
     };
 
@@ -206,34 +334,38 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     // commits state between cycles).
     const taskStore = gantt.project.taskStore;
 
-    const onTaskAdd = ({ records, isExpand }: { records: Array<{ id?: string; isRoot?: boolean }>; isExpand?: boolean }) => {
+    const onTaskAdd = ({ records, isExpand }: {
+      records: Array<{
+        id?: string;
+        isRoot?: boolean;
+        isPhantom?: boolean;
+        parentId?: string | null;
+        parent?: { id?: string } | null;
+        name?: string;
+      }>;
+      isExpand?: boolean;
+    }) => {
       if (isExpand) return;
-      const tracked: string[] = [];
-      for (const r of records) {
-        if (!r.isRoot && r.id) {
-          pendingAddedIdsRef.current.add(String(r.id));
-          tracked.push(String(r.id));
-        }
-      }
+      // Logging only — pendingAddedIdsRef is no longer the source of truth.
+      // Bryntum's CrudManager bag tracks adds; reconcileSyncPack is disabled.
+      const tracked = records
+        .filter((r) => !r.isRoot && r.id)
+        .map((r) => ({
+          id: String(r.id),
+          isPhantom: r.isPhantom,
+          parentId: r.parentId ?? r.parent?.id ?? null,
+          name: r.name,
+        }));
       if (tracked.length > 0) {
-        console.log('[Gantt:client] taskStore.add — pending add IDs', {
-          newlyTracked: tracked,
-          totalPendingAdds: pendingAddedIdsRef.current.size,
-        });
+        console.log('[Gantt:client] taskStore.add (info)', { tracked });
       }
     };
 
     const onTaskRemove = ({ records, isCollapse }: { records: Array<{ id?: string; isRoot?: boolean }>; isCollapse?: boolean }) => {
       if (isCollapse) return;
-      for (const r of records) {
-        if (r.isRoot || !r.id) continue;
-        const id = String(r.id);
-        if (pendingAddedIdsRef.current.has(id)) {
-          pendingAddedIdsRef.current.delete(id);
-        } else {
-          pendingRemovedIdsRef.current.add(id);
-        }
-      }
+      // No-op: reconcileSyncPack is disabled, so we no longer maintain
+      // pendingRemovedIdsRef as a shadow of Bryntum's bag.
+      void records;
     };
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -252,6 +384,12 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       gantt.project?.taskStore?.un('add', onTaskAdd);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       gantt.project?.taskStore?.un('remove', onTaskRemove);
+      // Restore native fetch — only if we still own it, so HMR-stacked
+      // interceptors don't strand a stale reference as the active fetch.
+      // No-op in production because the patch wasn't installed there.
+      if (fetchDebugEnabled && window.fetch === wrappedFetch) {
+        window.fetch = originalFetch;
+      }
       if (sidebarInvalidateTimerRef.current) {
         clearTimeout(sidebarInvalidateTimerRef.current);
         sidebarInvalidateTimerRef.current = null;
@@ -347,105 +485,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     return () => { detach?.(); };
   }, [isLoading, getGanttInstance, closeTaskPopover, editingUnlocked]);
 
-  // Row action menu — detect clicks on the ⋮ button injected by the name column
-  // renderer, then show a programmatic Bryntum Menu at the button position.
-  const activeMenuRef = useRef<{ destroy: () => void } | null>(null);
-  useEffect(() => {
-    if (isLoading) return;
-    const gantt = getGanttInstance();
-    if (!gantt) return;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const onCellClick = ({ record, column, event }: { record: any; column: { type: string }; event: MouseEvent }) => {
-      const target = event.target as HTMLElement;
-
-      const btn = target.closest('.gantt-row-actions-btn') as HTMLElement | null;
-      if (!btn || column.type !== 'name') return;
-
-      event.stopPropagation();
-
-      // Row action menu contains write actions (add subtask, indent, delete, …) —
-      // don't open it when the chart is locked.
-      if (!editingUnlocked) return;
-
-      // Destroy any previously open menu
-      if (activeMenuRef.current) {
-        activeMenuRef.current.destroy();
-        activeMenuRef.current = null;
-      }
-
-      const taskRecord = record as BryntumTaskRecord;
-      const g = gantt as unknown as BryntumGanttInstance;
-
-      btn.classList.add('gantt-menu-open');
-
-      activeMenuRef.current = new Menu({
-        forElement: btn,
-        align: 't-b',
-        items: [
-          {
-            ref: 'taskDetails',
-            text: 'Task Details',
-            icon: 'b-icon b-icon-edit',
-            onItem: () => { closeTaskPopover(); setTaskInfoRecord(taskRecord); },
-          },
-          {
-            ref: 'addSubtask',
-            text: 'Add Subtask',
-            icon: 'b-icon b-icon-add',
-            onItem: () => {
-              taskRecord.appendChild({ name: 'New Subtask', duration: 1, startDate: new Date() });
-              if (!taskRecord.isExpanded) g.expand(taskRecord);
-            },
-          },
-          {
-            ref: 'indent',
-            text: 'Indent',
-            icon: 'b-icon b-icon-indent',
-            onItem: () => { g.indent([taskRecord]); },
-          },
-          {
-            ref: 'outdent',
-            text: 'Outdent',
-            icon: 'b-icon b-icon-outdent',
-            onItem: () => { g.outdent([taskRecord]); },
-          },
-          {
-            ref: 'unlinkTask',
-            text: 'Unlink',
-            icon: 'b-icon b-icon-unlink',
-            onItem: () => {
-              const deps = [...(taskRecord.predecessors ?? []), ...(taskRecord.successors ?? [])];
-              if (deps.length > 0) g.dependencyStore.remove(deps);
-            },
-          },
-          {
-            ref: 'deleteTask',
-            text: 'Delete',
-            icon: 'b-icon b-icon-trash',
-            cls: 'gantt-action-danger',
-            onItem: () => { taskRecord.remove(); },
-          },
-        ],
-        onDestroy: () => {
-          btn.classList.remove('gantt-menu-open');
-          activeMenuRef.current = null;
-        },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const detach = gantt.on('cellClick', onCellClick) as (() => void) | undefined;
-    return () => {
-      detach?.();
-      if (activeMenuRef.current) {
-        activeMenuRef.current.destroy();
-        activeMenuRef.current = null;
-      }
-    };
-  }, [isLoading, getGanttInstance, closeTaskPopover, editingUnlocked]);
-
   // taskMenu config — passed as the top-level `taskMenuFeature` prop on
   // <BryntumGantt> below. NOT via `features.taskMenu` in the config object —
   // the React wrapper's `features → ${key}Feature` translation drops function
@@ -533,15 +572,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     },
   }), [getGanttInstance]);
 
-  // Close any open row-action menu the moment the chart is locked.
-  useEffect(() => {
-    if (editingUnlocked) return;
-    if (activeMenuRef.current) {
-      activeMenuRef.current.destroy();
-      activeMenuRef.current = null;
-    }
-  }, [editingUnlocked]);
-
   return (
     <div style={WRAPPER_STYLE}>
       <GanttToolbar
@@ -584,31 +614,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-        /* Row actions ⋮ button — right side of name cell, always visible */
-        .gantt-row-actions-btn {
-          flex-shrink: 0;
-          opacity: 1;
-          background: none;
-          border: none;
-          box-shadow: none;
-          min-width: 0;
-          padding: 4px 6px;
-          cursor: pointer;
-          border-radius: 4px;
-          color: var(--text-secondary, #8D99AE);
-          font-size: 16px;
-          font-weight: bold;
-          letter-spacing: 1px;
-          line-height: 1;
-        }
-        .gantt-row-actions-btn:hover {
-          background: var(--bg-hover, rgba(0, 0, 0, 0.04));
-        }
-        /* Hide mutation affordances while the chart is locked. */
-        .bryntum-gantt-container[data-locked="true"] .gantt-row-actions-btn {
-          display: none;
-        }
-        /* "Needs review" pill — appears in the name cell when a task has
+/* "Needs review" pill — appears in the name cell when a task has
            unapproved submittals or inspections (count rolls up to parents). */
         .gantt-needs-review-badge {
           flex-shrink: 0;
@@ -628,6 +634,60 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           letter-spacing: 0;
           cursor: default;
         }
+        /* Task-bar inner layout — used when a leaf task has any submittal /
+           inspection requirements. Renders the task name on the left and a
+           donut-in-chip indicator on the right (a tiny SVG progress donut + the
+           filled/total ratio). States: empty (faint chip, hollow ring), partial
+           (white chip, partial arc, indigo text), done (green chip, white check
+           circle, white text). */
+        .gantt-task-bar-inner {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          width: 100%;
+          height: 100%;
+          padding: 0 6px 0 8px;
+          box-sizing: border-box;
+        }
+        .gantt-task-bar-name {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .gantt-task-bar-chip {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 8px 2px 4px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.95);
+          color: #1e40af;
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1.4;
+          font-variant-numeric: tabular-nums;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
+          cursor: default;
+        }
+        .gantt-task-bar-chip.is-done {
+          background: #16a34a;
+          color: #fff;
+        }
+        .gantt-task-bar-chip.is-empty {
+          background: rgba(255, 255, 255, 0.18);
+          color: rgba(255, 255, 255, 0.95);
+          box-shadow: none;
+        }
+        .gantt-task-bar-chip-donut {
+          display: inline-flex;
+          align-items: center;
+          flex-shrink: 0;
+        }
+        .gantt-task-bar-chip-donut svg { display: block; }
+        .gantt-task-bar-chip-text { line-height: 1; }
       `}</style>
 
       <div

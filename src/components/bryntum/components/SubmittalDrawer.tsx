@@ -1,14 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Box,
   Drawer,
   IconButton,
   Typography,
-  Avatar,
-  Menu,
-  MenuItem,
   CircularProgress,
 } from '@mui/material';
 import {
@@ -18,8 +15,6 @@ import {
   PaperPlaneTilt,
   ClipboardText,
   CheckCircle,
-  UserCircle,
-  Trash,
   CloudArrowUp,
   WarningCircle,
 } from '@phosphor-icons/react';
@@ -27,9 +22,18 @@ import { format, isBefore, startOfDay } from 'date-fns';
 
 import { api } from '@/trpc/react';
 import type { SlotKind } from '@/lib/validations/gantt';
+import { nextSuggestedSlotName } from '@/lib/constants/slotNameLibrary';
+import UserAvatar from '@/components/ui/UserAvatar';
+import ApprovalToggleSwitch from './task-popover/ApprovalToggleSwitch';
 import type { DocumentItem } from './task-popover/types';
 
 const SUBMITTAL_COLOR = '#2563EB';
+
+// Optimistic slot IDs are tagged with this prefix so any code path that would
+// otherwise send the placeholder ID to the server (uploads, slot updates) can
+// short-circuit until the real row arrives.
+const OPTIMISTIC_SLOT_ID_PREFIX = 'optimistic-';
+const isOptimisticSlotId = (id: string): boolean => id.startsWith(OPTIMISTIC_SLOT_ID_PREFIX);
 const INSPECTION_COLOR = '#8E44AD';
 
 const KIND_META: Record<SlotKind, {
@@ -65,6 +69,8 @@ interface SubmittalDrawerProps {
   projectId: string;
   taskId: string;
   taskName: string;
+  /** Current user's org-membership role — gates the inline approval toggle. */
+  memberRole: string;
   initialKind?: SlotKind;
   /** Documents already uploaded under this task — used for the tab badge counts. */
   docsByKind: Record<SlotKind, DocumentItem[]>;
@@ -83,6 +89,7 @@ export default function SubmittalDrawer({
   projectId,
   taskId,
   taskName,
+  memberRole,
   initialKind = 'submittal',
   docsByKind,
   onUploadToFolder,
@@ -126,6 +133,7 @@ export default function SubmittalDrawer({
         organizationId={organizationId}
         projectId={projectId}
         taskId={taskId}
+        memberRole={memberRole}
         kind={activeKind}
         onUploadToFolder={(slotId) => onUploadToFolder(KIND_META[activeKind].folderId, slotId)}
       />
@@ -295,12 +303,14 @@ function DrawerContent({
   organizationId,
   projectId,
   taskId,
+  memberRole,
   kind,
   onUploadToFolder,
 }: {
   organizationId: string;
   projectId: string;
   taskId: string;
+  memberRole: string;
   kind: SlotKind;
   onUploadToFolder: (slotId?: string) => void;
 }) {
@@ -314,7 +324,51 @@ function DrawerContent({
   const slots = slotsQuery.data ?? [];
 
   const setCountMutation = api.gantt.setSlotCount.useMutation({
-    onSuccess: () => {
+    // Optimistically reshape the slot list so the UI updates instantly instead
+    // of waiting for the server round trip + three query invalidations.
+    onMutate: async ({ count }) => {
+      const queryKey = { organizationId, projectId, taskId, kind };
+      await utils.gantt.listSlots.cancel(queryKey);
+      const previous = utils.gantt.listSlots.getData(queryKey);
+
+      utils.gantt.listSlots.setData(queryKey, (current) => {
+        const prev = current ?? [];
+        if (count === prev.length) return prev;
+        if (count < prev.length) return prev.slice(0, count);
+        // Mirror the server's name-picking so the placeholder matches the
+        // value that will arrive on reconcile (no visible name flip).
+        const existingNames: (string | null)[] = prev.map((s) => s.name);
+        const now = new Date();
+        const baseId = `${OPTIMISTIC_SLOT_ID_PREFIX}${now.getTime()}`;
+        const additions = Array.from({ length: count - prev.length }, (_, i) => {
+          const name = nextSuggestedSlotName(kind, existingNames);
+          existingNames.push(name);
+          return {
+            id: `${baseId}-${i}`,
+            taskId,
+            kind,
+            index: prev.length + i,
+            name,
+            dueDate: null,
+            createdAt: now,
+            updatedAt: now,
+            document: null,
+          };
+        });
+        return [...prev, ...additions];
+      });
+
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) {
+        utils.gantt.listSlots.setData(
+          { organizationId, projectId, taskId, kind },
+          ctx.previous,
+        );
+      }
+    },
+    onSettled: () => {
       void utils.gantt.listSlots.invalidate({ organizationId, projectId, taskId, kind });
       void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
       void utils.gantt.requirementStats.invalidate({ projectId });
@@ -326,13 +380,6 @@ function DrawerContent({
       void utils.gantt.listSlots.invalidate({ organizationId, projectId, taskId, kind });
     },
   });
-
-  // Members for the approver picker (cached at the org level).
-  const membersQuery = api.member.list.useQuery(
-    { organizationId },
-    { enabled: !!organizationId, staleTime: 60_000 },
-  );
-  const members = membersQuery.data ?? [];
 
   // Decrement-with-data confirm state.
   const [confirmRemove, setConfirmRemove] = useState<null | { trailingFilled: number; nextCount: number }>(null);
@@ -370,7 +417,6 @@ function DrawerContent({
     setConfirmRemove(null);
   };
 
-  const isPending = setCountMutation.isPending;
   const isLoading = slotsQuery.isLoading;
 
   return (
@@ -403,7 +449,7 @@ function DrawerContent({
           <Stepper
             value={slots.length}
             onChange={handleStepCount}
-            disabled={isPending || isLoading}
+            disabled={isLoading}
           />
         </Box>
 
@@ -434,25 +480,34 @@ function DrawerContent({
           <EmptyState kind={kind} onSeed={(count) => setCountMutation.mutate({ organizationId, projectId, taskId, kind, count })} />
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {slots.map((slot) => (
-              <SlotCard
-                key={slot.id}
-                slot={slot}
-                kind={kind}
-                doc={slot.document}
-                members={members}
-                onRename={(name) =>
-                  updateSlotMutation.mutate({ organizationId, projectId, slotId: slot.id, name })
-                }
-                onSetDueDate={(dueDate) =>
-                  updateSlotMutation.mutate({ organizationId, projectId, slotId: slot.id, dueDate })
-                }
-                onSetApprover={(approverId) =>
-                  updateSlotMutation.mutate({ organizationId, projectId, slotId: slot.id, approverId })
-                }
-                onUpload={() => onUploadToFolder(slot.id)}
-              />
-            ))}
+            {slots.map((slot) => {
+              const isPending = isOptimisticSlotId(slot.id);
+              return (
+                <SlotCard
+                  key={slot.id}
+                  slot={slot}
+                  kind={kind}
+                  doc={slot.document}
+                  organizationId={organizationId}
+                  memberRole={memberRole}
+                  // Optimistic rows hold placeholder IDs that don't exist on
+                  // the server yet — block any action that would send the ID.
+                  isPending={isPending}
+                  onRename={(name) => {
+                    if (isPending) return;
+                    updateSlotMutation.mutate({ organizationId, projectId, slotId: slot.id, name });
+                  }}
+                  onSetDueDate={(dueDate) => {
+                    if (isPending) return;
+                    updateSlotMutation.mutate({ organizationId, projectId, slotId: slot.id, dueDate });
+                  }}
+                  onUpload={() => {
+                    if (isPending) return;
+                    onUploadToFolder(slot.id);
+                  }}
+                />
+              );
+            })}
           </Box>
         )}
       </Box>
@@ -603,8 +658,6 @@ type SlotData = {
   index: number;
   name: string | null;
   dueDate: Date | null;
-  approverId: string | null;
-  approver: { id: string; name: string | null; email: string; image: string | null } | null;
 };
 
 // SlotCard only renders the bound document's name + upload date in the
@@ -613,33 +666,36 @@ type SlotBoundDoc = {
   id: string;
   name: string;
   createdAt: Date | string | null;
-};
-
-type Member = {
-  user: { id: string; name: string | null; email: string; image: string | null };
+  approvalStatus: string;
+  approvedAt: Date | string | null;
+  approvedBy: { id: string; name: string | null; email: string } | null;
 };
 
 function SlotCard({
   slot,
   kind,
   doc,
-  members,
+  organizationId,
+  memberRole,
+  isPending = false,
   onRename,
   onSetDueDate,
-  onSetApprover,
   onUpload,
 }: {
   slot: SlotData;
   kind: SlotKind;
   doc: SlotBoundDoc | null;
-  members: Member[];
+  organizationId: string;
+  memberRole: string;
+  /** True while the slot row is an optimistic placeholder (server hasn't returned the real id yet). */
+  isPending?: boolean;
   onRename: (name: string | null) => void;
   onSetDueDate: (dueDate: string | null) => void;
-  onSetApprover: (approverId: string | null) => void;
   onUpload: () => void;
 }) {
   const meta = KIND_META[kind];
   const isReceived = !!doc;
+  const isApproved = isReceived && doc.approvalStatus === 'approved';
   const isOverdue = !isReceived && slot.dueDate && isBefore(new Date(slot.dueDate), startOfDay(new Date()));
 
   // Local input state so typing doesn't fire a mutation per keystroke.
@@ -653,14 +709,6 @@ function SlotCard({
     onRename(next);
   };
 
-  // Approver menu
-  const [approverAnchor, setApproverAnchor] = useState<HTMLElement | null>(null);
-  const closeApprover = () => setApproverAnchor(null);
-  const handleApproverPick = (id: string | null) => {
-    onSetApprover(id);
-    closeApprover();
-  };
-
   // Native date input — local state so calendar picker doesn't fire mid-edit.
   const [draftDue, setDraftDue] = useState(slot.dueDate ? toInputDate(slot.dueDate) : '');
   useEffect(() => setDraftDue(slot.dueDate ? toInputDate(slot.dueDate) : ''), [slot.dueDate]);
@@ -670,6 +718,12 @@ function SlotCard({
     if (next === current) return;
     onSetDueDate(next);
   };
+
+  // Due date is optional — collapsed to a "+ Add due date" button until the
+  // user opts in or a value already exists on the slot.
+  const [dueDateExpanded, setDueDateExpanded] = useState(false);
+  const dueDateInputRef = useRef<HTMLInputElement | null>(null);
+  const showDueDateField = !!slot.dueDate || dueDateExpanded;
 
   const cardBg = isReceived
     ? 'success.main'
@@ -704,7 +758,7 @@ function SlotCard({
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.25, position: 'relative' }}>
-        <SlotNumberBadge index={slot.index} kind={kind} isReceived={isReceived} />
+        <SlotNumberBadge index={slot.index} kind={kind} isReceived={isReceived} isApproved={isApproved} />
         <SlotNameInput
           value={draftName}
           onChange={setDraftName}
@@ -712,79 +766,73 @@ function SlotCard({
           placeholder={`Name this ${meta.label}…`}
           color={meta.color}
         />
-        <SlotStatusPill received={isReceived} overdue={!!isOverdue} />
+        <SlotStatusPill received={isReceived} overdue={!!isOverdue} approved={isApproved} />
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, position: 'relative' }}>
-        <FieldSlot label="Due date">
-          <Box
-            component="input"
-            type="date"
-            value={draftDue}
-            onChange={(e) => setDraftDue(e.target.value)}
-            onBlur={commitDue}
-            sx={{
-              fontFamily: 'inherit',
-              fontSize: 12,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: '6px',
-              bgcolor: 'background.default',
-              color: isOverdue ? 'warning.main' : 'text.primary',
-              px: 1,
-              py: 0.75,
-              outline: 'none',
-              width: '100%',
-              transition: 'border-color 0.15s',
-              '&:hover': { borderColor: 'text.disabled' },
-              '&:focus': { borderColor: meta.color },
-            }}
-          />
-        </FieldSlot>
-        <FieldSlot label="Approver">
+      <Box sx={{ position: 'relative' }}>
+        {showDueDateField ? (
+          <FieldSlot label="Due date">
+            <Box
+              ref={dueDateInputRef}
+              component="input"
+              type="date"
+              value={draftDue}
+              onChange={(e) => setDraftDue(e.target.value)}
+              onBlur={commitDue}
+              sx={{
+                fontFamily: 'inherit',
+                fontSize: 12,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: '6px',
+                bgcolor: 'background.default',
+                color: isOverdue ? 'warning.main' : 'text.primary',
+                px: 1,
+                py: 0.75,
+                outline: 'none',
+                width: '100%',
+                transition: 'border-color 0.15s',
+                '&:hover': { borderColor: 'text.disabled' },
+                '&:focus': { borderColor: meta.color },
+              }}
+            />
+          </FieldSlot>
+        ) : (
           <Box
             component="button"
-            onClick={(e) => setApproverAnchor(e.currentTarget)}
+            type="button"
+            onClick={() => {
+              setDueDateExpanded(true);
+              // Defer focus until after the input mounts.
+              requestAnimationFrame(() => dueDateInputRef.current?.focus());
+            }}
             sx={{
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: 0.75,
+              gap: 0.5,
+              px: 1,
+              py: 0.5,
               fontFamily: 'inherit',
-              fontSize: 12,
-              border: '1px solid',
+              fontSize: 11,
+              fontWeight: 500,
+              color: 'text.secondary',
+              bgcolor: 'transparent',
+              border: '1px dashed',
               borderColor: 'divider',
               borderRadius: '6px',
-              bgcolor: 'background.default',
-              color: slot.approver ? 'text.primary' : 'text.disabled',
-              px: 1,
-              py: 0.75,
               cursor: 'pointer',
-              width: '100%',
-              minWidth: 0,
-              textAlign: 'left',
-              '&:hover': { borderColor: 'text.disabled' },
+              transition: 'color 0.15s, border-color 0.15s, background-color 0.15s',
+              '&:hover': {
+                color: meta.color,
+                borderColor: meta.color,
+                bgcolor: `${meta.color}0F`,
+              },
             }}
           >
-            {slot.approver ? (
-              <>
-                <Avatar
-                  src={slot.approver.image ?? undefined}
-                  sx={{ width: 18, height: 18, fontSize: 9, fontWeight: 600 }}
-                >
-                  {(slot.approver.name ?? slot.approver.email).charAt(0).toUpperCase()}
-                </Avatar>
-                <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                  {slot.approver.name ?? slot.approver.email}
-                </Box>
-              </>
-            ) : (
-              <>
-                <UserCircle size={14} />
-                <span>Assign…</span>
-              </>
-            )}
+            <Plus size={11} weight="bold" />
+            Add due date
           </Box>
-        </FieldSlot>
+        )}
       </Box>
 
       {/* Footer: file info or upload CTA */}
@@ -814,6 +862,15 @@ function SlotCard({
             }}>
               {doc.name}
             </Box>
+            <ApprovalToggleSwitch
+              documentId={doc.id}
+              documentName={doc.name}
+              approvalStatus={doc.approvalStatus}
+              approvedBy={doc.approvedBy}
+              organizationId={organizationId}
+              memberRole={memberRole}
+              size="sm"
+            />
             <Box sx={{ color: 'text.secondary', flexShrink: 0 }}>
               {doc.createdAt ? format(new Date(doc.createdAt), 'MMM d') : ''}
             </Box>
@@ -821,71 +878,70 @@ function SlotCard({
         ) : (
           <Box
             component="button"
+            type="button"
             onClick={onUpload}
+            disabled={isPending}
+            aria-label={isPending ? 'Saving slot…' : meta.uploadCta}
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 0.75,
               border: 'none',
               background: 'transparent',
-              cursor: 'pointer',
+              cursor: isPending ? 'wait' : 'pointer',
               fontFamily: 'inherit',
               fontSize: 11,
               fontWeight: 500,
               color: meta.color,
+              opacity: isPending ? 0.5 : 1,
               p: 0,
-              '&:hover': { textDecoration: 'underline' },
+              '&:hover': { textDecoration: isPending ? 'none' : 'underline' },
             }}
           >
             <CloudArrowUp size={13} />
-            {meta.uploadCta}
+            {isPending ? 'Saving…' : meta.uploadCta}
           </Box>
         )}
       </Box>
 
-      {/* Approver picker menu */}
-      <Menu
-        anchorEl={approverAnchor}
-        open={!!approverAnchor}
-        onClose={closeApprover}
-        slotProps={{
-          paper: {
-            sx: { minWidth: 220, maxHeight: 320, mt: 0.5, borderRadius: '10px' },
-          },
-        }}
-      >
-        {slot.approverId && (
-          <MenuItem onClick={() => handleApproverPick(null)} sx={{ fontSize: 12, color: 'error.main' }}>
-            <Trash size={14} style={{ marginRight: 8 }} />
-            Clear approver
-          </MenuItem>
-        )}
-        {members.length === 0 ? (
-          <MenuItem disabled sx={{ fontSize: 12 }}>No members in this org</MenuItem>
-        ) : (
-          members.map((m) => (
-            <MenuItem
-              key={m.user.id}
-              onClick={() => handleApproverPick(m.user.id)}
-              selected={m.user.id === slot.approverId}
-              sx={{ fontSize: 12, gap: 1 }}
-            >
-              <Avatar
-                src={m.user.image ?? undefined}
-                sx={{ width: 22, height: 22, fontSize: 10, fontWeight: 600 }}
-              >
-                {(m.user.name ?? m.user.email).charAt(0).toUpperCase()}
-              </Avatar>
-              <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <Box sx={{ fontWeight: 500, lineHeight: 1.2 }}>{m.user.name ?? m.user.email}</Box>
-                {m.user.name && (
-                  <Box sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.2 }}>{m.user.email}</Box>
-                )}
-              </Box>
-            </MenuItem>
-          ))
-        )}
-      </Menu>
+      {isApproved && doc && <ApprovedByLine doc={doc} />}
+
+    </Box>
+  );
+}
+
+function ApprovedByLine({ doc }: { doc: SlotBoundDoc }) {
+  const approver = doc.approvedBy;
+  const approverLabel = approver?.name ?? approver?.email ?? 'a reviewer';
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.75,
+        mt: 1,
+        pt: 1,
+        borderTop: '1px solid',
+        borderColor: 'rgba(22,163,74,0.18)',
+        fontSize: 10.5,
+        color: 'success.main',
+        fontWeight: 500,
+      }}
+    >
+      {approver ? (
+        <UserAvatar user={approver} size={16} sx={{ fontSize: 9 }} />
+      ) : (
+        <CheckCircle size={14} weight="fill" />
+      )}
+      <Box component="span">Approved by {approverLabel}</Box>
+      {doc.approvedAt && (
+        <>
+          <Box component="span" sx={{ color: 'text.disabled' }}>·</Box>
+          <Box component="span" sx={{ color: 'text.secondary' }}>
+            {format(new Date(doc.approvedAt), 'MMM d')}
+          </Box>
+        </>
+      )}
     </Box>
   );
 }
@@ -894,10 +950,12 @@ function SlotNumberBadge({
   index,
   kind,
   isReceived,
+  isApproved,
 }: {
   index: number;
   kind: SlotKind;
   isReceived: boolean;
+  isApproved: boolean;
 }) {
   const meta = KIND_META[kind];
   const bg = isReceived ? 'var(--mui-palette-success-main, #16a34a)' : `${meta.color}1F`;
@@ -916,6 +974,8 @@ function SlotNumberBadge({
         fontSize: 10,
         fontWeight: 700,
         flexShrink: 0,
+        boxShadow: isApproved ? '0 0 0 3px rgba(22,163,74,0.20)' : 'none',
+        transition: 'box-shadow 0.15s',
       }}
     >
       {isReceived ? <CheckCircle size={12} weight="fill" /> : index + 1}
@@ -985,15 +1045,28 @@ function FieldSlot({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-function SlotStatusPill({ received, overdue }: { received: boolean; overdue: boolean }) {
-  const config = received
-    ? { label: 'Received', bg: 'rgba(22,163,74,0.14)', color: 'success.main' }
-    : overdue
-      ? { label: 'Overdue', bg: 'rgba(217,119,6,0.14)', color: 'warning.main' }
-      : { label: 'Pending', bg: 'action.selected', color: 'text.secondary' };
+function SlotStatusPill({
+  received,
+  overdue,
+  approved,
+}: {
+  received: boolean;
+  overdue: boolean;
+  approved: boolean;
+}) {
+  const config = approved
+    ? { label: 'Approved', bg: 'success.main', color: 'success.contrastText', showCheck: true }
+    : received
+      ? { label: 'Received', bg: 'rgba(22,163,74,0.14)', color: 'success.main', showCheck: false }
+      : overdue
+        ? { label: 'Overdue', bg: 'rgba(217,119,6,0.14)', color: 'warning.main', showCheck: false }
+        : { label: 'Pending', bg: 'action.selected', color: 'text.secondary', showCheck: false };
   return (
     <Box
       sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '3px',
         fontSize: 10,
         fontWeight: 600,
         px: 0.875,
@@ -1005,6 +1078,7 @@ function SlotStatusPill({ received, overdue }: { received: boolean; overdue: boo
         flexShrink: 0,
       }}
     >
+      {config.showCheck && <CheckCircle size={11} weight="fill" />}
       {config.label}
     </Box>
   );

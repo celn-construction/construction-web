@@ -71,44 +71,21 @@ export default function IdentityMenu() {
             }}
           >
             {user && <UserAvatar user={user} size={32} borderRadius="8px" />}
-            <Box
+            <Typography
               sx={{
-                display: { xs: 'none', md: 'flex' },
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                minWidth: 0,
-                gap: '2px',
+                display: { xs: 'none', md: 'block' },
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                color: 'text.primary',
                 lineHeight: 1.2,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: 160,
               }}
             >
-              <Typography
-                sx={{
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                  color: 'text.primary',
-                  lineHeight: 1.2,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  maxWidth: 160,
-                }}
-              >
-                {user?.name ?? 'User'}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.6875rem',
-                  color: 'text.secondary',
-                  lineHeight: 1.2,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  maxWidth: 160,
-                }}
-              >
-                {user?.email ?? ''}
-              </Typography>
-            </Box>
+              {user?.name ?? 'User'}
+            </Typography>
           </Box>
         </DropdownMenuTrigger>
 

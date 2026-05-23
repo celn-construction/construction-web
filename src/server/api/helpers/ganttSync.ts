@@ -200,13 +200,19 @@ export async function syncTasks(
       }
 
       try {
-        const updated = await db.ganttTask.update({
+        await db.ganttTask.update({
           where: { id: task.id, projectId },
           data: updateData,
           select: { id: true },
         });
 
-        result.rows.push({ id: updated.id });
+        // Bryntum's CrudManager protocol: `tasks.rows` is strictly the
+        // phantom→real id swap table for ADDED records. Pushing updated rows
+        // (which carry no $PhantomId) into the same array poisons
+        // afterSyncAttempt — it iterates every row assuming a $PhantomId and
+        // throws "Cannot set properties of undefined (setting
+        // 'isBeingMaterialized')" on the first one without one. Updates don't
+        // need echoing: the client already knows the id from the request.
       } catch (error) {
         // P2025 = record not found (deleted concurrently or never existed —
         // e.g. STM undo of an unsynced add sends an UPDATE for a phantom id).

@@ -213,7 +213,7 @@ await ctx.db.$transaction(async (tx) => {
 
 A few procedures deal with data that was migrated additively — a new table sits next to a legacy column without backfilling rows in the migration itself. The pattern is to backfill **on first read** inside the read procedure:
 
-- `gantt.listSlots` lazily creates `TaskRequirementSlot` rows the first time a task with a non-zero `requiredSubmittals` / `requiredInspections` is read. The legacy count column remains the source of truth for the count; the new table holds the per-slot metadata (`name`, `dueDate`, `approverId`).
+- `gantt.listSlots` lazily creates `TaskRequirementSlot` rows the first time a task with a non-zero `requiredSubmittals` / `requiredInspections` is read. The legacy count column remains the source of truth for the count; the new table holds the per-slot metadata (`name`, `dueDate`).
 - Mutations that change the count (`gantt.setSlotCount`) keep the legacy column synced inside the same `$transaction` so existing readers (`gantt.taskDetail`, `gantt.requirementStats`, the inline popover progress) don't need to change.
 
 Use this pattern when a migration is purely additive and the read path can self-heal — it avoids destructive bulk-write migrations on the shared dev DB.

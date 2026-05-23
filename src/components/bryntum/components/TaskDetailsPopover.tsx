@@ -299,6 +299,9 @@ export function TaskDetailsPopover({
               onClose={handleClose}
               onOpenCsiPanel={openCsiPanel}
               onScrollToRequirements={handleScrollToRequirements}
+              onOpenRequirementsDrawer={
+                canManageSlots ? () => setDrawerKind('submittal') : undefined
+              }
               submittalsCurrent={submittalsCurrent}
               inspectionsCurrent={inspectionsCurrent}
             />
@@ -501,6 +504,7 @@ export function TaskDetailsPopover({
           projectId={projectId}
           taskId={taskId}
           taskName={taskName}
+          memberRole={memberRole}
           initialKind={drawerKind}
           docsByKind={{
             submittal: ((allDocs ?? []) as DocumentItem[]).filter((d) =>

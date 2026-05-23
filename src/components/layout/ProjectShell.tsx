@@ -9,6 +9,7 @@ import { differenceInCalendarDays } from 'date-fns';
 import FilesContent from '@/components/files/FilesContent';
 import { IBeamLoader } from '@/components/ui/IBeamLoader';
 import TaskProgressCard from '@/components/bryntum/components/TaskProgressCard';
+import TaskCountPill from '@/components/layout/TaskCountPill';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import { api } from '@/trpc/react';
@@ -135,8 +136,9 @@ export default function ProjectShell({ children, projectId, projectName }: Proje
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5, flexShrink: 0 }}>
-            {currentProject && (
+            {currentProject && activeOrganizationId && (
               <>
+                <TaskCountPill organizationId={activeOrganizationId} projectId={projectId} />
                 <TaskProgressCard
                   uploaded={reqStats?.totalUploaded ?? 0}
                   required={reqStats?.totalRequired ?? 0}

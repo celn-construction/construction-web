@@ -274,6 +274,40 @@ describe("gantt.sync — add task", () => {
     warnSpy.mockRestore();
   });
 
+  // Regression: Bryntum's CrudManager treats every entry in `tasks.rows` as a
+  // phantom→real id swap and dereferences `phantomMap[row.$PhantomId]`. Pushing
+  // an "update" row (which has no $PhantomId) into the same array makes
+  // afterSyncAttempt throw "Cannot set properties of undefined (setting
+  // 'isBeingMaterialized')" the moment a sync contains both adds and updates —
+  // which happens every time a subtask is added (parent task gets re-ordered).
+  it("does NOT push updated tasks into tasks.rows (only adds with $PhantomId)", async () => {
+    const ctx = makeCtx();
+    // Mark the updated row as existing so the update mock resolves
+    ctx.tx.ganttTask.update.mockResolvedValue({ id: "existing-real-id" });
+
+    const result = await sync._handler({
+      ctx,
+      input: {
+        organizationId: ORG_ID,
+        projectId: PROJECT_ID,
+        tasks: {
+          added: [{ $PhantomId: "_new1", name: "New task" }],
+          updated: [{ id: "existing-real-id", name: "Renamed" }],
+        },
+      },
+    });
+
+    // 1 add → 1 row. The update must NOT contribute a row.
+    expect(result.tasks.rows).toHaveLength(1);
+    expect(result.tasks.rows[0]!.$PhantomId).toBe("_new1");
+    // No entry in rows should be missing $PhantomId — that's the contract.
+    for (const row of result.tasks.rows) {
+      expect(row.$PhantomId).toBeDefined();
+    }
+    // Sanity: the update still ran against the DB.
+    expect(ctx.tx.ganttTask.update).toHaveBeenCalledTimes(1);
+  });
+
   it("nulls parentId when the referenced parent does not exist (orphan defense)", async () => {
     const ctx = makeCtx();
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});

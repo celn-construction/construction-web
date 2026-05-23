@@ -23,13 +23,18 @@ type GanttTaskSelect = {
   csiCode: string | null;
   baselines: unknown;
   orderIndex: number;
+  requiredSubmittals?: number | null;
+  requiredInspections?: number | null;
 };
 
 // Bryntum expects specific field names - map DB fields to Bryntum fields
 export function mapTaskToGantt(
   task: GanttTaskSelect,
   needsReviewCount = 0,
+  requirementsFilled = 0,
 ): Record<string, unknown> {
+  const requirementsTotal =
+    (task.requiredSubmittals ?? 0) + (task.requiredInspections ?? 0);
   return {
     id: task.id,
     parentId: task.parentId,
@@ -52,6 +57,8 @@ export function mapTaskToGantt(
     csiCode: task.csiCode,
     baselines: task.baselines,
     needsReviewCount,
+    requirementsTotal,
+    requirementsFilled: Math.min(requirementsFilled, requirementsTotal),
   };
 }
 
@@ -106,13 +113,18 @@ export function mapTimeRangeToGantt(timeRange: GanttTimeRange): Record<string, u
 export function buildTaskTree(
   tasks: GanttTaskSelect[],
   needsReviewCounts?: Map<string, number>,
+  requirementsFilledCounts?: Map<string, number>,
 ): Record<string, unknown>[] {
   const taskMap = new Map<string, Record<string, unknown>>();
   const rootTasks: Record<string, unknown>[] = [];
 
   // First pass: create all task objects
   for (const task of tasks) {
-    const ganttTask = mapTaskToGantt(task, needsReviewCounts?.get(task.id) ?? 0);
+    const ganttTask = mapTaskToGantt(
+      task,
+      needsReviewCounts?.get(task.id) ?? 0,
+      requirementsFilledCounts?.get(task.id) ?? 0,
+    );
     ganttTask.children = [];
     taskMap.set(task.id, ganttTask);
   }
