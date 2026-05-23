@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, CircularProgress, Typography, alpha, useTheme } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import { CloudArrowUp } from '@phosphor-icons/react';
@@ -79,8 +79,12 @@ function SlotDropzoneInner({
     disabled: !onDropFile || isUploading,
   });
 
-  // Derive due-date display from the raw value.
-  const parsedDue = dueDate ? (typeof dueDate === 'string' ? new Date(dueDate) : dueDate) : null;
+  // Stable Date reference so the effect below doesn't fire on every render
+  // (a fresh `new Date(...)` would be a new identity each pass).
+  const parsedDue = useMemo(
+    () => (dueDate ? (typeof dueDate === 'string' ? new Date(dueDate) : dueDate) : null),
+    [dueDate],
+  );
   const dueState = parsedDue ? describeDueDate(parsedDue) : null;
   const isOverdue = dueState?.tone === 'overdue';
 
@@ -108,11 +112,6 @@ function SlotDropzoneInner({
     requestAnimationFrame(() => dueInputRef.current?.focus());
   };
 
-  // Visual states:
-  // Resting: no border, action.hover bg, quiet badge.
-  // Hover:   dashed accent outline.
-  // Drag:    solid folderColor outline + alpha bg + scaled badge/icon.
-  // Overdue: badge tinted with error.main @12%, date text red.
   const dragBg = alpha(folderColor, 0.08);
   const dragRing = alpha(folderColor, 0.18);
 
@@ -132,7 +131,7 @@ function SlotDropzoneInner({
 
   return (
     <Box
-      {...(onDropFile && !isUploading ? getRootProps() : {})}
+      {...getRootProps()}
       onClick={isUploading ? undefined : onClick}
       sx={{
         position: 'relative',
@@ -165,11 +164,8 @@ function SlotDropzoneInner({
               }),
       }}
     >
-      {onDropFile && !isUploading && <input {...getInputProps()} />}
+      <input {...getInputProps()} />
 
-      {/* Slot number badge — overdue tints it red. While uploading, the badge
-          becomes a spinner so the user can see which slot the active upload
-          is landing in. */}
       <Box
         sx={{
           display: 'flex',
@@ -230,7 +226,6 @@ function SlotDropzoneInner({
         {isUploading ? `Uploading ${label}…` : isDragActive ? `Drop to upload ${label}` : label}
       </Typography>
 
-      {/* Due-date column — 4 states (editing | with date | no date + editor | nothing). */}
       {editingDue ? (
         <Box
           component="input"

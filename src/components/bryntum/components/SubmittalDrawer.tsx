@@ -7,6 +7,7 @@ import {
   IconButton,
   Typography,
   CircularProgress,
+  alpha,
 } from '@mui/material';
 import {
   X,
@@ -1000,7 +1001,7 @@ function SlotNumberBadge({
         boxShadow: isApproved
           ? '0 0 0 3px rgba(22,163,74,0.20)'
           : isReceived
-            ? '0 0 0 3px rgba(79,70,229,0.18)'
+            ? `0 0 0 3px ${alpha(RECEIVED_COLOR, 0.18)}`
             : 'none',
         transition: 'box-shadow 0.15s, background-color 0.2s',
       }}
@@ -1078,6 +1079,42 @@ function FieldSlot({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
+// Approved → solid green pill with ✓ (the "done" signal).
+// Received → indigo tint + border + inbox icon ("awaiting your decision",
+//   visually distinct from approved).
+// Overdue → amber tint, no icon.
+// Pending → neutral gray, no icon.
+const PILL_CONFIG = {
+  approved: {
+    label: 'Approved',
+    bg: 'success.main',
+    color: 'success.contrastText',
+    borderColor: 'transparent',
+    icon: <CheckCircle size={11} weight="fill" />,
+  },
+  received: {
+    label: 'Received',
+    bg: alpha(RECEIVED_COLOR, 0.10),
+    color: RECEIVED_COLOR,
+    borderColor: alpha(RECEIVED_COLOR, 0.30),
+    icon: <Tray size={11} weight="bold" />,
+  },
+  overdue: {
+    label: 'Overdue',
+    bg: 'rgba(217,119,6,0.14)',
+    color: 'warning.main',
+    borderColor: 'transparent',
+    icon: null,
+  },
+  pending: {
+    label: 'Pending',
+    bg: 'action.selected',
+    color: 'text.secondary',
+    borderColor: 'transparent',
+    icon: null,
+  },
+} as const;
+
 function SlotStatusPill({
   received,
   overdue,
@@ -1087,42 +1124,8 @@ function SlotStatusPill({
   overdue: boolean;
   approved: boolean;
 }) {
-  // Approved → solid green pill with ✓ (the "done" signal).
-  // Received → indigo pill with a soft tint + indigo border + inbox icon (the
-  //   "awaiting your decision" signal — visually distinct from approved).
-  // Overdue → amber tint, no icon.
-  // Pending → neutral gray, no icon.
-  const config = approved
-    ? {
-        label: 'Approved',
-        bg: 'success.main',
-        color: 'success.contrastText',
-        borderColor: 'transparent',
-        icon: <CheckCircle size={11} weight="fill" />,
-      }
-    : received
-      ? {
-          label: 'Received',
-          bg: 'rgba(79,70,229,0.10)',
-          color: RECEIVED_COLOR,
-          borderColor: 'rgba(79,70,229,0.30)',
-          icon: <Tray size={11} weight="bold" />,
-        }
-      : overdue
-        ? {
-            label: 'Overdue',
-            bg: 'rgba(217,119,6,0.14)',
-            color: 'warning.main',
-            borderColor: 'transparent',
-            icon: null,
-          }
-        : {
-            label: 'Pending',
-            bg: 'action.selected',
-            color: 'text.secondary',
-            borderColor: 'transparent',
-            icon: null,
-          };
+  const status = approved ? 'approved' : received ? 'received' : overdue ? 'overdue' : 'pending';
+  const config = PILL_CONFIG[status];
   return (
     <Box
       sx={{

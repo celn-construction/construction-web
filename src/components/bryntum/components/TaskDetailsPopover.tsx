@@ -59,6 +59,7 @@ export function TaskDetailsPopover({
   const [uploadingSlotIds, setUploadingSlotIds] = useState<Set<string>>(new Set());
   const markSlotUploading = useCallback((slotId: string, on: boolean) => {
     setUploadingSlotIds((prev) => {
+      if (prev.has(slotId) === on) return prev;
       const next = new Set(prev);
       if (on) next.add(slotId);
       else next.delete(slotId);

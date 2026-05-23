@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Box, Typography, alpha, useTheme } from '@mui/material';
 import { FileText, CheckCircle } from '@phosphor-icons/react';
 import type { FolderContentProps, PreviewDoc } from './types';
@@ -58,10 +58,13 @@ function TrackableFolderContentInner({
       }
     },
   });
-  const setSlotDueDate = (slotId: string, dueDate: string | null) => {
-    if (!organizationId || !projectId) return;
-    updateSlotMutation.mutate({ organizationId, projectId, slotId, dueDate });
-  };
+  const setSlotDueDate = useCallback(
+    (slotId: string, dueDate: string | null) => {
+      if (!organizationId || !projectId) return;
+      updateSlotMutation.mutate({ organizationId, projectId, slotId, dueDate });
+    },
+    [organizationId, projectId, updateSlotMutation],
+  );
 
   // No requirement set — empty state (no dropzones until a requirement is configured)
   if (required === null || required === 0) {
