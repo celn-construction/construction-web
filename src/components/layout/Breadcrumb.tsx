@@ -18,7 +18,7 @@ function getTrailingLabel(segment: string | undefined): string | null {
 export default function Breadcrumb() {
   const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
   const pathname = usePathname();
-  const { projectSlug } = params;
+  const { orgSlug, projectSlug } = params;
 
   // Determine the trailing page segment. For project routes, it's the segment after [projectSlug].
   // For org-root, there is no trailing segment.
