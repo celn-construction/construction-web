@@ -5,6 +5,8 @@ import { VALID_PROJECT_COLORS } from "@/lib/constants/projectColors";
 export const createProjectSchema = z.object({
   name: z.string().min(1, "Project name is required").max(100).trim(),
   location: z.string().min(1, "Location is required").max(200).trim(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   icon: z.enum(VALID_PROJECT_ICONS).default("building").optional(),
   color: z.enum(VALID_PROJECT_COLORS).optional(),
   imageUrl: z.string().url().optional(),
@@ -14,7 +16,7 @@ export const createProjectSchema = z.object({
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 
 export const updateProjectSchema = createProjectSchema
-  .pick({ name: true, location: true, icon: true, color: true, imageUrl: true })
+  .pick({ name: true, location: true, latitude: true, longitude: true, icon: true, color: true, imageUrl: true })
   .partial()
   .extend({ location: z.string().max(200).trim().optional() })
   .strict();

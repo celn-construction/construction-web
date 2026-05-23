@@ -1,11 +1,14 @@
 export type NavSection = 'project-plan' | 'documents' | 'workspace';
 
+export type NavScope = 'org' | 'project';
+
 export interface NavItem {
   id: string;
   label: string;
   icon: string;
   segment: string;
   section: NavSection;
+  scope?: NavScope;
 }
 
 export interface NavSectionDef {
@@ -19,8 +22,10 @@ export const SIDEBAR_SECTIONS: NavSectionDef[] = [
   { id: 'workspace', label: 'Workspace' },
 ];
 
-// Organization-level navigation (no longer used)
-export const orgNavItems: NavItem[] = [];
+// Organization-level navigation
+export const orgNavItems: NavItem[] = [
+  { id: 'projects', label: 'Projects', icon: 'MapPin', segment: 'projects', section: 'workspace', scope: 'org' },
+];
 
 // Project-level navigation (requires a selected project)
 export const projectNavItems: NavItem[] = [

@@ -28,7 +28,7 @@ export default function Header({ onMenuOpen }: HeaderProps) {
 
   useNavigationLoading();
   const { activeOrganizationId, orgSlug } = useOrgFromUrl();
-  const { currentProject } = useProjectSwitcher(activeOrganizationId, orgSlug);
+  const { effectiveProject } = useProjectSwitcher(activeOrganizationId, orgSlug);
 
   const { unreadCount, notificationsData, markAsRead, markAllAsRead } = useNotifications(
     activeOrganizationId,
@@ -72,10 +72,10 @@ export default function Header({ onMenuOpen }: HeaderProps) {
 
       {/* Right: weather (when applicable) + notifications + identity */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-        {currentProject?.location && activeOrganizationId && (
+        {effectiveProject?.location && activeOrganizationId && (
           <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
             <LocationWeather
-              location={currentProject.location}
+              location={effectiveProject.location}
               organizationId={activeOrganizationId}
             />
           </Box>

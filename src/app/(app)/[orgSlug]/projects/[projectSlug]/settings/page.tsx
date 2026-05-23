@@ -17,7 +17,7 @@ import { useTheme, alpha } from '@mui/material/styles';
 import Script from 'next/script';
 import { useRouter, useParams } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
-import usePlacesAutocomplete, { getGeocode } from 'use-places-autocomplete';
+import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete';
 import { api } from '@/trpc/react';
 import { canDeleteProjects, canManageProjects } from '@/lib/permissions';
 import { updateProjectSchema, type UpdateProjectInput } from '@/lib/validations/project';
@@ -38,7 +38,12 @@ const GOOGLE_PLACES_API_KEY = env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
 
 function LocationAutocompleteField({
   value, onChange, error, helperText,
-}: { value: string; onChange: (v: string) => void; error?: boolean; helperText?: string }) {
+}: {
+  value: string;
+  onChange: (v: string, coords?: { lat: number; lng: number }) => void;
+  error?: boolean;
+  helperText?: string;
+}) {
   const {
     ready,
     suggestions: { data },
@@ -57,8 +62,21 @@ function LocationAutocompleteField({
 
   const handleSelect = useCallback(
     async (_e: React.SyntheticEvent, v: string | null) => {
-      if (v) { onChange(v); clearSuggestions(); try { await getGeocode({ address: v }); } catch { /* ok */ } }
-      else { onChange(''); }
+      if (v) {
+        clearSuggestions();
+        try {
+          const result = await getGeocode({ address: v });
+          const first = result[0];
+          if (first) {
+            const { lat, lng } = await getLatLng(first);
+            onChange(v, { lat, lng });
+            return;
+          }
+          onChange(v);
+        } catch {
+          onChange(v);
+        }
+      } else { onChange(''); }
     },
     [onChange, clearSuggestions],
   );
@@ -477,7 +495,18 @@ function ProjectSettingsForm({
           <Box sx={{ mt: 2 }}>
           <Controller name="location" control={control} render={({ field }) =>
             useGooglePlaces ? (
-              <LocationAutocompleteField value={field.value ?? ''} onChange={field.onChange}
+              <LocationAutocompleteField
+                value={field.value ?? ''}
+                onChange={(v, coords) => {
+                  field.onChange(v);
+                  if (coords) {
+                    setValue('latitude', coords.lat, { shouldDirty: true });
+                    setValue('longitude', coords.lng, { shouldDirty: true });
+                  } else {
+                    setValue('latitude', undefined, { shouldDirty: true });
+                    setValue('longitude', undefined, { shouldDirty: true });
+                  }
+                }}
                 error={!!errors.location} helperText={errors.location?.message} />
             ) : (
               <PlainLocationField value={field.value ?? ''} onChange={field.onChange}

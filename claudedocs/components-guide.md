@@ -12,7 +12,7 @@ Conventions for adding, naming, and structuring components in `src/components/`.
 | `layout/` | App shell: Header, Sidebar, MobileDrawer, OrgSwitcher, ProjectSwitcher, UserMenu, PageHeader |
 | `providers/` | React context providers: ThemeRegistry, OrgProvider, ProjectProvider, LoadingProvider |
 | `dashboard/` | Dashboard feature components (StatsCards, ProjectsList, TeamActivity) |
-| `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel, SidebarRowPreview) |
+| `projects/` | Project CRUD dialogs and trees (AddProjectDialog, ProjectFormBody, ProjectsTree, ProjectDetailPanel, SidebarRowPreview) plus the portfolio surface at `/[orgSlug]/projects` (ProjectsView, ProjectsMap, ProjectsListPane) |
 | `documents/` | Document feature components (DocumentList, UploadDialog, FileDropzone) |
 | `approvals/` | Submittal/inspection approval workflow (ApprovalToggle, ReviewQueueContent, ReviewCard). The Review Queue's "Overdue" tab reads from `gantt.listSlots` / `approval.listOverdueSlots` so per-task slot due dates surface here. |
 | `team/` | Team/invite management (MembersList, InviteDialog, RoleSelect, PendingInvitesList) |

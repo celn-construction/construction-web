@@ -218,6 +218,27 @@ A few procedures deal with data that was migrated additively — a new table sit
 
 Use this pattern when a migration is purely additive and the read path can self-heal — it avoids destructive bulk-write migrations on the shared dev DB.
 
+---
+
+### Aggregating with parallel queries (`project.list` shape)
+
+`project.list` returns each project enriched with task stats AND a top-5 member preview. Three parallel queries (`groupBy` task stats × 2, `findMany` for members) are batched into a single `Promise.all` and grouped in JS — preferred over `groupBy + findMany` per project (which would do a query per project).
+
+The returned shape per project:
+
+```ts
+{
+  ...project,                // includes latitude, longitude, location
+  taskCount: number,
+  completedTaskCount: number,
+  completionPercent: number,
+  members: Array<{ id, name, image, role }>,   // top 5
+  memberCount: number,                          // total
+}
+```
+
+Component code that consumes this list (e.g. `ProjectsView`, `ProjectsMap`, `ProjectsListPane`) gets coordinates and member previews "for free" — no second roundtrip needed.
+
 ## 6. Helper Functions
 
 **File location:** `src/server/api/helpers/`

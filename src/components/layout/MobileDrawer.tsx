@@ -5,14 +5,14 @@ import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { Settings, LogOut, ChevronRight } from 'lucide-react';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, X, type Icon } from '@phosphor-icons/react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, MapPin, X, type Icon } from '@phosphor-icons/react';
 import { Drawer, Box, IconButton, Typography } from '@mui/material';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { projectNavItems, getProjectNavHref, SIDEBAR_SECTIONS } from './navItems';
+import { projectNavItems, orgNavItems, getProjectNavHref, getOrgNavHref, SIDEBAR_SECTIONS, type NavItem } from './navItems';
 import OrgSwitcher from './OrgSwitcher';
 
 import { api } from '@/trpc/react';
@@ -31,6 +31,7 @@ const iconMap: Record<string, Icon> = {
   FileMagnifyingGlass,
   GearSix,
   UsersThree,
+  MapPin,
 };
 
 interface MobileDrawerProps {
@@ -53,8 +54,12 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const { showLoading, hideLoading } = useLoading();
 
   const { activeOrganizationId } = useOrgFromUrl();
-  const { currentProject } = useProjectSwitcher(activeOrganizationId, orgSlug ?? '');
-  const projectId = currentProject?.id ?? '';
+  const { effectiveProject, effectiveProjectSlug } = useProjectSwitcher(
+    activeOrganizationId,
+    orgSlug ?? '',
+  );
+  const projectId = effectiveProject?.id ?? '';
+  const navProjectSlug = projectSlug ?? effectiveProjectSlug ?? undefined;
   const { data: projectMembers = [] } = api.projectMember.list.useQuery(
     { projectId },
     { enabled: !!projectId, retry: false },
@@ -171,7 +176,10 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       >
         {/* Grouped Nav Sections */}
         {SIDEBAR_SECTIONS.map((section, sectionIdx) => {
-          const items = projectNavItems.filter((i) => i.section === section.id);
+          const items: NavItem[] = [
+            ...orgNavItems.filter((i) => i.section === section.id),
+            ...projectNavItems.filter((i) => i.section === section.id),
+          ];
           if (items.length === 0) return null;
 
           return (
@@ -194,9 +202,14 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                 {items.map((item) => {
                   const NavIcon = iconMap[item.icon] ?? ChartBar;
-                  const href = getProjectNavHref(item.segment, orgSlug, projectSlug);
-                  const isActive = !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
-                  const isDisabled = !projectSlug;
+                  const isOrgScope = item.scope === 'org';
+                  const href = isOrgScope
+                    ? (orgSlug ? getOrgNavHref(item.segment, orgSlug) : '#')
+                    : getProjectNavHref(item.segment, orgSlug, navProjectSlug);
+                  const isActive = isOrgScope
+                    ? !!(orgSlug && pathname === `/${orgSlug}/${item.segment}`)
+                    : !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
+                  const isDisabled = isOrgScope ? !orgSlug : !navProjectSlug;
                   const badgeCount = item.id === 'team' && !isDisabled ? memberCount : null;
 
                   const content = (

@@ -23,6 +23,7 @@ Construction project management SaaS (BuildTrack Pro) built on the T3 stack: Nex
 | `SENTRY_AUTH_TOKEN` | Sentry auth token for source map uploads | Optional | Auto-provisioned by Vercel-Sentry integration |
 | `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY` | Google API key with Places API enabled for address autocomplete on project creation. Omit to fall back to plain text input. | Optional | Get from console.cloud.google.com |
 | `OPENWEATHERMAP_API_KEY` | OpenWeatherMap API key for job site weather display in header. Omit to hide weather info. | Optional | Get from openweathermap.org/api |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox public access token (`pk.*`) for the Projects → Map view. Omit to hide the Map tab with a "set token to enable" message. URL-restrict the token in the Mapbox dashboard to `celn.app`, `preview.celn.app`, `*.vercel.app`, and `localhost:*`. | Optional | Get from account.mapbox.com |
 | `NEXT_PUBLIC_APP_URL` | Client-side base URL | Optional | `http://localhost:3000` |
 | `NODE_ENV` | Runtime environment | Auto | `development` / `production` / `test` |
 | `PORT` | Dev server port | Auto (defaults to `3000`) | `3000` |

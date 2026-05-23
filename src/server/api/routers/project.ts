@@ -59,9 +59,9 @@ export const projectRouter = createTRPCRouter({
         orderBy: { createdAt: "asc" },
       });
 
-      // Get task completion stats per project
+      // Get task completion stats and members per project (parallel)
       const projectIds = projects.map((p) => p.id);
-      const [taskStats, completedStats] = projectIds.length > 0
+      const [taskStats, completedStats, members] = projectIds.length > 0
         ? await Promise.all([
             ctx.db.ganttTask.groupBy({
               by: ["projectId"],
@@ -74,8 +74,17 @@ export const projectRouter = createTRPCRouter({
               where: { projectId: { in: projectIds }, percentDone: 100 },
               _count: { id: true },
             }),
+            ctx.db.projectMember.findMany({
+              where: { projectId: { in: projectIds } },
+              select: {
+                projectId: true,
+                role: true,
+                user: { select: { id: true, name: true, image: true } },
+              },
+              orderBy: { createdAt: "asc" },
+            }),
           ])
-        : [[], []];
+        : [[], [], []];
 
       const completedMap = new Map(
         completedStats.map((s) => [s.projectId, s._count.id])
@@ -92,12 +101,29 @@ export const projectRouter = createTRPCRouter({
         ])
       );
 
-      return projects.map((p) => ({
-        ...withProxyImageUrl(p),
-        taskCount: statsMap.get(p.id)?.taskCount ?? 0,
-        completedTaskCount: statsMap.get(p.id)?.completedTaskCount ?? 0,
-        completionPercent: statsMap.get(p.id)?.completionPercent ?? 0,
-      }));
+      const membersByProject = new Map<string, typeof members>();
+      for (const m of members) {
+        const list = membersByProject.get(m.projectId) ?? [];
+        list.push(m);
+        membersByProject.set(m.projectId, list);
+      }
+
+      return projects.map((p) => {
+        const projectMembers = membersByProject.get(p.id) ?? [];
+        return {
+          ...withProxyImageUrl(p),
+          taskCount: statsMap.get(p.id)?.taskCount ?? 0,
+          completedTaskCount: statsMap.get(p.id)?.completedTaskCount ?? 0,
+          completionPercent: statsMap.get(p.id)?.completionPercent ?? 0,
+          members: projectMembers.slice(0, 5).map((m) => ({
+            id: m.user.id,
+            name: m.user.name,
+            image: m.user.image,
+            role: m.role,
+          })),
+          memberCount: projectMembers.length,
+        };
+      });
     }),
 
   create: protectedProcedure
@@ -157,6 +183,8 @@ export const projectRouter = createTRPCRouter({
         data: {
           name: input.name,
           location: input.location,
+          latitude: input.latitude ?? null,
+          longitude: input.longitude ?? null,
           icon: input.icon,
           imageUrl: input.imageUrl ?? null,
           slug,
@@ -392,6 +420,14 @@ export const projectRouter = createTRPCRouter({
 
       if (input.location !== undefined) {
         data.location = input.location;
+      }
+
+      if (input.latitude !== undefined) {
+        data.latitude = input.latitude;
+      }
+
+      if (input.longitude !== undefined) {
+        data.longitude = input.longitude;
       }
 
       if (input.icon !== undefined) {
