@@ -10,6 +10,7 @@ import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { useOrgContext } from '@/components/providers/OrgProvider';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
+import { trackUpload } from '@/store/uploadStatusStore';
 import type { PopoverPlacement, BryntumGanttInstance } from '../types';
 import type { PreviewDoc, DocumentItem } from './task-popover/types';
 
@@ -51,6 +52,19 @@ export function TaskDetailsPopover({
   const [uploadTarget, setUploadTarget] = useState<{ folder: { id: string; name: string }; slotId?: string } | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
   const [drawerKind, setDrawerKind] = useState<SlotKind | null>(null);
+  // Per-slot upload tracking — drives the in-place "Uploading…" badge on
+  // SlotDropzone rows so the user can see where the file is landing even
+  // after the dialog closes. Both the dialog path and the DnD path feed
+  // this set via markSlotUploading.
+  const [uploadingSlotIds, setUploadingSlotIds] = useState<Set<string>>(new Set());
+  const markSlotUploading = useCallback((slotId: string, on: boolean) => {
+    setUploadingSlotIds((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(slotId);
+      else next.delete(slotId);
+      return next;
+    });
+  }, []);
 
   const openUploadDialog = useCallback(
     (folder: { id: string; name: string }, slotId?: string) => {
@@ -174,6 +188,34 @@ export function TaskDetailsPopover({
     setUploadTarget(null);
   }, [organizationId, projectId, taskId, utils]);
 
+  // Per-slot drag-and-drop upload: bypasses the dialog (no title/notes prompt)
+  // and routes through trackUpload so the global chip shows progress. The
+  // slotId is marked uploading so the SlotDropzone row also reflects that
+  // state in-place until the upload resolves.
+  const handleUploadFile = useCallback(
+    (folderId: string, slotId: string, file: File) => {
+      if (!taskId) return;
+      markSlotUploading(slotId, true);
+      void trackUpload<{ document: { id: string } }>(
+        file,
+        () => {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('projectId', projectId);
+          formData.append('taskId', taskId);
+          formData.append('folderId', folderId);
+          formData.append('slotId', slotId);
+          return fetch('/api/upload', { method: 'POST', body: formData });
+        },
+        { maxBytes: 50 * 1024 * 1024 },
+      ).then((result) => {
+        markSlotUploading(slotId, false);
+        if (result.ok) handleUploadComplete();
+      });
+    },
+    [projectId, taskId, handleUploadComplete, markSlotUploading],
+  );
+
   const handleClose = () => {
     setExpandedFolders(new Set());
     setRightPanel(null);
@@ -216,8 +258,8 @@ export function TaskDetailsPopover({
   const inspectionsCounts = inspectionsFolder
     ? getTrackableCount(inspectionsFolder)
     : { total: 0, approved: 0, pending: 0 };
-  const submittalsCurrent = submittalsCounts.total;
-  const inspectionsCurrent = inspectionsCounts.total;
+  const submittalsCurrent = submittalsCounts.approved;
+  const inspectionsCurrent = inspectionsCounts.approved;
 
   const coverDocumentId = taskDetail?.coverDocumentId ?? null;
   const photos = ((allDocs ?? []) as DocumentItem[]).filter(
@@ -410,7 +452,7 @@ export function TaskDetailsPopover({
                       total += c?.total ?? 0;
                       approved += c?.approved ?? 0;
                     }
-                    trackingCurrent = total;
+                    trackingCurrent = approved;
                     trackingApproved = approved;
                     trackingPending = total - approved;
                     trackingRequired = taskDetail?.[folder.requirementField] ?? null;
@@ -425,6 +467,7 @@ export function TaskDetailsPopover({
                       count={count}
                       docs={folderDocs}
                       onUpload={openUploadDialog}
+                      onUploadFile={handleUploadFile}
                       onSelectDoc={openPreview}
                       selectedDocId={selectedDocId}
                       // Tracking props
@@ -449,6 +492,7 @@ export function TaskDetailsPopover({
                           : undefined
                       }
                       memberRole={memberRole}
+                      uploadingSlotIds={uploadingSlotIds}
                     />
                   );
                 })}
@@ -463,8 +507,7 @@ export function TaskDetailsPopover({
               {rightPanel.type === 'preview' ? (
                 <FilePreviewPanel
                   previewDoc={rightPanel.doc}
-                  organizationId={organizationId}
-                  memberRole={memberRole}
+                  onClose={closeRightPanel}
                 />
               ) : (
                 <CsiCodePanel
@@ -480,20 +523,36 @@ export function TaskDetailsPopover({
       </Popover>
 
       {/* Upload dialog */}
-      {uploadTarget && taskId && (
-        <UploadDialog
-          open
-          onOpenChange={(isOpen) => {
-            if (!isOpen) setUploadTarget(null);
-          }}
-          projectId={projectId}
-          taskId={taskId}
-          folderId={uploadTarget.folder.id}
-          folderName={uploadTarget.folder.name}
-          slotId={uploadTarget.slotId}
-          onUploadComplete={handleUploadComplete}
-        />
-      )}
+      {uploadTarget && taskId && (() => {
+        // Snapshot the slotId so the lifecycle callbacks survive the dialog
+        // closing — `setUploadTarget(null)` runs synchronously inside
+        // onOpenChange, but the upload resolves later. Reading
+        // `uploadTarget.slotId` from inside the callback at that point would
+        // dereference null.
+        const slotIdSnapshot = uploadTarget.slotId;
+        return (
+          <UploadDialog
+            open
+            onOpenChange={(isOpen) => {
+              if (!isOpen) setUploadTarget(null);
+            }}
+            projectId={projectId}
+            taskId={taskId}
+            folderId={uploadTarget.folder.id}
+            folderName={uploadTarget.folder.name}
+            slotId={slotIdSnapshot}
+            onUploadComplete={handleUploadComplete}
+            // Only the slot-bound path needs the lifecycle hooks — the "+" button
+            // upload path has no slot to badge, the global chip alone covers it.
+            onUploadStart={
+              slotIdSnapshot ? () => markSlotUploading(slotIdSnapshot, true) : undefined
+            }
+            onUploadEnd={
+              slotIdSnapshot ? () => markSlotUploading(slotIdSnapshot, false) : undefined
+            }
+          />
+        );
+      })()}
 
       {/* Submittal/inspection management drawer */}
       {drawerKind && taskId && (

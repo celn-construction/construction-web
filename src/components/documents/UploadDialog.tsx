@@ -13,10 +13,10 @@ import {
   useTheme,
 } from '@mui/material';
 import { Button } from '@/components/ui/button';
-import UploadOverlay from '@/components/ui/UploadOverlay';
 import FileDropzone from '@/components/ui/FileDropzone';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import { formatFileSize } from '@/lib/utils/formatting';
+import { trackUpload } from '@/store/uploadStatusStore';
 
 interface UploadDialogProps {
   open: boolean;
@@ -32,6 +32,10 @@ interface UploadDialogProps {
    */
   slotId?: string;
   onUploadComplete: () => void;
+  /** Fired after the user clicks Upload, right before the dialog closes. Used to mark a slot as uploading. */
+  onUploadStart?: () => void;
+  /** Fired when the background upload resolves. `success` is true only on a 2xx response. */
+  onUploadEnd?: (success: boolean) => void;
 }
 
 export default function UploadDialog({
@@ -43,11 +47,12 @@ export default function UploadDialog({
   folderName,
   slotId,
   onUploadComplete,
+  onUploadStart,
+  onUploadEnd,
 }: UploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const { showSnackbar } = useSnackbar();
   const theme = useTheme();
@@ -82,11 +87,9 @@ export default function UploadDialog({
     },
     maxFiles: 1,
     maxSize: 50 * 1024 * 1024,
-    disabled: isUploading,
   });
 
   const handleClose = () => {
-    if (isUploading) return;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(null);
     setPreviewUrl(null);
@@ -123,44 +126,43 @@ export default function UploadDialog({
     }
   };
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!file) return;
-    setIsUploading(true);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('projectId', projectId);
-      formData.append('taskId', taskId);
-      formData.append('folderId', folderId);
-      if (slotId) formData.append('slotId', slotId);
-      if (title.trim()) formData.append('title', title.trim());
-      if (notes.trim()) formData.append('notes', notes.trim());
+    // Snapshot the form values + preview before we reset state and close.
+    const uploadFile = file;
+    const trimmedTitle = title.trim();
+    const trimmedNotes = notes.trim();
+    const previewToRevoke = previewUrl;
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+    onUploadStart?.();
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Upload failed');
-      }
+    void trackUpload<{ document: { id: string } }>(
+      uploadFile,
+      () => {
+        const formData = new FormData();
+        formData.append('file', uploadFile);
+        formData.append('projectId', projectId);
+        formData.append('taskId', taskId);
+        formData.append('folderId', folderId);
+        if (slotId) formData.append('slotId', slotId);
+        if (trimmedTitle) formData.append('title', trimmedTitle);
+        if (trimmedNotes) formData.append('notes', trimmedNotes);
+        return fetch('/api/upload', { method: 'POST', body: formData });
+      },
+      { maxBytes: 50 * 1024 * 1024, doneLabel: `Uploaded to ${folderName}` },
+    ).then((result) => {
+      onUploadEnd?.(result.ok);
+      if (result.ok) onUploadComplete();
+    });
 
-      showSnackbar('File uploaded successfully', 'success');
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setFile(null);
-      setPreviewUrl(null);
-      setTitle('');
-      setNotes('');
-      onUploadComplete();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Upload error:', error);
-      showSnackbar(error instanceof Error ? error.message : 'Failed to upload file', 'error');
-    } finally {
-      setIsUploading(false);
-    }
+    // Close immediately so the user can keep working while the upload runs in the chip.
+    if (previewToRevoke) URL.revokeObjectURL(previewToRevoke);
+    setFile(null);
+    setPreviewUrl(null);
+    setTitle('');
+    setNotes('');
+    onOpenChange(false);
   };
 
   const inputSx = {
@@ -253,13 +255,7 @@ export default function UploadDialog({
       </Box>
 
       {/* Body */}
-      <DialogContent sx={{ px: 3.5, pt: 2.5, pb: 1, position: 'relative' }}>
-        {isUploading && (
-          <Box sx={{ position: 'absolute', inset: 0, zIndex: 2 }}>
-            <UploadOverlay variant="light" text="Uploading document…" size={28} />
-          </Box>
-        )}
-
+      <DialogContent sx={{ px: 3.5, pt: 2.5, pb: 1 }}>
         {/* Dropzone ↔ File card swap */}
         {!file ? (
           <Box sx={{ mb: 2.5 }}>
@@ -267,7 +263,6 @@ export default function UploadDialog({
               getRootProps={getRootProps}
               getInputProps={getInputProps}
               isDragActive={isDragActive}
-              disabled={isUploading}
               hintText="PDF, JPG, PNG, DWG up to 50 MB"
               sx={{ py: 4 }}
             />
@@ -393,7 +388,7 @@ export default function UploadDialog({
                 <Box
                   component="button"
                   onClick={handleGenerateDescription}
-                  disabled={isGenerating || isUploading}
+                  disabled={isGenerating}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -465,8 +460,6 @@ export default function UploadDialog({
         <Button
           variant="contained"
           onClick={handleUpload}
-          loading={isUploading}
-          loadingPosition="start"
           disabled={!file}
           startIcon={<UploadSimple size={16} />}
           sx={{
@@ -482,7 +475,7 @@ export default function UploadDialog({
             },
           }}
         >
-          {isUploading ? 'Uploading...' : 'Upload Document'}
+          Upload Document
         </Button>
       </DialogActions>
     </Dialog>
