@@ -7,6 +7,7 @@ import {
   IconButton,
   Typography,
   CircularProgress,
+  alpha,
 } from '@mui/material';
 import {
   X,
@@ -17,6 +18,7 @@ import {
   CheckCircle,
   CloudArrowUp,
   WarningCircle,
+  Tray,
 } from '@phosphor-icons/react';
 import { format, isBefore, startOfDay } from 'date-fns';
 
@@ -28,6 +30,10 @@ import ApprovalToggleSwitch from './task-popover/ApprovalToggleSwitch';
 import type { DocumentItem } from './task-popover/types';
 
 const SUBMITTAL_COLOR = '#2563EB';
+// Indigo signals "received, awaiting approval" — matches the "in review"
+// pill convention used by FolderRow in the task popover, and intentionally
+// differs from the solid green used for "approved".
+const RECEIVED_COLOR = '#4f46e5';
 
 // Optimistic slot IDs are tagged with this prefix so any code path that would
 // otherwise send the placeholder ID to the server (uploads, slot updates) can
@@ -620,7 +626,7 @@ function SlotSummary({
   const parts: React.ReactNode[] = [];
   if (filledCount > 0) {
     parts.push(
-      <Box key="r" component="span" sx={{ color: 'success.main', fontWeight: 600 }}>
+      <Box key="r" component="span" sx={{ color: RECEIVED_COLOR, fontWeight: 600 }}>
         {filledCount} received
       </Box>,
     );
@@ -725,33 +731,41 @@ function SlotCard({
   const dueDateInputRef = useRef<HTMLInputElement | null>(null);
   const showDueDateField = !!slot.dueDate || dueDateExpanded;
 
-  const cardBg = isReceived
-    ? 'success.main'
-    : isOverdue
-      ? 'warning.main'
-      : null;
+  // Tint hierarchy: approved (green) > received (indigo) > overdue (amber).
+  // Received-but-not-approved is intentionally distinct from approved so the
+  // reviewer can tell at a glance which slots still need their decision.
+  const cardTintColor = isApproved
+    ? 'var(--mui-palette-success-main, #16a34a)'
+    : isReceived
+      ? RECEIVED_COLOR
+      : isOverdue
+        ? 'var(--mui-palette-warning-main, #d97706)'
+        : null;
+  // Only overdue gets a colored border — received/approved rely on tint + pill
+  // for their visual signal so the cards don't shout for attention.
+  const cardBorderColor = isOverdue ? 'warning.main' : 'divider';
 
   return (
     <Box
       sx={{
         border: '1px solid',
-        borderColor: isOverdue ? 'warning.main' : 'divider',
+        borderColor: cardBorderColor,
         borderRadius: '10px',
         px: 1.75,
         py: 1.5,
         bgcolor: 'background.paper',
         position: 'relative',
-        // Subtle tint for received/overdue states without losing the white surface
-        backgroundImage: cardBg
+        // Subtle tint conveys state without losing the white surface.
+        backgroundImage: cardTintColor
           ? `linear-gradient(0deg, var(--mui-palette-background-paper, #fff), var(--mui-palette-background-paper, #fff))`
           : 'none',
-        '&::before': cardBg ? {
+        '&::before': cardTintColor ? {
           content: '""',
           position: 'absolute',
           inset: 0,
           borderRadius: '10px',
-          bgcolor: cardBg,
-          opacity: 0.05,
+          bgcolor: cardTintColor,
+          opacity: isReceived && !isApproved ? 0.04 : 0.05,
           pointerEvents: 'none',
         } : undefined,
         transition: 'border-color 0.15s',
@@ -851,7 +865,11 @@ function SlotCard({
       >
         {isReceived ? (
           <>
-            <CheckCircle size={13} weight="fill" color="var(--mui-palette-success-main, #16a34a)" />
+            {isApproved ? (
+              <CheckCircle size={13} weight="fill" color="var(--mui-palette-success-main, #16a34a)" />
+            ) : (
+              <Tray size={13} weight="fill" color={RECEIVED_COLOR} />
+            )}
             <Box sx={{
               flex: 1,
               minWidth: 0,
@@ -958,7 +976,13 @@ function SlotNumberBadge({
   isApproved: boolean;
 }) {
   const meta = KIND_META[kind];
-  const bg = isReceived ? 'var(--mui-palette-success-main, #16a34a)' : `${meta.color}1F`;
+  // Approved → solid green ✓. Received (not approved) → solid indigo inbox.
+  // Empty slot → soft folder-tinted disc with the slot number.
+  const bg = isApproved
+    ? 'var(--mui-palette-success-main, #16a34a)'
+    : isReceived
+      ? RECEIVED_COLOR
+      : `${meta.color}1F`;
   const color = isReceived ? '#fff' : meta.color;
   return (
     <Box
@@ -974,11 +998,21 @@ function SlotNumberBadge({
         fontSize: 10,
         fontWeight: 700,
         flexShrink: 0,
-        boxShadow: isApproved ? '0 0 0 3px rgba(22,163,74,0.20)' : 'none',
-        transition: 'box-shadow 0.15s',
+        boxShadow: isApproved
+          ? '0 0 0 3px rgba(22,163,74,0.20)'
+          : isReceived
+            ? `0 0 0 3px ${alpha(RECEIVED_COLOR, 0.18)}`
+            : 'none',
+        transition: 'box-shadow 0.15s, background-color 0.2s',
       }}
     >
-      {isReceived ? <CheckCircle size={12} weight="fill" /> : index + 1}
+      {isApproved ? (
+        <CheckCircle size={12} weight="fill" />
+      ) : isReceived ? (
+        <Tray size={12} weight="fill" />
+      ) : (
+        index + 1
+      )}
     </Box>
   );
 }
@@ -1045,6 +1079,42 @@ function FieldSlot({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
+// Approved → solid green pill with ✓ (the "done" signal).
+// Received → indigo tint + border + inbox icon ("awaiting your decision",
+//   visually distinct from approved).
+// Overdue → amber tint, no icon.
+// Pending → neutral gray, no icon.
+const PILL_CONFIG = {
+  approved: {
+    label: 'Approved',
+    bg: 'success.main',
+    color: 'success.contrastText',
+    borderColor: 'transparent',
+    icon: <CheckCircle size={11} weight="fill" />,
+  },
+  received: {
+    label: 'Received',
+    bg: alpha(RECEIVED_COLOR, 0.10),
+    color: RECEIVED_COLOR,
+    borderColor: alpha(RECEIVED_COLOR, 0.30),
+    icon: <Tray size={11} weight="bold" />,
+  },
+  overdue: {
+    label: 'Overdue',
+    bg: 'rgba(217,119,6,0.14)',
+    color: 'warning.main',
+    borderColor: 'transparent',
+    icon: null,
+  },
+  pending: {
+    label: 'Pending',
+    bg: 'action.selected',
+    color: 'text.secondary',
+    borderColor: 'transparent',
+    icon: null,
+  },
+} as const;
+
 function SlotStatusPill({
   received,
   overdue,
@@ -1054,19 +1124,14 @@ function SlotStatusPill({
   overdue: boolean;
   approved: boolean;
 }) {
-  const config = approved
-    ? { label: 'Approved', bg: 'success.main', color: 'success.contrastText', showCheck: true }
-    : received
-      ? { label: 'Received', bg: 'rgba(22,163,74,0.14)', color: 'success.main', showCheck: false }
-      : overdue
-        ? { label: 'Overdue', bg: 'rgba(217,119,6,0.14)', color: 'warning.main', showCheck: false }
-        : { label: 'Pending', bg: 'action.selected', color: 'text.secondary', showCheck: false };
+  const status = approved ? 'approved' : received ? 'received' : overdue ? 'overdue' : 'pending';
+  const config = PILL_CONFIG[status];
   return (
     <Box
       sx={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '3px',
+        gap: '4px',
         fontSize: 10,
         fontWeight: 600,
         px: 0.875,
@@ -1074,11 +1139,13 @@ function SlotStatusPill({
         borderRadius: '999px',
         bgcolor: config.bg,
         color: config.color,
+        border: '1px solid',
+        borderColor: config.borderColor,
         letterSpacing: '0.02em',
         flexShrink: 0,
       }}
     >
-      {config.showCheck && <CheckCircle size={11} weight="fill" />}
+      {config.icon}
       {config.label}
     </Box>
   );

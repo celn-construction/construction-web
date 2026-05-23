@@ -43,6 +43,11 @@ interface FolderRowProps {
   count: number;
   docs: DocumentItem[];
   onUpload: (folder: { id: string; name: string }, slotId?: string) => void;
+  /**
+   * Direct file upload bound to a specific slot in this folder — used by
+   * per-slot drag-and-drop on trackable folders.
+   */
+  onUploadFile?: (folderId: string, slotId: string, file: File) => void;
   onSelectDoc: (doc: PreviewDoc) => void;
   selectedDocId: string | null;
   // Tracking props (only used for trackable folders)
@@ -62,6 +67,8 @@ interface FolderRowProps {
   onManage?: () => void;
   // Approval context (only used by trackable folders)
   memberRole?: string;
+  /** Slot ids currently uploading — forwarded to the trackable content. */
+  uploadingSlotIds?: Set<string>;
 }
 
 function FolderRowInner({
@@ -71,6 +78,7 @@ function FolderRowInner({
   count,
   docs,
   onUpload,
+  onUploadFile,
   onSelectDoc,
   selectedDocId,
   required,
@@ -86,6 +94,7 @@ function FolderRowInner({
   pinnedDocId,
   onManage,
   memberRole,
+  uploadingSlotIds,
 }: FolderRowProps) {
   const FolderIcon = folderIconMap[folder.id] ?? (isExpanded ? FolderOpen : FolderSimple);
   const isTrackable = folder.trackable && !!onSaveRequirement;
@@ -95,12 +104,16 @@ function FolderRowInner({
     onSelectDoc,
     selectedDocId,
     onUpload: (slotId?: string) => onUpload({ id: folder.id, name: folder.name }, slotId),
+    onUploadFile: onUploadFile
+      ? (slotId: string, file: File) => onUploadFile(folder.id, slotId, file)
+      : undefined,
     folderName: folder.name,
     projectId,
     taskId,
     organizationId,
     pinnedDocId,
     memberRole,
+    uploadingSlotIds,
   };
 
   const renderContent = () => {

@@ -42,6 +42,12 @@ export interface FolderContentProps {
    * omit it to let the server auto-link to the first empty slot.
    */
   onUpload: (slotId?: string) => void;
+  /**
+   * Direct file upload bound to a specific slot — bypasses the dialog and
+   * routes through trackUpload so the global chip shows progress. Used by
+   * per-slot drag-and-drop on trackable folders.
+   */
+  onUploadFile?: (slotId: string, file: File) => void;
   folderName: string;
   // Optional pin context — only consumed by the Photos folder
   projectId?: string;
@@ -50,4 +56,10 @@ export interface FolderContentProps {
   pinnedDocId?: string | null;
   // Approval context — only consumed by trackable folders (submittals, inspections)
   memberRole?: string;
+  /**
+   * Slot ids whose upload is currently in-flight. The trackable folder reads
+   * this to render each row's in-place "Uploading…" state alongside the
+   * global upload chip.
+   */
+  uploadingSlotIds?: Set<string>;
 }

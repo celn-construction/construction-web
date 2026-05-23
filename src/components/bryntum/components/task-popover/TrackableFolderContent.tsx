@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Box, Typography, alpha, useTheme } from '@mui/material';
-import { CloudArrowUp, FileText, CheckCircle } from '@phosphor-icons/react';
+import { FileText, CheckCircle } from '@phosphor-icons/react';
 import type { FolderContentProps, PreviewDoc } from './types';
 import { api } from '@/trpc/react';
 import type { SlotKind } from '@/lib/validations/gantt';
+import { canApproveDocuments } from '@/lib/permissions';
 import ApprovalToggleSwitch from './ApprovalToggleSwitch';
+import SlotDropzone from './SlotDropzone';
 
 interface TrackableFolderContentProps extends FolderContentProps {
   required: number | null;
@@ -18,6 +20,7 @@ function TrackableFolderContentInner({
   onSelectDoc,
   selectedDocId,
   onUpload,
+  onUploadFile,
   folderName,
   required,
   folderColor,
@@ -26,11 +29,14 @@ function TrackableFolderContentInner({
   projectId,
   organizationId,
   memberRole,
+  uploadingSlotIds,
 }: TrackableFolderContentProps) {
   const theme = useTheme();
+  const utils = api.useUtils();
   const successMain = theme.palette.success.main;
   const canShowApproval =
     !!organizationId && typeof memberRole === 'string';
+  const canEditDueDate = !!memberRole && canApproveDocuments(memberRole);
 
   // Slots now carry their bound document (Document.slotId FK). The first
   // element of slot.documents is the doc; null means the slot is empty.
@@ -39,6 +45,26 @@ function TrackableFolderContentInner({
     { enabled: !!kind && !!taskId && !!projectId && !!organizationId && (required ?? 0) > 0 },
   );
   const slots = slotsQuery.data ?? [];
+
+  // Per-slot due-date editing — mutation invalidates listSlots so the chip
+  // re-renders, and the Review Queue's Overdue tab so it picks up changes too.
+  const updateSlotMutation = api.gantt.updateSlot.useMutation({
+    onSuccess: () => {
+      if (organizationId && projectId && taskId && kind) {
+        void utils.gantt.listSlots.invalidate({ organizationId, projectId, taskId, kind });
+      }
+      if (projectId) {
+        void utils.approval.listOverdueSlots.invalidate({ projectId });
+      }
+    },
+  });
+  const setSlotDueDate = useCallback(
+    (slotId: string, dueDate: string | null) => {
+      if (!organizationId || !projectId) return;
+      updateSlotMutation.mutate({ organizationId, projectId, slotId, dueDate });
+    },
+    [organizationId, projectId, updateSlotMutation],
+  );
 
   // No requirement set — empty state (no dropzones until a requirement is configured)
   if (required === null || required === 0) {
@@ -101,6 +127,7 @@ function TrackableFolderContentInner({
                 gap: 0.75,
                 py: '5px',
                 px: 1,
+                minHeight: 32,
                 borderRadius: '8px',
                 cursor: 'pointer',
                 bgcolor: isSelected ? 'action.selected' : 'transparent',
@@ -160,70 +187,32 @@ function TrackableFolderContentInner({
                 />
               )}
               {doc.createdAt != null && (
-                <Typography sx={{ fontSize: 11, color: 'text.secondary', flexShrink: 0 }}>
-                  {new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                <Typography
+                  sx={{ fontSize: 11, color: 'text.secondary', flexShrink: 0 }}
+                  title={`Uploaded ${new Date(doc.createdAt).toLocaleString()}`}
+                >
+                  ↑ {new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </Typography>
               )}
             </Box>
           );
         }
 
-        // Empty slot — clicking pins the upload to this specific slot via slotId.
+        // Empty slot — drop a file directly onto the row (real DnD), or
+        // click to open the upload dialog (where you can add title + notes).
         return (
-          <Box
+          <SlotDropzone
             key={slot.id}
+            slotNum={slotNum}
+            label={slot.name?.trim() || `${singularName} ${slotNum}`}
+            folderColor={folderColor}
+            dueDate={slot.dueDate}
+            canEditDueDate={canEditDueDate}
+            onSetDueDate={(dueDate) => setSlotDueDate(slot.id, dueDate)}
             onClick={() => onUpload(slot.id)}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-              py: '6px',
-              px: 1,
-              borderRadius: '8px',
-              border: '1.5px dashed',
-              borderColor: 'divider',
-              bgcolor: 'action.hover',
-              cursor: 'pointer',
-              transition: 'border-color 0.2s, background-color 0.2s',
-              '&:hover': {
-                borderColor: folderColor,
-                bgcolor: `${folderColor}06`,
-              },
-            }}
-          >
-            {/* Slot number badge — empty */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 18,
-                height: 18,
-                borderRadius: '50%',
-                bgcolor: 'action.hover',
-                flexShrink: 0,
-              }}
-            >
-              <Typography sx={{ fontSize: 9, fontWeight: 600, color: 'text.secondary', lineHeight: 1 }}>
-                {slotNum}
-              </Typography>
-            </Box>
-
-            <CloudArrowUp size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
-            <Typography
-              sx={{
-                fontSize: 11,
-                color: 'text.secondary',
-                lineHeight: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                minWidth: 0,
-              }}
-            >
-              {slot.name?.trim() || `${singularName} ${slotNum}`}
-            </Typography>
-          </Box>
+            onDropFile={onUploadFile ? (file) => onUploadFile(slot.id, file) : undefined}
+            isUploading={uploadingSlotIds?.has(slot.id) ?? false}
+          />
         );
       })}
     </Box>

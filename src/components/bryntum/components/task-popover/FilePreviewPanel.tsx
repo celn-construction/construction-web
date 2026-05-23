@@ -1,27 +1,19 @@
 'use client';
 
 import { Box, Typography, Divider } from '@mui/material';
-import { ImageSquare, FileText, DownloadSimple, ArrowsOut } from '@phosphor-icons/react';
+import { ImageSquare, FileText, DownloadSimple, ArrowsOut, X } from '@phosphor-icons/react';
 import { formatFileSize } from '@/lib/utils/formatting';
-import { isApprovableFolder } from '@/lib/folders';
 import type { PreviewDoc } from './types';
-import ApprovalToggleSwitch from './ApprovalToggleSwitch';
 
 interface FilePreviewPanelProps {
   previewDoc: PreviewDoc;
-  organizationId?: string;
-  memberRole?: string;
+  onClose: () => void;
 }
 
 export default function FilePreviewPanel({
   previewDoc,
-  organizationId,
-  memberRole,
+  onClose,
 }: FilePreviewPanelProps) {
-  const showApproval =
-    isApprovableFolder(previewDoc.folderId) &&
-    !!organizationId &&
-    typeof memberRole === 'string';
   const approvedByName = previewDoc.approvedBy?.name ?? null;
   const approvedAtLabel = previewDoc.approvedAt
     ? new Date(previewDoc.approvedAt).toLocaleDateString('en-US', {
@@ -62,25 +54,15 @@ export default function FilePreviewPanel({
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
-          {showApproval && (
-            <ApprovalToggleSwitch
-              documentId={previewDoc.id}
-              documentName={previewDoc.name}
-              approvalStatus={previewDoc.approvalStatus}
-              approvedBy={previewDoc.approvedBy}
-              organizationId={organizationId!}
-              memberRole={memberRole!}
-              size="md"
-            />
-          )}
           {[
-            { icon: DownloadSimple, label: 'Download' },
-            { icon: ArrowsOut, label: 'Expand' },
-          ].map(({ icon: Icon, label }) => (
+            { icon: DownloadSimple, label: 'Download', onClick: () => window.open(previewDoc.blobUrl, '_blank') },
+            { icon: ArrowsOut, label: 'Expand', onClick: () => window.open(previewDoc.blobUrl, '_blank') },
+            { icon: X, label: 'Close preview', onClick: onClose },
+          ].map(({ icon: Icon, label, onClick }) => (
             <Box
               key={label}
               component="button"
-              onClick={() => window.open(previewDoc.blobUrl, '_blank')}
+              onClick={onClick}
               sx={{
                 width: 28,
                 height: 28,
