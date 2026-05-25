@@ -101,8 +101,10 @@ export function createGanttConfig(
     },
     columns: [
       {
+        id: 'name',
         type: 'name',
         field: 'name',
+        text: 'Name',
         flex: 1,
         minWidth: 300,
         resizable: true,
@@ -131,6 +133,7 @@ export function createGanttConfig(
       // Double-clicking the name cell starts inline name editing (Bryntum native behavior).
       // Right-click opens the task context menu (includes "Scroll to item").
       {
+        id: 'startDate',
         type: 'startdate',
         field: 'startDate',
         text: 'Start',
@@ -138,6 +141,7 @@ export function createGanttConfig(
         resizable: true,
       },
       {
+        id: 'endDate',
         type: 'enddate',
         field: 'endDate',
         text: 'End',
@@ -145,6 +149,7 @@ export function createGanttConfig(
         resizable: true,
       },
       {
+        id: 'duration',
         type: 'duration',
         text: 'Duration',
         width: 100,

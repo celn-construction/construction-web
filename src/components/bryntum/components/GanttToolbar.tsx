@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { Box, MenuItem, Select, Stack, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Button } from '@/components/ui/button';
@@ -154,7 +154,7 @@ type GanttToolbarProps = {
   onShiftPrevious?: () => void;
   onShiftNext?: () => void;
   onExport?: () => void;
-  onColumnsClick?: () => void;
+  onColumnsClick?: (event: MouseEvent<HTMLElement>) => void;
   onMoreClick?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
