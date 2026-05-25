@@ -146,6 +146,25 @@ declare module '@mui/material/styles' {
       activeBg: string;
       hoverBg: string;
       activeItemBg: string;
+      // Glass-mode tokens. Sidebar paints a navy bokeh + frost overlay
+      // independently of theme mode (always-dark surface) so these have
+      // identical values in lightTheme and darkTheme.
+      glassBg: string;
+      glassBgImage: string;
+      glassFrostBg: string;
+      glassText: string;
+      glassTextSecondary: string;
+      glassBorder: string;
+      glassIndicator: string;
+      glassActiveItemBg: string;
+      glassHoverBg: string;
+      glassChipBg: string;
+    };
+    header: {
+      background: string;
+      backgroundImage: string;
+      borderColor: string;
+      boxShadow: string;
     };
     accent: {
       dark: string;
@@ -197,6 +216,22 @@ declare module '@mui/material/styles' {
       activeBg?: string;
       hoverBg?: string;
       activeItemBg?: string;
+      glassBg?: string;
+      glassBgImage?: string;
+      glassFrostBg?: string;
+      glassText?: string;
+      glassTextSecondary?: string;
+      glassBorder?: string;
+      glassIndicator?: string;
+      glassActiveItemBg?: string;
+      glassHoverBg?: string;
+      glassChipBg?: string;
+    };
+    header?: {
+      background?: string;
+      backgroundImage?: string;
+      borderColor?: string;
+      boxShadow?: string;
     };
     accent?: {
       dark?: string;
@@ -243,6 +278,28 @@ lightTheme.palette.card = {
 lightTheme.palette.input = {
   background: '#D9DBE1', // $--input
 };
+// Sidebar glass tokens — the sidebar paints navy bokeh + a frost overlay
+// regardless of theme mode (always-dark surface), so identical values are
+// applied to both lightTheme and darkTheme below.
+const SIDEBAR_GLASS_BG_IMAGE = `radial-gradient(circle at 20% 18%, rgba(80, 130, 255, 0.45) 0%, transparent 38%),
+radial-gradient(circle at 80% 25%, rgba(40, 200, 240, 0.30) 0%, transparent 40%),
+radial-gradient(circle at 30% 75%, rgba(120, 90, 255, 0.38) 0%, transparent 42%),
+radial-gradient(circle at 90% 90%, rgba(60, 110, 220, 0.38) 0%, transparent 40%),
+radial-gradient(circle at 50% 50%, rgba(8, 16, 40, 0.55) 0%, rgba(3, 8, 20, 0.92) 78%)`;
+
+const sidebarGlassTokens = {
+  glassBg: '#050d24',
+  glassBgImage: SIDEBAR_GLASS_BG_IMAGE,
+  glassFrostBg: 'rgba(8, 16, 40, 0.18)',
+  glassText: '#ffffff',
+  glassTextSecondary: 'rgba(255, 255, 255, 0.65)',
+  glassBorder: 'rgba(255, 255, 255, 0.10)',
+  glassIndicator: '#ffffff',
+  glassActiveItemBg: 'rgba(255, 255, 255, 0.16)',
+  glassHoverBg: 'rgba(255, 255, 255, 0.10)',
+  glassChipBg: 'rgba(255, 255, 255, 0.18)',
+} as const;
+
 lightTheme.palette.sidebar = {
   background: '#FFFFFF',   // $--sidebar
   border: '#D9DBE1',       // $--sidebar-border
@@ -250,6 +307,21 @@ lightTheme.palette.sidebar = {
   activeBg: '#FFFFFF',     // $--card
   hoverBg: '#F0F0F3',      // $--sidebar-accent
   activeItemBg: '#FFFFFF',
+  ...sidebarGlassTokens,
+};
+// Header — gradient ribbon + atmospheric depth. Reads as white but the
+// edges pick up the sidebar's blue (#5082FF) and purple (#785AFF) hues at
+// low alpha. The boxShadow stack adds a 1px inner-top highlight (catches
+// light against the ribbon) plus a faint navy-tinted bottom glow that
+// echoes the sidebar's `rgba(5,13,36,…)` shadow — pulls the sidebar's
+// atmosphere across the top of the page without going dark.
+lightTheme.palette.header = {
+  background: '#ffffff',
+  backgroundImage:
+    'linear-gradient(90deg, rgba(80, 130, 255, 0.06) 0%, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, 0) 65%, rgba(120, 90, 255, 0.06) 100%)',
+  borderColor: 'rgba(8, 16, 40, 0.06)',
+  boxShadow:
+    'inset 0 1px 0 rgba(255, 255, 255, 1), 0 1px 0 rgba(8, 16, 40, 0.03), 0 6px 24px -12px rgba(5, 13, 36, 0.18)',
 };
 lightTheme.palette.accent = {
   dark: '#2B2D42',       // $--primary (dark navy)
@@ -430,6 +502,21 @@ darkTheme.palette.sidebar = {
   activeBg: '#191a1b',
   hoverBg: 'rgba(255,255,255,0.04)',
   activeItemBg: '#191a1b',
+  ...sidebarGlassTokens,
+};
+// Dark header — same gradient ribbon (alpha bumped) plus a dark-mode
+// translation of the atmospheric glow. The navy glow doesn't translate
+// into dark mode (it would blend into the already-dark page), so the
+// bottom shadow uses a faint sidebar-blue tint instead — same hue family,
+// keeps the cohesion. Inner highlight drops to 6% white to match the
+// existing dark-mode glass treatment in the sidebar.
+darkTheme.palette.header = {
+  background: '#191a1b',
+  backgroundImage:
+    'linear-gradient(90deg, rgba(80, 130, 255, 0.10) 0%, rgba(25, 26, 27, 0) 35%, rgba(25, 26, 27, 0) 65%, rgba(120, 90, 255, 0.10) 100%)',
+  borderColor: 'rgba(255, 255, 255, 0.08)',
+  boxShadow:
+    'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 0 rgba(0, 0, 0, 0.25), 0 6px 24px -12px rgba(80, 130, 255, 0.12)',
 };
 darkTheme.palette.accent = {
   dark: '#f7f8f8',

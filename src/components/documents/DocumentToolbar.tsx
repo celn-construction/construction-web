@@ -39,6 +39,8 @@ export default function DocumentToolbar({
   const theme = useTheme();
   const primary = theme.palette.primary.main;
   const primaryDark = theme.palette.primary.dark;
+  const isDark = theme.palette.mode === 'dark';
+  const aiGlowColor = isDark ? 'rgba(248, 113, 113, 0.55)' : 'rgba(59, 130, 246, 0.45)';
 
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -159,6 +161,7 @@ export default function DocumentToolbar({
         <Box
           ref={searchBoxRef}
           sx={{
+            position: 'relative',
             display: 'flex',
             flexDirection: aiEnabled ? 'column' : 'row',
             alignItems: aiEnabled ? 'stretch' : 'center',
@@ -170,6 +173,18 @@ export default function DocumentToolbar({
             py: aiEnabled ? '16px' : 1.5,
             border: aiEnabled ? '1px solid' : '1.5px solid transparent',
             borderColor: aiEnabled ? 'divider' : undefined,
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              inset: '-32px',
+              borderRadius: '48px',
+              background: `radial-gradient(ellipse at center, ${aiGlowColor} 0%, transparent 70%)`,
+              filter: 'blur(20px)',
+              pointerEvents: 'none',
+              zIndex: -1,
+              opacity: aiEnabled ? 1 : 0,
+              transition: 'opacity 0.4s ease',
+            },
             backgroundImage: aiEnabled
               ? undefined
               : `linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}), linear-gradient(90deg, ${primary}66, ${primaryDark}66)`,

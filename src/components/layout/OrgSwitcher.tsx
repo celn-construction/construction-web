@@ -70,8 +70,8 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
           name={currentOrg?.name ?? 'Organization'}
           seed={currentOrg?.slug ?? currentOrg?.id ?? 'org'}
           logoUrl={currentOrg?.logoUrl}
-          size={24}
-          borderRadius="6px"
+          size={28}
+          borderRadius="7px"
           className="org-avatar"
         />
       )}
@@ -87,7 +87,7 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
               sx={{
                 fontSize: '0.875rem',
                 fontWeight: 600,
-                color: 'text.primary',
+                color: 'sidebar.glassText',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -108,8 +108,10 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
                   fontWeight: 600,
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
-                  color: 'text.secondary',
-                  bgcolor: 'action.selected',
+                  color: 'sidebar.glassText',
+                  bgcolor: 'sidebar.glassChipBg',
+                  border: '1px solid',
+                  borderColor: 'sidebar.glassBorder',
                   px: 0.625,
                   py: '2px',
                   borderRadius: '4px',
@@ -126,7 +128,7 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
         animate={{ rotate: orgMenuOpen ? 180 : 0 }}
         transition={{ duration: 0.15 }}
         className="caret-icon"
-        style={{ flexShrink: 0, display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+        style={{ flexShrink: 0, display: 'flex', alignItems: 'center', color: 'rgba(255, 255, 255, 0.65)' }}
       >
         <CaretDown size={14} weight="bold" />
       </motion.div>
@@ -152,13 +154,13 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
             border: 'none',
             cursor: 'pointer',
             textAlign: 'left',
-            color: 'text.primary',
+            color: 'sidebar.glassText',
             transition: 'background-color 0.15s',
             '& .caret-icon': {
               transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             },
             '&:hover': {
-              bgcolor: 'action.hover',
+              bgcolor: 'sidebar.glassHoverBg',
               '& .org-avatar': {
                 transform: 'scale(1.04)',
               },

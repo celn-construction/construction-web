@@ -873,12 +873,12 @@ export default function ProjectsTree({ selectedNodeId, onSelect, projectId, orga
             borderRadius: '8px',
             transition: 'background-color 0.15s ease',
             '&:hover': {
-              bgcolor: 'sidebar.hoverBg',
+              bgcolor: 'sidebar.glassHoverBg',
             },
             '&.Mui-selected': {
-              bgcolor: 'sidebar.activeItemBg',
+              bgcolor: 'sidebar.glassActiveItemBg',
               '&:hover': {
-                bgcolor: 'sidebar.activeItemBg',
+                bgcolor: 'sidebar.glassActiveItemBg',
               },
             },
             '&.Mui-focused': {

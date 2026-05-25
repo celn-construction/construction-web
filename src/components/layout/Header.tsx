@@ -46,9 +46,13 @@ export default function Header({ onMenuOpen }: HeaderProps) {
         justifyContent: 'space-between',
         gap: 2,
         px: { xs: 2, md: 2.5 },
-        bgcolor: 'background.paper',
+        position: 'relative',
+        zIndex: 1,
+        bgcolor: 'header.background',
+        backgroundImage: (theme) => theme.palette.header.backgroundImage,
         borderBottom: '1px solid',
-        borderColor: 'divider',
+        borderColor: 'header.borderColor',
+        boxShadow: (theme) => theme.palette.header.boxShadow,
       }}
     >
       {/* Left: mobile menu button + breadcrumb */}

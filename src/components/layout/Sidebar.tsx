@@ -71,15 +71,34 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
       sx={{
         height: '100vh',
         width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
-        bgcolor: 'sidebar.background',
         display: 'flex',
         flexDirection: 'column',
         position: 'sticky',
         top: 0,
-        transition: 'width 0.2s ease, background-color 0.2s ease',
+        isolation: 'isolate',
+        transition: 'width 0.2s ease',
         borderRight: '1px solid',
-        borderColor: 'sidebar.border',
+        borderColor: 'sidebar.glassBorder',
+        borderTopRightRadius: 16,
+        borderBottomRightRadius: 16,
         overflow: 'hidden',
+        bgcolor: 'sidebar.glassBg',
+        backgroundImage: (theme) => theme.palette.sidebar.glassBgImage,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        boxShadow:
+          'inset 1px 0 0 rgba(255,255,255,0.18), inset 0 1px 0 rgba(255,255,255,0.20), 4px 0 24px rgba(5, 13, 36, 0.30)',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          background: (theme) => theme.palette.sidebar.glassFrostBg,
+          backdropFilter: 'blur(50px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(50px) saturate(160%)',
+          zIndex: 0,
+          pointerEvents: 'none',
+        },
+        '& > *': { position: 'relative', zIndex: 1 },
       }}
     >
       {/* Brand */}
@@ -92,8 +111,8 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           height: 60,
           px: collapsed ? 0 : 1.75,
           borderBottom: '1px solid',
-          borderColor: 'divider',
-          color: 'text.primary',
+          borderColor: 'sidebar.glassBorder',
+          color: 'sidebar.glassText',
           userSelect: 'none',
           overflow: 'hidden',
           flexShrink: 0,
@@ -135,12 +154,12 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                   borderRadius: '6px',
                   border: 'none',
                   bgcolor: 'transparent',
-                  color: 'text.secondary',
+                  color: 'sidebar.glassTextSecondary',
                   cursor: 'pointer',
                   transition: 'background-color 0.15s, color 0.15s',
                   '&:hover': {
-                    bgcolor: 'sidebar.hoverBg',
-                    color: 'text.primary',
+                    bgcolor: 'sidebar.glassHoverBg',
+                    color: 'sidebar.glassText',
                   },
                 }}
               >
@@ -168,8 +187,8 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                 bgcolor: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'text.secondary',
-                '&:hover': { bgcolor: 'sidebar.hoverBg' },
+                color: 'sidebar.glassTextSecondary',
+                '&:hover': { bgcolor: 'sidebar.glassHoverBg' },
               }}
             >
               <OrgSwitcher collapsed />
@@ -208,12 +227,13 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                   sx={{
                     fontSize: '0.5625rem',
                     fontWeight: 600,
-                    color: 'text.secondary',
+                    color: 'sidebar.glassText',
                     letterSpacing: '0.12em',
                     textTransform: 'uppercase',
                     px: 1,
                     pb: 1,
                     userSelect: 'none',
+                    opacity: 0.75,
                   }}
                 >
                   {section.label}
@@ -245,8 +265,8 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                         borderRadius: '8px',
                         position: 'relative',
                         transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
-                        bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
-                        color: isActive ? 'text.primary' : 'text.secondary',
+                        bgcolor: isActive ? 'sidebar.glassActiveItemBg' : 'transparent',
+                        color: isActive ? 'sidebar.glassText' : 'sidebar.glassTextSecondary',
                         opacity: isDisabled ? 0.35 : 1,
                         cursor: isDisabled ? 'default' : 'pointer',
                         overflow: 'hidden',
@@ -254,14 +274,11 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                           transition: 'none',
                         },
                         '&:hover': isDisabled ? {} : {
-                          bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
-                          color: 'text.primary',
-                          boxShadow: (theme) =>
-                            !isActive
-                              ? theme.palette.mode === 'dark'
-                                ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.2)'
-                                : '0 2px 4px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.08)'
-                              : 'none',
+                          bgcolor: isActive ? 'sidebar.glassActiveItemBg' : 'sidebar.glassHoverBg',
+                          color: 'sidebar.glassText',
+                          boxShadow: !isActive
+                            ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.2)'
+                            : 'none',
                           '& .nav-icon': !isActive ? { transform: 'scale(1.08)' } : {},
                         },
                       }}
@@ -277,7 +294,8 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                             width: '2.5px',
                             height: 16,
                             borderRadius: '0 2px 2px 0',
-                            bgcolor: 'sidebar.indicator',
+                            bgcolor: 'sidebar.glassIndicator',
+                            boxShadow: '0 0 10px rgba(255, 255, 255, 0.5)',
                           }}
                           aria-hidden="true"
                         />
@@ -324,7 +342,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                           sx={{
                             fontSize: '0.6875rem',
                             fontWeight: 500,
-                            color: 'text.secondary',
+                            color: 'sidebar.glassTextSecondary',
                             lineHeight: 1,
                             flexShrink: 0,
                             minWidth: 16,
@@ -420,11 +438,11 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                 border: 'none',
                 bgcolor: 'transparent',
                 cursor: 'pointer',
-                color: 'text.secondary',
+                color: 'sidebar.glassTextSecondary',
                 transition: 'all 0.15s ease',
                 '&:hover': {
-                  bgcolor: 'sidebar.hoverBg',
-                  color: 'text.primary',
+                  bgcolor: 'sidebar.glassHoverBg',
+                  color: 'sidebar.glassText',
                 },
               }}
             >
@@ -457,14 +475,14 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                       fontSize: '0.6875rem',
                       fontWeight: 600,
                       lineHeight: 1,
-                      color: 'text.secondary',
-                      bgcolor: 'background.paper',
+                      color: 'sidebar.glassText',
+                      bgcolor: 'sidebar.glassChipBg',
                       px: 0.75,
                       py: 0.5,
                       borderRadius: '5px',
                       border: '1px solid',
-                      borderColor: 'divider',
-                      boxShadow: '0 1px 0 0 rgba(0,0,0,0.08)',
+                      borderColor: 'sidebar.glassBorder',
+                      boxShadow: '0 1px 0 0 rgba(255, 255, 255, 0.10)',
                       whiteSpace: 'nowrap',
                       flexShrink: 0,
                       letterSpacing: '0.02em',

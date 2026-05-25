@@ -13,7 +13,10 @@ interface OrgAvatarProps {
 }
 
 function dicebearUrl(seed: string) {
-  return `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(seed)}`;
+  // `initials` style: colored disc with the org's first letter(s). Background
+  // is locked to brand violet (#7c5cff) — a hue already present in the sidebar
+  // bokeh gradient, so the avatar feels native to the surface.
+  return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(seed)}&fontFamily=Inter&fontWeight=600&radius=20&backgroundColor=7c5cff`;
 }
 
 export default function OrgAvatar({
@@ -46,7 +49,7 @@ export default function OrgAvatar({
         borderRadius,
         objectFit: 'cover',
         flexShrink: 0,
-        bgcolor: 'action.hover',
+        bgcolor: '#ffffff',
         transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     />
