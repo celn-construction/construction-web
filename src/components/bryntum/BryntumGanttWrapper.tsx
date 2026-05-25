@@ -9,6 +9,7 @@ import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { canManageProjects } from '@/lib/permissions';
 import { createGanttConfig } from './config/ganttConfig';
 import GanttToolbar from './components/GanttToolbar';
+import ColumnPickerPopover, { TOGGLEABLE_COLUMNS, type ColumnId } from './components/ColumnPickerPopover';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
 import TaskInfoDialog from './components/TaskInfoDialog';
 import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
@@ -72,6 +73,39 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   const [loadError, setLoadError] = useState<string | null>(null);
   const [taskInfoRecord, setTaskInfoRecord] = useState<BryntumTaskRecord | null>(null);
 
+  const columnStorageKey = projectId ? `bryntum:columns:visible:${projectId}` : null;
+  const [columnsAnchor, setColumnsAnchor] = useState<HTMLElement | null>(null);
+  const [columnVisibility, setColumnVisibility] = useState<Record<ColumnId, boolean>>(() => {
+    const defaults: Record<ColumnId, boolean> = { name: true, startDate: true, endDate: true, duration: true };
+    if (typeof window === 'undefined' || !columnStorageKey) return defaults;
+    try {
+      const raw = window.localStorage.getItem(columnStorageKey);
+      if (!raw) return defaults;
+      const stored = JSON.parse(raw) as Partial<Record<ColumnId, boolean>>;
+      // Force name = true after the spread so a corrupted/tampered value can't hide the row identifier.
+      return { ...defaults, ...stored, name: true };
+    } catch {
+      return defaults;
+    }
+  });
+
+  const handleColumnToggle = useCallback(
+    (id: ColumnId, visible: boolean) => {
+      setColumnVisibility((prev) => {
+        const next = { ...prev, [id]: visible };
+        if (columnStorageKey && typeof window !== 'undefined') {
+          try {
+            window.localStorage.setItem(columnStorageKey, JSON.stringify(next));
+          } catch {
+            /* localStorage unavailable (private mode / quota) — non-fatal */
+          }
+        }
+        return next;
+      });
+    },
+    [columnStorageKey],
+  );
+
   // Lock mode: chart is locked by default; admin-level users click the lock
   // toggle in the toolbar to enter edit mode.
   const { currentOrg } = useOrgFromUrl();
@@ -103,6 +137,34 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     if (!gantt) return;
     gantt.readOnly = !editingUnlocked;
   }, [isLoading, getGanttInstance, editingUnlocked]);
+
+  // `column.hidden = true` only redistributes width inside the locked sub-grid;
+  // we also set the sub-grid's width so the timeline absorbs the freed space.
+  useEffect(() => {
+    if (isLoading) return;
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+
+    let lockedWidth = 0;
+    for (const col of TOGGLEABLE_COLUMNS) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+      const column = gantt.columns.getById(col.id);
+      if (!column) continue;
+      const visible = columnVisibility[col.id] ?? true;
+      const nextHidden = !visible;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (column.hidden !== nextHidden) column.hidden = nextHidden;
+      if (visible) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        lockedWidth += column.width ?? column.minWidth ?? 0;
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (gantt.subGrids.locked.width !== lockedWidth) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      gantt.subGrids.locked.width = lockedWidth;
+    }
+  }, [isLoading, getGanttInstance, columnVisibility]);
 
   // After data loads, run commitAsync to settle the scheduling engine, then
   // enable STM so undo/redo starts tracking from this clean state.
@@ -589,6 +651,14 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         canEditChart={canEditChart}
         isEditMode={editingUnlocked}
         onToggleEditMode={() => setIsEditMode((prev) => !prev)}
+        onColumnsClick={(e) => setColumnsAnchor(e.currentTarget)}
+      />
+      <ColumnPickerPopover
+        anchorEl={columnsAnchor}
+        open={!!columnsAnchor}
+        onClose={() => setColumnsAnchor(null)}
+        visibility={columnVisibility}
+        onToggle={handleColumnToggle}
       />
 
       {/* Bryntum must always render in a visible container so its internal layout

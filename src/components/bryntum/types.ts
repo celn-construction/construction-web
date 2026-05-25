@@ -61,6 +61,7 @@ export interface ColumnRendererData {
 }
 
 type GanttColumnConfig = {
+  id?: string;
   type: string;
   field?: string;
   text?: string;
