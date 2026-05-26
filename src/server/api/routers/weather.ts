@@ -7,10 +7,102 @@ interface GeoResult {
   lon: number;
 }
 
-interface WeatherResult {
+interface CurrentWeatherResult {
   main: { temp: number };
   weather: Array<{ icon: string; description: string }>;
   timezone: number;
+}
+
+interface ForecastEntry {
+  dt: number; // unix seconds, UTC
+  main: { temp: number; temp_min: number; temp_max: number };
+  weather: Array<{ icon: string; description: string }>;
+  pop: number; // probability of precipitation, 0..1
+}
+
+interface ForecastResult {
+  list: ForecastEntry[];
+  city: { timezone: number };
+}
+
+export interface ForecastDay {
+  /** YYYY-MM-DD in city local time, stable React key */
+  date: string;
+  /** e.g. "Wed" — already in city local time */
+  label: string;
+  /** OpenWeatherMap icon code (e.g. "10d") */
+  icon: string;
+  /** Human description, e.g. "Light rain" */
+  description: string;
+  /** Rounded fahrenheit */
+  hi: number;
+  lo: number;
+  /** 0..100, max across the day */
+  precipPct: number;
+}
+
+/** Group 3-hour forecast entries into per-day summaries in the city's local timezone. */
+function summarizeForecast(entries: ForecastEntry[], timezoneOffsetSec: number): ForecastDay[] {
+  if (!entries.length) return [];
+
+  const buckets = new Map<string, ForecastEntry[]>();
+  for (const entry of entries) {
+    // Shift UTC seconds into city-local seconds, then derive YYYY-MM-DD from the UTC view of that shifted timestamp.
+    const localMs = (entry.dt + timezoneOffsetSec) * 1000;
+    const localDate = new Date(localMs);
+    const dateKey = `${localDate.getUTCFullYear()}-${String(localDate.getUTCMonth() + 1).padStart(2, "0")}-${String(localDate.getUTCDate()).padStart(2, "0")}`;
+    const bucket = buckets.get(dateKey) ?? [];
+    bucket.push(entry);
+    buckets.set(dateKey, bucket);
+  }
+
+  const todayLocalMs = (Math.floor(Date.now() / 1000) + timezoneOffsetSec) * 1000;
+  const todayLocal = new Date(todayLocalMs);
+  const todayKey = `${todayLocal.getUTCFullYear()}-${String(todayLocal.getUTCMonth() + 1).padStart(2, "0")}-${String(todayLocal.getUTCDate()).padStart(2, "0")}`;
+
+  const days: ForecastDay[] = [];
+  for (const [dateKey, bucket] of buckets) {
+    if (dateKey === todayKey) continue; // skip the partial "today" — current pill already shows today
+
+    // Pick the entry closest to local noon for the day's representative icon/description.
+    let representative = bucket[0]!;
+    let bestNoonDelta = Number.POSITIVE_INFINITY;
+    for (const entry of bucket) {
+      const localHour = new Date((entry.dt + timezoneOffsetSec) * 1000).getUTCHours();
+      const delta = Math.abs(localHour - 12);
+      if (delta < bestNoonDelta) {
+        bestNoonDelta = delta;
+        representative = entry;
+      }
+    }
+
+    let hi = -Infinity;
+    let lo = Infinity;
+    let maxPop = 0;
+    for (const entry of bucket) {
+      if (entry.main.temp_max > hi) hi = entry.main.temp_max;
+      if (entry.main.temp_min < lo) lo = entry.main.temp_min;
+      if (entry.pop > maxPop) maxPop = entry.pop;
+    }
+
+    // Use the UTC accessors on the shifted Date to render the city-local weekday.
+    const labelDate = new Date((representative.dt + timezoneOffsetSec) * 1000);
+    const label = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][labelDate.getUTCDay()]!;
+
+    days.push({
+      date: dateKey,
+      label,
+      icon: representative.weather[0]?.icon ?? "01d",
+      description: representative.weather[0]?.description ?? "",
+      hi: Math.round(hi),
+      lo: Math.round(lo),
+      precipPct: Math.round(maxPop * 100),
+    });
+
+    if (days.length >= 5) break;
+  }
+
+  return days;
 }
 
 export const weatherRouter = createTRPCRouter({
@@ -47,17 +139,33 @@ export const weatherRouter = createTRPCRouter({
 
         const { lat, lon } = geoData[0]!;
 
-        // Fetch current weather
-        const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`;
-        const weatherRes = await fetch(weatherUrl, { cache: 'no-store' });
-        if (!weatherRes.ok) return null;
+        // Fetch current weather and 5-day forecast in parallel (separate free-tier endpoints).
+        const [currentRes, forecastRes] = await Promise.all([
+          fetch(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`,
+            { cache: 'no-store' },
+          ),
+          fetch(
+            `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`,
+            { cache: 'no-store' },
+          ),
+        ]);
 
-        const weatherData = (await weatherRes.json()) as WeatherResult;
+        if (!currentRes.ok) return null;
+        const currentData = (await currentRes.json()) as CurrentWeatherResult;
+
+        let forecast: ForecastDay[] = [];
+        if (forecastRes.ok) {
+          const forecastData = (await forecastRes.json()) as ForecastResult;
+          forecast = summarizeForecast(forecastData.list, forecastData.city.timezone);
+        }
+
         return {
-          temp: Math.round(weatherData.main.temp),
-          icon: weatherData.weather[0]?.icon ?? "01d",
-          description: weatherData.weather[0]?.description ?? "",
-          timezoneOffset: weatherData.timezone,
+          temp: Math.round(currentData.main.temp),
+          icon: currentData.weather[0]?.icon ?? "01d",
+          description: currentData.weather[0]?.description ?? "",
+          timezoneOffset: currentData.timezone,
+          forecast,
         };
       } catch {
         return null;
