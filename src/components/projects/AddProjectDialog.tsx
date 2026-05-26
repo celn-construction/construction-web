@@ -239,9 +239,6 @@ function StepDot({
         display: 'grid',
         placeItems: 'center',
         flexShrink: 0,
-        boxShadow: state === 'active'
-          ? `0 0 0 3px ${alpha('#2B2D42', 0.08)}`
-          : 'none',
       }}
     >
       {typeof children === 'string' ? (

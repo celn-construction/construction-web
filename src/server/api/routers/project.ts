@@ -9,6 +9,7 @@ import { getActiveProjectId } from "@/server/api/helpers/getActiveProject";
 import { getTemplateData } from "@/server/gantt/templates";
 import { generateUniqueProjectSlug } from "@/server/api/helpers/generateProjectSlug";
 import { projectImageProxyUrl, withProxyImageUrl } from "@/lib/blobProxy";
+import { APPROVABLE_FOLDER_ID_LIST } from "@/lib/folders";
 
 export const projectRouter = createTRPCRouter({
   list: protectedProcedure
@@ -57,11 +58,22 @@ export const projectRouter = createTRPCRouter({
       const projects = await ctx.db.project.findMany({
         where: projectWhere,
         orderBy: { createdAt: "asc" },
+        include: {
+          members: {
+            take: 4,
+            orderBy: { createdAt: "asc" },
+            select: {
+              role: true,
+              user: { select: { id: true, name: true, image: true } },
+            },
+          },
+          _count: { select: { members: true } },
+        },
       });
 
-      // Get task completion stats and members per project (parallel)
+      // Get task completion stats and pending approval counts per project
       const projectIds = projects.map((p) => p.id);
-      const [taskStats, completedStats, members] = projectIds.length > 0
+      const [taskStats, completedStats, pendingApprovalStats] = projectIds.length > 0
         ? await Promise.all([
             ctx.db.ganttTask.groupBy({
               by: ["projectId"],
@@ -74,14 +86,14 @@ export const projectRouter = createTRPCRouter({
               where: { projectId: { in: projectIds }, percentDone: 100 },
               _count: { id: true },
             }),
-            ctx.db.projectMember.findMany({
-              where: { projectId: { in: projectIds } },
-              select: {
-                projectId: true,
-                role: true,
-                user: { select: { id: true, name: true, image: true } },
+            ctx.db.document.groupBy({
+              by: ["projectId"],
+              where: {
+                projectId: { in: projectIds },
+                folderId: { in: APPROVABLE_FOLDER_ID_LIST },
+                approvalStatus: "unapproved",
               },
-              orderBy: { createdAt: "asc" },
+              _count: { _all: true },
             }),
           ])
         : [[], [], []];
@@ -101,27 +113,25 @@ export const projectRouter = createTRPCRouter({
         ])
       );
 
-      const membersByProject = new Map<string, typeof members>();
-      for (const m of members) {
-        const list = membersByProject.get(m.projectId) ?? [];
-        list.push(m);
-        membersByProject.set(m.projectId, list);
-      }
+      const pendingApprovalMap = new Map(
+        pendingApprovalStats.map((s) => [s.projectId, s._count._all])
+      );
 
       return projects.map((p) => {
-        const projectMembers = membersByProject.get(p.id) ?? [];
+        const { members, _count, ...rest } = p;
         return {
-          ...withProxyImageUrl(p),
+          ...withProxyImageUrl(rest),
           taskCount: statsMap.get(p.id)?.taskCount ?? 0,
           completedTaskCount: statsMap.get(p.id)?.completedTaskCount ?? 0,
           completionPercent: statsMap.get(p.id)?.completionPercent ?? 0,
-          members: projectMembers.slice(0, 5).map((m) => ({
+          pendingApprovalsCount: pendingApprovalMap.get(p.id) ?? 0,
+          memberCount: _count.members,
+          members: members.map((m) => ({
             id: m.user.id,
             name: m.user.name,
             image: m.user.image,
             role: m.role,
           })),
-          memberCount: projectMembers.length,
         };
       });
     }),

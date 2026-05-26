@@ -211,6 +211,7 @@ export type GanttConfig = {
   columns: GanttColumnConfig[];
   features: {
     taskEdit?: boolean;
+    cellEdit?: boolean | { addNewAtEnd?: boolean };
     columnLines?: boolean | { renderer?: (...args: unknown[]) => void };
     stripe?: boolean;
     nonWorkingTime?: boolean;

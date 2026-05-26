@@ -158,6 +158,11 @@ export function createGanttConfig(
     ],
     features: {
       taskEdit: false,
+      // Inline cell editing (double-click the name cell to rename). Default
+      // `addNewAtEnd: true` creates a fresh task when Enter is pressed in the
+      // last row's editor — surprising for users who expect Enter to just
+      // commit the edit. New tasks are added via the "+ Add Task" button.
+      cellEdit: { addNewAtEnd: false },
       columnLines: true,
       stripe: true,
       nonWorkingTime: true,
