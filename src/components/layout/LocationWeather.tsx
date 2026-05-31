@@ -11,6 +11,7 @@ import {
   CloudLightning,
   CloudFog,
   Drop,
+  CaretDown,
   type Icon,
 } from '@phosphor-icons/react';
 import { Box, Typography, Popover, ButtonBase } from '@mui/material';
@@ -63,6 +64,23 @@ function getWeatherTint(icon: string): string {
     case '13': return 'rgba(141, 153, 174, 0.08)';  // silver — snow
     case '50': return 'rgba(141, 153, 174, 0.06)';  // light gray — fog
     default:   return 'rgba(141, 153, 174, 0.08)';
+  }
+}
+
+/** Stronger version of the condition tint, used for hover state on the clickable chip. */
+function getWeatherTintStrong(icon: string): string {
+  const code = icon.slice(0, 2);
+  switch (code) {
+    case '01': return 'rgba(251, 191, 36, 0.22)';
+    case '02': return 'rgba(251, 191, 36, 0.16)';
+    case '03':
+    case '04': return 'rgba(141, 153, 174, 0.24)';
+    case '09':
+    case '10': return 'rgba(37, 99, 235, 0.18)';
+    case '11': return 'rgba(107, 114, 128, 0.24)';
+    case '13': return 'rgba(141, 153, 174, 0.22)';
+    case '50': return 'rgba(141, 153, 174, 0.18)';
+    default:   return 'rgba(141, 153, 174, 0.2)';
   }
 }
 
@@ -126,9 +144,14 @@ export default function LocationWeather({ location, organizationId }: LocationWe
             ...chipSx,
             bgcolor: getWeatherTint(weather.icon),
             opacity: 1,
-            transition: 'opacity 0.3s ease, transform 0.15s ease',
+            transition: 'background-color 0.15s ease, transform 0.15s ease, opacity 0.3s ease',
             cursor: hasForecast ? 'pointer' : 'default',
-            '&:hover': hasForecast ? { transform: 'translateY(-1px)' } : undefined,
+            '&:hover': hasForecast
+              ? {
+                  bgcolor: getWeatherTintStrong(weather.icon),
+                  transform: 'translateY(-1px)',
+                }
+              : undefined,
             '&:focus-visible': {
               outline: '2px solid',
               outlineColor: 'primary.main',
@@ -162,6 +185,19 @@ export default function LocationWeather({ location, organizationId }: LocationWe
           >
             {weatherInfo.label}
           </Typography>
+          {hasForecast && (
+            <CaretDown
+              size={10}
+              weight="bold"
+              style={{
+                flexShrink: 0,
+                opacity: 0.5,
+                marginLeft: 2,
+                transition: 'transform 0.15s ease',
+                transform: popoverOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              }}
+            />
+          )}
         </ButtonBase>
       )}
 
@@ -220,7 +256,7 @@ export default function LocationWeather({ location, organizationId }: LocationWe
               lineHeight: 1,
             }}
           >
-            5-day forecast
+            {forecast.length}-day forecast
           </Typography>
         </Box>
         <Box sx={{ py: 0.5 }}>

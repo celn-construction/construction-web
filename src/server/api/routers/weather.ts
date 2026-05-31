@@ -64,6 +64,14 @@ function summarizeForecast(entries: ForecastEntry[], timezoneOffsetSec: number):
   for (const [dateKey, bucket] of buckets) {
     if (dateKey === todayKey) continue; // skip the partial "today" — current pill already shows today
 
+    // Skip a day without afternoon coverage (no slot at/after ~15:00 local). OWM's ~5-day window
+    // ends mid-morning of the final day; with only morning slots, hi (max temp_max) would be taken
+    // from morning temps and understate the true daytime high — so omit it rather than mislead.
+    const hasAfternoonCoverage = bucket.some(
+      (entry) => new Date((entry.dt + timezoneOffsetSec) * 1000).getUTCHours() >= 15,
+    );
+    if (!hasAfternoonCoverage) continue;
+
     // Pick the entry closest to local noon for the day's representative icon/description.
     let representative = bucket[0]!;
     let bestNoonDelta = Number.POSITIVE_INFINITY;
@@ -154,10 +162,18 @@ export const weatherRouter = createTRPCRouter({
         if (!currentRes.ok) return null;
         const currentData = (await currentRes.json()) as CurrentWeatherResult;
 
+        // Forecast is optional — a malformed body (or a non-JSON 200 from an edge/proxy error)
+        // must not throw to the outer catch and discard the successful current-weather result.
         let forecast: ForecastDay[] = [];
         if (forecastRes.ok) {
-          const forecastData = (await forecastRes.json()) as ForecastResult;
-          forecast = summarizeForecast(forecastData.list, forecastData.city.timezone);
+          try {
+            const forecastData = (await forecastRes.json()) as ForecastResult;
+            if (forecastData?.list && forecastData.city?.timezone != null) {
+              forecast = summarizeForecast(forecastData.list, forecastData.city.timezone);
+            }
+          } catch {
+            // Leave forecast empty; the current-weather pill still renders.
+          }
         }
 
         return {

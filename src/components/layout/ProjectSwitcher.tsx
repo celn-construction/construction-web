@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { CaretDown, MagnifyingGlass, Check, Plus, MapPin, ArrowRight } from '@phosphor-icons/react';
+import { CaretDown, MagnifyingGlass, Check, Plus, MapPin, ArrowRight, Copy } from '@phosphor-icons/react';
 import { Box, Typography, Menu, ButtonBase, alpha, useTheme, type Theme } from '@mui/material';
 import ProjectAvatar from '@/components/ui/ProjectAvatar';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import AddProjectDialog from '@/components/projects/AddProjectDialog';
 import LocationWeather from '@/components/layout/LocationWeather';
+import { useSnackbar } from '@/hooks/useSnackbar';
 
 const STATUS_HEX: Record<string, (t: Theme) => string> = {
   active: (t) => t.palette.status.active,
@@ -35,6 +36,15 @@ function getInitials(name: string | null | undefined): string {
   if (!name) return '?';
   const parts = name.trim().split(/\s+/).slice(0, 2);
   return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?';
+}
+
+/** Compact label for the header pill. Google Places address descriptions are street-first
+ *  ("street, city, state[, country]"), so the city is the second segment; shorter strings
+ *  ("City, State" or a plain label) read best by their first segment. Full address stays
+ *  available via the title tooltip. */
+function cityFromLocation(location: string): string {
+  const parts = location.split(',').map((p) => p.trim());
+  return parts.length >= 3 ? parts[1]! : parts[0]!;
 }
 
 function MemberAvatar({ name, image, size = 22 }: { name: string | null; image: string | null; size?: number }) {
@@ -87,7 +97,21 @@ interface PreviewPaneProps {
 
 function PreviewPane({ project, isCurrent, organizationId, onSwitch }: PreviewPaneProps) {
   const theme = useTheme();
+  const { showSnackbar } = useSnackbar();
+  const [copied, setCopied] = useState(false);
   const overflow = Math.max(0, project.memberCount - 4);
+
+  const handleCopyAddress = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!project.location) return;
+    try {
+      await navigator.clipboard.writeText(project.location);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      showSnackbar('Could not copy address', 'error');
+    }
+  };
 
   return (
     <Box
@@ -128,7 +152,7 @@ function PreviewPane({ project, isCurrent, organizationId, onSwitch }: PreviewPa
             {project.name}
           </Typography>
           {project.location ? (
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: '3px', minWidth: 0, maxWidth: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: '3px', minWidth: 0, maxWidth: '100%' }}>
               <MapPin size={10} weight="bold" style={{ flexShrink: 0, opacity: 0.55 }} />
               <Typography
                 sx={{
@@ -139,10 +163,31 @@ function PreviewPane({ project, isCurrent, organizationId, onSwitch }: PreviewPa
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  minWidth: 0,
                 }}
               >
                 {project.location}
               </Typography>
+              <ButtonBase
+                onClick={handleCopyAddress}
+                aria-label={copied ? 'Address copied' : 'Copy address'}
+                title={copied ? 'Copied!' : 'Copy address'}
+                sx={{
+                  flexShrink: 0,
+                  width: 18,
+                  height: 18,
+                  borderRadius: '4px',
+                  color: 'text.secondary',
+                  transition: 'background-color 0.12s, color 0.12s',
+                  '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                }}
+              >
+                {copied ? (
+                  <Check size={11} weight="bold" style={{ color: theme.palette.success.main }} />
+                ) : (
+                  <Copy size={11} weight="bold" />
+                )}
+              </ButtonBase>
             </Box>
           ) : (
             <Typography sx={{ fontSize: '11.5px', color: 'text.disabled', mt: '3px' }}>
@@ -548,6 +593,7 @@ export default function ProjectSwitcher() {
               <MapPin size={10} weight="bold" style={{ flexShrink: 0, opacity: 0.55 }} />
               <Typography
                 component="span"
+                title={displayedProject.location}
                 sx={{
                   fontSize: '11px',
                   fontWeight: 500,
@@ -558,7 +604,7 @@ export default function ProjectSwitcher() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {displayedProject.location}
+                {cityFromLocation(displayedProject.location)}
               </Typography>
             </Box>
           )}
