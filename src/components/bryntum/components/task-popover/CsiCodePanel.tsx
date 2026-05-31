@@ -2,15 +2,13 @@
 
 import { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import {
-  Tag,
   CaretDown,
   CaretRight,
   MagnifyingGlass,
   Check,
   X,
-  Prohibit,
 } from '@phosphor-icons/react';
-import { Box, Typography, IconButton, InputBase, Divider } from '@mui/material';
+import { Box, Typography, IconButton, InputBase } from '@mui/material';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import {
   CSI_MASTERFORMAT,
@@ -119,6 +117,7 @@ interface CsiCodePanelProps {
   csiCode: string | null | undefined;
   taskId: string;
   ganttInstance: BryntumGanttInstance | null;
+  /** Called after a code is selected (auto-close) or when the picker should dismiss. */
   onClose: () => void;
 }
 
@@ -188,9 +187,10 @@ export default function CsiCodePanel({
       if (!record) {
         showSnackbar('Could not find task in chart — try reloading', 'error');
         setOptimisticCode(undefined);
-        return;
+        return false;
       }
       record.csiCode = next;
+      return true;
     },
     [ganttInstance, taskId, showSnackbar],
   );
@@ -198,158 +198,31 @@ export default function CsiCodePanel({
   const handleSelectSubdivision = useCallback(
     (code: string) => {
       setOptimisticCode(code);
-      writeCsiCode(code);
+      const ok = writeCsiCode(code);
+      // Auto-close the picker — the selection is committed via Bryntum autoSync,
+      // and the chip in TaskHeader already reflects the new value.
+      if (ok) onClose();
     },
-    [writeCsiCode],
+    [writeCsiCode, onClose],
   );
-
-  const handleRemoveCode = useCallback(() => {
-    setOptimisticCode(null);
-    writeCsiCode(null);
-  }, [writeCsiCode]);
-
-  const hasCode = !!displayCode;
-  const subEntry = hasCode ? CSI_SUBDIVISION_MAP.get(displayCode!) : null;
 
   return (
     <Box
       sx={{
-        flex: 1,
+        width: 360,
         display: 'flex',
         flexDirection: 'column',
         bgcolor: 'background.paper',
         minWidth: 0,
-        maxHeight: '85vh',
-        animation: 'slideInRight 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        '@keyframes slideInRight': {
-          from: { opacity: 0, transform: 'translateX(12px)' },
-          to: { opacity: 1, transform: 'translateX(0)' },
-        },
+        maxHeight: 480,
       }}
     >
-      {/* ── Header ── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: '16px', py: '12px' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-          <Tag size={14} weight="bold" color="var(--text-secondary)" style={{ flexShrink: 0 }} />
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.primary', lineHeight: 1 }}>
-            CSI Classification
-          </Typography>
-        </Box>
-        <Box
-          component="button"
-          onClick={onClose}
-          sx={{
-            width: 26,
-            height: 26,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '6px',
-            border: 'none',
-            bgcolor: 'transparent',
-            cursor: 'pointer',
-            color: 'text.secondary',
-            flexShrink: 0,
-            '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
-            transition: 'background-color 0.15s, color 0.15s',
-          }}
-          aria-label="Close CSI panel"
-        >
-          <X size={13} />
-        </Box>
-      </Box>
-
-      {/* ── Current selection ── */}
-      {hasCode && subEntry && (
-        <Box
-          sx={{
-            mx: '16px',
-            mb: 1.5,
-            px: 1.5,
-            py: 1.25,
-            borderRadius: '8px',
-            bgcolor: 'action.selected',
-            border: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 1,
-          }}
-        >
-          <Check size={13} weight="bold" color="var(--sidebar-indicator)" style={{ flexShrink: 0, marginTop: 1 }} />
-          <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            <Typography
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 700,
-                color: 'text.primary',
-                lineHeight: 1,
-                fontVariantNumeric: 'tabular-nums',
-                letterSpacing: '0.02em',
-              }}
-            >
-              {displayCode}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                color: 'text.secondary',
-                lineHeight: 1.3,
-              }}
-            >
-              {subEntry.subdivision.name}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.5625rem',
-                fontWeight: 500,
-                color: 'text.secondary',
-                lineHeight: 1,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                mt: '1px',
-              }}
-            >
-              {subEntry.division.name}
-            </Typography>
-          </Box>
-          <Box
-            component="button"
-            onClick={handleRemoveCode}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 22,
-              height: 22,
-              borderRadius: '5px',
-              border: 'none',
-              bgcolor: 'transparent',
-              cursor: 'pointer',
-              color: 'text.secondary',
-              flexShrink: 0,
-              '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
-              transition: 'background-color 0.15s, color 0.15s',
-            }}
-            aria-label="Remove classification"
-          >
-            <Prohibit size={12} weight="bold" />
-          </Box>
-        </Box>
-      )}
-
-      <Divider />
-
       {/* ── Search bar ── */}
       <Box
         sx={{
           px: 1.5,
           py: 1,
-          position: 'sticky',
-          top: 0,
           bgcolor: 'background.paper',
-          zIndex: 1,
           borderBottom: '1px solid',
           borderColor: 'divider',
           display: 'flex',

@@ -1,10 +1,13 @@
 'use client';
 
-import { Box, Typography, Skeleton } from '@mui/material';
+import { useEffect, useRef, useState } from 'react';
+import { Box, ClickAwayListener, Popper, Skeleton, Typography } from '@mui/material';
 import { X, CalendarBlank, Timer, Tag, CaretRight, Plus, Check } from '@phosphor-icons/react';
 import type { Theme } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
 import { CSI_SUBDIVISION_MAP } from '@/lib/constants/csiCodes';
+import type { BryntumGanttInstance } from '../../types';
+import CsiCodePanel from './CsiCodePanel';
 
 type Status = 'not-started' | 'in-progress' | 'complete';
 
@@ -105,8 +108,9 @@ interface TaskHeaderProps {
     hasChildren?: boolean;
   } | null | undefined;
   taskDetailLoading: boolean;
+  taskId?: string;
+  ganttInstance: BryntumGanttInstance | null;
   onClose: () => void;
-  onOpenCsiPanel: () => void;
   onScrollToRequirements?: () => void;
   /**
    * Open the Manage submittals/inspections drawer. When provided, the empty
@@ -124,8 +128,9 @@ export default function TaskHeader({
   taskName,
   taskDetail,
   taskDetailLoading,
+  taskId,
+  ganttInstance,
   onClose,
-  onOpenCsiPanel,
   onScrollToRequirements,
   onOpenRequirementsDrawer,
   submittalsCurrent = 0,
@@ -133,6 +138,25 @@ export default function TaskHeader({
 }: TaskHeaderProps) {
   const emptyCtaAction = onOpenRequirementsDrawer ?? onScrollToRequirements;
   const theme = useTheme();
+
+  // ── CSI popover state ──
+  // The chip is both the anchor and the trigger. Esc is caught at capture
+  // phase so it closes the picker without bubbling to the outer TaskDetailsPopover.
+  const csiAnchorRef = useRef<HTMLButtonElement | null>(null);
+  const [csiOpen, setCsiOpen] = useState(false);
+  const closeCsi = () => setCsiOpen(false);
+
+  useEffect(() => {
+    if (!csiOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setCsiOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleEsc, true);
+    return () => document.removeEventListener('keydown', handleEsc, true);
+  }, [csiOpen]);
 
   // Progress derived from requirements
   const requiredSubmittals = taskDetail?.requiredSubmittals ?? 0;
@@ -336,7 +360,8 @@ export default function TaskHeader({
                 {taskDetail?.csiCode ? (
                   <Box
                     component="button"
-                    onClick={onOpenCsiPanel}
+                    ref={csiAnchorRef}
+                    onClick={() => setCsiOpen((o) => !o)}
                     title={csiName ? `${taskDetail.csiCode} — ${csiName}` : taskDetail.csiCode}
                     sx={{
                       display: 'inline-flex',
@@ -396,7 +421,8 @@ export default function TaskHeader({
                 ) : (
                   <Box
                     component="button"
-                    onClick={onOpenCsiPanel}
+                    ref={csiAnchorRef}
+                    onClick={() => setCsiOpen((o) => !o)}
                     sx={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -577,6 +603,43 @@ export default function TaskHeader({
           </Box>
         ) : null}
       </Box>
+
+      {/* ── CSI picker popover ── */}
+      {taskId && (
+        <Popper
+          open={csiOpen}
+          anchorEl={csiAnchorRef.current}
+          placement="bottom-start"
+          // Render above the parent Popover's paper. MUI's Popover uses the
+          // tooltip z-index (1500); push the popper one above so the picker
+          // floats over the task body and isn't clipped.
+          sx={{ zIndex: 1501 }}
+          modifiers={[
+            { name: 'offset', options: { offset: [0, 6] } },
+            { name: 'preventOverflow', options: { padding: 8 } },
+          ]}
+        >
+          <ClickAwayListener onClickAway={closeCsi}>
+            <Box
+              sx={{
+                borderRadius: '10px',
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: '0 12px 32px -8px rgba(0,0,0,0.18), 0 4px 12px -4px rgba(0,0,0,0.08)',
+                overflow: 'hidden',
+                bgcolor: 'background.paper',
+              }}
+            >
+              <CsiCodePanel
+                csiCode={taskDetail?.csiCode}
+                taskId={taskId}
+                ganttInstance={ganttInstance}
+                onClose={closeCsi}
+              />
+            </Box>
+          </ClickAwayListener>
+        </Popper>
+      )}
     </Box>
   );
 }

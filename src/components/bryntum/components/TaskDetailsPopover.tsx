@@ -19,12 +19,11 @@ import TaskHeader from './task-popover/TaskHeader';
 import CoverImageBanner from './task-popover/CoverImageBanner';
 import FolderRow from './task-popover/FolderRow';
 import FilePreviewPanel from './task-popover/FilePreviewPanel';
-import CsiCodePanel from './task-popover/CsiCodePanel';
 import SubmittalDrawer from './SubmittalDrawer';
 import { canApproveDocuments } from '@/lib/permissions';
 import type { SlotKind } from '@/lib/validations/gantt';
 
-type RightPanel = { type: 'preview'; doc: PreviewDoc } | { type: 'csi' } | null;
+type RightPanel = { type: 'preview'; doc: PreviewDoc } | null;
 
 type TaskDetailsPopoverProps = {
   open: boolean;
@@ -146,10 +145,6 @@ export function TaskDetailsPopover({
   );
 
   // ── Right panel helpers ──
-  const openCsiPanel = useCallback(() => {
-    setRightPanel({ type: 'csi' });
-  }, []);
-
   const openPreview = useCallback((doc: PreviewDoc) => {
     setRightPanel({ type: 'preview', doc });
   }, []);
@@ -339,8 +334,9 @@ export function TaskDetailsPopover({
               taskName={taskName}
               taskDetail={taskDetail}
               taskDetailLoading={taskDetailLoading}
+              taskId={taskId}
+              ganttInstance={ganttInstance}
               onClose={handleClose}
-              onOpenCsiPanel={openCsiPanel}
               onScrollToRequirements={handleScrollToRequirements}
               onOpenRequirementsDrawer={
                 canManageSlots ? () => setDrawerKind('submittal') : undefined
@@ -505,19 +501,10 @@ export function TaskDetailsPopover({
           {rightPanel && (
             <>
               <Divider orientation="vertical" flexItem />
-              {rightPanel.type === 'preview' ? (
-                <FilePreviewPanel
-                  previewDoc={rightPanel.doc}
-                  onClose={closeRightPanel}
-                />
-              ) : (
-                <CsiCodePanel
-                  csiCode={taskDetail?.csiCode}
-                  taskId={taskId!}
-                  ganttInstance={ganttInstance}
-                  onClose={closeRightPanel}
-                />
-              )}
+              <FilePreviewPanel
+                previewDoc={rightPanel.doc}
+                onClose={closeRightPanel}
+              />
             </>
           )}
         </Box>
