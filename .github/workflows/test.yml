@@ -89,6 +89,16 @@ jobs:
           POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/construction_test
           POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
 
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
+
       - name: Install Playwright browsers
         # Retry with a per-attempt timeout: cdn.playwright.dev intermittently
         # stalls a download connection mid-transfer, which otherwise hangs the
