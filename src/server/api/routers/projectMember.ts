@@ -9,6 +9,13 @@ import {
 import { bulkAddProjectMembersSchema } from "@/lib/validations/projectMember";
 
 export const projectMemberRouter = createTRPCRouter({
+  // Returns the calling user's effective role on this project. projectProcedure
+  // resolves the role authoritatively, including auto-creating a ProjectMember
+  // row for org owners/admins who have implicit access but no explicit row.
+  myRole: projectProcedure.query(({ ctx }) => {
+    return { role: ctx.projectMember.role };
+  }),
+
   list: projectProcedure.query(async ({ ctx, input }) => {
     const members = await ctx.db.projectMember.findMany({
       where: {
