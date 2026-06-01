@@ -45,6 +45,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: github.event.pull_request.draft == false
+    # Run inside the official Playwright image: the browsers and their system
+    # dependencies are baked into the image (pulled from Microsoft's registry),
+    # so there is no runtime browser download from Google Cloud Storage — which
+    # has been hanging the GitHub-Azure runners at 100% and failing E2E. Must
+    # match the @playwright/test version in package.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.57.0-noble
 
     services:
       postgres:
@@ -53,8 +60,6 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: construction_test
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 10s
@@ -76,46 +81,27 @@ jobs:
         env:
           BRYNTUM_NPM_TOKEN: ${{ secrets.BRYNTUM_NPM_TOKEN }}
 
+      # The job container reaches the Postgres service by its network alias
+      # ("postgres"), not localhost.
       - name: Enable pgvector and pg_trgm extensions
         run: |
-          psql -h localhost -U postgres -d construction_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
-          psql -h localhost -U postgres -d construction_test -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+          apt-get update && apt-get install -y --no-install-recommends postgresql-client
+          psql -h postgres -U postgres -d construction_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          psql -h postgres -U postgres -d construction_test -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
         env:
           PGPASSWORD: postgres
 
       - name: Push database schema
         run: npx prisma db push
         env:
-          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/construction_test
-          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
-
-      - name: Resolve Playwright version
-        id: pw
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
-
-      - name: Install Playwright browsers
-        # Retry with a per-attempt timeout: cdn.playwright.dev intermittently
-        # stalls a download connection mid-transfer, which otherwise hangs the
-        # step until the 6h job timeout. A fresh attempt grabs a healthy connection.
-        run: |
-          for attempt in 1 2 3; do
-            timeout 300 npx playwright install chromium --with-deps && exit 0
-            echo "::warning::Playwright install attempt ${attempt} stalled or failed; retrying"
-          done
-          echo "::error::Playwright install failed after 3 attempts"
-          exit 1
+          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@postgres:5432/construction_test
+          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@postgres:5432/construction_test
 
       - name: Run E2E tests
         run: npx playwright test --reporter=github,html
         env:
-          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/construction_test
-          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
+          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@postgres:5432/construction_test
+          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@postgres:5432/construction_test
           BETTER_AUTH_SECRET: test-secret-for-ci-e2e-runner-only-0123456789
           APP_URL: http://localhost:3000
           SKIP_ENV_VALIDATION: true
