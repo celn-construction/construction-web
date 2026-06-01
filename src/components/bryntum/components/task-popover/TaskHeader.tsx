@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Typography, Skeleton } from '@mui/material';
+import { Box, CircularProgress, Skeleton, Typography } from '@mui/material';
 import { X, CalendarBlank, Timer, Tag, CaretRight, Plus, Check } from '@phosphor-icons/react';
 import type { Theme } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
@@ -105,7 +105,12 @@ interface TaskHeaderProps {
     hasChildren?: boolean;
   } | null | undefined;
   taskDetailLoading: boolean;
+  /** Optimistic CSI code (pending value if a save is in flight, else the saved value). */
+  effectiveCsiCode: string | null;
+  /** True while a CSI change is being persisted — drives the chip spinner. */
+  isSavingCsi: boolean;
   onClose: () => void;
+  /** Opens the CSI picker side panel. */
   onOpenCsiPanel: () => void;
   onScrollToRequirements?: () => void;
   /**
@@ -124,6 +129,8 @@ export default function TaskHeader({
   taskName,
   taskDetail,
   taskDetailLoading,
+  effectiveCsiCode,
+  isSavingCsi,
   onClose,
   onOpenCsiPanel,
   onScrollToRequirements,
@@ -170,8 +177,9 @@ export default function TaskHeader({
   const subLine =
     status === 'complete' ? 'All requirements complete' : subPending.join(' · ');
 
-  // CSI lookup
-  const csiEntry = taskDetail?.csiCode ? CSI_SUBDIVISION_MAP.get(taskDetail.csiCode) : null;
+  // CSI lookup — uses the effective (optimistic) code so the chip reflects the
+  // just-picked value before the server round-trip lands.
+  const csiEntry = effectiveCsiCode ? CSI_SUBDIVISION_MAP.get(effectiveCsiCode) : null;
   const csiName = csiEntry?.subdivision.name ?? null;
 
   const metaDateRange = [
@@ -333,11 +341,17 @@ export default function TaskHeader({
                 )}
 
                 {/* CSI inline chip — code + truncated name (or dashed empty) */}
-                {taskDetail?.csiCode ? (
+                {effectiveCsiCode ? (
                   <Box
                     component="button"
                     onClick={onOpenCsiPanel}
-                    title={csiName ? `${taskDetail.csiCode} — ${csiName}` : taskDetail.csiCode}
+                    title={
+                      isSavingCsi
+                        ? 'Saving CSI code…'
+                        : csiName
+                          ? `${effectiveCsiCode} — ${csiName}`
+                          : effectiveCsiCode
+                    }
                     sx={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -346,21 +360,30 @@ export default function TaskHeader({
                       px: '7px',
                       borderRadius: '5px',
                       border: '1px solid',
-                      borderColor: 'divider',
+                      borderColor: isSavingCsi ? 'primary.main' : 'divider',
                       bgcolor: 'transparent',
                       color: 'text.secondary',
                       cursor: 'pointer',
                       lineHeight: 1,
                       maxWidth: '100%',
-                      transition: 'background-color 0.15s, color 0.15s, border-color 0.15s',
+                      opacity: isSavingCsi ? 0.85 : 1,
+                      transition: 'background-color 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s',
                       '&:hover': {
                         bgcolor: 'action.hover',
-                        borderColor: 'text.disabled',
+                        borderColor: isSavingCsi ? 'primary.main' : 'text.disabled',
                         color: 'text.primary',
                       },
                     }}
                   >
-                    <Tag size={11} weight="fill" color="currentColor" style={{ flexShrink: 0 }} />
+                    {isSavingCsi ? (
+                      <CircularProgress
+                        size={10}
+                        thickness={6}
+                        sx={{ color: 'primary.main', flexShrink: 0 }}
+                      />
+                    ) : (
+                      <Tag size={11} weight="fill" color="currentColor" style={{ flexShrink: 0 }} />
+                    )}
                     <Typography
                       component="span"
                       sx={{
@@ -372,7 +395,7 @@ export default function TaskHeader({
                         letterSpacing: '0.02em',
                       }}
                     >
-                      {taskDetail.csiCode}
+                      {effectiveCsiCode}
                     </Typography>
                     {csiName && (
                       <Typography

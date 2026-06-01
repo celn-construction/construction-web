@@ -119,6 +119,12 @@ interface CsiCodePanelProps {
   csiCode: string | null | undefined;
   taskId: string;
   ganttInstance: BryntumGanttInstance | null;
+  /**
+   * Called with the newly-written code the moment it's set on the Bryntum
+   * record, so the parent can show an optimistic + saving state on the chip
+   * while autoSync persists it. `null` signals a removal.
+   */
+  onCodeChange?: (code: string | null) => void;
   onClose: () => void;
 }
 
@@ -126,6 +132,7 @@ export default function CsiCodePanel({
   csiCode,
   taskId,
   ganttInstance,
+  onCodeChange,
   onClose,
 }: CsiCodePanelProps) {
   const { showSnackbar } = useSnackbar();
@@ -188,9 +195,10 @@ export default function CsiCodePanel({
       if (!record) {
         showSnackbar('Could not find task in chart — try reloading', 'error');
         setOptimisticCode(undefined);
-        return;
+        return false;
       }
       record.csiCode = next;
+      return true;
     },
     [ganttInstance, taskId, showSnackbar],
   );
@@ -198,15 +206,24 @@ export default function CsiCodePanel({
   const handleSelectSubdivision = useCallback(
     (code: string) => {
       setOptimisticCode(code);
-      writeCsiCode(code);
+      const ok = writeCsiCode(code);
+      // Notify the parent so the chip shows the new code with a saving spinner,
+      // then slide the panel away — no manual close needed.
+      if (ok) {
+        onCodeChange?.(code);
+        onClose();
+      }
     },
-    [writeCsiCode],
+    [writeCsiCode, onCodeChange, onClose],
   );
 
+  // Removal keeps the panel open so the user can pick a replacement; the chip
+  // still reflects the cleared state via onCodeChange.
   const handleRemoveCode = useCallback(() => {
     setOptimisticCode(null);
-    writeCsiCode(null);
-  }, [writeCsiCode]);
+    const ok = writeCsiCode(null);
+    if (ok) onCodeChange?.(null);
+  }, [writeCsiCode, onCodeChange]);
 
   const hasCode = !!displayCode;
   const subEntry = hasCode ? CSI_SUBDIVISION_MAP.get(displayCode!) : null;
