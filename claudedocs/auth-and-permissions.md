@@ -29,6 +29,8 @@ Members can view projects they are invited to and upload documents. They cannot 
 
 `APPROVE_DOCS` gates the submittal/inspection approval toggle and the Review Queue mutations. Members see read-only badges.
 
+`MANAGE_PROJ` gates the **Project Settings** surface entirely (owners/admins only). Members do not see the "Project Settings" sidebar/mobile-drawer item, and a server-side gate at `src/app/(app)/[orgSlug]/projects/[projectSlug]/settings/layout.tsx` redirects any non-owner/admin who navigates directly to `/settings` back to the project timeline. The nav surfaces resolve the caller's effective project role via the `projectMember.myRole` procedure; the settings layout resolves it directly from the DB (explicit `ProjectMember` row, falling back to implicit access for org owners/admins).
+
 ## Permission Utilities
 
 **Source**: `src/lib/permissions.ts`

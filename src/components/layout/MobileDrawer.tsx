@@ -16,6 +16,7 @@ import { projectNavItems, orgNavItems, getProjectNavHref, getOrgNavHref, SIDEBAR
 import OrgSwitcher from './OrgSwitcher';
 
 import { api } from '@/trpc/react';
+import { canManageProjects } from '@/lib/permissions';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import { authClient, signOut } from '@/lib/auth-client';
@@ -65,6 +66,16 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
     { enabled: !!projectId, retry: false },
   );
   const memberCount = projectMembers.length;
+
+  // Only owners/admins may see project settings — hide the nav item otherwise.
+  const { data: myProjectRole } = api.projectMember.myRole.useQuery(
+    { projectId },
+    { enabled: !!projectId, retry: false },
+  );
+  const canManageProject = myProjectRole ? canManageProjects(myProjectRole.role) : false;
+  const visibleProjectNavItems = projectNavItems.filter(
+    (i) => i.id !== 'project-settings' || canManageProject,
+  );
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -178,7 +189,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         {SIDEBAR_SECTIONS.map((section, sectionIdx) => {
           const items: NavItem[] = [
             ...orgNavItems.filter((i) => i.section === section.id),
-            ...projectNavItems.filter((i) => i.section === section.id),
+            ...visibleProjectNavItems.filter((i) => i.section === section.id),
           ];
           if (items.length === 0) return null;
 

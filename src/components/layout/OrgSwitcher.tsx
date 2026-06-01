@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useLoading } from '@/components/providers/LoadingProvider';
 import OrgAvatar from '@/components/ui/OrgAvatar';
+import { formatMembership } from '@/lib/utils/formatting';
 
 export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   const [orgMenuOpen, setOrgMenuOpen] = useState(false);
@@ -104,19 +105,13 @@ export default function OrgSwitcher({ collapsed = false }: { collapsed?: boolean
                 sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  fontSize: '0.5625rem',
-                  fontWeight: 600,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
+                  fontSize: '0.6875rem',
+                  fontWeight: 500,
                   color: 'text.secondary',
-                  bgcolor: 'action.selected',
-                  px: 0.625,
-                  py: '2px',
-                  borderRadius: '4px',
                   lineHeight: 1.2,
                 }}
               >
-                {currentOrg.role}
+                {formatMembership(currentOrg.role)}
               </Box>
             )}
           </>

@@ -281,7 +281,15 @@ function ProjectSettingsForm({
   const hasChanges = isDirty || imageChanged;
 
   return (
-    <>
+    <Paper
+      elevation={0}
+      sx={{
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: '12px',
+        overflow: 'hidden',
+      }}
+    >
       {GOOGLE_PLACES_API_KEY && (
         <Script
           src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_PLACES_API_KEY}&libraries=places`}
@@ -290,9 +298,13 @@ function ProjectSettingsForm({
         />
       )}
 
-      <Box sx={{ px: 3, py: 2.5 }}>
-        {/* Preview */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2.5 }}>
+      {/* Card header — title + live preview on the left, Save action on the right */}
+      <Box sx={{
+        px: 3, py: 2.5, display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', gap: 2,
+        borderBottom: '1px solid', borderColor: 'divider',
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
           <Box sx={{
             width: 48, height: 48, borderRadius: '12px',
             bgcolor: displayImageUrl ? 'transparent' : alpha(theme.palette.primary.main, 0.08),
@@ -308,7 +320,7 @@ function ProjectSettingsForm({
               color={theme.palette.primary.main}
             />
           </Box>
-          <Box>
+          <Box sx={{ minWidth: 0 }}>
             <Typography sx={{ fontSize: '1rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>
               Project Details
             </Typography>
@@ -317,16 +329,40 @@ function ProjectSettingsForm({
             </Typography>
           </Box>
         </Box>
+        <Button type="submit" form="settings-form" variant="contained"
+          disabled={!hasChanges || isUploading}
+          loading={updateMutation.isPending}
+          startIcon={<FloppyDisk size={15} />}
+          sx={{
+            flexShrink: 0, borderRadius: '8px', fontWeight: 600, fontSize: '0.8125rem',
+            px: 2.5, py: 1, textTransform: 'none',
+            boxShadow: `0 1px 3px ${alpha(theme.palette.primary.main, 0.3)}`,
+            '&:hover': { boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.35)}` },
+          }}>
+          Save Changes
+        </Button>
+      </Box>
 
-        <form onSubmit={handleSubmit(onSubmit)} id="settings-form">
-          {/* Picker Mode Toggle */}
-          <Box
-            role="radiogroup" aria-label="Project image type"
-            sx={{
-              display: 'inline-flex', borderRadius: '8px',
-              bgcolor: alpha(theme.palette.divider, 0.08), p: '3px', mb: 1.5,
-            }}
-          >
+      <Box component="form" onSubmit={handleSubmit(onSubmit)} id="settings-form" sx={{ px: 3, py: 3 }}>
+        {/* Two-column body — identity picker on the left, text fields on the right */}
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: 3, md: 5 } }}>
+          {/* Left column — image / icon identity */}
+          <Box sx={{ width: { xs: '100%', md: 300 }, flexShrink: 0 }}>
+            <Typography sx={{
+              fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary',
+              textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1, userSelect: 'none',
+            }}>
+              Project Image
+            </Typography>
+
+            {/* Picker Mode Toggle */}
+            <Box
+              role="radiogroup" aria-label="Project image type"
+              sx={{
+                display: 'inline-flex', borderRadius: '8px',
+                bgcolor: alpha(theme.palette.divider, 0.08), p: '3px', mb: 1.5,
+              }}
+            >
             {(['icon', 'photo'] as const).map((mode) => {
               const isActive = pickerMode === mode;
               const Icon = mode === 'icon' ? Swatches : ImageIcon;
@@ -481,58 +517,44 @@ function ProjectSettingsForm({
               )}
             </Box>
           )}
-
-          {/* Project Name */}
-          <Controller name="name" control={control} render={({ field }) => (
-            <TextField {...field} id="settings-name-input"
-              label="Project Name"
-              placeholder="e.g. Downtown Tower Construction"
-              error={!!errors.name} helperText={errors.name?.message}
-              fullWidth autoComplete="off" />
-          )} />
-
-          {/* Location */}
-          <Box sx={{ mt: 2 }}>
-          <Controller name="location" control={control} render={({ field }) =>
-            useGooglePlaces ? (
-              <LocationAutocompleteField
-                value={field.value ?? ''}
-                onChange={(v, coords) => {
-                  field.onChange(v);
-                  if (coords) {
-                    setValue('latitude', coords.lat, { shouldDirty: true });
-                    setValue('longitude', coords.lng, { shouldDirty: true });
-                  } else {
-                    setValue('latitude', undefined, { shouldDirty: true });
-                    setValue('longitude', undefined, { shouldDirty: true });
-                  }
-                }}
-                error={!!errors.location} helperText={errors.location?.message} />
-            ) : (
-              <PlainLocationField value={field.value ?? ''} onChange={field.onChange}
-                error={!!errors.location} helperText={errors.location?.message} />
-            )
-          } />
           </Box>
 
-          {/* Save Button */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2.5 }}>
-            <Button type="submit" form="settings-form" variant="contained"
-              disabled={!hasChanges || isUploading}
-              loading={updateMutation.isPending}
-              startIcon={<FloppyDisk size={15} />}
-              sx={{
-                borderRadius: '8px', fontWeight: 600, fontSize: '0.8125rem',
-                px: 2.5, py: 1, textTransform: 'none',
-                boxShadow: `0 1px 3px ${alpha(theme.palette.primary.main, 0.3)}`,
-                '&:hover': { boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.35)}` },
-              }}>
-              Save Changes
-            </Button>
+          {/* Right column — name + location */}
+          <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {/* Project Name */}
+            <Controller name="name" control={control} render={({ field }) => (
+              <TextField {...field} id="settings-name-input"
+                label="Project Name"
+                placeholder="e.g. Downtown Tower Construction"
+                error={!!errors.name} helperText={errors.name?.message}
+                fullWidth autoComplete="off" />
+            )} />
+
+            {/* Location */}
+            <Controller name="location" control={control} render={({ field }) =>
+              useGooglePlaces ? (
+                <LocationAutocompleteField
+                  value={field.value ?? ''}
+                  onChange={(v, coords) => {
+                    field.onChange(v);
+                    if (coords) {
+                      setValue('latitude', coords.lat, { shouldDirty: true });
+                      setValue('longitude', coords.lng, { shouldDirty: true });
+                    } else {
+                      setValue('latitude', undefined, { shouldDirty: true });
+                      setValue('longitude', undefined, { shouldDirty: true });
+                    }
+                  }}
+                  error={!!errors.location} helperText={errors.location?.message} />
+              ) : (
+                <PlainLocationField value={field.value ?? ''} onChange={field.onChange}
+                  error={!!errors.location} helperText={errors.location?.message} />
+              )
+            } />
           </Box>
-        </form>
+        </Box>
       </Box>
-    </>
+    </Paper>
   );
 }
 
@@ -561,7 +583,7 @@ export default function ProjectSettingsPage() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      sx={{ p: 3, maxWidth: 800, mx: 'auto' }}
+      sx={{ p: 3 }}
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
@@ -575,71 +597,71 @@ export default function ProjectSettingsPage() {
         </Box>
       </Box>
 
-      <Paper
-        elevation={0}
-        sx={{
-          border: 1,
-          borderColor: 'divider',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          transition: 'border-color 0.2s ease',
-        }}
-      >
-        {/* Project Details — edit form */}
-        {canEdit ? (
-          <ProjectSettingsForm projectId={projectId} organizationId={organizationId} />
-        ) : (
-          <Box sx={{ px: 3, py: 2.5 }}>
-            <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
-              Only project owners and admins can edit project settings.
+      {/* Project Details — edit form */}
+      {canEdit ? (
+        <ProjectSettingsForm projectId={projectId} organizationId={organizationId} />
+      ) : (
+        <Paper
+          elevation={0}
+          sx={{ border: 1, borderColor: 'divider', borderRadius: '12px', px: 3, py: 2.5 }}
+        >
+          <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+            Only project owners and admins can edit project settings.
+          </Typography>
+        </Paper>
+      )}
+
+      {/* Danger Zone — delete */}
+      {canDelete && (
+        <Paper
+          elevation={0}
+          sx={{
+            mt: 3,
+            border: 1,
+            borderColor: alpha(theme.palette.error.main, 0.25),
+            borderRadius: '12px',
+            overflow: 'hidden',
+          }}
+        >
+          <Box sx={{
+            px: 3, py: 1.5,
+            bgcolor: alpha(theme.palette.error.main, 0.04),
+            borderBottom: '1px solid',
+            borderColor: alpha(theme.palette.error.main, 0.15),
+            display: 'flex', alignItems: 'center', gap: 1,
+          }}>
+            <Warning size={14} color={theme.palette.error.main} />
+            <Typography sx={{
+              fontSize: '0.75rem', fontWeight: 600, color: 'error.main',
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+            }}>
+              Danger Zone
             </Typography>
           </Box>
-        )}
-
-        {/* Danger Zone — delete */}
-        {canDelete && (
-          <>
-            <Box sx={{
-              px: 3, py: 1.5,
-              bgcolor: alpha(theme.palette.error.main, 0.04),
-              borderTop: '1px solid',
-              borderBottom: '1px solid',
-              borderColor: alpha(theme.palette.error.main, 0.15),
-              display: 'flex', alignItems: 'center', gap: 1,
-            }}>
-              <Warning size={14} color={theme.palette.error.main} />
-              <Typography sx={{
-                fontSize: '0.75rem', fontWeight: 600, color: 'error.main',
-                textTransform: 'uppercase', letterSpacing: '0.05em',
-              }}>
-                Danger Zone
+          <Box sx={{
+            px: 3, py: 2.5, display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', gap: 2,
+          }}>
+            <Box>
+              <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.25 }}>
+                Delete this project
+              </Typography>
+              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.5 }}>
+                Permanently delete this project and all its data. This cannot be undone.
               </Typography>
             </Box>
-            <Box sx={{
-              px: 3, py: 2.5, display: 'flex', alignItems: 'center',
-              justifyContent: 'space-between', gap: 2,
-            }}>
-              <Box>
-                <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.25 }}>
-                  Delete this project
-                </Typography>
-                <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.5 }}>
-                  Permanently delete this project and all its data. This cannot be undone.
-                </Typography>
-              </Box>
-              <Button variant="outlined" color="error"
-                onClick={() => setDeleteDialogOpen(true)}
-                startIcon={<Trash size={14} />}
-                sx={{
-                  flexShrink: 0, borderRadius: '8px', fontWeight: 600,
-                  fontSize: '0.8125rem', textTransform: 'none',
-                }}>
-                Delete
-              </Button>
-            </Box>
-          </>
-        )}
-      </Paper>
+            <Button variant="outlined" color="error"
+              onClick={() => setDeleteDialogOpen(true)}
+              startIcon={<Trash size={14} />}
+              sx={{
+                flexShrink: 0, borderRadius: '8px', fontWeight: 600,
+                fontSize: '0.8125rem', textTransform: 'none',
+              }}>
+              Delete
+            </Button>
+          </Box>
+        </Paper>
+      )}
 
       {/* Delete Project Dialog */}
       <DeleteProjectDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}

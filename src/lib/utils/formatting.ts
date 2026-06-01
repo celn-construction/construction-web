@@ -10,6 +10,20 @@ export function formatRole(role: string): string {
 }
 
 /**
+ * Frames an org role as an explicit first-person membership statement,
+ * making it clear the role describes the current user — not the org.
+ * e.g. "owner" → "You're the owner", "member" → "You're a member"
+ */
+export function formatMembership(role: string): string {
+  const phrases: Record<string, string> = {
+    owner: "You're the owner",
+    admin: "You're an admin",
+    member: "You're a member",
+  };
+  return phrases[role.toLowerCase()] ?? `You're ${formatRole(role)}`;
+}
+
+/**
  * Extracts initials from a name string.
  * e.g. "John Doe" → "JD", "Alice" → "A", null → "?"
  */
