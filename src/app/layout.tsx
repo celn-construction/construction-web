@@ -50,7 +50,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${inter.variable} ${instrumentSerif.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${inter.variable} ${instrumentSerif.variable}`}>
       <head>
         {/* Prevent FOUC: apply the persisted theme mode before hydration. */}
         <script

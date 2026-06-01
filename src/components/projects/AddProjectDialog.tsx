@@ -186,9 +186,9 @@ function Stepper({
       sx={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
         gap: 0.75,
-        mb: 1.5,
+        mb: 2,
       }}
       aria-label={`Step ${currentIndex} of ${totalSteps}`}
     >
