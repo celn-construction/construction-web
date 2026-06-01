@@ -550,6 +550,19 @@ body {
   stroke: var(--accent-primary) !important;
 }
 
+/* Drag-to-create dependency dots (terminals) sit ~115% outside the bar edges
+   (.b-sch-terminal-start/-end translate past the bar). Bryntum sets
+   overflow:visible on a hovered bar (`b-sch-terminals-visible`) so they render,
+   but our base `.b-gantt-task { overflow: hidden !important }` (frosted-glass
+   clip) overrode it and hid the dots. Restore visible for that state, and stop
+   the decorative sheen there so it doesn't sweep past the unclipped edges. */
+.bryntum-gantt-container .b-gantt-task.b-sch-terminals-visible {
+  overflow: visible !important;
+}
+.bryntum-gantt-container .b-gantt-task.b-sch-terminals-visible::after {
+  animation: none !important;
+}
+
 /* ── Scrollbars ──────────────────────────────────────────────── */
 
 .bryntum-gantt-container .b-virtual-scroller::-webkit-scrollbar {
