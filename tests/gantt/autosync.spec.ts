@@ -30,12 +30,21 @@ test.describe("Gantt autoSync", () => {
     page,
     userWithProject,
   }) => {
+    // The Gantt route lazy-loads a large Bryntum bundle. In CI the app is served
+    // by `next dev`, which compiles the route on first request; on a cold runner
+    // that compile can exceed the default 15s action / 30s test timeouts, leaving
+    // the toolbar in the DOM but not yet painted or interactive (the source of
+    // this test's historical flakiness). Give the cold compile room.
+    test.setTimeout(90_000);
+
     const { user, organization, project } = userWithProject;
 
     await signInTestUser(page, user.email, user.password);
 
-    // Navigate to the Gantt page and wait for the initial load HTTP roundtrip
-    // to finish — this guarantees Bryntum is ready to receive user input.
+    // Navigate to the Gantt page and wait for the initial load HTTP roundtrip.
+    // Note: a 200 here only means the data arrived — it does NOT mean Bryntum
+    // has finished compiling/painting, so we gate the first click below on the
+    // toolbar actually being visible.
     const loadResponsePromise = page.waitForResponse(
       (r) => r.url().includes("/api/gantt/load") && r.status() === 200,
     );
@@ -44,8 +53,11 @@ test.describe("Gantt autoSync", () => {
 
     // Unlock editing — Add Task is hidden while the chart is locked.
     // The toolbar shows "Edit chart" when locked, "Lock chart" when unlocked
-    // (see GanttToolbar.tsx:527).
-    await page.getByRole("button", { name: "Edit chart" }).click();
+    // (see GanttToolbar.tsx:527). Wait for the button to actually render before
+    // clicking — the HTTP load above can resolve before the toolbar has painted.
+    const editChartButton = page.getByRole("button", { name: "Edit chart" });
+    await expect(editChartButton).toBeVisible({ timeout: 60_000 });
+    await editChartButton.click();
 
     // Set up the sync response interception BEFORE the click so we don't race
     // Bryntum's 500ms autoSync debounce.
