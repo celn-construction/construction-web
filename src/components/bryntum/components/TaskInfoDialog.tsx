@@ -243,6 +243,32 @@ export default function TaskInfoDialog({
     setStoreVersion(v => v + 1);
   }, [ganttInstance, taskRecord]);
 
+  // Create a Finish-to-Start dependency. A predecessor links the OTHER task →
+  // this one; a successor links this task → the other. Bryntum draws the
+  // connector line immediately and autoSync persists it via gantt.sync.
+  const handleAddDependency = useCallback(
+    (otherTaskId: string | number, direction: 'predecessor' | 'successor') => {
+      if (!ganttInstance || !taskRecord) return;
+      const from = direction === 'predecessor' ? otherTaskId : taskRecord.id;
+      const to = direction === 'predecessor' ? taskRecord.id : otherTaskId;
+      ganttInstance.project.dependencyStore.add({ from, to, type: 2 });
+      setStoreVersion(v => v + 1);
+    },
+    [ganttInstance, taskRecord],
+  );
+
+  // Tasks selectable as a new predecessor/successor: every other task that
+  // isn't already linked in that direction (and not this task itself).
+  const allTasks = ganttInstance?.project.taskStore.allRecords ?? [];
+  const predecessorTaskIds = new Set(predecessors.map(d => String(d.fromTask?.id)));
+  const successorTaskIds = new Set(successors.map(d => String(d.toTask?.id)));
+  const tasksForPredecessor = allTasks.filter(
+    t => t.name && String(t.id) !== String(taskRecord?.id) && !predecessorTaskIds.has(String(t.id)),
+  );
+  const tasksForSuccessor = allTasks.filter(
+    t => t.name && String(t.id) !== String(taskRecord?.id) && !successorTaskIds.has(String(t.id)),
+  );
+
   return (
     <Dialog
       open={open}
@@ -448,6 +474,8 @@ export default function TaskInfoDialog({
             dependencies={predecessors}
             direction="predecessor"
             onRemove={handleRemoveDependency}
+            availableTasks={tasksForPredecessor}
+            onAdd={handleAddDependency}
           />
         )}
 
@@ -457,6 +485,8 @@ export default function TaskInfoDialog({
             dependencies={successors}
             direction="successor"
             onRemove={handleRemoveDependency}
+            availableTasks={tasksForSuccessor}
+            onAdd={handleAddDependency}
           />
         )}
 
@@ -699,23 +729,25 @@ function DependencyList({
   dependencies,
   direction,
   onRemove,
+  availableTasks,
+  onAdd,
 }: {
   dependencies: BryntumDependencyRecord[];
   direction: 'predecessor' | 'successor';
   onRemove: (dep: BryntumDependencyRecord) => void;
+  availableTasks: BryntumTaskRecord[];
+  onAdd: (taskId: string | number, direction: 'predecessor' | 'successor') => void;
 }) {
-  if (dependencies.length === 0) {
-    return (
-      <Typography sx={{ fontSize: 13, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
-        No {direction}s for this task.
-      </Typography>
-    );
-  }
-
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', gap: 2, px: 1 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {dependencies.length === 0 ? (
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', fontFamily: 'Inter, sans-serif' }}>
+          No {direction}s for this task.
+        </Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {/* Header */}
+          <Box sx={{ display: 'flex', gap: 2, px: 1 }}>
         <Typography sx={{ flex: 1, fontSize: 11, fontWeight: 600, color: 'text.secondary', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>
           Task
         </Typography>
@@ -770,8 +802,34 @@ function DependencyList({
               <Trash size={14} />
             </IconButton>
           </Box>
-        );
-      })}
+            );
+          })}
+        </Box>
+      )}
+
+      {/* Add predecessor/successor — mirrors the Resources tab's Add control.
+          Creates a Finish-to-Start dependency; the connector line draws at once. */}
+      {availableTasks.length > 0 && (
+        <Box>
+          <Typography sx={{ ...fieldLabelSx, mt: 1 }}>Add {direction}</Typography>
+          <Select
+            size="small"
+            value=""
+            displayEmpty
+            onChange={(e) => {
+              if (e.target.value) onAdd(e.target.value as string, direction);
+            }}
+            sx={{ width: '100%', fontSize: 13, fontFamily: 'Inter, sans-serif' }}
+          >
+            <MenuItem value="" disabled sx={{ fontSize: 13 }}>Select a task...</MenuItem>
+            {availableTasks.map((t) => (
+              <MenuItem key={String(t.id)} value={String(t.id)} sx={{ fontSize: 13 }}>
+                {t.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
+      )}
     </Box>
   );
 }
