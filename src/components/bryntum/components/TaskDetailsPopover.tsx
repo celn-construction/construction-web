@@ -19,11 +19,12 @@ import TaskHeader from './task-popover/TaskHeader';
 import CoverImageBanner from './task-popover/CoverImageBanner';
 import FolderRow from './task-popover/FolderRow';
 import FilePreviewPanel from './task-popover/FilePreviewPanel';
+import CsiCodePanel from './task-popover/CsiCodePanel';
 import SubmittalDrawer from './SubmittalDrawer';
 import { canApproveDocuments } from '@/lib/permissions';
 import type { SlotKind } from '@/lib/validations/gantt';
 
-type RightPanel = { type: 'preview'; doc: PreviewDoc } | null;
+type RightPanel = { type: 'preview'; doc: PreviewDoc } | { type: 'csi' } | null;
 
 type TaskDetailsPopoverProps = {
   open: boolean;
@@ -149,9 +150,39 @@ export function TaskDetailsPopover({
     setRightPanel({ type: 'preview', doc });
   }, []);
 
+  const openCsiPanel = useCallback(() => {
+    setRightPanel({ type: 'csi' });
+  }, []);
+
   const closeRightPanel = useCallback(() => {
     setRightPanel(null);
   }, []);
+
+  // ── CSI optimistic + saving state ──
+  // The picker writes record.csiCode and the panel slides away, but the chip
+  // reads taskDetail.csiCode, which only refreshes ~1.5s later (autoSync flush +
+  // onSync's 1s debounced invalidate in BryntumGanttWrapper). `pendingCsiCode`
+  // holds the just-picked value so the chip updates instantly and spins until
+  // the server value catches up. `undefined` means nothing is in flight.
+  const [pendingCsiCode, setPendingCsiCode] = useState<string | null | undefined>(undefined);
+  const savedCsiCode = taskDetail?.csiCode ?? null;
+
+  useEffect(() => {
+    if (pendingCsiCode !== undefined && savedCsiCode === pendingCsiCode) {
+      setPendingCsiCode(undefined);
+    }
+  }, [savedCsiCode, pendingCsiCode]);
+
+  // Failsafe: a syncFail never refreshes taskDetail, so drop the spinner after a
+  // few seconds rather than spinning forever.
+  useEffect(() => {
+    if (pendingCsiCode === undefined) return;
+    const timer = setTimeout(() => setPendingCsiCode(undefined), 6000);
+    return () => clearTimeout(timer);
+  }, [pendingCsiCode]);
+
+  const effectiveCsiCode = pendingCsiCode !== undefined ? pendingCsiCode : savedCsiCode;
+  const isSavingCsi = pendingCsiCode !== undefined;
 
   // ── Callbacks ──
   const toggleFolder = useCallback((folderId: string) => {
@@ -334,9 +365,10 @@ export function TaskDetailsPopover({
               taskName={taskName}
               taskDetail={taskDetail}
               taskDetailLoading={taskDetailLoading}
-              taskId={taskId}
-              ganttInstance={ganttInstance}
+              effectiveCsiCode={effectiveCsiCode}
+              isSavingCsi={isSavingCsi}
               onClose={handleClose}
+              onOpenCsiPanel={openCsiPanel}
               onScrollToRequirements={handleScrollToRequirements}
               onOpenRequirementsDrawer={
                 canManageSlots ? () => setDrawerKind('submittal') : undefined
@@ -501,10 +533,20 @@ export function TaskDetailsPopover({
           {rightPanel && (
             <>
               <Divider orientation="vertical" flexItem />
-              <FilePreviewPanel
-                previewDoc={rightPanel.doc}
-                onClose={closeRightPanel}
-              />
+              {rightPanel.type === 'preview' ? (
+                <FilePreviewPanel
+                  previewDoc={rightPanel.doc}
+                  onClose={closeRightPanel}
+                />
+              ) : (
+                <CsiCodePanel
+                  csiCode={effectiveCsiCode}
+                  taskId={taskId!}
+                  ganttInstance={ganttInstance}
+                  onCodeChange={setPendingCsiCode}
+                  onClose={closeRightPanel}
+                />
+              )}
             </>
           )}
         </Box>

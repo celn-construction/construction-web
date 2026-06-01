@@ -1,13 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Box, ClickAwayListener, Popper, Skeleton, Typography } from '@mui/material';
+import { Box, CircularProgress, Skeleton, Typography } from '@mui/material';
 import { X, CalendarBlank, Timer, Tag, CaretRight, Plus, Check } from '@phosphor-icons/react';
 import type { Theme } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
 import { CSI_SUBDIVISION_MAP } from '@/lib/constants/csiCodes';
-import type { BryntumGanttInstance } from '../../types';
-import CsiCodePanel from './CsiCodePanel';
 
 type Status = 'not-started' | 'in-progress' | 'complete';
 
@@ -108,9 +105,13 @@ interface TaskHeaderProps {
     hasChildren?: boolean;
   } | null | undefined;
   taskDetailLoading: boolean;
-  taskId?: string;
-  ganttInstance: BryntumGanttInstance | null;
+  /** Optimistic CSI code (pending value if a save is in flight, else the saved value). */
+  effectiveCsiCode: string | null;
+  /** True while a CSI change is being persisted — drives the chip spinner. */
+  isSavingCsi: boolean;
   onClose: () => void;
+  /** Opens the CSI picker side panel. */
+  onOpenCsiPanel: () => void;
   onScrollToRequirements?: () => void;
   /**
    * Open the Manage submittals/inspections drawer. When provided, the empty
@@ -128,9 +129,10 @@ export default function TaskHeader({
   taskName,
   taskDetail,
   taskDetailLoading,
-  taskId,
-  ganttInstance,
+  effectiveCsiCode,
+  isSavingCsi,
   onClose,
+  onOpenCsiPanel,
   onScrollToRequirements,
   onOpenRequirementsDrawer,
   submittalsCurrent = 0,
@@ -138,25 +140,6 @@ export default function TaskHeader({
 }: TaskHeaderProps) {
   const emptyCtaAction = onOpenRequirementsDrawer ?? onScrollToRequirements;
   const theme = useTheme();
-
-  // ── CSI popover state ──
-  // The chip is both the anchor and the trigger. Esc is caught at capture
-  // phase so it closes the picker without bubbling to the outer TaskDetailsPopover.
-  const csiAnchorRef = useRef<HTMLButtonElement | null>(null);
-  const [csiOpen, setCsiOpen] = useState(false);
-  const closeCsi = () => setCsiOpen(false);
-
-  useEffect(() => {
-    if (!csiOpen) return;
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        setCsiOpen(false);
-      }
-    };
-    document.addEventListener('keydown', handleEsc, true);
-    return () => document.removeEventListener('keydown', handleEsc, true);
-  }, [csiOpen]);
 
   // Progress derived from requirements
   const requiredSubmittals = taskDetail?.requiredSubmittals ?? 0;
@@ -194,8 +177,9 @@ export default function TaskHeader({
   const subLine =
     status === 'complete' ? 'All requirements complete' : subPending.join(' · ');
 
-  // CSI lookup
-  const csiEntry = taskDetail?.csiCode ? CSI_SUBDIVISION_MAP.get(taskDetail.csiCode) : null;
+  // CSI lookup — uses the effective (optimistic) code so the chip reflects the
+  // just-picked value before the server round-trip lands.
+  const csiEntry = effectiveCsiCode ? CSI_SUBDIVISION_MAP.get(effectiveCsiCode) : null;
   const csiName = csiEntry?.subdivision.name ?? null;
 
   const metaDateRange = [
@@ -357,12 +341,17 @@ export default function TaskHeader({
                 )}
 
                 {/* CSI inline chip — code + truncated name (or dashed empty) */}
-                {taskDetail?.csiCode ? (
+                {effectiveCsiCode ? (
                   <Box
                     component="button"
-                    ref={csiAnchorRef}
-                    onClick={() => setCsiOpen((o) => !o)}
-                    title={csiName ? `${taskDetail.csiCode} — ${csiName}` : taskDetail.csiCode}
+                    onClick={onOpenCsiPanel}
+                    title={
+                      isSavingCsi
+                        ? 'Saving CSI code…'
+                        : csiName
+                          ? `${effectiveCsiCode} — ${csiName}`
+                          : effectiveCsiCode
+                    }
                     sx={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -371,21 +360,30 @@ export default function TaskHeader({
                       px: '7px',
                       borderRadius: '5px',
                       border: '1px solid',
-                      borderColor: 'divider',
+                      borderColor: isSavingCsi ? 'primary.main' : 'divider',
                       bgcolor: 'transparent',
                       color: 'text.secondary',
                       cursor: 'pointer',
                       lineHeight: 1,
                       maxWidth: '100%',
-                      transition: 'background-color 0.15s, color 0.15s, border-color 0.15s',
+                      opacity: isSavingCsi ? 0.85 : 1,
+                      transition: 'background-color 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s',
                       '&:hover': {
                         bgcolor: 'action.hover',
-                        borderColor: 'text.disabled',
+                        borderColor: isSavingCsi ? 'primary.main' : 'text.disabled',
                         color: 'text.primary',
                       },
                     }}
                   >
-                    <Tag size={11} weight="fill" color="currentColor" style={{ flexShrink: 0 }} />
+                    {isSavingCsi ? (
+                      <CircularProgress
+                        size={10}
+                        thickness={6}
+                        sx={{ color: 'primary.main', flexShrink: 0 }}
+                      />
+                    ) : (
+                      <Tag size={11} weight="fill" color="currentColor" style={{ flexShrink: 0 }} />
+                    )}
                     <Typography
                       component="span"
                       sx={{
@@ -397,7 +395,7 @@ export default function TaskHeader({
                         letterSpacing: '0.02em',
                       }}
                     >
-                      {taskDetail.csiCode}
+                      {effectiveCsiCode}
                     </Typography>
                     {csiName && (
                       <Typography
@@ -421,8 +419,7 @@ export default function TaskHeader({
                 ) : (
                   <Box
                     component="button"
-                    ref={csiAnchorRef}
-                    onClick={() => setCsiOpen((o) => !o)}
+                    onClick={onOpenCsiPanel}
                     sx={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -603,43 +600,6 @@ export default function TaskHeader({
           </Box>
         ) : null}
       </Box>
-
-      {/* ── CSI picker popover ── */}
-      {taskId && (
-        <Popper
-          open={csiOpen}
-          anchorEl={csiAnchorRef.current}
-          placement="bottom-start"
-          // Render above the parent Popover's paper. MUI's Popover uses the
-          // tooltip z-index (1500); push the popper one above so the picker
-          // floats over the task body and isn't clipped.
-          sx={{ zIndex: 1501 }}
-          modifiers={[
-            { name: 'offset', options: { offset: [0, 6] } },
-            { name: 'preventOverflow', options: { padding: 8 } },
-          ]}
-        >
-          <ClickAwayListener onClickAway={closeCsi}>
-            <Box
-              sx={{
-                borderRadius: '10px',
-                border: '1px solid',
-                borderColor: 'divider',
-                boxShadow: '0 12px 32px -8px rgba(0,0,0,0.18), 0 4px 12px -4px rgba(0,0,0,0.08)',
-                overflow: 'hidden',
-                bgcolor: 'background.paper',
-              }}
-            >
-              <CsiCodePanel
-                csiCode={taskDetail?.csiCode}
-                taskId={taskId}
-                ganttInstance={ganttInstance}
-                onClose={closeCsi}
-              />
-            </Box>
-          </ClickAwayListener>
-        </Popper>
-      )}
     </Box>
   );
 }
