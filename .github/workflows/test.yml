@@ -43,6 +43,7 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     if: github.event.pull_request.draft == false
 
     services:
@@ -89,7 +90,16 @@ jobs:
           POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/construction_test
 
       - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
+        # Retry with a per-attempt timeout: cdn.playwright.dev intermittently
+        # stalls a download connection mid-transfer, which otherwise hangs the
+        # step until the 6h job timeout. A fresh attempt grabs a healthy connection.
+        run: |
+          for attempt in 1 2 3; do
+            timeout 300 npx playwright install chromium --with-deps && exit 0
+            echo "::warning::Playwright install attempt ${attempt} stalled or failed; retrying"
+          done
+          echo "::error::Playwright install failed after 3 attempts"
+          exit 1
 
       - name: Run E2E tests
         run: npx playwright test --reporter=github,html
