@@ -98,6 +98,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env:
+          BRYNTUM_NPM_TOKEN: ${{ secrets.BRYNTUM_NPM_TOKEN }}
 
       - name: Enable pgvector and pg_trgm extensions
         run: |
