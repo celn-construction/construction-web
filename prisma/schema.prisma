@@ -180,7 +180,7 @@ model Document {
     uploadedBy    User                 @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
     approvedBy    User?                @relation("ApprovedByUser", fields: [approvedById], references: [id], onDelete: SetNull)
     slot          TaskRequirementSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
-    coverForTasks GanttTask[]          @relation("TaskCoverDocument")
+    coverForTasks GanttTask[]          @relation("TaskCoverDocument") // Deprecated: task covers now use GanttTask.coverImageUrl
 
     @@index([projectId, taskId, folderId])
     @@index([projectId])
@@ -285,8 +285,8 @@ model GanttTask {
     note               String?
     csiCode            String?
     baselines          Json?
-    coverImageUrl          String?
-    coverDocumentId        String?
+    coverImageUrl          String?   // task cover image (private blob URL) — see claudedocs/components-guide.md
+    coverDocumentId        String?   // Deprecated: superseded by coverImageUrl; unused, pending a follow-up drop migration
     requiredSubmittals     Int?
     requiredInspections    Int?
     updatedAt              DateTime  @default(now()) @updatedAt
@@ -297,7 +297,7 @@ model GanttTask {
     assignments  GanttAssignment[]
     dependenciesFrom GanttDependency[] @relation("FromTask")
     dependenciesTo   GanttDependency[] @relation("ToTask")
-    coverDocument    Document? @relation("TaskCoverDocument", fields: [coverDocumentId], references: [id], onDelete: SetNull)
+    coverDocument    Document? @relation("TaskCoverDocument", fields: [coverDocumentId], references: [id], onDelete: SetNull) // Deprecated with coverDocumentId — pending drop
     requirementSlots TaskRequirementSlot[]
 
     @@index([projectId])

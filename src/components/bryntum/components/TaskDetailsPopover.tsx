@@ -21,7 +21,7 @@ import FolderRow from './task-popover/FolderRow';
 import FilePreviewPanel from './task-popover/FilePreviewPanel';
 import CsiCodePanel from './task-popover/CsiCodePanel';
 import SubmittalDrawer from './SubmittalDrawer';
-import { canApproveDocuments } from '@/lib/permissions';
+import { canApproveDocuments, canManageProjects } from '@/lib/permissions';
 import type { SlotKind } from '@/lib/validations/gantt';
 
 type RightPanel = { type: 'preview'; doc: PreviewDoc } | { type: 'csi' } | null;
@@ -47,6 +47,7 @@ export function TaskDetailsPopover({
   const { memberRole } = useOrgContext();
   const canManageRequirements = memberRole === 'owner' || memberRole === 'admin';
   const canManageSlots = canApproveDocuments(memberRole);
+  const canManageCover = canManageProjects(memberRole);
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [uploadTarget, setUploadTarget] = useState<{ folder: { id: string; name: string }; slotId?: string } | null>(null);
@@ -262,10 +263,7 @@ export function TaskDetailsPopover({
   const submittalsCurrent = submittalsCounts.approved;
   const inspectionsCurrent = inspectionsCounts.approved;
 
-  const coverDocumentId = taskDetail?.coverDocumentId ?? null;
-  const photos = ((allDocs ?? []) as DocumentItem[]).filter(
-    (d) => d.folderId === 'photos' && d.mimeType.startsWith('image/')
-  );
+  const coverImageUrl = taskDetail?.coverImageUrl ?? null;
   const hasRightPanel = rightPanel !== null;
   const previewDoc = rightPanel?.type === 'preview' ? rightPanel.doc : null;
   const selectedDocId = previewDoc?.id ?? null;
@@ -353,8 +351,8 @@ export function TaskDetailsPopover({
               taskId={taskId}
               projectId={projectId}
               organizationId={organizationId}
-              coverDocumentId={coverDocumentId}
-              photos={photos}
+              coverImageUrl={coverImageUrl}
+              canManage={canManageCover}
             />
 
             <Divider sx={{ mx: 2 }} />
@@ -486,7 +484,6 @@ export function TaskDetailsPopover({
                       projectId={projectId}
                       taskId={taskId}
                       organizationId={organizationId}
-                      pinnedDocId={coverDocumentId}
                       onManage={
                         folder.trackable && canManageSlots
                           ? () => setDrawerKind(folder.id === 'submittals' ? 'submittal' : 'inspection')

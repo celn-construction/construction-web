@@ -1,89 +1,150 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
 import { Box, Typography } from '@mui/material';
-import { ImageSquare, PushPin } from '@phosphor-icons/react';
+import { ImageSquare, UploadSimple, ArrowsClockwise, Trash } from '@phosphor-icons/react';
 import { api } from '@/trpc/react';
 import { useSnackbar } from '@/hooks/useSnackbar';
-import type { DocumentItem } from './types';
+import { trackUpload } from '@/store/uploadStatusStore';
 
 interface CoverImageBannerProps {
   taskId?: string;
   projectId: string;
   organizationId: string;
-  coverDocumentId: string | null;
-  photos: DocumentItem[];
+  coverImageUrl: string | null;
+  canManage: boolean;
 }
 
-const STRIP_MAX = 5;
 const HERO_HEIGHT = 160;
-const THUMB_SIZE = 44;
-const EMPTY_HEIGHT = HERO_HEIGHT + 4 + THUMB_SIZE;
+const MAX_BYTES = 10 * 1024 * 1024; // 10MB — matches /api/upload/task-cover
 
 export default function CoverImageBanner({
   taskId,
   projectId,
   organizationId,
-  coverDocumentId,
-  photos,
+  coverImageUrl,
+  canManage,
 }: CoverImageBannerProps) {
   const { showSnackbar } = useSnackbar();
   const utils = api.useUtils();
-  const [viewedId, setViewedId] = useState<string | null>(null);
   const [heroLoaded, setHeroLoaded] = useState(false);
+  const [busy, setBusy] = useState(false);
+  // Cache-bust token bumped on each successful upload. taskCoverProxyUrl is
+  // version-less, so without this the replaced cover keeps the same <img src>
+  // and the browser never refetches the new blob.
+  const [coverVersion, setCoverVersion] = useState(0);
 
-  const pinMutation = api.gantt.pinPhoto.useMutation({
-    onSuccess: () => {
-      if (taskId) {
-        void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
-      }
-    },
-    onError: (err) => showSnackbar(err.message || 'Failed to pin photo', 'error'),
-  });
-
-  // Reset local "viewed" state when task or pinned photo changes
+  // Reset the load shimmer whenever the cover source changes.
   useEffect(() => {
-    setViewedId(null);
     setHeroLoaded(false);
-  }, [taskId, coverDocumentId]);
+  }, [coverImageUrl]);
 
-  // Order photos: pinned first, then newest-first. `photos` arrives newest-first from listByTask.
-  const orderedPhotos = useMemo(() => {
-    if (!coverDocumentId) return photos;
-    const pinned = photos.find((p) => p.id === coverDocumentId);
-    if (!pinned) return photos;
-    return [pinned, ...photos.filter((p) => p.id !== coverDocumentId)];
-  }, [photos, coverDocumentId]);
+  const refreshCover = useCallback(() => {
+    if (!taskId) return;
+    void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
+  }, [organizationId, projectId, taskId, utils]);
 
-  const defaultHero = orderedPhotos[0] ?? null;
-  const hero = viewedId
-    ? (orderedPhotos.find((p) => p.id === viewedId) ?? defaultHero)
-    : defaultHero;
-
-  const stripPhotos = orderedPhotos.filter((p) => p.id !== hero?.id);
-  const visibleStrip = stripPhotos.slice(0, STRIP_MAX);
-  const overflowCount = stripPhotos.length - visibleStrip.length;
-
-  const handlePin = useCallback(
-    (documentId: string) => {
-      if (!taskId) return;
-      pinMutation.mutate({ projectId, taskId, documentId });
+  const uploadFile = useCallback(
+    async (file: File) => {
+      if (!taskId || busy) return;
+      setBusy(true);
+      const result = await trackUpload<{ imageUrl: string }>(
+        file,
+        () => {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('projectId', projectId);
+          formData.append('taskId', taskId);
+          return fetch('/api/upload/task-cover', { method: 'POST', body: formData });
+        },
+        { doneLabel: 'Cover image ready', maxBytes: MAX_BYTES },
+      );
+      setBusy(false);
+      if (result.ok) {
+        setCoverVersion((v) => v + 1);
+        refreshCover();
+      } else if (result.error) showSnackbar(result.error, 'error');
     },
-    [taskId, projectId, pinMutation]
+    [taskId, projectId, busy, refreshCover, showSnackbar],
   );
 
-  // Empty state: no photos yet — show guidance pointing to the Photos folder
-  if (photos.length === 0) {
+  const handleRemove = useCallback(async () => {
+    if (!taskId || busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/upload/task-cover', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId, taskId }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? 'Failed to remove cover');
+      }
+      refreshCover();
+      showSnackbar('Cover image removed', 'success');
+    } catch (err) {
+      showSnackbar(err instanceof Error ? err.message : 'Failed to remove cover', 'error');
+    } finally {
+      setBusy(false);
+    }
+  }, [taskId, projectId, busy, refreshCover, showSnackbar]);
+
+  const { getRootProps, getInputProps, open, isDragActive } = useDropzone({
+    onDrop: (accepted) => {
+      const file = accepted[0];
+      if (file) void uploadFile(file);
+    },
+    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'] },
+    maxFiles: 1,
+    multiple: false,
+    noClick: true,
+    noKeyboard: true,
+    disabled: !canManage || busy,
+  });
+
+  // ── Empty state ──
+  if (!coverImageUrl) {
+    // Viewers without manage permission just see a quiet placeholder.
+    if (!canManage) {
+      return (
+        <Box
+          sx={{
+            mx: '14px',
+            mb: '4px',
+            height: HERO_HEIGHT,
+            borderRadius: '10px',
+            border: '1.5px dashed',
+            borderColor: 'divider',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 0.75,
+            color: 'text.disabled',
+          }}
+        >
+          <ImageSquare size={18} />
+          <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1.2 }}>
+            No cover image
+          </Typography>
+        </Box>
+      );
+    }
+
     return (
       <Box
+        {...getRootProps()}
+        onClick={busy ? undefined : open}
         sx={{
           mx: '14px',
           mb: '4px',
-          height: EMPTY_HEIGHT,
+          height: HERO_HEIGHT,
           borderRadius: '10px',
           border: '1.5px dashed',
-          borderColor: 'divider',
-          color: 'text.disabled',
+          borderColor: isDragActive ? 'primary.main' : 'divider',
+          bgcolor: isDragActive ? 'action.hover' : 'transparent',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -91,218 +152,176 @@ export default function CoverImageBanner({
           gap: 0.75,
           textAlign: 'center',
           px: 3,
+          cursor: 'pointer',
+          color: 'text.disabled',
+          transition: 'border-color 0.2s, background-color 0.2s, color 0.2s',
+          '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
         }}
       >
-        <ImageSquare size={18} />
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'text.secondary', lineHeight: 1.2 }}>
-          No cover image
+        <input {...getInputProps()} />
+        <UploadSimple size={20} weight="bold" />
+        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}>
+          {isDragActive ? 'Drop image to set cover' : 'Upload cover image'}
         </Typography>
         <Typography sx={{ fontSize: '0.6875rem', fontWeight: 400, color: 'text.disabled', lineHeight: 1.4, maxWidth: 260 }}>
-          Upload a photo in the Photos folder below, then pin it to feature it here.
+          Drag & drop or click to add a cover for this task. PNG, JPG, WebP, or GIF up to 10MB.
         </Typography>
       </Box>
     );
   }
 
-  const isPinned = hero?.id === coverDocumentId;
+  // ── Filled state ──
+  const heroSrc = coverVersion > 0 ? `${coverImageUrl}?v=${coverVersion}` : coverImageUrl;
 
   return (
-    <Box sx={{ mx: '14px', mb: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {/* ─── HERO ─── */}
+    <Box sx={{ mx: '14px', mb: '4px' }}>
       <Box
+        {...(canManage ? getRootProps() : {})}
         sx={{
           position: 'relative',
           height: HERO_HEIGHT,
           borderRadius: '10px',
           overflow: 'hidden',
           bgcolor: 'background.default',
-          '&:hover .hero-actions': { opacity: 1 },
+          outline: isDragActive ? '2px solid' : 'none',
+          outlineColor: 'primary.main',
+          '&:hover .cover-actions': { opacity: 1 },
         }}
       >
-        {hero ? (
-          <>
-            {!heroLoaded && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  '@keyframes shimmer': {
-                    '0%': { backgroundPosition: '-200% 0' },
-                    '100%': { backgroundPosition: '200% 0' },
-                  },
-                  background:
-                    'linear-gradient(90deg, var(--bg-primary) 25%, var(--border-color) 50%, var(--bg-primary) 75%)',
-                  backgroundSize: '200% 100%',
-                  animation: 'shimmer 1.8s ease-in-out infinite',
-                }}
-              >
-                <ImageSquare size={18} color="var(--text-secondary)" />
-              </Box>
-            )}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              key={hero.id}
-              src={hero.blobUrl}
-              alt={hero.name}
-              onLoad={() => setHeroLoaded(true)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        {canManage && <input {...getInputProps()} />}
+
+        {!heroLoaded && (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              '@keyframes shimmer': {
+                '0%': { backgroundPosition: '-200% 0' },
+                '100%': { backgroundPosition: '200% 0' },
+              },
+              background:
+                'linear-gradient(90deg, var(--bg-primary) 25%, var(--border-color) 50%, var(--bg-primary) 75%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 1.8s ease-in-out infinite',
+            }}
+          >
+            <ImageSquare size={18} color="var(--text-secondary)" />
+          </Box>
+        )}
+
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={heroSrc}
+          alt="Task cover"
+          onLoad={() => setHeroLoaded(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+
+        {/* Drag-to-replace hint */}
+        {isDragActive && (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              bgcolor: 'rgba(0,0,0,0.45)',
+              backdropFilter: 'blur(2px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.75,
+              color: 'white',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+            }}
+          >
+            <UploadSimple size={16} weight="bold" />
+            Drop to replace cover
+          </Box>
+        )}
+
+        {/* Hover actions: replace + remove (managers only) */}
+        {canManage && (
+          <Box
+            className="cover-actions"
+            sx={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              display: 'flex',
+              gap: 0.5,
+              opacity: 0,
+              transition: 'opacity 0.2s',
+            }}
+          >
+            <CoverActionButton
+              icon={<ArrowsClockwise size={12} weight="bold" />}
+              label="Replace"
+              disabled={busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                open();
+              }}
             />
-
-            {/* Pinned badge (visible always when showing the pinned photo) */}
-            {isPinned && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 8,
-                  left: 8,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  height: 22,
-                  px: 0.75,
-                  bgcolor: 'rgba(0,0,0,0.55)',
-                  backdropFilter: 'blur(8px)',
-                  borderRadius: '6px',
-                  color: 'white',
-                  fontSize: '0.625rem',
-                  fontWeight: 500,
-                  letterSpacing: '0.01em',
-                  lineHeight: 1,
-                }}
-              >
-                <PushPin size={11} weight="fill" />
-                Pinned
-              </Box>
-            )}
-
-            {/* Hover actions: pin only (no uploads from here) */}
-            {!isPinned && hero && (
-              <Box
-                className="hero-actions"
-                sx={{
-                  position: 'absolute',
-                  bottom: 8,
-                  right: 8,
-                  display: 'flex',
-                  gap: 0.5,
-                  opacity: 0,
-                  transition: 'opacity 0.2s',
-                }}
-              >
-                <Box
-                  component="button"
-                  disabled={pinMutation.isPending}
-                  onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    handlePin(hero.id);
-                  }}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    color: 'white',
-                    height: 26,
-                    px: 1,
-                    bgcolor: 'rgba(0,0,0,0.5)',
-                    backdropFilter: 'blur(8px)',
-                    borderRadius: '6px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '0.625rem',
-                    fontWeight: 500,
-                    fontFamily: 'inherit',
-                    letterSpacing: '0.01em',
-                    lineHeight: 1,
-                    '&:hover': { bgcolor: 'rgba(0,0,0,0.65)' },
-                    '&:disabled': { opacity: 0.6, cursor: 'wait' },
-                    transition: 'background-color 0.15s',
-                  }}
-                  aria-label="Pin as cover"
-                >
-                  <PushPin size={12} weight="fill" />
-                  Pin as cover
-                </Box>
-              </Box>
-            )}
-          </>
-        ) : null}
+            <CoverActionButton
+              icon={<Trash size={12} weight="bold" />}
+              label="Remove"
+              disabled={busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleRemove();
+              }}
+            />
+          </Box>
+        )}
       </Box>
+    </Box>
+  );
+}
 
-      {/* ─── THUMBNAIL STRIP ─── */}
-      {visibleStrip.length > 0 && (
-        <Box sx={{ display: 'flex', gap: '4px', alignItems: 'stretch' }}>
-          {visibleStrip.map((photo, idx) => {
-            const isOverflowTile = idx === visibleStrip.length - 1 && overflowCount > 0;
-            return (
-              <Box
-                key={photo.id}
-                onClick={() => setViewedId(photo.id)}
-                sx={{
-                  position: 'relative',
-                  width: THUMB_SIZE,
-                  height: THUMB_SIZE,
-                  borderRadius: '6px',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  bgcolor: 'action.hover',
-                  border: '2px solid',
-                  borderColor: 'transparent',
-                  transition: 'border-color 0.15s, transform 0.15s',
-                  '&:hover': { borderColor: 'divider', transform: 'scale(1.03)' },
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo.blobUrl}
-                  alt={photo.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-                {photo.id === coverDocumentId && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: 2,
-                      left: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 14,
-                      height: 14,
-                      borderRadius: '50%',
-                      bgcolor: 'rgba(0,0,0,0.6)',
-                      color: 'white',
-                    }}
-                  >
-                    <PushPin size={8} weight="fill" />
-                  </Box>
-                )}
-                {isOverflowTile && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      bgcolor: 'rgba(0,0,0,0.55)',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      letterSpacing: '0.02em',
-                    }}
-                  >
-                    +{overflowCount + 1}
-                  </Box>
-                )}
-              </Box>
-            );
-          })}
-        </Box>
-      )}
+function CoverActionButton({
+  icon,
+  label,
+  disabled,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  disabled?: boolean;
+  onClick: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <Box
+      component="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5,
+        color: 'white',
+        height: 26,
+        px: 1,
+        bgcolor: 'rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(8px)',
+        borderRadius: '6px',
+        border: 'none',
+        cursor: 'pointer',
+        fontSize: '0.625rem',
+        fontWeight: 500,
+        fontFamily: 'inherit',
+        letterSpacing: '0.01em',
+        lineHeight: 1,
+        '&:hover': { bgcolor: 'rgba(0,0,0,0.65)' },
+        '&:disabled': { opacity: 0.6, cursor: 'wait' },
+        transition: 'background-color 0.15s',
+      }}
+    >
+      {icon}
+      {label}
     </Box>
   );
 }

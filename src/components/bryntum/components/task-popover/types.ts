@@ -49,11 +49,10 @@ export interface FolderContentProps {
    */
   onUploadFile?: (slotId: string, file: File) => void;
   folderName: string;
-  // Optional pin context — only consumed by the Photos folder
+  // Task/org context — consumed by trackable folders for slot mutations
   projectId?: string;
   taskId?: string;
   organizationId?: string;
-  pinnedDocId?: string | null;
   // Approval context — only consumed by trackable folders (submittals, inspections)
   memberRole?: string;
   /**

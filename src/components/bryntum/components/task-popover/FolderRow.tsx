@@ -58,11 +58,10 @@ interface FolderRowProps {
   canManage?: boolean;
   onSaveRequirement?: (count: number | null) => void;
   isRequirementPending?: boolean;
-  // Pin context (only used by the Photos folder)
+  // Task/org context (used by trackable folders for slot mutations)
   projectId?: string;
   taskId?: string;
   organizationId?: string;
-  pinnedDocId?: string | null;
   // Drawer launch (only for trackable folders)
   onManage?: () => void;
   // Approval context (only used by trackable folders)
@@ -91,7 +90,6 @@ function FolderRowInner({
   projectId,
   taskId,
   organizationId,
-  pinnedDocId,
   onManage,
   memberRole,
   uploadingSlotIds,
@@ -111,7 +109,6 @@ function FolderRowInner({
     projectId,
     taskId,
     organizationId,
-    pinnedDocId,
     memberRole,
     uploadingSlotIds,
   };
