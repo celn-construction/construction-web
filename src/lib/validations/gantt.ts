@@ -22,6 +22,11 @@ const taskRecordSchema = z.object({
   effortUnit: z.string().nullable().optional(),
   expanded: z.boolean().optional(),
   orderIndex: z.number().optional(),
+  // Bryntum's calculated tree-position fields (persisted on AppTaskModel). A
+  // drag-reorder sends these on the moved siblings; the server maps them onto
+  // the orderIndex column. The schema otherwise strips unknown keys.
+  orderedParentIndex: z.number().optional(),
+  parentIndex: z.number().optional(),
   manuallyScheduled: z.boolean().optional(),
   constraintType: z.string().nullable().optional(),
   constraintDate: z.string().or(z.date()).nullable().optional(),

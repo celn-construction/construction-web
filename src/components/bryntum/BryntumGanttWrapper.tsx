@@ -476,7 +476,32 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     gantt.project.on('sync', onSync);
     gantt.project.on('syncFail', onSyncFail);
     gantt.project.on('beforeSync', onBeforeSync);
+
+    // A row reorder is a single discrete drop — unlike a task-bar drag it emits
+    // no continuous stream of changes, so it doesn't need the 500ms autoSync
+    // debounce (autoSyncTimeout). Worse, that debounce means a quick refresh
+    // right after dropping cancels the in-flight save and the new order is lost.
+    // Force an immediate sync on drop so the reorder is persisted before the
+    // user can navigate away.
+    const onRowDrop = () => {
+      void (async () => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          await gantt.project?.commitAsync?.();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          await gantt.project?.sync?.();
+        } catch {
+          // A debounced autoSync may already be flushing the same change;
+          // "sync already in progress" is benign — that sync persists the order.
+        }
+      })();
+    };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.on('gridRowDrop', onRowDrop);
+
     return () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt?.un?.('gridRowDrop', onRowDrop);
       gantt.project?.un('sync', onSync);
       gantt.project?.un('syncFail', onSyncFail);
       gantt.project?.un('beforeSync', onBeforeSync);
@@ -819,12 +844,47 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         }
         .gantt-task-bar-pill-icon svg { display: block; }
         .gantt-task-bar-pill-text { line-height: 1; }
+
+        /* Drag-to-reorder grip states (the grip is Bryntum's ::before on the
+           name cell). Reordering only applies to users who can manage the
+           project, and only while the chart is unlocked (edit mode). */
+        /* Members / viewers can never reorder — hide the grip entirely. */
+        .bryntum-gantt-container[data-can-reorder="false"] .b-row-reorder-grip::before {
+          display: none;
+        }
+        /* Admins in the locked (view) state: show the grip but make it clearly
+           inert — faded with a not-allowed cursor. The "Enter edit mode to
+           reorder tasks" hint is delivered via the cell tooltip (ganttConfig). */
+        .bryntum-gantt-container[data-can-reorder="true"][data-locked="true"] .b-row-reorder-grip::before {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+
+        /* Row-reorder drag feedback. While dragging, Bryntum shows a drop-line
+           (.b-row-drop-indicator) and a highlight on the target row, both
+           colored with --b-secondary — a variable our theme never defines, so
+           they paint invisibly. Pin the indicator vars to app tokens so the
+           drop position is clearly shown: a 3px accent line where the row will
+           land (valid) or red (invalid, e.g. dropping onto a leaf). The vars
+           cascade to the indicator + target highlight and flip with dark mode. */
+        .bryntum-gantt-container {
+          --b-row-reorder-indicator-size: 3px;
+          --b-row-reorder-indicator-color: var(--accent-primary);
+          --b-row-reorder-indicator-invalid-color: #ef4444;
+        }
+        /* Lift the row being dragged so the pickup reads clearly. */
+        .b-row-reorder-proxy {
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+          border-radius: 8px;
+          overflow: hidden;
+        }
       `}</style>
 
       <div
         style={GANTT_CONTENT_STYLE}
         className="bryntum-gantt-container"
         data-locked={editingUnlocked ? 'false' : 'true'}
+        data-can-reorder={canEditChart ? 'true' : 'false'}
       >
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <BryntumGantt
@@ -839,6 +899,15 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
             // `addNewAtEnd: false` here makes Enter only commit the edit; tasks
             // are created exclusively via the "+ Add Task" button.
             cellEditFeature={{ addNewAtEnd: false }}
+            // Drag-to-reorder rows. Passed as a per-feature prop (the React
+            // wrapper drops `features.rowReorder` nested in ganttConfig, same as
+            // cellEdit/taskMenu above). `gripOnly` confines dragging to the grip
+            // handle so it never collides with row-select / double-click-rename;
+            // `dropOnLeaf: false` keeps it to pure reordering (no accidental
+            // reparenting). It inherits `gantt.readOnly = !editingUnlocked`, so
+            // it's automatically off when the chart is locked or for non-admins.
+            // New order persists via the `orderedParentIndex` field → orderIndex.
+            rowReorderFeature={{ showGrip: true, gripOnly: true, dropOnLeaf: false }}
           />
         </div>
 

@@ -6,12 +6,21 @@ import type { GanttConfig, ColumnRendererData } from '../types';
 // drops them from loaded data. `needsReviewCount` drives the review-queue badge
 // in the name column. `requirementsTotal` / `requirementsFilled` drive the
 // submittal+inspection completion % shown on each task bar.
+//
+// `parentIndex` / `orderedParentIndex` are Bryntum's built-in calculated tree
+// fields (a node's position among its siblings). We re-declare them ONLY to add
+// `persist: true` — so a drag-reorder includes the new position in the sync pack
+// (the server maps it onto our `orderIndex` column). Do NOT add a `type` here:
+// that would shadow Bryntum's calculated getter and the value would stop
+// auto-updating on reorder. This is the documented WBS-sync pattern.
 class AppTaskModel extends TaskModel {
   static override get fields() {
     return [
       { name: 'needsReviewCount', type: 'int', defaultValue: 0 },
       { name: 'requirementsTotal', type: 'int', defaultValue: 0 },
       { name: 'requirementsFilled', type: 'int', defaultValue: 0 },
+      { name: 'parentIndex', persist: true },
+      { name: 'orderedParentIndex', persist: true },
     ];
   }
 }
@@ -184,7 +193,22 @@ export function createGanttConfig(
       percentBar: false,
       tree: { toggleTreeNode: false },
       cellTooltip: {
-        tooltipRenderer: ({ record, column }) => formatTooltipText(record, column.field),
+        tooltipRenderer: ({ record, column, cellElement }) => {
+          // When the user CAN reorder but the chart is locked (not in edit
+          // mode), the drag grip is grayed out — explain why on hover. State is
+          // read live from the container's data attributes at hover time, so it
+          // tracks the edit-mode toggle without rebuilding the stable config.
+          if (column.field === 'name') {
+            const container = cellElement?.closest('.bryntum-gantt-container');
+            if (
+              container?.getAttribute('data-can-reorder') === 'true' &&
+              container?.getAttribute('data-locked') === 'true'
+            ) {
+              return 'Enter edit mode to reorder tasks';
+            }
+          }
+          return formatTooltipText(record, column.field);
+        },
       },
       // Show the proposed end date in a tooltip while the user drags the
       // end-side resize handle. Bryntum's TaskResize is end-only by design;

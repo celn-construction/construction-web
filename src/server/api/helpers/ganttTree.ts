@@ -56,6 +56,13 @@ export function mapTaskToGantt(
     note: task.note,
     csiCode: task.csiCode,
     baselines: task.baselines,
+    // buildTaskTree sorts each level by orderIndex — it must be present on the
+    // mapped object or the comparator ties every row at 0 and falls back to its
+    // id tiebreak, sorting the whole tree by id and ignoring the real order.
+    // (Bryntum drops this field client-side since it isn't on AppTaskModel; it
+    // exists purely so the server-side sort is correct. The array order it
+    // produces is what Bryntum renders.)
+    orderIndex: task.orderIndex,
     needsReviewCount,
     requirementsTotal,
     requirementsFilled: Math.min(requirementsFilled, requirementsTotal),
@@ -143,12 +150,17 @@ export function buildTaskTree(
     }
   }
 
-  // Sort by orderIndex at each level
+  // Sort by orderIndex at each level, tie-breaking on the stable `id`.
+  // Without the tie-break, sibling tasks that share orderIndex (e.g. all 0 for
+  // tasks added before they had an explicit order) would keep whatever order
+  // the DB happened to return, which is non-deterministic — the "rows reshuffle
+  // on refresh" bug. `id` never changes, so the order stays put across reloads.
   const sortByOrderIndex = (arr: Record<string, unknown>[]) => {
     arr.sort((a, b) => {
       const aIndex = (a.orderIndex as number) ?? 0;
       const bIndex = (b.orderIndex as number) ?? 0;
-      return aIndex - bIndex;
+      if (aIndex !== bIndex) return aIndex - bIndex;
+      return String(a.id).localeCompare(String(b.id));
     });
 
     // Recursively sort children

@@ -88,6 +88,30 @@ export async function syncTasks(
     // Pre-assigned IDs in this batch also count as "existing" because they insert first.
     for (const { id } of tasksWithIds) existingTaskIds.add(id);
 
+    // Bryntum doesn't track our custom `orderIndex` field, so freshly added
+    // tasks arrive without one. Append each new task after the current max
+    // orderIndex *within its own sibling group* (same parentId) — NOT the
+    // project-wide max. Scoping per-parent keeps orderIndex in the same 0-based
+    // space as Bryntum's per-level position (`parentIndex`), so a later
+    // drag-reorder — which only re-syncs the siblings that actually moved —
+    // never leaves an un-moved sibling stranded with a larger, project-scale
+    // index that would re-sort it ahead of the moved rows on reload.
+    const maxByParent = await db.ganttTask.groupBy({
+      by: ["parentId"],
+      where: { projectId },
+      _max: { orderIndex: true },
+    });
+    // `null` parentId (root-level tasks) is a valid, distinct Map key.
+    const nextOrderByParent = new Map<string | null, number>();
+    for (const row of maxByParent) {
+      nextOrderByParent.set(row.parentId, (row._max.orderIndex ?? -1) + 1);
+    }
+    const nextOrderIndexFor = (parent: string | null): number => {
+      const next = nextOrderByParent.get(parent) ?? 0;
+      nextOrderByParent.set(parent, next + 1);
+      return next;
+    };
+
     for (const { task, id } of sorted) {
       let parentId = resolveParentId(task.parentId);
       if (parentId && !existingTaskIds.has(parentId)) {
@@ -114,7 +138,7 @@ export async function syncTasks(
           effort: task.effort ?? null,
           effortUnit: task.effortUnit ?? null,
           expanded: task.expanded ?? false,
-          orderIndex: task.orderIndex ?? 0,
+          orderIndex: task.orderIndex ?? nextOrderIndexFor(parentId),
           manuallyScheduled: task.manuallyScheduled ?? false,
           constraintType: task.constraintType ?? null,
           constraintDate: task.constraintDate ? new Date(task.constraintDate) : null,
@@ -147,6 +171,13 @@ export async function syncTasks(
 
   // Process updates
   if (changes.updated) {
+    // A drag-reorder arrives as UPDATEs carrying each moved row's new tree
+    // position. Bryntum only re-sends the rows that actually moved, so we can't
+    // trust per-row writes alone — a sibling that kept its slot is never sent
+    // and would keep a stale orderIndex. Collect the target positions here and
+    // renumber every affected sibling group densely after the loop.
+    const reorderTargets = new Map<string, number>();
+
     for (const task of changes.updated) {
       if (!task.id) continue;
 
@@ -162,6 +193,12 @@ export async function syncTasks(
       if (task.effortUnit !== undefined) updateData.effortUnit = task.effortUnit;
       if (task.expanded !== undefined) updateData.expanded = task.expanded;
       if (task.orderIndex !== undefined) updateData.orderIndex = task.orderIndex;
+      // Bryntum's recalculated tree position for a moved row. orderedParentIndex
+      // respects display order; parentIndex is the structural fallback (equal
+      // when no sorter is active). Write it as the row's tentative target — the
+      // post-loop renumber turns the whole group into a clean 0..N-1 sequence.
+      const reorderIndex = task.orderedParentIndex ?? task.parentIndex;
+      if (reorderIndex !== undefined) updateData.orderIndex = reorderIndex;
       if (task.manuallyScheduled !== undefined) updateData.manuallyScheduled = task.manuallyScheduled;
       if (task.constraintType !== undefined) updateData.constraintType = task.constraintType;
       if (task.constraintDate !== undefined) updateData.constraintDate = task.constraintDate ? new Date(task.constraintDate) : null;
@@ -206,6 +243,10 @@ export async function syncTasks(
           select: { id: true },
         });
 
+        // Record the reorder target only after the row is confirmed to exist,
+        // so a concurrently-deleted row doesn't pull a phantom into the renumber.
+        if (reorderIndex !== undefined) reorderTargets.set(task.id, reorderIndex);
+
         // Bryntum's CrudManager protocol: `tasks.rows` is strictly the
         // phantom→real id swap table for ADDED records. Pushing updated rows
         // (which carry no $PhantomId) into the same array poisons
@@ -224,9 +265,90 @@ export async function syncTasks(
         throw error;
       }
     }
+
+    // The per-row writes above only cover the rows Bryntum re-sent; un-moved
+    // siblings keep whatever orderIndex they had (e.g. legacy rows still at 0,
+    // or values from a coarser scale). Rebuild each touched group as a dense
+    // 0..N-1 sequence so the persisted order always matches what the user
+    // dropped, regardless of the rows' prior orderIndex values.
+    await renumberReorderedGroups(db, projectId, reorderTargets);
   }
 
   return result;
+}
+
+/**
+ * Renumber the sibling groups touched by a drag-reorder so every task in an
+ * affected group ends up with a dense, gap-free, 0-based orderIndex matching
+ * its on-screen position.
+ *
+ * Why this is needed: Bryntum only re-sends the rows whose position actually
+ * changed, so a row that keeps its slot is never synced and would otherwise
+ * hold whatever orderIndex it had before. For legacy rows (all 0) or rows from
+ * a coarser index scale, that stale value can sort it ahead of the moved rows
+ * on reload. We rebuild each group's true new order from (a) the moved rows'
+ * target positions and (b) the un-moved rows in their current relative order,
+ * then persist a clean 0..N-1 sequence.
+ */
+async function renumberReorderedGroups(
+  db: TransactionClient,
+  projectId: string,
+  reorderTargets: Map<string, number>,
+) {
+  if (reorderTargets.size === 0) return;
+
+  // parentId changes were already applied above, so these are the FINAL parents.
+  // A cross-parent move shifts siblings in both the source and target groups,
+  // and Bryntum sends every shifted row, so the moved rows' parents cover every
+  // group that needs renumbering.
+  const movedRows = await db.ganttTask.findMany({
+    where: { projectId, id: { in: [...reorderTargets.keys()] } },
+    select: { id: true, parentId: true },
+  });
+  const affectedParents = new Set<string | null>(movedRows.map((r) => r.parentId));
+
+  for (const parentId of affectedParents) {
+    // Current children in their pre-reorder display order; id breaks ties
+    // deterministically. Un-moved rows keep their relative order here.
+    const children = await db.ganttTask.findMany({
+      where: { projectId, parentId },
+      select: { id: true, orderIndex: true },
+      orderBy: [{ orderIndex: "asc" }, { id: "asc" }],
+    });
+    const n = children.length;
+    if (n === 0) continue;
+
+    // Place each moved row at the slot Bryntum reported; fill the remaining
+    // slots, in order, with the rows that didn't move. A target that is
+    // out-of-range or already taken (Bryntum sends a clean set, so defensive
+    // only) falls through to the leftover fill rather than corrupting the run.
+    const slots: (string | null)[] = new Array<string | null>(n).fill(null);
+    for (const child of children) {
+      const target = reorderTargets.get(child.id);
+      if (target !== undefined && target >= 0 && target < n && slots[target] === null) {
+        slots[target] = child.id;
+      }
+    }
+    const placed = new Set(slots.filter((id): id is string => id !== null));
+    const leftovers = children.filter((c) => !placed.has(c.id)).map((c) => c.id);
+    let nextLeftover = 0;
+    for (let i = 0; i < n; i++) {
+      if (slots[i] === null) slots[i] = leftovers[nextLeftover++] ?? null;
+    }
+
+    // Persist the dense sequence, writing only the rows whose index changed.
+    const currentOrderById = new Map(children.map((c) => [c.id, c.orderIndex]));
+    for (let i = 0; i < n; i++) {
+      const id = slots[i];
+      if (id && currentOrderById.get(id) !== i) {
+        await db.ganttTask.update({
+          where: { id, projectId },
+          data: { orderIndex: i },
+          select: { id: true },
+        });
+      }
+    }
+  }
 }
 
 /**
