@@ -475,6 +475,22 @@ body {
   background-color: var(--gantt-summary-fill) !important;
 }
 
+/* Completed leaf tasks — all submittal & inspection requirements approved.
+   The whole bar turns green (reusing the summary green) so completion reads at
+   a glance across a zoomed-out timeline. The taskRenderer adds .gantt-task-done
+   and swaps the count chip for a white "Complete" pill, which disambiguates a
+   completed leaf from a parent/summary bar. */
+.bryntum-gantt-container .b-gantt-task.gantt-task-done {
+  background-color: var(--gantt-summary-bg) !important;
+  border-color: var(--gantt-summary-border) !important;
+}
+.bryntum-gantt-container .b-gantt-task.gantt-task-done .b-gantt-task-content {
+  color: var(--gantt-summary-font) !important;
+}
+.bryntum-gantt-container .b-gantt-task.gantt-task-done .b-gantt-task-percent {
+  background-color: var(--gantt-summary-fill) !important;
+}
+
 /* ── Task Resize Handles ────────────────────────────────────── */
 
 /* Widen the invisible hit zone from 6px → 14px so handles are easy to grab,

@@ -705,11 +705,13 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           cursor: default;
         }
         /* Task-bar inner layout — used when a leaf task has any submittal /
-           inspection requirements. Renders the task name on the left and a
-           donut-in-chip indicator on the right (a tiny SVG progress donut + the
-           filled/total ratio). States: empty (faint chip, hollow ring), partial
-           (white chip, partial arc, indigo text), done (green chip, white check
-           circle, white text). */
+           inspection requirements. While the task is incomplete it renders the
+           task name on the left and a donut-in-chip indicator on the right (a
+           tiny SVG progress donut + the filled/total ratio). Chip states: empty
+           (faint chip, hollow ring) and partial (white chip, partial arc, indigo
+           text). Once every requirement is approved the chip is replaced by the
+           "Complete" pill (.gantt-task-bar-pill) and the whole bar turns green
+           via .gantt-task-done — see globals.css. */
         .gantt-task-bar-inner {
           display: flex;
           align-items: center;
@@ -742,10 +744,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
           cursor: default;
         }
-        .gantt-task-bar-chip.is-done {
-          background: #16a34a;
-          color: #fff;
-        }
         .gantt-task-bar-chip.is-empty {
           background: rgba(255, 255, 255, 0.18);
           color: rgba(255, 255, 255, 0.95);
@@ -758,6 +756,31 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         }
         .gantt-task-bar-chip-donut svg { display: block; }
         .gantt-task-bar-chip-text { line-height: 1; }
+        /* Complete pill — white pill with green check + "Complete" label,
+           sitting on the green completed bar (see .gantt-task-done in globals.css). */
+        .gantt-task-bar-pill {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 2px 9px 2px 6px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.96);
+          color: #15803d;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          line-height: 1.4;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+          cursor: default;
+        }
+        .gantt-task-bar-pill-icon {
+          display: inline-flex;
+          align-items: center;
+          flex-shrink: 0;
+        }
+        .gantt-task-bar-pill-icon svg { display: block; }
+        .gantt-task-bar-pill-text { line-height: 1; }
       `}</style>
 
       <div
