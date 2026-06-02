@@ -770,6 +770,14 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
             ref={ganttRef}
             {...ganttConfig}
             taskMenuFeature={taskMenuFeature}
+            // cellEdit config MUST be passed as this per-feature prop, not via
+            // `features.cellEdit` in ganttConfig — the React wrapper (v7.2.2)
+            // has no bulk `features` prop, so that nested config is dropped and
+            // CellEdit falls back to its default `addNewAtEnd: { duration: 1 }`,
+            // which makes Enter on the last row spawn a new task. Forcing
+            // `addNewAtEnd: false` here makes Enter only commit the edit; tasks
+            // are created exclusively via the "+ Add Task" button.
+            cellEditFeature={{ addNewAtEnd: false }}
           />
         </div>
 

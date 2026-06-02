@@ -211,7 +211,9 @@ export type GanttConfig = {
   columns: GanttColumnConfig[];
   features: {
     taskEdit?: boolean;
-    cellEdit?: boolean | { addNewAtEnd?: boolean };
+    // cellEdit config is NOT set here — the React wrapper drops nested feature
+    // config from this object. It's passed via the `cellEditFeature` prop on
+    // <BryntumGantt> instead (see BryntumGanttWrapper).
     columnLines?: boolean | { renderer?: (...args: unknown[]) => void };
     stripe?: boolean;
     nonWorkingTime?: boolean;
