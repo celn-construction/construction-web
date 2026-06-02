@@ -579,6 +579,46 @@ body {
   animation: none !important;
 }
 
+/* ── Dependency link selection (Shift-click / Link mode) ──────────────────
+   Bars picked for linking get a colored outline + a numbered badge. The color
+   flows from a single `--gantt-link-c` custom property set by the position
+   class (c1/c2/c3) so the outline and badge always agree. `overflow: visible`
+   lets the badge escape the bar's frosted-glass clip (same opt-out the hover
+   terminals use above). The badge itself is a real child <span> appended in
+   useTaskLinking — not a ::before/::after, both of which the bar already uses. */
+.bryntum-gantt-container .b-gantt-task.gantt-link-selected {
+  overflow: visible !important;
+  outline: 2.5px solid var(--gantt-link-c, #2563eb) !important;
+  outline-offset: 2px;
+  z-index: 6 !important;
+}
+.bryntum-gantt-container .b-gantt-task.gantt-link-c1 { --gantt-link-c: #2563eb; } /* ① predecessor */
+.bryntum-gantt-container .b-gantt-task.gantt-link-c2 { --gantt-link-c: #7c3aed; } /* ② successor */
+.bryntum-gantt-container .b-gantt-task.gantt-link-c3 { --gantt-link-c: var(--accent-primary, #2B2D42); } /* ③+ chain */
+.bryntum-gantt-container .b-gantt-task.gantt-link-selected .gantt-link-badge {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  box-sizing: border-box;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gantt-link-c, #2563eb);
+  color: #fff;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  border: 2px solid var(--bg-card, #fff);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  z-index: 7;
+  pointer-events: none;
+}
+
 /* ── Scrollbars ──────────────────────────────────────────────── */
 
 .bryntum-gantt-container .b-virtual-scroller::-webkit-scrollbar {
@@ -747,6 +787,30 @@ body {
 
 .b-menu.b-popup .b-menu-item.b-disabled .b-menu-item-icon {
   opacity: 0.6;
+}
+
+/* ── "Add dependency" menu item ───────────────────────────────────────────
+   Bryntum's bundled FA subset has no link glyph, so the icon is drawn with a
+   CSS mask (monochrome, follows the menu item's currentColor through hover/
+   disabled). The right-aligned "⇧-click" suffix teaches the Shift accelerator
+   at the moment of use — like a menu showing "Copy  ⌘C". */
+.b-menu.b-popup .b-menu-item.gantt-menu-add-dep .b-menu-item-icon {
+  font-size: 0; /* suppress the empty b-icon font glyph */
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M9%2017H7A5%205%200%200%201%207%207h2'/%3E%3Cpath%20d='M15%207h2a5%205%200%200%201%200%2010h-2'/%3E%3Cline%20x1='8'%20y1='12'%20x2='16'%20y2='12'/%3E%3C/svg%3E") center / 14px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M9%2017H7A5%205%200%200%201%207%207h2'/%3E%3Cpath%20d='M15%207h2a5%205%200%200%201%200%2010h-2'/%3E%3Cline%20x1='8'%20y1='12'%20x2='16'%20y2='12'/%3E%3C/svg%3E") center / 14px no-repeat;
+}
+.b-menu.b-popup .b-menu-item.gantt-menu-add-dep::after {
+  content: '⇧-click';
+  margin-left: auto;
+  padding-left: 28px;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  flex-shrink: 0;
 }
 
 /* Disabled rows — not-allowed cursor signals "you can't click this". The

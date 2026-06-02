@@ -13,6 +13,7 @@ import {
   DownloadSimple,
   Columns,
   DotsThreeVertical,
+  LinkSimple,
   Lock,
   LockOpen,
   Minus,
@@ -165,6 +166,9 @@ type GanttToolbarProps = {
   /** Whether the chart is currently unlocked for editing. */
   isEditMode?: boolean;
   onToggleEditMode?: () => void;
+  /** Whether dependency-link mode is active (plain click selects tasks to link). */
+  linkMode?: boolean;
+  onToggleLinkMode?: () => void;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -186,6 +190,8 @@ export default function GanttToolbar({
   canEditChart = false,
   isEditMode = false,
   onToggleEditMode,
+  linkMode = false,
+  onToggleLinkMode,
 }: GanttToolbarProps) {
   const editingActive = canEditChart && isEditMode;
   const [activePreset, setActivePreset] = useState('weekAndDayLetterCompact');
@@ -591,6 +597,72 @@ export default function GanttToolbar({
             {editingActive ? 'Editing' : 'Edit'}
           </Box>
         </Box>
+      )}
+
+      {/* ── Link tasks toggle (only active in edit mode) ───────────────── */}
+      {onToggleLinkMode && editingActive && (
+        <Tooltip
+          title={
+            linkMode
+              ? 'Linking on — click tasks in order to chain them. Tip: Shift-click works any time, even with this off.'
+              : 'Link tasks — click two tasks in order to connect them. Tip: Shift-click any task to link without this button.'
+          }
+          placement="bottom"
+          enterDelay={400}
+          arrow
+        >
+          <Box
+            component="button"
+            type="button"
+            onClick={onToggleLinkMode}
+            aria-label={linkMode ? 'Exit link mode' : 'Link tasks'}
+            aria-pressed={linkMode}
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.75,
+              height: 34,
+              px: '14px',
+              borderRadius: '10px',
+              fontSize: '12px',
+              fontWeight: 600,
+              fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
+              letterSpacing: '-0.01em',
+              cursor: 'pointer',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+              animation: 'gantt-tool-pop-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
+              transition:
+                'background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease',
+              '&:active': { transform: 'scale(0.96)' },
+              '@container gantt-toolbar (max-width: 720px)': { px: 0, gap: 0, width: 34 },
+              ...(linkMode
+                ? {
+                    bgcolor: 'var(--accent-primary, #2563eb)',
+                    color: 'var(--accent-contrast, #fff)',
+                    border: '1px solid var(--accent-primary, #2563eb)',
+                    boxShadow: '0 0 0 4px rgba(37, 99, 235, 0.14)',
+                    '&:hover': { filter: 'brightness(0.9)' },
+                  }
+                : {
+                    bgcolor: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }),
+            }}
+          >
+            <LinkSimple size={13} weight="bold" />
+            <Box
+              component="span"
+              sx={{ '@container gantt-toolbar (max-width: 720px)': { display: 'none' } }}
+            >
+              {linkMode ? 'Linking' : 'Link'}
+            </Box>
+          </Box>
+        </Tooltip>
       )}
 
       {/* ── Add Task (only active in edit mode) ────────────────────────── */}

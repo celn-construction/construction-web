@@ -302,6 +302,7 @@ bryntum/
     TaskDetailsPopover.tsx
     SubmittalDrawer.tsx       ← right-side drawer for managing per-slot submittals/inspections. Draft editor: count/name/due-date edits stay local until the user clicks Save (commits the whole list via gantt.saveSlots), with a Save/Discard bar, a discard guard on close/tab-switch, and uploads disabled on unsaved draft slots. On Save it flashes "Saved ✓", then fires onSaved → the popover auto-closes the drawer and shows a transient confirmation banner (RequirementsSavedBanner in TaskDetailsPopover)
     BryntumPanelHeader.tsx
+    TaskLinkingBar.tsx        ← floating confirm toast for Shift-click/Link-mode dependency creation
     task-popover/             ← extracted sub-components for TaskDetailsPopover
       types.ts
       TaskHeader.tsx
@@ -315,6 +316,7 @@ bryntum/
       CsiCodePanel.tsx
   hooks/
     useTaskPopover.ts
+    useTaskLinking.ts         ← Shift-click / Link-mode ordered selection → Finish-to-Start dependencies
     useBryntumThemeAssets.ts
   utils/
     calculatePopoverPlacement.ts
