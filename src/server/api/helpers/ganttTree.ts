@@ -143,12 +143,17 @@ export function buildTaskTree(
     }
   }
 
-  // Sort by orderIndex at each level
+  // Sort by orderIndex at each level, tie-breaking on the stable `id`.
+  // Without the tie-break, sibling tasks that share orderIndex (e.g. all 0 for
+  // tasks added before they had an explicit order) would keep whatever order
+  // the DB happened to return, which is non-deterministic — the "rows reshuffle
+  // on refresh" bug. `id` never changes, so the order stays put across reloads.
   const sortByOrderIndex = (arr: Record<string, unknown>[]) => {
     arr.sort((a, b) => {
       const aIndex = (a.orderIndex as number) ?? 0;
       const bIndex = (b.orderIndex as number) ?? 0;
-      return aIndex - bIndex;
+      if (aIndex !== bIndex) return aIndex - bIndex;
+      return String(a.id).localeCompare(String(b.id));
     });
 
     // Recursively sort children

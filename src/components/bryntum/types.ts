@@ -80,6 +80,7 @@ type TooltipRendererArgs = {
   column: {
     field?: string;
   };
+  cellElement?: HTMLElement;
 };
 
 /** Minimal interface for Bryntum dependency records. */

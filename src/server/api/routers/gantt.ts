@@ -36,7 +36,11 @@ export const ganttRouter = createTRPCRouter({
 
       return ctx.db.ganttTask.findMany({
         where: { projectId },
-        orderBy: { orderIndex: "asc" },
+        // `id` is the tie-break: orderIndex collides at 0 for tasks that never
+        // got an explicit order (see load), and a bare orderBy on a tied column
+        // returns rows in non-deterministic physical order. `id` is the only
+        // stable, never-changing column, so it makes the order reproducible.
+        orderBy: [{ orderIndex: "asc" }, { id: "asc" }],
         select: {
           id: true,
           parentId: true,
@@ -147,7 +151,13 @@ export const ganttRouter = createTRPCRouter({
       ] = await Promise.all([
         ctx.db.ganttTask.findMany({
           where: { projectId },
-          orderBy: { orderIndex: "asc" },
+          // `id` is the deterministic tie-break. Tasks that never received an
+          // explicit order share orderIndex 0; ordering by orderIndex alone
+          // then leaves Postgres free to return tied rows in physical heap
+          // order, which shifts after any UPDATE (MVCC) — that's the "rows
+          // reshuffle on refresh" bug. buildTaskTree re-sorts per level with
+          // the same tie-break, so the final tree order is reproducible.
+          orderBy: [{ orderIndex: "asc" }, { id: "asc" }],
           // Only select fields needed by Bryntum
           select: {
             id: true,
