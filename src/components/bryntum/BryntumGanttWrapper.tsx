@@ -375,6 +375,14 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         id: t?.id,
         parentId: t?.parentId,
         name: t?.name,
+        // [Gantt:order DEBUG] Surface the order fields so we can see whether a
+        // routine update (e.g. a date edit or post-load scheduling pass) is
+        // dragging orderedParentIndex/parentIndex along — which would make the
+        // server treat it as a reorder and renumber the group. If these appear
+        // in `changedKeys` on a sync the user didn't reorder, that's the bug.
+        orderIndex: t?.orderIndex,
+        orderedParentIndex: t?.orderedParentIndex,
+        parentIndex: t?.parentIndex,
         changedKeys: t ? Object.keys(t).filter((k) => k !== 'id') : [],
       });
 
@@ -388,6 +396,29 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         updated: (p?.tasks?.updated ?? []).map(summarizeUpdated),
         removed: p?.tasks?.removed,
       });
+
+      // [Gantt:order DEBUG] Flat + stringified so console copy-paste keeps it
+      // (collapsed object-arrays get dropped on copy). The key question: does a
+      // sync the user did NOT trigger by dragging carry orderedParentIndex /
+      // parentIndex on its updated rows? If so, the server treats it as a
+      // reorder and renumbers the group.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const orderFields = (t: any) => ({
+        id: t?.id,
+        name: t?.name,
+        parentId: t?.parentId,
+        orderIndex: t?.orderIndex,
+        orderedParentIndex: t?.orderedParentIndex,
+        parentIndex: t?.parentIndex,
+        changed: t ? Object.keys(t).filter((k) => k !== 'id') : [],
+      });
+      console.log(
+        '[Gantt:order CLIENT] outgoing ' +
+          JSON.stringify({
+            added: (p?.tasks?.added ?? []).map(orderFields),
+            updated: (p?.tasks?.updated ?? []).map(orderFields),
+          }),
+      );
     };
 
     // Shadow-track added/removed IDs from the reliable taskStore events so
@@ -438,7 +469,57 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     gantt.project.on('sync', onSync);
     gantt.project.on('syncFail', onSyncFail);
     gantt.project.on('beforeSync', onBeforeSync);
+
+    // A row reorder is a single discrete drop — unlike a task-bar drag it emits
+    // no continuous stream of changes, so it doesn't need the 500ms autoSync
+    // debounce (autoSyncTimeout). Worse, that debounce means a quick refresh
+    // right after dropping cancels the in-flight save and the new order is lost.
+    // Force an immediate sync on drop so the reorder is persisted before the
+    // user can navigate away.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onRowDrop = () => {
+      // [Gantt:order DEBUG] Confirms the immediate-sync path fired on drop.
+      console.log('[Gantt:order CLIENT] gridRowDrop → forcing immediate sync');
+      void (async () => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          await gantt.project?.commitAsync?.();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          await gantt.project?.sync?.();
+        } catch {
+          // A debounced autoSync may already be flushing the same change;
+          // "sync already in progress" is benign — that sync persists the order.
+        }
+      })();
+    };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.on('gridRowDrop', onRowDrop);
+
+    // [Gantt:order DEBUG] Log the task order each load produces, in display
+    // (flattened-tree) order. Capture this across two refreshes: if it changes
+    // with no deliberate reorder in between, that's the reshuffle — and the
+    // `[Gantt:order CLIENT] outgoing` line logged just before shows the sync
+    // that corrupted it. Reproducible from the browser console alone.
+    const onLoad = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const order = (((gantt.project.taskStore as any)?.allRecords ?? []) as any[]).map((r) => ({
+        id: String(r?.id),
+        name: r?.name,
+        parentId: r?.parentId ?? null,
+        orderIndex: r?.orderIndex,
+        orderedParentIndex: r?.orderedParentIndex,
+        parentIndex: r?.parentIndex,
+      }));
+      console.log('[Gantt:order CLIENT] loaded order ' + JSON.stringify(order));
+    };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.project.on('load', onLoad);
+
     return () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt?.un?.('gridRowDrop', onRowDrop);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.project?.un('load', onLoad);
       gantt.project?.un('sync', onSync);
       gantt.project?.un('syncFail', onSyncFail);
       gantt.project?.un('beforeSync', onBeforeSync);

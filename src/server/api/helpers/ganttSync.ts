@@ -124,6 +124,18 @@ export async function syncTasks(
         parentId = null;
       }
 
+      // [Gantt:order DEBUG] The orderIndex assigned to each newly added task.
+      // For a ">4 tasks" bug this shows whether the 5th/6th task gets a sane,
+      // appended index within its sibling group (expected: dense, increasing).
+      const assignedOrderIndex = task.orderIndex ?? nextOrderIndexFor(parentId);
+      console.log('[Gantt:order] sync ADD', {
+        id,
+        name: task.name,
+        parentId,
+        assignedOrderIndex,
+        clientSentOrderIndex: task.orderIndex,
+      });
+
       await db.ganttTask.create({
         data: {
           id,
@@ -138,7 +150,7 @@ export async function syncTasks(
           effort: task.effort ?? null,
           effortUnit: task.effortUnit ?? null,
           expanded: task.expanded ?? false,
-          orderIndex: task.orderIndex ?? nextOrderIndexFor(parentId),
+          orderIndex: assignedOrderIndex,
           manuallyScheduled: task.manuallyScheduled ?? false,
           constraintType: task.constraintType ?? null,
           constraintDate: task.constraintDate ? new Date(task.constraintDate) : null,
@@ -180,6 +192,19 @@ export async function syncTasks(
 
     for (const task of changes.updated) {
       if (!task.id) continue;
+
+      // [Gantt:order DEBUG] Every incoming UPDATE. The key question: does a
+      // routine edit (date/name/percent) arrive carrying orderedParentIndex or
+      // parentIndex? If so it will be treated as a reorder below and trigger a
+      // group renumber even though the user never dragged a row.
+      console.log('[Gantt:order] sync UPDATE recv', {
+        id: task.id,
+        name: task.name,
+        orderIndex: task.orderIndex,
+        orderedParentIndex: task.orderedParentIndex,
+        parentIndex: task.parentIndex,
+        parentId: task.parentId,
+      });
 
       const updateData: Record<string, unknown> = {};
 
@@ -266,6 +291,15 @@ export async function syncTasks(
       }
     }
 
+    // [Gantt:order DEBUG] What the batch concluded is a reorder. If this map is
+    // non-empty for a sync the user didn't reorder, the renumber that follows is
+    // the source of the reshuffle.
+    console.log('[Gantt:order] sync UPDATE batch done', {
+      updatedCount: changes.updated.length,
+      reorderTargets: Object.fromEntries(reorderTargets),
+      willRenumber: reorderTargets.size > 0,
+    });
+
     // The per-row writes above only cover the rows Bryntum re-sent; un-moved
     // siblings keep whatever orderIndex they had (e.g. legacy rows still at 0,
     // or values from a coarser scale). Rebuild each touched group as a dense
@@ -307,16 +341,34 @@ async function renumberReorderedGroups(
   });
   const affectedParents = new Set<string | null>(movedRows.map((r) => r.parentId));
 
+  // [Gantt:order DEBUG]
+  console.log('[Gantt:order] renumber START', {
+    targets: Object.fromEntries(reorderTargets),
+    affectedParents: [...affectedParents],
+  });
+
   for (const parentId of affectedParents) {
     // Current children in their pre-reorder display order; id breaks ties
     // deterministically. Un-moved rows keep their relative order here.
     const children = await db.ganttTask.findMany({
       where: { projectId, parentId },
-      select: { id: true, orderIndex: true },
+      select: { id: true, name: true, orderIndex: true },
       orderBy: [{ orderIndex: "asc" }, { id: "asc" }],
     });
     const n = children.length;
     if (n === 0) continue;
+
+    // [Gantt:order DEBUG] The group as it stands before renumbering, plus which
+    // of these rows Bryntum reported a target for.
+    console.log('[Gantt:order] renumber group: children-before', {
+      parentId,
+      children: children.map((c) => ({
+        id: c.id,
+        name: c.name,
+        orderIndex: c.orderIndex,
+        target: reorderTargets.get(c.id),
+      })),
+    });
 
     // Place each moved row at the slot Bryntum reported; fill the remaining
     // slots, in order, with the rows that didn't move. A target that is
@@ -336,11 +388,27 @@ async function renumberReorderedGroups(
       if (slots[i] === null) slots[i] = leftovers[nextLeftover++] ?? null;
     }
 
+    // [Gantt:order DEBUG] The reconstructed final order for this group
+    // (slot index = new orderIndex). Compare against children-before: rows that
+    // weren't in `targets` but moved position here are being shuffled by the
+    // renumber, not by the user.
+    console.log('[Gantt:order] renumber group: final order', {
+      parentId,
+      finalOrder: slots,
+      leftovers,
+    });
+
     // Persist the dense sequence, writing only the rows whose index changed.
     const currentOrderById = new Map(children.map((c) => [c.id, c.orderIndex]));
     for (let i = 0; i < n; i++) {
       const id = slots[i];
       if (id && currentOrderById.get(id) !== i) {
+        // [Gantt:order DEBUG] Each orderIndex the renumber actually rewrites.
+        console.log('[Gantt:order] renumber WRITE', {
+          id,
+          from: currentOrderById.get(id),
+          to: i,
+        });
         await db.ganttTask.update({
           where: { id, projectId },
           data: { orderIndex: i },

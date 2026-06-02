@@ -56,6 +56,13 @@ export function mapTaskToGantt(
     note: task.note,
     csiCode: task.csiCode,
     baselines: task.baselines,
+    // buildTaskTree sorts each level by orderIndex — it must be present on the
+    // mapped object or the comparator ties every row at 0 and falls back to its
+    // id tiebreak, sorting the whole tree by id and ignoring the real order.
+    // (Bryntum drops this field client-side since it isn't on AppTaskModel; it
+    // exists purely so the server-side sort is correct. The array order it
+    // produces is what Bryntum renders.)
+    orderIndex: task.orderIndex,
     needsReviewCount,
     requirementsTotal,
     requirementsFilled: Math.min(requirementsFilled, requirementsTotal),
