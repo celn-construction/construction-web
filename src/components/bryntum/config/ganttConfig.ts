@@ -158,11 +158,14 @@ export function createGanttConfig(
     ],
     features: {
       taskEdit: false,
-      // Inline cell editing (double-click the name cell to rename). Default
-      // `addNewAtEnd: true` creates a fresh task when Enter is pressed in the
-      // last row's editor — surprising for users who expect Enter to just
-      // commit the edit. New tasks are added via the "+ Add Task" button.
-      cellEdit: { addNewAtEnd: false },
+      // cellEdit (inline rename via double-click) is enabled by Bryntum's
+      // default. Its config — specifically `addNewAtEnd: false`, so Enter just
+      // commits instead of spawning a new task — is passed as the top-level
+      // `cellEditFeature` prop on <BryntumGantt> in BryntumGanttWrapper, NOT
+      // here. The React wrapper has no bulk `features` prop (see
+      // BryntumGanttProps), so feature config nested in this object is silently
+      // dropped; only the per-feature `${key}Feature` props are honored. New
+      // tasks are added exclusively via the "+ Add Task" button.
       columnLines: true,
       stripe: true,
       nonWorkingTime: true,
