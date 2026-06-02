@@ -2,9 +2,7 @@
 
 import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
-import { SquaresFour, List, FileText, PushPin, Plus } from '@phosphor-icons/react';
-import { api } from '@/trpc/react';
-import { useSnackbar } from '@/hooks/useSnackbar';
+import { SquaresFour, List, FileText, Plus } from '@phosphor-icons/react';
 import type { FolderContentProps, PreviewDoc } from './types';
 
 function PhotosFolderContentInner({
@@ -12,32 +10,8 @@ function PhotosFolderContentInner({
   onSelectDoc,
   selectedDocId,
   onUpload,
-  projectId,
-  taskId,
-  organizationId,
-  pinnedDocId,
 }: FolderContentProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const { showSnackbar } = useSnackbar();
-  const utils = api.useUtils();
-  const canPin = !!projectId && !!taskId && !!organizationId;
-  const pinMutation = api.gantt.pinPhoto.useMutation({
-    onSuccess: () => {
-      if (canPin) {
-        void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
-      }
-    },
-    onError: (err) => showSnackbar(err.message || 'Failed to pin photo', 'error'),
-  });
-
-  const handlePin = (docId: string, currentlyPinned: boolean) => {
-    if (!canPin) return;
-    pinMutation.mutate({
-      projectId,
-      taskId,
-      documentId: currentlyPinned ? null : docId,
-    });
-  };
 
   const AddPhotoTile = (
     <Box
@@ -149,7 +123,6 @@ function PhotosFolderContentInner({
       {viewMode === 'grid' ? (
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', pt: 0.5 }}>
           {docs.map((doc) => {
-            const isPinned = pinnedDocId === doc.id;
             const isImage = doc.mimeType.startsWith('image/');
             return (
               <Box
@@ -168,7 +141,6 @@ function PhotosFolderContentInner({
                   '&:hover': {
                     transform: 'scale(1.02)',
                     borderColor: selectedDocId === doc.id ? 'primary.main' : 'divider',
-                    '& .pin-toggle': { opacity: 1 },
                   },
                 }}
               >
@@ -182,42 +154,6 @@ function PhotosFolderContentInner({
                 ) : (
                   <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FileText size={20} color="var(--text-secondary)" />
-                  </Box>
-                )}
-
-                {/* Pin toggle — only for images, only when pin context is available */}
-                {canPin && isImage && (
-                  <Box
-                    className="pin-toggle"
-                    component="button"
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      handlePin(doc.id, isPinned);
-                    }}
-                    disabled={pinMutation.isPending}
-                    aria-label={isPinned ? 'Unpin cover' : 'Pin as cover'}
-                    sx={{
-                      position: 'absolute',
-                      top: 4,
-                      right: 4,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 22,
-                      height: 22,
-                      borderRadius: '50%',
-                      border: 'none',
-                      cursor: 'pointer',
-                      bgcolor: isPinned ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)',
-                      backdropFilter: 'blur(6px)',
-                      color: 'white',
-                      opacity: isPinned ? 1 : 0,
-                      transition: 'opacity 0.15s, background-color 0.15s',
-                      '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' },
-                      '&:disabled': { opacity: 0.6, cursor: 'wait' },
-                    }}
-                  >
-                    <PushPin size={11} weight={isPinned ? 'fill' : 'regular'} />
                   </Box>
                 )}
               </Box>
@@ -257,14 +193,6 @@ function PhotosFolderContentInner({
               >
                 {doc.name}
               </Typography>
-              {pinnedDocId === doc.id && (
-                <PushPin
-                  size={11}
-                  weight="fill"
-                  color="var(--text-secondary)"
-                  style={{ flexShrink: 0 }}
-                />
-              )}
               {doc.createdAt != null && (
                 <Typography sx={{ fontSize: 11, color: 'text.secondary', flexShrink: 0, opacity: 0.7 }}>
                   {new Date(doc.createdAt).toLocaleDateString(

@@ -171,8 +171,9 @@ Both live in the private `construction-uploads` store. Raw blob URLs are **never
 |---|---|---|---|
 | `Document.blobUrl` | `/api/blob/[documentId]` | project member | any tRPC document query or `/api/upload` |
 | `Project.imageUrl` | `/api/blob/project-image/[projectId]` | org member | `project.list/getById/getBySlug/getActive/setActive/update` + `[orgSlug]/projects/[projectSlug]/layout.tsx` |
+| `GanttTask.coverImageUrl` | `/api/blob/task-cover/[taskId]` | org member | `gantt.taskDetail` |
 
-Gantt task covers are no longer a separate blob — a "cover" is just a photo in the task's Photos folder that's been pinned via `gantt.pinPhoto` (sets `GanttTask.coverDocumentId`, an FK to `Document`). The cover renders through the normal `/api/blob/[documentId]` proxy. See `CoverImageBanner.tsx` for the gallery UI and pinning flow.
+Each Gantt task has its own dedicated cover image — a standalone upload, **not** tied to the Photos folder or the `Document` table. The cover is a private blob whose URL is stored directly on `GanttTask.coverImageUrl` (mirrors the `Project.imageUrl` pattern). Upload/replace go through `POST /api/upload/task-cover` (which persists `coverImageUrl` immediately and cleans up the previous blob), removal through `DELETE` on the same route; both are gated on `canManageProjects`. `gantt.taskDetail` rewrites the stored URL to the `/api/blob/task-cover/[taskId]` proxy. See `CoverImageBanner.tsx` — it uploads via `trackUpload` (so the global toast chip shows progress) and supports drag-and-drop, replace, and remove. The legacy `gantt.pinPhoto` / `coverDocumentId` pin-from-Photos mechanism has been removed (the `coverDocumentId` column is left in place, unused).
 
 Client code uses these like any other URL (`<img src>`, `<iframe src>`, `<a href>`, `fetch()`, `window.open()`); the browser sends its session cookie and the proxy enforces tenancy. Never attempt to render the raw blob CDN URL — it will 403.
 
