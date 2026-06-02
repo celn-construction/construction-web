@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GearSix, SignOut, Sun, Moon } from '@phosphor-icons/react';
-import { Box, Typography, Switch } from '@mui/material';
+import { GearSix, SignOut } from '@phosphor-icons/react';
+import { Box, Typography } from '@mui/material';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,13 +12,11 @@ import {
 import { authClient, signOut } from '@/lib/auth-client';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { useLoading } from '@/components/providers/LoadingProvider';
-import { useThemeMode } from '@/components/providers/ThemeRegistry';
 import AccountSettingsModal from './AccountSettingsModal';
 
 export default function IdentityMenu() {
   const router = useRouter();
   const { showLoading, hideLoading } = useLoading();
-  const { mode: themeMode, toggleMode: toggleThemeMode } = useThemeMode();
   const { data: session } = authClient.useSession();
   const user = session?.user;
 
@@ -167,37 +165,6 @@ export default function IdentityMenu() {
               <Typography sx={{ fontSize: '0.8125rem', color: 'inherit' }}>
                 Account Settings
               </Typography>
-            </Box>
-
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                px: '10px',
-                py: '6px',
-              }}
-            >
-              {themeMode === 'dark' ? (
-                <Sun size={14} color="var(--text-secondary)" />
-              ) : (
-                <Moon size={14} color="var(--text-secondary)" />
-              )}
-              <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', flex: 1 }}>
-                Dark mode
-              </Typography>
-              <Switch
-                checked={themeMode === 'dark'}
-                onChange={toggleThemeMode}
-                size="small"
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                    bgcolor: 'primary.main',
-                  },
-                }}
-              />
             </Box>
           </Box>
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, SealCheck, MapPin, CaretRight, CaretLineLeft, CaretLineRight, type Icon } from '@phosphor-icons/react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, SealCheck, MapPin, CaretRight, CaretLineLeft, Sun, Moon, type Icon } from '@phosphor-icons/react';
 import { Box, Typography, Tooltip } from '@mui/material';
 import { projectNavItems, orgNavItems, getProjectNavHref, getOrgNavHref, SIDEBAR_SECTIONS, type NavItem, type NavSectionDef } from './navItems';
 import OrgSwitcher from './OrgSwitcher';
@@ -13,6 +13,7 @@ import { canManageProjects } from '@/lib/permissions';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import { LogoIcon } from '@/components/ui/Logo';
+import { useThemeMode } from '@/components/providers/ThemeRegistry';
 
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 64;
@@ -36,6 +37,9 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
   const { orgSlug, projectSlug } = params;
+
+  const { mode: themeMode, toggleMode: toggleThemeMode } = useThemeMode();
+  const isDark = themeMode === 'dark';
 
   const { activeOrganizationId } = useOrgFromUrl();
   const { effectiveProject, effectiveProjectSlug } = useProjectSwitcher(
@@ -423,12 +427,13 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         {/* Workspace group — pinned to the bottom of the sidebar */}
         {workspaceSection && renderSection(workspaceSection, 2)}
 
-        {/* Collapse Toggle */}
+        {/* Theme Switcher */}
         <Box sx={{ pb: 1 }}>
-          <Tooltip title={`${collapsed ? 'Expand' : 'Collapse'} sidebar (${isMac ? '\u2318' : 'Ctrl+'}B)`} placement="right">
+          <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'} placement="right">
             <Box
               component="button"
-              onClick={onToggleCollapse}
+              onClick={toggleThemeMode}
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -450,50 +455,25 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
-                {collapsed ? (
-                  <CaretLineRight size={15} weight="bold" />
+                {isDark ? (
+                  <Sun size={15} weight="bold" />
                 ) : (
-                  <CaretLineLeft size={15} weight="bold" />
+                  <Moon size={15} weight="bold" />
                 )}
               </Box>
               {!collapsed && (
-                <>
-                  <Typography
-                    sx={{
-                      fontSize: '0.8125rem',
-                      fontWeight: 400,
-                      lineHeight: 1,
-                      whiteSpace: 'nowrap',
-                      flex: 1,
-                    }}
-                  >
-                    Collapse
-                  </Typography>
-                  <Box
-                    component="kbd"
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px',
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      lineHeight: 1,
-                      color: 'text.secondary',
-                      bgcolor: 'background.paper',
-                      px: 0.75,
-                      py: 0.5,
-                      borderRadius: '5px',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      boxShadow: '0 1px 0 0 rgba(0,0,0,0.08)',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                      letterSpacing: '0.02em',
-                    }}
-                  >
-                    {isMac ? '\u2318' : 'Ctrl+'}<Typography component="span" sx={{ fontSize: '0.6875rem', fontWeight: 600, lineHeight: 1 }}>B</Typography>
-                  </Box>
-                </>
+                <Typography
+                  sx={{
+                    fontSize: '0.8125rem',
+                    fontWeight: 400,
+                    lineHeight: 1,
+                    whiteSpace: 'nowrap',
+                    flex: 1,
+                    textAlign: 'left',
+                  }}
+                >
+                  {isDark ? 'Light mode' : 'Dark mode'}
+                </Typography>
               )}
             </Box>
           </Tooltip>
