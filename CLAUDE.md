@@ -11,6 +11,7 @@
 @claudedocs/vercel.md
 @claudedocs/csi-codes.md
 @claudedocs/design-systems.md
+@claudedocs/release-workflow.md
 
 ## Documentation Update Rules
 When making changes that affect these docs, update them in the same task:
@@ -23,6 +24,7 @@ When making changes that affect these docs, update them in the same task:
 - Vercel env vars, deployments, or project config changes → update `claudedocs/vercel.md`
 - CSI code list changes, data sources, or selector behavior → update `claudedocs/csi-codes.md`
 - Boundary between marketing and app design systems (new shared files, new route groups, new independent surfaces, changes to `--lp-*` vs app token ownership) → update `claudedocs/design-systems.md`
+- Branch model, the `preview` → `main` promotion process, or how production/preview databases relate → update `claudedocs/release-workflow.md`
 
 ## Vercel
 - See `claudedocs/vercel.md` for full Vercel configuration reference
