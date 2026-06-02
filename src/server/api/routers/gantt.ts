@@ -256,21 +256,6 @@ export const ganttRouter = createTRPCRouter({
         if (filled > 0) filledRequirementCounts.set(task.id, filled);
       }
 
-      // [Gantt:order DEBUG] The exact order this load returns from the DB.
-      // Compare across refreshes — if it changes without a deliberate reorder,
-      // something is rewriting orderIndex on routine syncs. Per parent group,
-      // a healthy project shows a dense 0..N-1 run.
-      console.log('[Gantt:order] LOAD returned', {
-        projectId,
-        count: tasks.length,
-        rows: tasks.map((t) => ({
-          id: t.id,
-          name: t.name,
-          parentId: t.parentId,
-          orderIndex: t.orderIndex,
-        })),
-      });
-
       // Build hierarchical task tree
       const taskTree = buildTaskTree(tasks, needsReviewCounts, filledRequirementCounts);
 
