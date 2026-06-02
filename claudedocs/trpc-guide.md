@@ -214,9 +214,19 @@ await ctx.db.$transaction(async (tx) => {
 A few procedures deal with data that was migrated additively — a new table sits next to a legacy column without backfilling rows in the migration itself. The pattern is to backfill **on first read** inside the read procedure:
 
 - `gantt.listSlots` lazily creates `TaskRequirementSlot` rows the first time a task with a non-zero `requiredSubmittals` / `requiredInspections` is read. The legacy count column remains the source of truth for the count; the new table holds the per-slot metadata (`name`, `dueDate`).
-- Mutations that change the count (`gantt.setSlotCount`) keep the legacy column synced inside the same `$transaction` so existing readers (`gantt.taskDetail`, `gantt.requirementStats`, the inline popover progress) don't need to change.
+- Mutations that change the count (`gantt.setSlotCount`, the inline popover stepper) keep the legacy column synced inside the same `$transaction` so existing readers (`gantt.taskDetail`, `gantt.requirementStats`, the inline popover progress) don't need to change.
 
 Use this pattern when a migration is purely additive and the read path can self-heal — it avoids destructive bulk-write migrations on the shared dev DB.
+
+### Batch reconcile for draft editors (`gantt.saveSlots`)
+
+The requirements drawer (`SubmittalDrawer`) is a **draft editor**: count, names, and due dates are edited in local React state and committed in one shot via `gantt.saveSlots` (not auto-saved per keystroke). The mutation takes the desired ordered list — `{ id, name, dueDate }[]` where `id: null` is a new slot — and reconciles it against current rows inside a single `$transaction`:
+
+- **Reconcile by id, never delete-and-recreate.** Kept rows are `update`d in place so their bound `Document.slotId` FK (received uploads / approvals) survives. Only rows whose id is absent from the list are deleted (FK is `ON DELETE SET NULL`, so the files persist, just unbound).
+- Index is set to array position. The drawer only adds/removes **trailing** slots (no reorder), so kept rows keep their index — in-place index updates can't collide on `@@unique([taskId, kind, index])`.
+- The legacy count column is synced to the list length (same invariant as `setSlotCount`), so popover readers stay in step.
+
+The inline popover stepper still uses `gantt.setSlotCount` (immediate); only the drawer defers to `saveSlots`. Both keep the legacy column in sync, so the two surfaces interoperate.
 
 ---
 

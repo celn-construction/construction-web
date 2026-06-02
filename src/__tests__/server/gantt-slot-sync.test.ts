@@ -47,6 +47,8 @@ type MockTx = {
     findMany: ReturnType<typeof vi.fn>;
     createMany: ReturnType<typeof vi.fn>;
     deleteMany: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
   };
   ganttTask: {
     update: ReturnType<typeof vi.fn>;
@@ -55,6 +57,7 @@ type MockTx = {
 
 function makeCtx(existingSlots: Array<{ id: string; index: number; name: string | null }> = []) {
   const finalSlots = [...existingSlots];
+  let createSeq = 0;
 
   const tx: MockTx = {
     taskRequirementSlot: {
@@ -84,6 +87,19 @@ function makeCtx(existingSlots: Array<{ id: string; index: number; name: string 
           if (ids.has(finalSlots[i]!.id)) finalSlots.splice(i, 1);
         }
         return Promise.resolve({ count: ids.size });
+      }),
+      create: vi.fn().mockImplementation(({ data }: { data: { index: number; name: string | null } }) => {
+        const created = { id: `created-${createSeq++}`, index: data.index, name: data.name };
+        finalSlots.push(created);
+        return Promise.resolve(created);
+      }),
+      update: vi.fn().mockImplementation(({ where, data }: { where: { id: string }; data: { index?: number; name?: string | null } }) => {
+        const row = finalSlots.find((s) => s.id === where.id);
+        if (row) {
+          if (data.index !== undefined) row.index = data.index;
+          if (data.name !== undefined) row.name = data.name;
+        }
+        return Promise.resolve(row ?? {});
       }),
     },
     ganttTask: {
@@ -226,5 +242,87 @@ describe("gantt router — slot/count invariant", () => {
       data: Array<{ kind: string }>;
     };
     expect(createArgs.data.every((d) => d.kind === "inspection")).toBe(true);
+  });
+
+  it("saveSlots updates kept rows, creates new ones, and syncs the count column", async () => {
+    const ctx = makeCtx([
+      { id: "slot-0", index: 0, name: "Shop Drawing" },
+      { id: "slot-1", index: 1, name: "Product Data" },
+    ]);
+
+    await router.saveSlots!._handler({
+      ctx,
+      input: {
+        organizationId: ORG_ID,
+        projectId: PROJECT_ID,
+        taskId: TASK_ID,
+        kind: "submittal",
+        slots: [
+          { id: "slot-0", name: "Shop Drawing (rev B)", dueDate: null }, // edited
+          { id: "slot-1", name: "Product Data", dueDate: "2026-06-14" }, // edited (due)
+          { id: null, name: "Warranty", dueDate: null }, // new
+        ],
+      },
+    });
+
+    // Two existing rows updated in place (bound docs preserved — never recreated).
+    expect(ctx.tx.taskRequirementSlot.update).toHaveBeenCalledTimes(2);
+    // One brand-new row created.
+    expect(ctx.tx.taskRequirementSlot.create).toHaveBeenCalledTimes(1);
+    const createArgs = ctx.tx.taskRequirementSlot.create.mock.calls[0]![0] as {
+      data: { taskId: string; kind: string; index: number; name: string | null };
+    };
+    expect(createArgs.data).toMatchObject({ taskId: TASK_ID, kind: "submittal", index: 2, name: "Warranty" });
+    // Nothing removed → no deleteMany.
+    expect(ctx.tx.taskRequirementSlot.deleteMany).not.toHaveBeenCalled();
+    // Legacy count column synced to the new length.
+    const updateArgs = ctx.tx.ganttTask.update.mock.calls[0]![0] as { data: Record<string, unknown> };
+    expect(updateArgs.data).toEqual({ requiredSubmittals: 3 });
+  });
+
+  it("saveSlots deletes rows dropped from the draft", async () => {
+    const ctx = makeCtx([
+      { id: "slot-0", index: 0, name: "Shop Drawing" },
+      { id: "slot-1", index: 1, name: "Product Data" },
+      { id: "slot-2", index: 2, name: "Cert" },
+    ]);
+
+    await router.saveSlots!._handler({
+      ctx,
+      input: {
+        organizationId: ORG_ID,
+        projectId: PROJECT_ID,
+        taskId: TASK_ID,
+        kind: "submittal",
+        slots: [{ id: "slot-0", name: "Shop Drawing", dueDate: null }],
+      },
+    });
+
+    expect(ctx.tx.taskRequirementSlot.deleteMany).toHaveBeenCalledTimes(1);
+    const deleteArgs = ctx.tx.taskRequirementSlot.deleteMany.mock.calls[0]![0] as {
+      where: { id: { in: string[] } };
+    };
+    expect(deleteArgs.where.id.in.sort()).toEqual(["slot-1", "slot-2"]);
+    const updateArgs = ctx.tx.ganttTask.update.mock.calls[0]![0] as { data: Record<string, unknown> };
+    expect(updateArgs.data).toEqual({ requiredSubmittals: 1 });
+  });
+
+  it("saveSlots clears the count column when the draft is emptied", async () => {
+    const ctx = makeCtx([{ id: "slot-0", index: 0, name: "Shop Drawing" }]);
+
+    await router.saveSlots!._handler({
+      ctx,
+      input: {
+        organizationId: ORG_ID,
+        projectId: PROJECT_ID,
+        taskId: TASK_ID,
+        kind: "inspection",
+        slots: [],
+      },
+    });
+
+    expect(ctx.tx.taskRequirementSlot.deleteMany).toHaveBeenCalledTimes(1);
+    const updateArgs = ctx.tx.ganttTask.update.mock.calls[0]![0] as { data: Record<string, unknown> };
+    expect(updateArgs.data).toEqual({ requiredInspections: null });
   });
 });

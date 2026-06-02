@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   setSlotCountSchema,
   updateSlotSchema,
+  saveSlotsSchema,
   slotKindSchema,
 } from "@/lib/validations/gantt";
 
@@ -64,5 +65,45 @@ describe("updateSlotSchema", () => {
 
   it("accepts null dueDate to clear it", () => {
     expect(updateSlotSchema.parse({ slotId: "s1", dueDate: null }).dueDate).toBeNull();
+  });
+});
+
+describe("saveSlotsSchema", () => {
+  const valid = {
+    taskId: "t1",
+    kind: "submittal",
+    slots: [
+      { id: "s1", name: "Shop Drawing", dueDate: "2026-05-12" },
+      { id: null, name: "Product Data", dueDate: null },
+    ],
+  } as const;
+
+  it("accepts a mix of existing (id) and new (id: null) slots", () => {
+    const result = saveSlotsSchema.parse(valid);
+    expect(result.slots).toHaveLength(2);
+    expect(result.slots[0]!.id).toBe("s1");
+    expect(result.slots[1]!.id).toBeNull();
+  });
+
+  it("accepts an empty list (clears all requirements)", () => {
+    expect(saveSlotsSchema.parse({ taskId: "t1", kind: "submittal", slots: [] }).slots).toEqual([]);
+  });
+
+  it("trims slot names", () => {
+    const result = saveSlotsSchema.parse({
+      taskId: "t1",
+      kind: "submittal",
+      slots: [{ id: null, name: "  Cert  ", dueDate: null }],
+    });
+    expect(result.slots[0]!.name).toBe("Cert");
+  });
+
+  it("rejects more than 50 slots", () => {
+    const slots = Array.from({ length: 51 }, () => ({ id: null, name: null, dueDate: null }));
+    expect(() => saveSlotsSchema.parse({ taskId: "t1", kind: "submittal", slots })).toThrow();
+  });
+
+  it("rejects an invalid kind", () => {
+    expect(() => saveSlotsSchema.parse({ ...valid, kind: "rfi" })).toThrow();
   });
 });

@@ -119,9 +119,30 @@ export const updateSlotSchema = z.object({
   dueDate: z.string().or(z.date()).nullable().optional(),
 });
 
+// Batch reconcile for the requirements drawer. The client edits a local draft
+// (count + names + due dates) and commits the whole list at once. `slots` is
+// the desired ordered list: a non-null `id` targets an existing row (update),
+// `id: null` is a brand-new slot (create), and any current row whose id is
+// absent from the list is deleted. The legacy count column is synced to the
+// list length so popover readers stay in step.
+export const saveSlotsSchema = z.object({
+  taskId: z.string(),
+  kind: slotKindSchema,
+  slots: z
+    .array(
+      z.object({
+        id: z.string().nullable(),
+        name: z.string().trim().max(200).nullable(),
+        dueDate: z.string().or(z.date()).nullable(),
+      }),
+    )
+    .max(50),
+});
+
 export type ListSlotsInput = z.infer<typeof listSlotsSchema>;
 export type SetSlotCountInput = z.infer<typeof setSlotCountSchema>;
 export type UpdateSlotInput = z.infer<typeof updateSlotSchema>;
+export type SaveSlotsInput = z.infer<typeof saveSlotsSchema>;
 
 // Type exports
 export type GanttLoadInput = z.infer<typeof ganttLoadInputSchema>;
