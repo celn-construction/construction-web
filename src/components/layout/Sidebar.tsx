@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, SealCheck, MapPin, CaretRight, CaretLineLeft, CaretLineRight, type Icon } from '@phosphor-icons/react';
+import { ChartBar, FolderSimple, FileMagnifyingGlass, GearSix, UsersThree, SealCheck, MapPin, CaretRight, CaretLineLeft, Sun, Moon, type Icon } from '@phosphor-icons/react';
 import { Box, Typography, Tooltip } from '@mui/material';
-import { projectNavItems, orgNavItems, getProjectNavHref, getOrgNavHref, SIDEBAR_SECTIONS, type NavItem } from './navItems';
+import { projectNavItems, orgNavItems, getProjectNavHref, getOrgNavHref, SIDEBAR_SECTIONS, type NavItem, type NavSectionDef } from './navItems';
 import OrgSwitcher from './OrgSwitcher';
 
 import { api } from '@/trpc/react';
@@ -13,6 +13,7 @@ import { canManageProjects } from '@/lib/permissions';
 import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { useProjectSwitcher } from '@/hooks/useProjectSwitcher';
 import { LogoIcon } from '@/components/ui/Logo';
+import { useThemeMode } from '@/components/providers/ThemeRegistry';
 
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 64;
@@ -36,6 +37,9 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const params = useParams<{ orgSlug?: string; projectSlug?: string }>();
   const { orgSlug, projectSlug } = params;
+
+  const { mode: themeMode, toggleMode: toggleThemeMode } = useThemeMode();
+  const isDark = themeMode === 'dark';
 
   const { activeOrganizationId } = useOrgFromUrl();
   const { effectiveProject, effectiveProjectSlug } = useProjectSwitcher(
@@ -75,6 +79,214 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   useEffect(() => {
     setIsMac(/Mac/.test(navigator.userAgent));
   }, []);
+
+  const workspaceSection = SIDEBAR_SECTIONS.find((s) => s.id === 'workspace') ?? null;
+  const topSections = SIDEBAR_SECTIONS.filter((s) => s.id !== 'workspace');
+
+  const renderSection = (section: NavSectionDef, marginBottom: number) => {
+    const sectionItems: NavItem[] = [
+      ...orgNavItems.filter((i) => i.section === section.id),
+      ...visibleProjectNavItems.filter((i) => i.section === section.id),
+    ];
+    if (sectionItems.length === 0) return null;
+
+    return (
+      <Box key={section.id} sx={{ mb: marginBottom }}>
+        {!collapsed && (
+          <Typography
+            sx={{
+              fontSize: '0.5625rem',
+              fontWeight: 600,
+              color: 'text.secondary',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              px: 1,
+              pb: 1,
+              userSelect: 'none',
+            }}
+          >
+            {section.label}
+          </Typography>
+        )}
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+          {sectionItems.map((item) => {
+            const NavIcon = iconMap[item.icon] ?? ChartBar;
+            const isOrgScope = item.scope === 'org';
+            const href = isOrgScope
+              ? (orgSlug ? getOrgNavHref(item.segment, orgSlug) : '#')
+              : getProjectNavHref(item.segment, orgSlug, navProjectSlug);
+            const isActive = isOrgScope
+              ? !!(orgSlug && pathname === `/${orgSlug}/${item.segment}`)
+              : !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
+            const isDisabled = isOrgScope ? !orgSlug : !navProjectSlug;
+            const badgeCount = item.id === 'team' && !isDisabled ? memberCount : null;
+
+            const content = (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  gap: collapsed ? 0 : 1.25,
+                  px: collapsed ? 0 : 1.25,
+                  py: 0.875,
+                  borderRadius: '8px',
+                  position: 'relative',
+                  transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
+                  color: isActive ? 'text.primary' : 'text.secondary',
+                  opacity: isDisabled ? 0.35 : 1,
+                  cursor: isDisabled ? 'default' : 'pointer',
+                  overflow: 'hidden',
+                  '@media (prefers-reduced-motion: reduce)': {
+                    transition: 'none',
+                  },
+                  '&:hover': isDisabled ? {} : {
+                    bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
+                    color: 'text.primary',
+                    boxShadow: (theme) =>
+                      !isActive
+                        ? theme.palette.mode === 'dark'
+                          ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.2)'
+                          : '0 2px 4px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.08)'
+                        : 'none',
+                    '& .nav-icon': !isActive ? { transform: 'scale(1.08)' } : {},
+                  },
+                }}
+              >
+                {/* Active Indicator — thin left accent */}
+                {isActive && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      left: 0,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '2.5px',
+                      height: 16,
+                      borderRadius: '0 2px 2px 0',
+                      bgcolor: 'sidebar.indicator',
+                    }}
+                    aria-hidden="true"
+                  />
+                )}
+
+                <Box
+                  className="nav-icon"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 20,
+                    height: 20,
+                    flexShrink: 0,
+                    transition: 'transform 120ms ease-out',
+                    '@media (prefers-reduced-motion: reduce)': {
+                      transition: 'none',
+                    },
+                  }}
+                >
+                  <NavIcon size={17} weight={isActive ? 'fill' : 'regular'} />
+                </Box>
+
+                {!collapsed && (
+                  <Typography
+                    sx={{
+                      fontSize: '0.8125rem',
+                      fontWeight: isActive ? 550 : 400,
+                      letterSpacing: isActive ? '-0.005em' : '0',
+                      lineHeight: 1,
+                      flex: 1,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {item.label}
+                  </Typography>
+                )}
+
+                {!collapsed && badgeCount !== null && badgeCount > 0 && !isActive && (
+                  <Typography
+                    key={badgePulseKey}
+                    sx={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 500,
+                      color: 'text.secondary',
+                      lineHeight: 1,
+                      flexShrink: 0,
+                      minWidth: 16,
+                      textAlign: 'right',
+                      display: 'inline-block',
+                      transformOrigin: 'center',
+                      animation: 'badgePulse 300ms ease-out',
+                      '@keyframes badgePulse': {
+                        '0%': { transform: 'scale(1)' },
+                        '50%': { transform: 'scale(1.15)' },
+                        '100%': { transform: 'scale(1)' },
+                      },
+                      '@media (prefers-reduced-motion: reduce)': {
+                        animation: 'none',
+                      },
+                    }}
+                  >
+                    {badgeCount}
+                  </Typography>
+                )}
+
+                {/* Subtle arrow for active item */}
+                {isActive && !collapsed && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      flexShrink: 0,
+                      opacity: 0.4,
+                      animation: 'chevronSlideIn 180ms ease-out',
+                      '@keyframes chevronSlideIn': {
+                        '0%': { opacity: 0, transform: 'translateX(-4px)' },
+                        '100%': { opacity: 0.4, transform: 'translateX(0)' },
+                      },
+                      '@media (prefers-reduced-motion: reduce)': {
+                        animation: 'none',
+                      },
+                    }}
+                  >
+                    <CaretRight size={13} />
+                  </Box>
+                )}
+              </Box>
+            );
+
+            const wrappedContent = collapsed ? (
+              <Tooltip title={item.label} placement="right" key={item.id}>
+                {isDisabled ? (
+                  <Box>{content}</Box>
+                ) : (
+                  <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    {content}
+                  </Link>
+                )}
+              </Tooltip>
+            ) : isDisabled ? (
+              <Box key={item.id}>{content}</Box>
+            ) : (
+              <Link
+                key={item.id}
+                href={href}
+                style={{ textDecoration: 'none', color: 'inherit' }}
+              >
+                {content}
+              </Link>
+            );
+
+            return wrappedContent;
+          })}
+        </Box>
+      </Box>
+    );
+  };
 
   return (
     <Box
@@ -204,221 +416,24 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           transition: 'padding 0.2s ease',
         }}
       >
-        {/* Grouped Nav Sections */}
-        {SIDEBAR_SECTIONS.map((section, sectionIdx) => {
-          const sectionItems: NavItem[] = [
-            ...orgNavItems.filter((i) => i.section === section.id),
-            ...visibleProjectNavItems.filter((i) => i.section === section.id),
-          ];
-          if (sectionItems.length === 0) return null;
+        {/* Top nav sections */}
+        {topSections.map((section, idx) =>
+          renderSection(section, idx < topSections.length - 1 ? 2 : 0),
+        )}
 
-          return (
-            <Box key={section.id} sx={{ mb: sectionIdx < SIDEBAR_SECTIONS.length - 1 ? 2 : 0 }}>
-              {!collapsed && (
-                <Typography
-                  sx={{
-                    fontSize: '0.5625rem',
-                    fontWeight: 600,
-                    color: 'text.secondary',
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    px: 1,
-                    pb: 1,
-                    userSelect: 'none',
-                  }}
-                >
-                  {section.label}
-                </Typography>
-              )}
-
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                {sectionItems.map((item) => {
-                  const NavIcon = iconMap[item.icon] ?? ChartBar;
-                  const isOrgScope = item.scope === 'org';
-                  const href = isOrgScope
-                    ? (orgSlug ? getOrgNavHref(item.segment, orgSlug) : '#')
-                    : getProjectNavHref(item.segment, orgSlug, navProjectSlug);
-                  const isActive = isOrgScope
-                    ? !!(orgSlug && pathname === `/${orgSlug}/${item.segment}`)
-                    : !!(projectSlug && pathname.includes(`/projects/${projectSlug}/${item.segment}`));
-                  const isDisabled = isOrgScope ? !orgSlug : !navProjectSlug;
-                  const badgeCount = item.id === 'team' && !isDisabled ? memberCount : null;
-
-                  const content = (
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: collapsed ? 'center' : 'flex-start',
-                        gap: collapsed ? 0 : 1.25,
-                        px: collapsed ? 0 : 1.25,
-                        py: 0.875,
-                        borderRadius: '8px',
-                        position: 'relative',
-                        transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
-                        bgcolor: isActive ? 'sidebar.activeItemBg' : 'transparent',
-                        color: isActive ? 'text.primary' : 'text.secondary',
-                        opacity: isDisabled ? 0.35 : 1,
-                        cursor: isDisabled ? 'default' : 'pointer',
-                        overflow: 'hidden',
-                        '@media (prefers-reduced-motion: reduce)': {
-                          transition: 'none',
-                        },
-                        '&:hover': isDisabled ? {} : {
-                          bgcolor: isActive ? 'sidebar.activeItemBg' : 'sidebar.hoverBg',
-                          color: 'text.primary',
-                          boxShadow: (theme) =>
-                            !isActive
-                              ? theme.palette.mode === 'dark'
-                                ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.2)'
-                                : '0 2px 4px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.08)'
-                              : 'none',
-                          '& .nav-icon': !isActive ? { transform: 'scale(1.08)' } : {},
-                        },
-                      }}
-                    >
-                      {/* Active Indicator — thin left accent */}
-                      {isActive && (
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            left: 0,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            width: '2.5px',
-                            height: 16,
-                            borderRadius: '0 2px 2px 0',
-                            bgcolor: 'sidebar.indicator',
-                          }}
-                          aria-hidden="true"
-                        />
-                      )}
-
-                      <Box
-                        className="nav-icon"
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 20,
-                          height: 20,
-                          flexShrink: 0,
-                          transition: 'transform 120ms ease-out',
-                          '@media (prefers-reduced-motion: reduce)': {
-                            transition: 'none',
-                          },
-                        }}
-                      >
-                        <NavIcon size={17} weight={isActive ? 'fill' : 'regular'} />
-                      </Box>
-
-                      {!collapsed && (
-                        <Typography
-                          sx={{
-                            fontSize: '0.8125rem',
-                            fontWeight: isActive ? 550 : 400,
-                            letterSpacing: isActive ? '-0.005em' : '0',
-                            lineHeight: 1,
-                            flex: 1,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {item.label}
-                        </Typography>
-                      )}
-
-                      {!collapsed && badgeCount !== null && badgeCount > 0 && !isActive && (
-                        <Typography
-                          key={badgePulseKey}
-                          sx={{
-                            fontSize: '0.6875rem',
-                            fontWeight: 500,
-                            color: 'text.secondary',
-                            lineHeight: 1,
-                            flexShrink: 0,
-                            minWidth: 16,
-                            textAlign: 'right',
-                            display: 'inline-block',
-                            transformOrigin: 'center',
-                            animation: 'badgePulse 300ms ease-out',
-                            '@keyframes badgePulse': {
-                              '0%': { transform: 'scale(1)' },
-                              '50%': { transform: 'scale(1.15)' },
-                              '100%': { transform: 'scale(1)' },
-                            },
-                            '@media (prefers-reduced-motion: reduce)': {
-                              animation: 'none',
-                            },
-                          }}
-                        >
-                          {badgeCount}
-                        </Typography>
-                      )}
-
-                      {/* Subtle arrow for active item */}
-                      {isActive && !collapsed && (
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            flexShrink: 0,
-                            opacity: 0.4,
-                            animation: 'chevronSlideIn 180ms ease-out',
-                            '@keyframes chevronSlideIn': {
-                              '0%': { opacity: 0, transform: 'translateX(-4px)' },
-                              '100%': { opacity: 0.4, transform: 'translateX(0)' },
-                            },
-                            '@media (prefers-reduced-motion: reduce)': {
-                              animation: 'none',
-                            },
-                          }}
-                        >
-                          <CaretRight size={13} />
-                        </Box>
-                      )}
-                    </Box>
-                  );
-
-                  const wrappedContent = collapsed ? (
-                    <Tooltip title={item.label} placement="right" key={item.id}>
-                      {isDisabled ? (
-                        <Box>{content}</Box>
-                      ) : (
-                        <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
-                          {content}
-                        </Link>
-                      )}
-                    </Tooltip>
-                  ) : isDisabled ? (
-                    <Box key={item.id}>{content}</Box>
-                  ) : (
-                    <Link
-                      key={item.id}
-                      href={href}
-                      style={{ textDecoration: 'none', color: 'inherit' }}
-                    >
-                      {content}
-                    </Link>
-                  );
-
-                  return wrappedContent;
-                })}
-              </Box>
-            </Box>
-          );
-        })}
-
-        {/* Spacer */}
+        {/* Spacer pushes the Workspace group to the bottom */}
         <Box sx={{ flex: 1 }} />
 
-        {/* Collapse Toggle */}
+        {/* Workspace group — pinned to the bottom of the sidebar */}
+        {workspaceSection && renderSection(workspaceSection, 2)}
+
+        {/* Theme Switcher */}
         <Box sx={{ pb: 1 }}>
-          <Tooltip title={`${collapsed ? 'Expand' : 'Collapse'} sidebar (${isMac ? '\u2318' : 'Ctrl+'}B)`} placement="right">
+          <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'} placement="right">
             <Box
               component="button"
-              onClick={onToggleCollapse}
+              onClick={toggleThemeMode}
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -440,50 +455,25 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
-                {collapsed ? (
-                  <CaretLineRight size={15} weight="bold" />
+                {isDark ? (
+                  <Sun size={15} weight="bold" />
                 ) : (
-                  <CaretLineLeft size={15} weight="bold" />
+                  <Moon size={15} weight="bold" />
                 )}
               </Box>
               {!collapsed && (
-                <>
-                  <Typography
-                    sx={{
-                      fontSize: '0.8125rem',
-                      fontWeight: 400,
-                      lineHeight: 1,
-                      whiteSpace: 'nowrap',
-                      flex: 1,
-                    }}
-                  >
-                    Collapse
-                  </Typography>
-                  <Box
-                    component="kbd"
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px',
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      lineHeight: 1,
-                      color: 'text.secondary',
-                      bgcolor: 'background.paper',
-                      px: 0.75,
-                      py: 0.5,
-                      borderRadius: '5px',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      boxShadow: '0 1px 0 0 rgba(0,0,0,0.08)',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                      letterSpacing: '0.02em',
-                    }}
-                  >
-                    {isMac ? '\u2318' : 'Ctrl+'}<Typography component="span" sx={{ fontSize: '0.6875rem', fontWeight: 600, lineHeight: 1 }}>B</Typography>
-                  </Box>
-                </>
+                <Typography
+                  sx={{
+                    fontSize: '0.8125rem',
+                    fontWeight: 400,
+                    lineHeight: 1,
+                    whiteSpace: 'nowrap',
+                    flex: 1,
+                    textAlign: 'left',
+                  }}
+                >
+                  {isDark ? 'Light mode' : 'Dark mode'}
+                </Typography>
               )}
             </Box>
           </Tooltip>

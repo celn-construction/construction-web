@@ -440,7 +440,10 @@ function DrawerContent({
             display: 'flex',
             alignItems: 'center',
             gap: 1.75,
-            bgcolor: 'background.default',
+            // Nested panel inside the elevated drawer — lift with a tint rather
+            // than dropping to background.default, which inverts to a dark hole
+            // in dark mode (drawer is already background.paper).
+            bgcolor: 'action.hover',
             mb: 2.25,
           }}
         >
@@ -524,7 +527,9 @@ function DrawerContent({
           borderColor: 'divider',
           px: 2.5,
           py: 1.25,
-          bgcolor: 'background.default',
+          // Match the drawer surface (like the header) so the footer reads as
+          // drawer chrome rather than a dark strip in dark mode.
+          bgcolor: 'background.paper',
         }}
       >
         <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
@@ -566,7 +571,9 @@ function Stepper({
         borderColor: 'divider',
         borderRadius: '8px',
         overflow: 'hidden',
-        bgcolor: 'background.paper',
+        // Raised above the Required-count card (now action.hover) so the
+        // control stays distinct in dark mode.
+        bgcolor: 'action.selected',
       }}
     >
       <IconButton
@@ -1173,7 +1180,9 @@ function EmptyState({
         px: 2.5,
         py: 4,
         textAlign: 'center',
-        bgcolor: 'background.default',
+        // Lift above the drawer (see Required-count card) — background.default
+        // sinks into a dark hole in dark mode.
+        bgcolor: 'action.hover',
       }}
     >
       <Box
@@ -1181,7 +1190,7 @@ function EmptyState({
           width: 40,
           height: 40,
           borderRadius: '12px',
-          bgcolor: 'background.paper',
+          bgcolor: 'action.selected',
           border: '1px solid',
           borderColor: 'divider',
           display: 'inline-flex',
@@ -1211,7 +1220,9 @@ function EmptyState({
               borderRadius: '7px',
               border: '1px solid',
               borderColor: 'divider',
-              bgcolor: 'background.paper',
+              // Raised above the empty-state card (now action.hover) so the
+              // preset chips don't read as cutouts in dark mode.
+              bgcolor: 'action.selected',
               color: 'text.primary',
               fontFamily: 'inherit',
               fontSize: 11,
