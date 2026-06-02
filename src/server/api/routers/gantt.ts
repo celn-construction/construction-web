@@ -8,6 +8,7 @@ import {
   listSlotsSchema,
   setSlotCountSchema,
   updateSlotSchema,
+  saveSlotsSchema,
   type SlotKind,
 } from "@/lib/validations/gantt";
 import { nextSuggestedSlotName } from "@/lib/constants/slotNameLibrary";
@@ -587,6 +588,81 @@ export const ganttRouter = createTRPCRouter({
       return ctx.db.taskRequirementSlot.update({
         where: { id: slotId },
         data,
+      });
+    }),
+
+  // Batch commit for the requirements drawer's draft. Reconciles the whole
+  // ordered list in one transaction: delete removed rows, update kept rows,
+  // create new ones, and sync the legacy count column. Kept rows preserve
+  // their bound documents (matched by id — never delete-and-recreate).
+  saveSlots: orgProcedure
+    .input(z.object({ projectId: z.string() }).merge(saveSlotsSchema))
+    .mutation(async ({ ctx, input }) => {
+      if (!canApproveDocuments(ctx.membership.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to manage requirements",
+        });
+      }
+
+      const { projectId, taskId, kind, slots } = input;
+
+      const task = await ctx.db.ganttTask.findFirst({
+        where: { id: taskId, projectId, project: { organizationId: ctx.organization.id } },
+        select: { id: true },
+      });
+      if (!task) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      }
+
+      const legacyField = kind === "submittal" ? "requiredSubmittals" : "requiredInspections";
+
+      return ctx.db.$transaction(async (tx) => {
+        const current = await tx.taskRequirementSlot.findMany({
+          where: { taskId, kind },
+          select: { id: true },
+        });
+        const currentIds = new Set(current.map((s) => s.id));
+        const keepIds = new Set(
+          slots.map((s) => s.id).filter((id): id is string => id !== null),
+        );
+
+        // Delete rows the draft dropped. The Document.slotId FK is ON DELETE
+        // SET NULL, so any bound file survives in the library (just unbound).
+        const toDelete = current.filter((s) => !keepIds.has(s.id)).map((s) => s.id);
+        if (toDelete.length > 0) {
+          await tx.taskRequirementSlot.deleteMany({ where: { id: { in: toDelete } } });
+        }
+
+        // Reconcile in array order. index === array position. The drawer only
+        // adds/removes trailing slots (no reorder), so kept rows keep their
+        // existing index — updating index in place can't collide on the
+        // @@unique([taskId, kind, index]) constraint.
+        for (let i = 0; i < slots.length; i++) {
+          const slot = slots[i]!;
+          const data = {
+            index: i,
+            name: slot.name === null ? null : slot.name.trim() || null,
+            dueDate: slot.dueDate === null ? null : new Date(slot.dueDate),
+          };
+          if (slot.id !== null && currentIds.has(slot.id)) {
+            await tx.taskRequirementSlot.update({ where: { id: slot.id }, data });
+          } else {
+            await tx.taskRequirementSlot.create({ data: { taskId, kind, ...data } });
+          }
+        }
+
+        // Keep the legacy count column in sync so existing readers (popover
+        // header, requirementStats, TrackableFolderContent) don't change.
+        await tx.ganttTask.update({
+          where: { id: taskId },
+          data: { [legacyField]: slots.length === 0 ? null : slots.length },
+        });
+
+        return tx.taskRequirementSlot.findMany({
+          where: { taskId, kind },
+          orderBy: { index: "asc" },
+        });
       });
     }),
 });

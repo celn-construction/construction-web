@@ -14,7 +14,7 @@ import { trackUpload } from '@/store/uploadStatusStore';
 import type { PopoverPlacement, BryntumGanttInstance } from '../types';
 import type { PreviewDoc, DocumentItem } from './task-popover/types';
 
-import { ArrowsInSimple, ArrowsOutSimple } from '@phosphor-icons/react';
+import { ArrowsInSimple, ArrowsOutSimple, CheckCircle } from '@phosphor-icons/react';
 import TaskHeader from './task-popover/TaskHeader';
 import CoverImageBanner from './task-popover/CoverImageBanner';
 import FolderRow from './task-popover/FolderRow';
@@ -53,6 +53,16 @@ export function TaskDetailsPopover({
   const [uploadTarget, setUploadTarget] = useState<{ folder: { id: string; name: string }; slotId?: string } | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
   const [drawerKind, setDrawerKind] = useState<SlotKind | null>(null);
+  // Transient confirmation shown on the popover after the drawer saves + closes.
+  const [savedNotice, setSavedNotice] = useState<{ kind: SlotKind; count: number } | null>(null);
+  const savedNoticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (savedNoticeTimer.current) clearTimeout(savedNoticeTimer.current); }, []);
+  const handleRequirementsSaved = useCallback((info: { kind: SlotKind; count: number }) => {
+    setDrawerKind(null); // auto-close the drawer
+    setSavedNotice(info);
+    if (savedNoticeTimer.current) clearTimeout(savedNoticeTimer.current);
+    savedNoticeTimer.current = setTimeout(() => setSavedNotice(null), 2800);
+  }, []);
   // Per-slot upload tracking — drives the in-place "Uploading…" badge on
   // SlotDropzone rows so the user can see where the file is landing even
   // after the dialog closes. Both the dialog path and the DnD path feed
@@ -114,10 +124,12 @@ export function TaskDetailsPopover({
   );
 
   // ── Requirement mutation ──
-  // Routed through setSlotCount so the popover stepper, the drawer, and the
-  // slot table all share a single write path. Updating only the legacy column
-  // here used to leave orphan TaskRequirementSlot rows that silently reappeared
-  // on the next increment.
+  // The popover's inline stepper writes immediately through setSlotCount, which
+  // keeps the legacy count column and the TaskRequirementSlot rows in sync in
+  // one transaction. (The drawer is a deferred draft editor and commits via
+  // saveSlots instead; both paths keep the legacy column synced so the two
+  // surfaces interoperate.) Updating only the legacy column here used to leave
+  // orphan slot rows that silently reappeared on the next increment.
   const setSlotCountMutation = api.gantt.setSlotCount.useMutation({
     onSuccess: (_data, variables) => {
       void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId: taskId! });
@@ -328,7 +340,8 @@ export function TaskDetailsPopover({
           },
         }}
       >
-        <Box sx={{ display: 'flex' }}>
+        <Box sx={{ display: 'flex', position: 'relative' }}>
+          <RequirementsSavedBanner notice={savedNotice} />
           {/* ── LEFT PANEL ── */}
           <Box sx={{ width: POPOVER_WIDTH, flexShrink: 0, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', maxHeight: '85vh', overflowY: 'auto' }}>
 
@@ -592,6 +605,7 @@ export function TaskDetailsPopover({
           taskName={taskName}
           memberRole={memberRole}
           initialKind={drawerKind}
+          onSaved={handleRequirementsSaved}
           docsByKind={{
             submittal: ((allDocs ?? []) as DocumentItem[]).filter((d) =>
               expandFolderIds('submittals').includes(d.folderId),
@@ -607,5 +621,49 @@ export function TaskDetailsPopover({
         />
       )}
     </>
+  );
+}
+
+// Transient "requirements saved" confirmation, overlaid at the top of the
+// popover after the drawer commits and auto-closes. Slides down, then the
+// parent unmounts it on a timer.
+function RequirementsSavedBanner({ notice }: { notice: { kind: SlotKind; count: number } | null }) {
+  if (!notice) return null;
+  const label = notice.kind === 'submittal' ? 'submittal' : 'inspection';
+  const message =
+    notice.count === 0
+      ? `${label === 'submittal' ? 'Submittal' : 'Inspection'} requirements cleared`
+      : `${notice.count} ${notice.count === 1 ? label : `${label}s`} required · saved`;
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        top: 8,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 6,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.75,
+        px: 1.5,
+        py: 0.875,
+        borderRadius: '999px',
+        bgcolor: 'success.main',
+        color: 'success.contrastText',
+        boxShadow: '0 8px 24px -6px rgba(0,0,0,0.25)',
+        fontSize: 12,
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+        pointerEvents: 'none',
+        animation: 'reqSavedIn 0.24s cubic-bezier(0.4, 0, 0.2, 1)',
+        '@keyframes reqSavedIn': {
+          from: { opacity: 0, transform: 'translate(-50%, -8px)' },
+          to: { opacity: 1, transform: 'translate(-50%, 0)' },
+        },
+      }}
+    >
+      <CheckCircle size={15} weight="fill" />
+      {message}
+    </Box>
   );
 }

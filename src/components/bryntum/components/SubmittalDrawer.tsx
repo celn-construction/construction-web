@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Drawer,
@@ -19,10 +19,11 @@ import {
   CloudArrowUp,
   WarningCircle,
   Tray,
+  PencilSimple,
 } from '@phosphor-icons/react';
 import { format, isBefore, startOfDay } from 'date-fns';
 
-import { api } from '@/trpc/react';
+import { api, type RouterOutputs } from '@/trpc/react';
 import type { SlotKind } from '@/lib/validations/gantt';
 import { nextSuggestedSlotName } from '@/lib/constants/slotNameLibrary';
 import UserAvatar from '@/components/ui/UserAvatar';
@@ -34,12 +35,6 @@ const SUBMITTAL_COLOR = '#2563EB';
 // pill convention used by FolderRow in the task popover, and intentionally
 // differs from the solid green used for "approved".
 const RECEIVED_COLOR = '#4f46e5';
-
-// Optimistic slot IDs are tagged with this prefix so any code path that would
-// otherwise send the placeholder ID to the server (uploads, slot updates) can
-// short-circuit until the real row arrives.
-const OPTIMISTIC_SLOT_ID_PREFIX = 'optimistic-';
-const isOptimisticSlotId = (id: string): boolean => id.startsWith(OPTIMISTIC_SLOT_ID_PREFIX);
 const INSPECTION_COLOR = '#8E44AD';
 
 const KIND_META: Record<SlotKind, {
@@ -81,6 +76,11 @@ interface SubmittalDrawerProps {
   /** Documents already uploaded under this task — used for the tab badge counts. */
   docsByKind: Record<SlotKind, DocumentItem[]>;
   /**
+   * Fired after a successful Save with the saved kind + slot count. The parent
+   * uses this to auto-close the drawer and surface a confirmation on the popover.
+   */
+  onSaved: (info: { kind: SlotKind; count: number }) => void;
+  /**
    * Open the upload dialog for a given folder. Pass a `slotId` to bind the
    * upload to a specific slot; omit it to let the server auto-link to the
    * first empty slot.
@@ -98,20 +98,51 @@ export default function SubmittalDrawer({
   memberRole,
   initialKind = 'submittal',
   docsByKind,
+  onSaved,
   onUploadToFolder,
 }: SubmittalDrawerProps) {
   const [activeKind, setActiveKind] = useState<SlotKind>(initialKind);
+  // Lifted from DrawerContent so the parent can guard tab-switch / close while
+  // there are uncommitted draft edits.
+  const [dirty, setDirty] = useState(false);
+  // A pending navigation intent that's blocked behind the discard confirm.
+  const [guard, setGuard] = useState<{ type: 'close' } | { type: 'switch'; kind: SlotKind } | null>(null);
 
   // Reset to the requested kind whenever the drawer (re)opens.
   useEffect(() => {
     if (open) setActiveKind(initialKind);
   }, [open, initialKind]);
 
+  const requestClose = () => {
+    if (dirty) setGuard({ type: 'close' });
+    else onClose();
+  };
+
+  const requestSwitch = (kind: SlotKind) => {
+    if (kind === activeKind) return;
+    if (dirty) setGuard({ type: 'switch', kind });
+    else setActiveKind(kind);
+  };
+
+  const confirmGuard = () => {
+    if (!guard) return;
+    // Switching kinds re-initializes DrawerContent's draft from server, so the
+    // pending edits are dropped — clear dirty eagerly to keep the bar honest.
+    setDirty(false);
+    if (guard.type === 'close') {
+      setGuard(null);
+      onClose();
+    } else {
+      setActiveKind(guard.kind);
+      setGuard(null);
+    }
+  };
+
   return (
     <Drawer
       anchor="right"
       open={open}
-      onClose={onClose}
+      onClose={requestClose}
       // Sit above the task popover (MUI Popover default is 1300).
       sx={{ zIndex: 1500 }}
       PaperProps={{
@@ -125,12 +156,12 @@ export default function SubmittalDrawer({
       <DrawerHeader
         kind={activeKind}
         taskName={taskName}
-        onClose={onClose}
+        onClose={requestClose}
       />
 
       <KindTabs
         activeKind={activeKind}
-        onChange={setActiveKind}
+        onChange={requestSwitch}
         countSubmittal={docsByKind.submittal.length}
         countInspection={docsByKind.inspection.length}
       />
@@ -141,8 +172,24 @@ export default function SubmittalDrawer({
         taskId={taskId}
         memberRole={memberRole}
         kind={activeKind}
+        onDirtyChange={setDirty}
+        onSaved={(info) => {
+          setDirty(false);
+          onSaved(info);
+        }}
         onUploadToFolder={(slotId) => onUploadToFolder(KIND_META[activeKind].folderId, slotId)}
       />
+
+      {guard && (
+        <ConfirmDialog
+          title="Discard unsaved changes?"
+          description="You have requirement edits that haven't been saved. Leaving now will discard them."
+          cancelLabel="Keep editing"
+          confirmLabel="Discard"
+          onCancel={() => setGuard(null)}
+          onConfirm={confirmGuard}
+        />
+      )}
     </Drawer>
   );
 }
@@ -303,14 +350,38 @@ function KindTab({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Body — required count stepper + slot list
+// Body — draft editor: stepper + slot list, committed only on Save
 // ────────────────────────────────────────────────────────────────────────────
+
+// A local, uncommitted slot definition. `serverId` is null until the row has
+// been persisted — that's also what gates uploads (you can't attach a file to
+// a slot that doesn't exist server-side yet).
+type DraftSlot = {
+  key: string;
+  serverId: string | null;
+  name: string;
+  dueDate: string; // '' or yyyy-MM-dd
+};
+
+type ServerSlot = RouterOutputs['gantt']['listSlots'][number];
+
+function toDraft(slot: ServerSlot): DraftSlot {
+  return {
+    key: slot.id,
+    serverId: slot.id,
+    name: slot.name ?? '',
+    dueDate: slot.dueDate ? toInputDate(slot.dueDate) : '',
+  };
+}
+
 function DrawerContent({
   organizationId,
   projectId,
   taskId,
   memberRole,
   kind,
+  onDirtyChange,
+  onSaved,
   onUploadToFolder,
 }: {
   organizationId: string;
@@ -318,6 +389,8 @@ function DrawerContent({
   taskId: string;
   memberRole: string;
   kind: SlotKind;
+  onDirtyChange: (dirty: boolean) => void;
+  onSaved: (info: { kind: SlotKind; count: number }) => void;
   onUploadToFolder: (slotId?: string) => void;
 }) {
   const meta = KIND_META[kind];
@@ -327,103 +400,179 @@ function DrawerContent({
     { organizationId, projectId, taskId, kind },
     { enabled: !!organizationId && !!projectId && !!taskId },
   );
-  const slots = slotsQuery.data ?? [];
 
-  const setCountMutation = api.gantt.setSlotCount.useMutation({
-    // Optimistically reshape the slot list so the UI updates instantly instead
-    // of waiting for the server round trip + three query invalidations.
-    onMutate: async ({ count }) => {
-      const queryKey = { organizationId, projectId, taskId, kind };
-      await utils.gantt.listSlots.cancel(queryKey);
-      const previous = utils.gantt.listSlots.getData(queryKey);
+  // `baseline` is the last-known-saved definition; `draft` is what the user is
+  // editing. Both are local — nothing hits the server until Save. Documents
+  // (the "received" binding) are always read live from the query, so an upload
+  // landing while the drawer is open is reflected without clobbering edits.
+  const [baseline, setBaseline] = useState<DraftSlot[] | null>(null);
+  const [draft, setDraft] = useState<DraftSlot[] | null>(null);
+  const newKeyCounter = useRef(0);
+  const nextKey = () => `new-${newKeyCounter.current++}`;
 
-      utils.gantt.listSlots.setData(queryKey, (current) => {
-        const prev = current ?? [];
-        if (count === prev.length) return prev;
-        if (count < prev.length) return prev.slice(0, count);
-        // Mirror the server's name-picking so the placeholder matches the
-        // value that will arrive on reconcile (no visible name flip).
-        const existingNames: (string | null)[] = prev.map((s) => s.name);
-        const now = new Date();
-        const baseId = `${OPTIMISTIC_SLOT_ID_PREFIX}${now.getTime()}`;
-        const additions = Array.from({ length: count - prev.length }, (_, i) => {
-          const name = nextSuggestedSlotName(kind, existingNames);
-          existingNames.push(name);
-          return {
-            id: `${baseId}-${i}`,
-            taskId,
-            kind,
-            index: prev.length + i,
-            name,
-            dueDate: null,
-            createdAt: now,
-            updatedAt: now,
-            document: null,
-          };
-        });
-        return [...prev, ...additions];
-      });
+  // Seed baseline + draft from the server, once per kind. `seededKind` guards
+  // against reseeding on later refetches (e.g. an upload binding a doc), which
+  // would clobber the user's in-progress edits. Switching kind clears it so
+  // the new kind's data seeds a fresh draft; the parent already guards that
+  // switch behind the discard confirm when there are unsaved changes.
+  const seededKind = useRef<SlotKind | null>(null);
+  useEffect(() => {
+    if (seededKind.current !== kind) {
+      seededKind.current = null;
+      setBaseline(null);
+      setDraft(null);
+    }
+    if (slotsQuery.data && seededKind.current !== kind) {
+      seededKind.current = kind;
+      const initial = slotsQuery.data.map(toDraft);
+      setBaseline(initial);
+      setDraft(initial);
+    }
+  }, [kind, slotsQuery.data]);
 
-      return { previous };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.previous) {
-        utils.gantt.listSlots.setData(
-          { organizationId, projectId, taskId, kind },
-          ctx.previous,
-        );
-      }
-    },
-    onSettled: () => {
+  const docByServerId = useMemo(() => {
+    const map = new Map<string, ServerSlot['document']>();
+    (slotsQuery.data ?? []).forEach((s) => {
+      if (s.document) map.set(s.id, s.document);
+    });
+    return map;
+  }, [slotsQuery.data]);
+
+  const docFor = (row: DraftSlot) => (row.serverId ? docByServerId.get(row.serverId) ?? null : null);
+
+  const changeCount = useMemo(() => {
+    if (!draft || !baseline) return 0;
+    const draftServerIds = new Set(draft.filter((d) => d.serverId).map((d) => d.serverId));
+    const baseById = new Map(baseline.filter((b) => b.serverId).map((b) => [b.serverId, b] as const));
+    let count = draft.filter((d) => !d.serverId).length; // added
+    count += baseline.filter((b) => b.serverId && !draftServerIds.has(b.serverId)).length; // removed
+    draft.forEach((d) => {
+      if (!d.serverId) return;
+      const b = baseById.get(d.serverId);
+      if (b && (d.name.trim() !== b.name.trim() || d.dueDate !== b.dueDate)) count += 1; // edited
+    });
+    return count;
+  }, [draft, baseline]);
+
+  const isDirty = changeCount > 0;
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  // ── Save ──────────────────────────────────────────────────────────────
+  const [showSaved, setShowSaved] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+
+  const saveMutation = api.gantt.saveSlots.useMutation({
+    onSuccess: (saved) => {
+      // Adopt the canonical server result so brand-new rows pick up their real
+      // ids (and dirty resets to clean → the close below won't trip the guard).
+      const next = saved.map((s) => ({
+        key: s.id,
+        serverId: s.id,
+        name: s.name ?? '',
+        dueDate: s.dueDate ? toInputDate(s.dueDate) : '',
+      }));
+      setBaseline(next);
+      setDraft(next);
       void utils.gantt.listSlots.invalidate({ organizationId, projectId, taskId, kind });
       void utils.gantt.taskDetail.invalidate({ organizationId, projectId, taskId });
       void utils.gantt.requirementStats.invalidate({ projectId });
+      // Flash "Saved ✓" on the button so the click feels confirmed, then hand
+      // off to the parent to auto-close the drawer + surface the confirmation
+      // banner on the popover underneath.
+      setShowSaved(true);
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+      closeTimer.current = setTimeout(() => {
+        onSaved({ kind, count: next.length });
+      }, 650);
     },
   });
 
-  const updateSlotMutation = api.gantt.updateSlot.useMutation({
-    onSuccess: () => {
-      void utils.gantt.listSlots.invalidate({ organizationId, projectId, taskId, kind });
-    },
-  });
-
-  // Decrement-with-data confirm state.
-  const [confirmRemove, setConfirmRemove] = useState<null | { trailingFilled: number; nextCount: number }>(null);
-
-  // "Filled" now means a slot has a bound document via Document.slotId — no
-  // more docs[i]↔slot[i] positional pairing.
-  const filledCount = slots.reduce((n, s) => n + (s.document ? 1 : 0), 0);
-
-  const handleStepCount = (next: number) => {
-    if (next < 0 || next > 50) return;
-    if (next < slots.length) {
-      // Removing trailing slots — warn if any are bound. The FK is ON DELETE
-      // SET NULL, so the documents survive (just become unbound); the warning
-      // is about the user's intent, not data loss.
-      const trailingFilled = slots
-        .slice(next)
-        .reduce((n, s) => n + (s.document ? 1 : 0), 0);
-      if (trailingFilled > 0) {
-        setConfirmRemove({ trailingFilled, nextCount: next });
-        return;
-      }
-    }
-    setCountMutation.mutate({ organizationId, projectId, taskId, kind, count: next });
-  };
-
-  const confirmAndShrink = () => {
-    if (!confirmRemove) return;
-    setCountMutation.mutate({
+  const handleSave = () => {
+    if (!draft || !isDirty || saveMutation.isPending) return;
+    saveMutation.mutate({
       organizationId,
       projectId,
       taskId,
       kind,
-      count: confirmRemove.nextCount,
+      slots: draft.map((d) => ({
+        id: d.serverId,
+        name: d.name.trim() || null,
+        dueDate: d.dueDate || null,
+      })),
     });
+  };
+
+  const handleDiscard = () => {
+    if (baseline) setDraft(baseline);
+  };
+
+  // ── Draft mutators ────────────────────────────────────────────────────
+  const addSlots = (n: number) => {
+    setDraft((prev) => {
+      const rows = prev ?? [];
+      const names: (string | null)[] = rows.map((r) => r.name || null);
+      const additions: DraftSlot[] = [];
+      for (let i = 0; i < n; i++) {
+        const suggested = nextSuggestedSlotName(kind, names) ?? '';
+        names.push(suggested || null);
+        additions.push({ key: nextKey(), serverId: null, name: suggested, dueDate: '' });
+      }
+      return [...rows, ...additions];
+    });
+  };
+
+  // Decrement-with-data confirm state.
+  const [confirmRemove, setConfirmRemove] = useState<null | { trailingFilled: number; nextCount: number }>(null);
+
+  const handleStepCount = (next: number) => {
+    if (!draft || next < 0 || next > 50) return;
+    if (next > draft.length) {
+      addSlots(next - draft.length);
+    } else if (next < draft.length) {
+      // Removing trailing slots — warn if any removed slot has a bound document.
+      // The file survives (FK is ON DELETE SET NULL), but the user should know
+      // the upload will detach when they save.
+      const trailingFilled = draft.slice(next).filter((d) => docFor(d)).length;
+      if (trailingFilled > 0) {
+        setConfirmRemove({ trailingFilled, nextCount: next });
+        return;
+      }
+      setDraft(draft.slice(0, next));
+    }
+  };
+
+  const confirmAndShrink = () => {
+    if (!confirmRemove || !draft) return;
+    setDraft(draft.slice(0, confirmRemove.nextCount));
     setConfirmRemove(null);
   };
 
-  const isLoading = slotsQuery.isLoading;
+  const setRowName = (key: string, name: string) => {
+    setDraft((prev) => (prev ? prev.map((r) => (r.key === key ? { ...r, name } : r)) : prev));
+  };
+  const setRowDue = (key: string, dueDate: string) => {
+    setDraft((prev) => (prev ? prev.map((r) => (r.key === key ? { ...r, dueDate } : r)) : prev));
+  };
+
+  const isLoading = slotsQuery.isLoading || draft === null;
+  const rows = draft ?? [];
+
+  // Summary counts across the draft.
+  const today = startOfDay(new Date());
+  let receivedCount = 0;
+  let draftCount = 0;
+  let overdueCount = 0;
+  rows.forEach((r) => {
+    const doc = docFor(r);
+    if (doc) { receivedCount += 1; return; }
+    if (!r.serverId) { draftCount += 1; return; }
+    if (r.dueDate && isBefore(new Date(r.dueDate), today)) overdueCount += 1;
+  });
+  const pendingCount = rows.length - receivedCount - draftCount - overdueCount;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -456,9 +605,9 @@ function DrawerContent({
             </Typography>
           </Box>
           <Stepper
-            value={slots.length}
+            value={rows.length}
             onChange={handleStepCount}
-            disabled={isLoading}
+            disabled={isLoading || saveMutation.isPending}
           />
         </Box>
 
@@ -476,7 +625,12 @@ function DrawerContent({
             Slots
           </Typography>
           <Typography sx={{ ml: 'auto', fontSize: 11, color: 'text.secondary' }}>
-            <SlotSummary slots={slots} filledCount={filledCount} />
+            <SlotSummary
+              received={receivedCount}
+              draft={draftCount}
+              overdue={overdueCount}
+              pending={pendingCount}
+            />
           </Typography>
         </Box>
 
@@ -485,67 +639,198 @@ function DrawerContent({
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={16} />
           </Box>
-        ) : slots.length === 0 ? (
-          <EmptyState kind={kind} onSeed={(count) => setCountMutation.mutate({ organizationId, projectId, taskId, kind, count })} />
+        ) : rows.length === 0 ? (
+          <EmptyState kind={kind} onSeed={(count) => addSlots(count)} />
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {slots.map((slot) => {
-              const isPending = isOptimisticSlotId(slot.id);
-              return (
-                <SlotCard
-                  key={slot.id}
-                  slot={slot}
-                  kind={kind}
-                  doc={slot.document}
-                  organizationId={organizationId}
-                  memberRole={memberRole}
-                  // Optimistic rows hold placeholder IDs that don't exist on
-                  // the server yet — block any action that would send the ID.
-                  isPending={isPending}
-                  onRename={(name) => {
-                    if (isPending) return;
-                    updateSlotMutation.mutate({ organizationId, projectId, slotId: slot.id, name });
-                  }}
-                  onSetDueDate={(dueDate) => {
-                    if (isPending) return;
-                    updateSlotMutation.mutate({ organizationId, projectId, slotId: slot.id, dueDate });
-                  }}
-                  onUpload={() => {
-                    if (isPending) return;
-                    onUploadToFolder(slot.id);
-                  }}
-                />
-              );
-            })}
+            {rows.map((row, idx) => (
+              <SlotCard
+                key={row.key}
+                index={idx}
+                kind={kind}
+                row={row}
+                doc={docFor(row)}
+                isNew={!row.serverId}
+                organizationId={organizationId}
+                memberRole={memberRole}
+                onRename={(name) => setRowName(row.key, name)}
+                onSetDueDate={(dueDate) => setRowDue(row.key, dueDate)}
+                onUpload={() => {
+                  if (row.serverId) onUploadToFolder(row.serverId);
+                }}
+              />
+            ))}
           </Box>
         )}
       </Box>
 
-      <Box
-        sx={{
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          px: 2.5,
-          py: 1.25,
-          // Match the drawer surface (like the header) so the footer reads as
-          // drawer chrome rather than a dark strip in dark mode.
-          bgcolor: 'background.paper',
-        }}
-      >
-        <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
-          Changes save automatically · close to return to the task
-        </Typography>
-      </Box>
+      <SaveBar
+        dirty={isDirty}
+        changeCount={changeCount}
+        saving={saveMutation.isPending}
+        saved={showSaved}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+      />
 
       {/* Decrement confirm */}
       {confirmRemove && (
-        <ConfirmRemoveDialog
-          trailingFilled={confirmRemove.trailingFilled}
-          kind={kind}
+        <ConfirmDialog
+          title="Remove filled slot?"
+          description={
+            <>
+              {confirmRemove.trailingFilled === 1
+                ? '1 slot has'
+                : `${confirmRemove.trailingFilled} slots have`}{' '}
+              an uploaded {meta.label}. Removing will detach the file
+              {confirmRemove.trailingFilled === 1 ? '' : 's'} from the slot but keep
+              {confirmRemove.trailingFilled === 1 ? ' it' : ' them'} in the project&apos;s library.
+            </>
+          }
+          cancelLabel="Cancel"
+          confirmLabel="Remove"
           onCancel={() => setConfirmRemove(null)}
           onConfirm={confirmAndShrink}
         />
       )}
+    </Box>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Save bar — replaces the old "saves automatically" footer
+// ────────────────────────────────────────────────────────────────────────────
+function SaveBar({
+  dirty,
+  changeCount,
+  saving,
+  saved,
+  onSave,
+  onDiscard,
+}: {
+  dirty: boolean;
+  changeCount: number;
+  saving: boolean;
+  saved: boolean;
+  onSave: () => void;
+  onDiscard: () => void;
+}) {
+  const status: 'saving' | 'saved' | 'idle' = saving ? 'saving' : saved ? 'saved' : 'idle';
+  return (
+    <Box
+      sx={{
+        borderTop: '1px solid',
+        borderColor: 'divider',
+        px: 2.5,
+        py: 1.5,
+        bgcolor: 'background.default',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.25,
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875, minWidth: 0 }}>
+        {dirty ? (
+          <>
+            <Box
+              sx={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                bgcolor: 'warning.main',
+                boxShadow: '0 0 0 3px rgba(217,119,6,0.18)',
+                flexShrink: 0,
+              }}
+            />
+            <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'text.primary' }}>
+              {changeCount} unsaved {changeCount === 1 ? 'change' : 'changes'}
+            </Typography>
+          </>
+        ) : (
+          <Typography
+            sx={{
+              fontSize: 12,
+              fontWeight: 500,
+              color: status === 'saved' ? 'success.main' : 'text.secondary',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.625,
+            }}
+          >
+            {status === 'saved' && <CheckCircle size={13} weight="fill" />}
+            {status === 'saved' ? 'All changes saved' : 'No unsaved changes'}
+          </Typography>
+        )}
+      </Box>
+
+      {dirty && (
+        <Box
+          component="button"
+          type="button"
+          onClick={onDiscard}
+          disabled={saving}
+          sx={{
+            ml: 'auto',
+            background: 'transparent',
+            border: 'none',
+            fontFamily: 'inherit',
+            fontSize: 12,
+            fontWeight: 500,
+            color: 'text.secondary',
+            cursor: saving ? 'default' : 'pointer',
+            p: 0.5,
+            '&:hover': { color: 'text.primary' },
+          }}
+        >
+          Discard
+        </Box>
+      )}
+
+      <Box
+        component="button"
+        type="button"
+        onClick={onSave}
+        disabled={!dirty || saving}
+        aria-label="Save requirements"
+        sx={{
+          ml: dirty ? 0 : 'auto',
+          minWidth: 104,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 0.75,
+          px: 1.75,
+          py: 0.875,
+          borderRadius: '8px',
+          border: 'none',
+          fontFamily: 'inherit',
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: !dirty || saving ? 'default' : 'pointer',
+          color: '#fff',
+          bgcolor: status === 'saved' ? 'success.main' : 'primary.main',
+          opacity: !dirty && status !== 'saved' ? 0.45 : 1,
+          transition: 'background-color 0.25s, transform 0.12s, opacity 0.2s',
+          transform: status === 'saved' ? 'scale(1.04)' : 'scale(1)',
+          '&:hover': {
+            bgcolor: status === 'saved' ? 'success.main' : 'primary.dark',
+          },
+        }}
+      >
+        {status === 'saving' ? (
+          <>
+            <CircularProgress size={13} thickness={5} sx={{ color: '#fff' }} />
+            Saving…
+          </>
+        ) : status === 'saved' ? (
+          <>
+            <CheckCircle size={15} weight="fill" />
+            Saved
+          </>
+        ) : (
+          'Save'
+        )}
+      </Box>
     </Box>
   );
 }
@@ -617,24 +902,28 @@ function Stepper({
 // Slot summary text
 // ────────────────────────────────────────────────────────────────────────────
 function SlotSummary({
-  slots,
-  filledCount,
+  received,
+  draft,
+  overdue,
+  pending,
 }: {
-  slots: { dueDate: Date | null; document: { id: string } | null }[];
-  filledCount: number;
+  received: number;
+  draft: number;
+  overdue: number;
+  pending: number;
 }) {
-  const today = startOfDay(new Date());
-  // FK semantics: a slot is overdue when its dueDate has passed and it has
-  // no bound document. Position no longer determines filled-ness.
-  const overdue = slots.filter(
-    (s) => !s.document && s.dueDate && isBefore(new Date(s.dueDate), today),
-  ).length;
-  const pending = slots.length - filledCount;
   const parts: React.ReactNode[] = [];
-  if (filledCount > 0) {
+  if (received > 0) {
     parts.push(
       <Box key="r" component="span" sx={{ color: RECEIVED_COLOR, fontWeight: 600 }}>
-        {filledCount} received
+        {received} received
+      </Box>,
+    );
+  }
+  if (draft > 0) {
+    parts.push(
+      <Box key="d" component="span" sx={{ color: SUBMITTAL_COLOR, fontWeight: 600 }}>
+        {draft} draft
       </Box>,
     );
   }
@@ -645,9 +934,9 @@ function SlotSummary({
       </Box>,
     );
   }
-  if (pending - overdue > 0) {
+  if (pending > 0) {
     parts.push(
-      <span key="p">{pending - overdue} pending</span>,
+      <span key="p">{pending} pending</span>,
     );
   }
   return (
@@ -666,12 +955,6 @@ function SlotSummary({
 // ────────────────────────────────────────────────────────────────────────────
 // Slot card
 // ────────────────────────────────────────────────────────────────────────────
-type SlotData = {
-  id: string;
-  index: number;
-  name: string | null;
-  dueDate: Date | null;
-};
 
 // SlotCard only renders the bound document's name + upload date in the
 // footer, so we type doc minimally to accept whatever listSlots returns.
@@ -685,58 +968,57 @@ type SlotBoundDoc = {
 };
 
 function SlotCard({
-  slot,
+  index,
   kind,
+  row,
   doc,
+  isNew,
   organizationId,
   memberRole,
-  isPending = false,
   onRename,
   onSetDueDate,
   onUpload,
 }: {
-  slot: SlotData;
+  index: number;
   kind: SlotKind;
+  row: DraftSlot;
   doc: SlotBoundDoc | null;
+  /** True for an uncommitted draft slot — uploads are gated until saved. */
+  isNew: boolean;
   organizationId: string;
   memberRole: string;
-  /** True while the slot row is an optimistic placeholder (server hasn't returned the real id yet). */
-  isPending?: boolean;
-  onRename: (name: string | null) => void;
-  onSetDueDate: (dueDate: string | null) => void;
+  onRename: (name: string) => void;
+  onSetDueDate: (dueDate: string) => void;
   onUpload: () => void;
 }) {
   const meta = KIND_META[kind];
   const isReceived = !!doc;
   const isApproved = isReceived && doc.approvalStatus === 'approved';
-  const isOverdue = !isReceived && slot.dueDate && isBefore(new Date(slot.dueDate), startOfDay(new Date()));
+  const isOverdue = !isReceived && !isNew && !!row.dueDate && isBefore(new Date(row.dueDate), startOfDay(new Date()));
 
-  // Local input state so typing doesn't fire a mutation per keystroke.
-  const [draftName, setDraftName] = useState(slot.name ?? '');
-  useEffect(() => setDraftName(slot.name ?? ''), [slot.name]);
+  // Local input state so typing doesn't re-render sibling cards per keystroke;
+  // the edit is committed to the parent draft on blur.
+  const [draftName, setDraftName] = useState(row.name);
+  useEffect(() => setDraftName(row.name), [row.name]);
 
   const commitName = () => {
-    const trimmed = draftName.trim();
-    const next = trimmed.length === 0 ? null : trimmed;
-    if (next === slot.name) return;
-    onRename(next);
+    if (draftName === row.name) return;
+    onRename(draftName);
   };
 
   // Native date input — local state so calendar picker doesn't fire mid-edit.
-  const [draftDue, setDraftDue] = useState(slot.dueDate ? toInputDate(slot.dueDate) : '');
-  useEffect(() => setDraftDue(slot.dueDate ? toInputDate(slot.dueDate) : ''), [slot.dueDate]);
+  const [draftDue, setDraftDue] = useState(row.dueDate);
+  useEffect(() => setDraftDue(row.dueDate), [row.dueDate]);
   const commitDue = () => {
-    const next = draftDue || null;
-    const current = slot.dueDate ? toInputDate(slot.dueDate) : null;
-    if (next === current) return;
-    onSetDueDate(next);
+    if (draftDue === row.dueDate) return;
+    onSetDueDate(draftDue);
   };
 
   // Due date is optional — collapsed to a "+ Add due date" button until the
   // user opts in or a value already exists on the slot.
   const [dueDateExpanded, setDueDateExpanded] = useState(false);
   const dueDateInputRef = useRef<HTMLInputElement | null>(null);
-  const showDueDateField = !!slot.dueDate || dueDateExpanded;
+  const showDueDateField = !!row.dueDate || dueDateExpanded;
 
   // Tint hierarchy: approved (green) > received (indigo) > overdue (amber).
   // Received-but-not-approved is intentionally distinct from approved so the
@@ -749,13 +1031,15 @@ function SlotCard({
         ? 'var(--mui-palette-warning-main, #d97706)'
         : null;
   // Only overdue gets a colored border — received/approved rely on tint + pill
-  // for their visual signal so the cards don't shout for attention.
+  // for their visual signal so the cards don't shout for attention. Draft
+  // (unsaved) slots get a dashed border to read as "not yet committed".
   const cardBorderColor = isOverdue ? 'warning.main' : 'divider';
 
   return (
     <Box
       sx={{
         border: '1px solid',
+        borderStyle: isNew ? 'dashed' : 'solid',
         borderColor: cardBorderColor,
         borderRadius: '10px',
         px: 1.75,
@@ -779,7 +1063,7 @@ function SlotCard({
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.25, position: 'relative' }}>
-        <SlotNumberBadge index={slot.index} kind={kind} isReceived={isReceived} isApproved={isApproved} />
+        <SlotNumberBadge index={index} kind={kind} isReceived={isReceived} isApproved={isApproved} />
         <SlotNameInput
           value={draftName}
           onChange={setDraftName}
@@ -787,7 +1071,7 @@ function SlotCard({
           placeholder={`Name this ${meta.label}…`}
           color={meta.color}
         />
-        <SlotStatusPill received={isReceived} overdue={!!isOverdue} approved={isApproved} />
+        <SlotStatusPill received={isReceived} overdue={!!isOverdue} approved={isApproved} draft={isNew} />
       </Box>
 
       <Box sx={{ position: 'relative' }}>
@@ -905,26 +1189,26 @@ function SlotCard({
             component="button"
             type="button"
             onClick={onUpload}
-            disabled={isPending}
-            aria-label={isPending ? 'Saving slot…' : meta.uploadCta}
+            disabled={isNew}
+            aria-label={isNew ? 'Save to enable upload' : meta.uploadCta}
+            title={isNew ? 'Save this requirement to enable uploads' : undefined}
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 0.75,
               border: 'none',
               background: 'transparent',
-              cursor: isPending ? 'wait' : 'pointer',
+              cursor: isNew ? 'default' : 'pointer',
               fontFamily: 'inherit',
               fontSize: 11,
               fontWeight: 500,
-              color: meta.color,
-              opacity: isPending ? 0.5 : 1,
+              color: isNew ? 'text.disabled' : meta.color,
               p: 0,
-              '&:hover': { textDecoration: isPending ? 'none' : 'underline' },
+              '&:hover': { textDecoration: isNew ? 'none' : 'underline' },
             }}
           >
             <CloudArrowUp size={13} />
-            {isPending ? 'Saving…' : meta.uploadCta}
+            {isNew ? `${meta.uploadCta} · Save first` : meta.uploadCta}
           </Box>
         )}
       </Box>
@@ -1089,6 +1373,7 @@ function FieldSlot({ label, children }: { label: string; children: React.ReactNo
 // Approved → solid green pill with ✓ (the "done" signal).
 // Received → indigo tint + border + inbox icon ("awaiting your decision",
 //   visually distinct from approved).
+// Draft → blue tint + pencil ("added but not saved yet").
 // Overdue → amber tint, no icon.
 // Pending → neutral gray, no icon.
 const PILL_CONFIG = {
@@ -1105,6 +1390,13 @@ const PILL_CONFIG = {
     color: RECEIVED_COLOR,
     borderColor: alpha(RECEIVED_COLOR, 0.30),
     icon: <Tray size={11} weight="bold" />,
+  },
+  draft: {
+    label: 'Draft',
+    bg: alpha(SUBMITTAL_COLOR, 0.10),
+    color: SUBMITTAL_COLOR,
+    borderColor: alpha(SUBMITTAL_COLOR, 0.30),
+    icon: <PencilSimple size={11} weight="bold" />,
   },
   overdue: {
     label: 'Overdue',
@@ -1126,12 +1418,22 @@ function SlotStatusPill({
   received,
   overdue,
   approved,
+  draft,
 }: {
   received: boolean;
   overdue: boolean;
   approved: boolean;
+  draft: boolean;
 }) {
-  const status = approved ? 'approved' : received ? 'received' : overdue ? 'overdue' : 'pending';
+  const status = approved
+    ? 'approved'
+    : received
+      ? 'received'
+      : draft
+        ? 'draft'
+        : overdue
+          ? 'overdue'
+          : 'pending';
   const config = PILL_CONFIG[status];
   return (
     <Box
@@ -1241,20 +1543,24 @@ function EmptyState({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Confirm dialog for destructive shrink
+// Warning confirm dialog — shared by the destructive-shrink and discard-edits
+// prompts. Backdrop click cancels; the confirm button is amber.
 // ────────────────────────────────────────────────────────────────────────────
-function ConfirmRemoveDialog({
-  trailingFilled,
-  kind,
+function ConfirmDialog({
+  title,
+  description,
+  cancelLabel,
+  confirmLabel,
   onCancel,
   onConfirm,
 }: {
-  trailingFilled: number;
-  kind: SlotKind;
+  title: string;
+  description: React.ReactNode;
+  cancelLabel: string;
+  confirmLabel: string;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  const meta = KIND_META[kind];
   return (
     <Box
       sx={{
@@ -1297,11 +1603,9 @@ function ConfirmRemoveDialog({
             <WarningCircle size={18} color="var(--mui-palette-warning-main, #d97706)" weight="fill" />
           </Box>
           <Box>
-            <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>Remove filled slot?</Typography>
+            <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>{title}</Typography>
             <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.5 }}>
-              {trailingFilled === 1 ? '1 slot has' : `${trailingFilled} slots have`} an uploaded {meta.label}.
-              Removing will detach the file{trailingFilled === 1 ? '' : 's'} from the slot but keep
-              {trailingFilled === 1 ? ' it' : ' them'} in the project's library.
+              {description}
             </Typography>
           </Box>
         </Box>
@@ -1320,7 +1624,7 @@ function ConfirmRemoveDialog({
               cursor: 'pointer',
             }}
           >
-            Cancel
+            {cancelLabel}
           </Box>
           <Box
             component="button"
@@ -1338,7 +1642,7 @@ function ConfirmRemoveDialog({
               '&:hover': { filter: 'brightness(0.95)' },
             }}
           >
-            Remove
+            {confirmLabel}
           </Box>
         </Box>
       </Box>
