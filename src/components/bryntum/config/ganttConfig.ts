@@ -261,17 +261,41 @@ export function createGanttConfig(
       const isDone = filled >= total;
       const isEmpty = filled === 0;
 
+      // Complete state — the whole bar turns green (via the gantt-task-done class
+      // added below) and the count chip is replaced by an explicit "Complete"
+      // pill so the finished state reads clearly at any timeline zoom level.
+      if (isDone) {
+        if (typeof renderData.cls !== 'string') {
+          renderData.cls.add('gantt-task-done');
+        }
+        const checkSvg =
+          '<svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true">'
+          + '<circle cx="7" cy="7" r="6" fill="#16a34a"/>'
+          + '<path d="M4 7L6.2 9L10 5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+          + '</svg>';
+        return {
+          class: 'gantt-task-bar-inner',
+          children: [
+            { tag: 'span', class: 'gantt-task-bar-name', text: String(taskRecord.name ?? '') },
+            {
+              tag: 'span',
+              class: 'gantt-task-bar-pill is-complete',
+              title: `${total} of ${total} submittals and inspections complete`,
+              children: [
+                { tag: 'span', class: 'gantt-task-bar-pill-icon', html: checkSvg },
+                { tag: 'span', class: 'gantt-task-bar-pill-text', text: 'Complete' },
+              ],
+            },
+          ],
+        };
+      }
+
       // Donut math — viewBox 14x14, r=5.5, circumference = 2πr ≈ 34.56.
       // The fill arc uses stroke-dasharray/offset to draw a partial circle.
       const CIRCUMFERENCE = 34.56;
       const offset = CIRCUMFERENCE * (1 - filled / total);
 
-      const donutSvg = isDone
-        ? '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">'
-          + '<circle cx="7" cy="7" r="5.5" fill="#fff"/>'
-          + '<path d="M4 7L6.2 9L10 5" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
-          + '</svg>'
-        : isEmpty
+      const donutSvg = isEmpty
         ? '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">'
           + '<circle cx="7" cy="7" r="5.5" fill="none" stroke="rgba(255,255,255,0.30)" stroke-width="2"/>'
           + '</svg>'
@@ -280,7 +304,7 @@ export function createGanttConfig(
           + `<circle cx="7" cy="7" r="5.5" fill="none" stroke="#1e40af" stroke-width="2" stroke-dasharray="${CIRCUMFERENCE}" stroke-dashoffset="${offset.toFixed(2)}" transform="rotate(-90 7 7)" stroke-linecap="round"/>`
           + '</svg>';
 
-      const chipClass = `gantt-task-bar-chip${isDone ? ' is-done' : ''}${isEmpty ? ' is-empty' : ''}`;
+      const chipClass = `gantt-task-bar-chip${isEmpty ? ' is-empty' : ''}`;
 
       return {
         class: 'gantt-task-bar-inner',

@@ -11,7 +11,7 @@ import {
   type SlotKind,
 } from "@/lib/validations/gantt";
 import { nextSuggestedSlotName } from "@/lib/constants/slotNameLibrary";
-import { APPROVABLE_FOLDER_ID_LIST } from "@/lib/folders";
+import { APPROVABLE_FOLDER_ID_LIST, slotKindForFolder } from "@/lib/folders";
 import { documentProxyUrl, taskCoverProxyUrl } from "@/lib/blobProxy";
 import { buildTaskTree, mapDependencyToGantt, mapResourceToGantt, mapAssignmentToGantt, mapTimeRangeToGantt } from "@/server/api/helpers/ganttTree";
 import { syncTasks, syncDependencies, syncResources, syncAssignments, syncTimeRanges } from "@/server/api/helpers/ganttSync";
@@ -142,7 +142,7 @@ export const ganttRouter = createTRPCRouter({
         assignments,
         timeRanges,
         needsReviewRows,
-        filledSlotRows,
+        approvedDocRows,
       ] = await Promise.all([
         ctx.db.ganttTask.findMany({
           where: { projectId },
@@ -195,15 +195,18 @@ export const ganttRouter = createTRPCRouter({
           },
           _count: { _all: true },
         }),
-        // Count requirement slots that have at least one bound document, grouped by task.
-        // The partial unique index on Document.slotId enforces at-most-one doc per slot,
-        // so counting documents-with-slotId equals counting filled slots.
+        // Count APPROVED documents per task+folder. The task bar's completion
+        // ratio must match the popover, which treats "approved" (not merely
+        // "uploaded") as the source of truth — so we count approval status here
+        // rather than slot-bound documents. Grouping by folder lets us cap each
+        // requirement kind separately below.
         ctx.db.document.groupBy({
-          by: ["taskId"],
+          by: ["taskId", "folderId"],
           where: {
             projectId,
             taskId: { not: null },
-            slotId: { not: null },
+            approvalStatus: "approved",
+            folderId: { in: APPROVABLE_FOLDER_ID_LIST },
           },
           _count: { _all: true },
         }),
@@ -217,17 +220,33 @@ export const ganttRouter = createTRPCRouter({
         }
       }
 
-      // Build filled-slot count per task. requirementsTotal comes from each task's
-      // legacy required* columns (already selected). Bars show a % when total > 0.
-      const filledSlotCounts = new Map<string, number>();
-      for (const row of filledSlotRows) {
-        if (row.taskId) {
-          filledSlotCounts.set(row.taskId, row._count._all);
-        }
+      // Tally approved documents per task, split by requirement kind.
+      const approvedByTask = new Map<string, { submittal: number; inspection: number }>();
+      for (const row of approvedDocRows) {
+        if (!row.taskId) continue;
+        const kind = slotKindForFolder(row.folderId);
+        if (!kind) continue;
+        const bucket = approvedByTask.get(row.taskId) ?? { submittal: 0, inspection: 0 };
+        bucket[kind] += row._count._all;
+        approvedByTask.set(row.taskId, bucket);
+      }
+
+      // Build the per-task "filled" requirement count. Each kind is capped at its
+      // required count separately (matching the popover) so an over-fulfilled
+      // folder can't mask a short one. requirementsTotal comes from each task's
+      // required* columns; bars show a completion ratio when total > 0.
+      const filledRequirementCounts = new Map<string, number>();
+      for (const task of tasks) {
+        const approved = approvedByTask.get(task.id);
+        if (!approved) continue;
+        const filled =
+          Math.min(approved.submittal, task.requiredSubmittals ?? 0) +
+          Math.min(approved.inspection, task.requiredInspections ?? 0);
+        if (filled > 0) filledRequirementCounts.set(task.id, filled);
       }
 
       // Build hierarchical task tree
-      const taskTree = buildTaskTree(tasks, needsReviewCounts, filledSlotCounts);
+      const taskTree = buildTaskTree(tasks, needsReviewCounts, filledRequirementCounts);
 
       // Map other entities to Gantt format
       const ganttDependencies = dependencies.map(mapDependencyToGantt);
