@@ -301,6 +301,7 @@ bryntum/
     TaskDetailsPopover.tsx
     SubmittalDrawer.tsx       ← right-side drawer for managing per-slot submittals/inspections
     BryntumPanelHeader.tsx
+    TaskLinkingBar.tsx        ← floating confirm toast for Shift-click/Link-mode dependency creation
     task-popover/             ← extracted sub-components for TaskDetailsPopover
       types.ts
       TaskHeader.tsx
@@ -314,6 +315,7 @@ bryntum/
       CsiCodePanel.tsx
   hooks/
     useTaskPopover.ts
+    useTaskLinking.ts         ← Shift-click / Link-mode ordered selection → Finish-to-Start dependencies
     useBryntumThemeAssets.ts
   utils/
     calculatePopoverPlacement.ts

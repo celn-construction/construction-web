@@ -30,6 +30,9 @@ export type TaskClickEventPayload = {
     target: EventTarget | null;
     clientX: number;
     clientY: number;
+    /** Modifier held during the click — Shift-click is the link-selection gesture. */
+    shiftKey?: boolean;
+    preventDefault?: () => void;
   };
 };
 
@@ -142,6 +145,10 @@ export interface BryntumGanttInstance {
   expand(record: BryntumTaskRecord): void;
   indent(records: BryntumTaskRecord[]): void;
   outdent(records: BryntumTaskRecord[]): void;
+  /** Root DOM element of the Gantt widget — used to scope task-bar DOM lookups. */
+  element?: HTMLElement;
+  /** Returns the rendered task-bar element for a record, or null if off-screen. */
+  getElementFromTaskRecord?(record: BryntumTaskRecord): HTMLElement | null;
   selectedRecords: BryntumTaskRecord[];
   dependencyStore: {
     remove(records: unknown[]): void;
@@ -165,6 +172,11 @@ export interface BryntumGanttInstance {
       add(data: Record<string, unknown>): unknown;
       remove(records: unknown[]): void;
       allRecords: BryntumDependencyRecord[];
+      /** Returns an existing dependency linking the two tasks (either direction), or null. */
+      getDependencyForSourceAndTargetEvents?(
+        from: string | number,
+        to: string | number,
+      ): BryntumDependencyRecord | null;
     };
   };
 }

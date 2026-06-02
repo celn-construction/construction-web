@@ -12,11 +12,13 @@ import GanttToolbar from './components/GanttToolbar';
 import ColumnPickerPopover, { TOGGLEABLE_COLUMNS, type ColumnId } from './components/ColumnPickerPopover';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
 import TaskInfoDialog from './components/TaskInfoDialog';
+import TaskLinkingBar from './components/TaskLinkingBar';
 import { useBryntumThemeAssets } from './hooks/useBryntumThemeAssets';
 import { useTaskPopover } from './hooks/useTaskPopover';
+import { useTaskLinking } from './hooks/useTaskLinking';
 import { useGanttControls } from './hooks/useGanttControls';
 import { reconcileSyncPack } from './utils/reconcileSyncPack';
-import type { BryntumTaskRecord, BryntumGanttInstance } from './types';
+import type { BryntumTaskRecord, BryntumGanttInstance, TaskClickEventPayload } from './types';
 import { IBeamLoader } from '@/components/ui/IBeamLoader';
 
 const WRAPPER_STYLE: CSSProperties = {
@@ -126,6 +128,17 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
 
   const { selectedTask, popoverPlacement, handleTaskClick, closeTaskPopover, isTaskPopoverOpen } =
     useTaskPopover();
+
+  const {
+    linkMode,
+    setLinkMode,
+    toggleLinkMode,
+    selection: linkSelection,
+    handleLinkClick,
+    startLinkingFrom,
+    clearSelection: clearLinkSelection,
+    commitLinks,
+  } = useTaskLinking(getGanttInstance as unknown as () => BryntumGanttInstance | null);
 
   useBryntumThemeAssets();
 
@@ -521,16 +534,51 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   // Undo/redo keyboard shortcuts (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z) come from
   // Bryntum's STM via `enableUndoRedoKeys` (default true).
 
+  // Route task-bar clicks: a Shift-click (any time) or a plain click while
+  // Link mode is on builds the dependency-link selection; everything else opens
+  // the details popover. Linking is an edit op, so it's gated on editingUnlocked.
+  const onTaskClick = useCallback(
+    (payload: TaskClickEventPayload) => {
+      const wantsLink = editingUnlocked && (linkMode || !!payload.event?.shiftKey);
+      if (wantsLink) {
+        closeTaskPopover();
+        handleLinkClick(payload);
+        return;
+      }
+      handleTaskClick(payload);
+    },
+    [editingUnlocked, linkMode, closeTaskPopover, handleLinkClick, handleTaskClick],
+  );
+
   // Attach the taskClick listener on the Bryntum instance (not in the static config)
-  // so we can use the latest handleTaskClick reference from useTaskPopover.
+  // so we can use the latest onTaskClick reference (popover + linking).
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const detach = gantt.on('taskClick', handleTaskClick) as (() => void) | undefined;
+    const detach = gantt.on('taskClick', onTaskClick) as (() => void) | undefined;
     return () => { detach?.(); };
-  }, [isLoading, getGanttInstance, handleTaskClick]);
+  }, [isLoading, getGanttInstance, onTaskClick]);
+
+  // Locking the chart cancels any in-progress linking.
+  useEffect(() => {
+    if (!editingUnlocked && linkMode) {
+      setLinkMode(false);
+      clearLinkSelection();
+    }
+  }, [editingUnlocked, linkMode, setLinkMode, clearLinkSelection]);
+
+  // Esc clears the link selection first, then exits Link mode.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (linkSelection.length > 0) clearLinkSelection();
+      else if (linkMode) setLinkMode(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [linkSelection.length, linkMode, clearLinkSelection, setLinkMode]);
 
   // Open task info dialog on double-click of a task bar (replaces Bryntum's built-in task editor).
   // Only attach the listener when editing is unlocked — the dialog is an edit surface.
@@ -557,6 +605,21 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   const taskMenuFeature = useMemo(() => ({
     cls: 'gantt-themed-menu',
     items: {
+      // Discoverable entry point for dependency creation. The `gantt-menu-add-dep`
+      // class renders the link glyph + a right-aligned "⇧-click" shortcut hint
+      // (globals.css), teaching the Shift accelerator at the moment of use.
+      // weight 55 sits just below "Scroll to item" (50). processItems hides it
+      // for parent tasks and when the chart is locked.
+      addDependency: {
+        text: 'Add dependency',
+        icon: 'b-icon',
+        cls: 'gantt-menu-add-dep',
+        weight: 55,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onItem({ taskRecord }: { taskRecord: any }) {
+          startLinkingFrom(taskRecord as BryntumTaskRecord);
+        },
+      },
       scrollToItem: {
         text: 'Scroll to item',
         // b-icon-search (magnifying glass) is in the bundled Bryntum CSS;
@@ -591,18 +654,29 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     //      Bryntum disables every write item at once; emit one shared
     //      message rather than guessing per-item reasons.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    processItems({ items }: { items: Record<string, any> }) {
+    processItems({ items, taskRecord }: { items: Record<string, any>; taskRecord: any }) {
       const gantt = getGanttInstance();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       const isLocked = !!(gantt as any)?.readOnly;
 
+      // "Add dependency" is an edit action and only applies to leaf tasks —
+      // hide it when the chart is locked or the target is a parent/phantom.
+      if (items.addDependency) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (isLocked || taskRecord?.isParent || taskRecord?.isPhantom) {
+          items.addDependency.hidden = true;
+        }
+      }
+
+      // Hide Bryntum's native linkTasks/unlinkTasks ("Add dependencies" /
+      // "Remove dependencies"). They only fire with 2+ Cmd-selected tasks, so
+      // on a single right-click they're permanently disabled — confusing next
+      // to our always-actionable "Add dependency". Unlinking lives in the task
+      // info dialog's Predecessors/Successors tabs.
+      if (items.linkTasks) items.linkTasks.hidden = true;
+      if (items.unlinkTasks) items.unlinkTasks.hidden = true;
+
       const reasonsByRef: Record<string, string> = {
-        // linkTasks: select 2+ tasks (Cmd-click), right-click → Bryntum
-        // chains them. With one task it's permanently disabled by design.
-        // Drag-to-create from a task edge is the alternative single-dep
-        // flow (enabled by `dependencies: true` in ganttConfig.ts).
-        linkTasks: 'Select 2 or more tasks to link them in sequence, or drag from a task\'s edge to another to create a single dependency',
-        unlinkTasks: 'Select 2 or more linked tasks to remove the dependencies between them',
         indent: 'No task above this one to nest under',
         outdent: 'This task is already at the top level',
         deleteTask: 'This task cannot be deleted right now',
@@ -617,6 +691,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
           delete items[ref];
           continue;
         }
+        if (item && typeof item === 'object' && item.hidden) continue;
         if (item && typeof item === 'object' && item.disabled && !item.tooltip) {
           const reason = isLocked
             ? 'Editing is locked — click the lock icon in the toolbar to unlock the chart'
@@ -632,7 +707,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         }
       }
     },
-  }), [getGanttInstance]);
+  }), [getGanttInstance, startLinkingFrom]);
 
   return (
     <div style={WRAPPER_STYLE}>
@@ -651,6 +726,8 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         canEditChart={canEditChart}
         isEditMode={editingUnlocked}
         onToggleEditMode={() => setIsEditMode((prev) => !prev)}
+        linkMode={linkMode}
+        onToggleLinkMode={toggleLinkMode}
         onColumnsClick={(e) => setColumnsAnchor(e.currentTarget)}
       />
       <ColumnPickerPopover
@@ -809,6 +886,13 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
             <div style={{ fontSize: '0.875rem' }}>{loadError}</div>
           </Box>
         )}
+
+        <TaskLinkingBar
+          selection={linkSelection}
+          linkMode={linkMode}
+          onLink={commitLinks}
+          onClear={clearLinkSelection}
+        />
       </div>
 
       <TaskDetailsPopover
