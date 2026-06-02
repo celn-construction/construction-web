@@ -38,6 +38,30 @@ const GANTT_CONTENT_STYLE: CSSProperties = {
 
 const STALE_THRESHOLD_MS = 60_000; // 60 seconds
 
+// Pin the locked sub-grid to exactly contain its visible columns. Two reasons:
+//  (1) hiding a column should give the freed space to the timeline, and
+//  (2) resizing a column (drag or header double-click auto-fit) should
+//      shrink/grow the sub-grid to match, so header, body, and timeline stay
+//      aligned with no dead gap after the resized column.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function syncLockedSubGridWidth(gantt: any) {
+  if (!gantt) return;
+  let lockedWidth = 0;
+  for (const col of TOGGLEABLE_COLUMNS) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+    const column = gantt.columns.getById(col.id);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (!column || column.hidden) continue;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    lockedWidth += (column.width as number) ?? (column.minWidth as number) ?? 0;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if (lockedWidth > 0 && gantt.subGrids.locked.width !== lockedWidth) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    gantt.subGrids.locked.width = lockedWidth;
+  }
+}
+
 interface BryntumGanttWrapperProps {
   projectId?: string;
   isVisible?: boolean;
@@ -139,32 +163,46 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   }, [isLoading, getGanttInstance, editingUnlocked]);
 
   // `column.hidden = true` only redistributes width inside the locked sub-grid;
-  // we also set the sub-grid's width so the timeline absorbs the freed space.
+  // syncLockedSubGridWidth then sizes the sub-grid so the timeline absorbs the
+  // freed space.
   useEffect(() => {
     if (isLoading) return;
     const gantt = getGanttInstance();
     if (!gantt) return;
 
-    let lockedWidth = 0;
     for (const col of TOGGLEABLE_COLUMNS) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       const column = gantt.columns.getById(col.id);
       if (!column) continue;
-      const visible = columnVisibility[col.id] ?? true;
-      const nextHidden = !visible;
+      const nextHidden = !(columnVisibility[col.id] ?? true);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (column.hidden !== nextHidden) column.hidden = nextHidden;
-      if (visible) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        lockedWidth += column.width ?? column.minWidth ?? 0;
-      }
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (gantt.subGrids.locked.width !== lockedWidth) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      gantt.subGrids.locked.width = lockedWidth;
-    }
+    syncLockedSubGridWidth(gantt);
   }, [isLoading, getGanttInstance, columnVisibility]);
+
+  // Keep the locked sub-grid sized to its columns when the user resizes a
+  // column — either by dragging the header divider or double-clicking it to
+  // auto-fit. Bryntum reports both through the `change` event on the columns
+  // store. Without this, the resize updates the column width but not the
+  // sub-grid, so the header and body misalign and dead space appears before the
+  // next column.
+  useEffect(() => {
+    if (isLoading) return;
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    const onColumnChange = ({ changes }: { changes?: Record<string, unknown> }) => {
+      // Only react to width changes; `hidden` is handled by the effect above.
+      if (changes && !('width' in changes)) return;
+      syncLockedSubGridWidth(gantt);
+    };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.columns.on('change', onColumnChange);
+    return () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      gantt.columns.un('change', onColumnChange);
+    };
+  }, [isLoading, getGanttInstance]);
 
   // After data loads, run commitAsync to settle the scheduling engine, then
   // enable STM so undo/redo starts tracking from this clean state.

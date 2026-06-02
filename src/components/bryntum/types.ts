@@ -68,6 +68,8 @@ type GanttColumnConfig = {
   flex?: number;
   minWidth?: number;
   width?: number;
+  /** Bryntum DateHelper format token for date columns (e.g. 'MM/DD/YYYY'). */
+  format?: string;
   resizable?: boolean;
   sortable?: boolean;
   filterable?: boolean;
