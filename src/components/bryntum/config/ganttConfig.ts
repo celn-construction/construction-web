@@ -105,8 +105,16 @@ export function createGanttConfig(
         type: 'name',
         field: 'name',
         text: 'Name',
-        flex: 1,
-        minWidth: 300,
+        // Fixed width (NOT `flex`) so double-clicking the header resize handle
+        // auto-fits the header AND the body cells to the same width. A `flex`
+        // column lets Bryntum's resizeToFitContent shrink only the body cells
+        // while the header keeps its flex-derived width — leaving them
+        // misaligned (the bug this fixes). The locked sub-grid width is
+        // re-synced to the column widths on every resize in
+        // BryntumGanttWrapper (syncLockedSubGridWidth), so the timeline
+        // reclaims/yields the freed space and there is no dead gap.
+        width: 300,
+        minWidth: 150,
         resizable: true,
         renderer({ value, record }: ColumnRendererData) {
           const needsReviewCount = Number(record.get('needsReviewCount') ?? 0);
@@ -137,6 +145,9 @@ export function createGanttConfig(
         type: 'startdate',
         field: 'startDate',
         text: 'Start',
+        // Compact numeric date (06/02/2026) instead of the verbose
+        // "Jun 2, 2026" default, to save horizontal space.
+        format: 'MM/DD/YYYY',
         width: 120,
         resizable: true,
       },
@@ -145,6 +156,7 @@ export function createGanttConfig(
         type: 'enddate',
         field: 'endDate',
         text: 'End',
+        format: 'MM/DD/YYYY',
         width: 120,
         resizable: true,
       },
