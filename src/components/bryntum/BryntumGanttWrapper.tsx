@@ -22,12 +22,23 @@ import type { BryntumTaskRecord, BryntumGanttInstance, TaskClickEventPayload } f
 import { IBeamLoader } from '@/components/ui/IBeamLoader';
 
 const WRAPPER_STYLE: CSSProperties = {
+  position: 'relative',
   display: 'flex',
   flexDirection: 'column',
   height: '100%',
   borderRadius: '12px',
   backgroundColor: 'var(--bg-card)',
   overflow: 'clip',
+  transition: 'box-shadow 0.28s ease',
+};
+
+// Edit mode makes the whole card "pop" — an accent ring + soft elevation so it
+// reads as the active, mutable surface (Direction 1 / Option A+C). Uses
+// box-shadow (not border) so toggling causes no layout shift. The accent ring
+// flips to near-white in dark mode via --accent-primary.
+const EDITING_CARD_STYLE: CSSProperties = {
+  boxShadow:
+    '0 0 0 1.5px var(--accent-primary), 0 16px 40px rgba(43,45,66,0.18), 0 4px 14px rgba(43,45,66,0.10)',
 };
 
 const GANTT_CONTENT_STYLE: CSSProperties = {
@@ -809,7 +820,25 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   }), [getGanttInstance, startLinkingFrom]);
 
   return (
-    <div style={WRAPPER_STYLE}>
+    <div style={editingUnlocked ? { ...WRAPPER_STYLE, ...EDITING_CARD_STYLE } : WRAPPER_STYLE}>
+      {/* Accent strip across the top edge while editing — a peripheral cue that
+          pairs with the card's ring/elevation and the toolbar's warm wash. */}
+      {editingUnlocked && (
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            backgroundColor: 'var(--accent-primary)',
+            zIndex: 5,
+            transformOrigin: 'left',
+            animation: 'gantt-edit-strip-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
+          }}
+        />
+      )}
       <GanttToolbar
         onAddTask={handleAddTask}
         onPresetChange={handlePresetChange}
@@ -998,6 +1027,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         style={GANTT_CONTENT_STYLE}
         className="bryntum-gantt-container"
         data-locked={editingUnlocked ? 'false' : 'true'}
+        data-editing={editingUnlocked ? 'true' : 'false'}
         data-can-reorder={canEditChart ? 'true' : 'false'}
       >
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>

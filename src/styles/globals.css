@@ -356,6 +356,35 @@ body {
   background-color: rgba(43, 45, 66, 0.05) !important;
 }
 
+/* ── Edit mode treatment ─────────────────────────────────────────
+   When the chart is unlocked (data-editing="true", set in BryntumGanttWrapper),
+   the surface itself signals "live & mutable" without touching the bars'
+   semantic colors:
+   1. Canvas wash — a faint accent tint behind the rows (the grid body shows
+      through the transparent even rows; bars sit opaque on top, unaffected).
+   2. Intensity nudge — bars keep their exact hue but get a small saturation /
+      brightness bump so they read as active (filter transition gives the ramp).
+   The accent wash flips with dark mode via --accent-subtle. */
+.bryntum-gantt-container[data-editing="true"] .b-grid-body-container {
+  background-color: var(--accent-subtle) !important;
+  transition: background-color 0.4s ease;
+}
+.bryntum-gantt-container .b-grid-body-container {
+  transition: background-color 0.4s ease;
+}
+.bryntum-gantt-container[data-editing="true"] .b-gantt-task {
+  filter: saturate(1.12) brightness(1.04);
+}
+
+/* Edit-mode entrance: the accent top strip draws in left → right. */
+@keyframes gantt-edit-strip-in {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes gantt-edit-strip-in { from, to { transform: scaleX(1); } }
+}
+
 /* ── Task Bars ───────────────────────────────────────────────── */
 
 /* Refined with subtle shadow and rounded corners */
@@ -367,7 +396,7 @@ body {
   border-width: 1px !important;
   border-style: solid !important;
   overflow: hidden !important;
-  transition: box-shadow 0.15s ease, transform 0.1s ease !important;
+  transition: box-shadow 0.15s ease, transform 0.1s ease, filter 0.3s ease !important;
 }
 
 /* Frosted glass gradient overlay */
