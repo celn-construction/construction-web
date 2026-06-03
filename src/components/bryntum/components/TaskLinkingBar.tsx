@@ -7,8 +7,6 @@ import type { LinkSelectionItem } from '../hooks/useTaskLinking';
 
 interface TaskLinkingBarProps {
   selection: Pick<LinkSelectionItem, 'id' | 'name'>[];
-  /** Link mode active — changes the one-task hint from "Shift-click" to "Click". */
-  linkMode: boolean;
   onLink: () => void;
   onClear: () => void;
 }
@@ -42,7 +40,7 @@ function NumberDot({ index }: { index: number }) {
   );
 }
 
-export default function TaskLinkingBar({ selection, linkMode, onLink, onClear }: TaskLinkingBarProps) {
+export default function TaskLinkingBar({ selection, onLink, onClear }: TaskLinkingBarProps) {
   if (selection.length === 0) return null;
 
   const ready = selection.length >= 2;
@@ -103,7 +101,7 @@ export default function TaskLinkingBar({ selection, linkMode, onLink, onClear }:
 
       {!ready && (
         <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', whiteSpace: 'nowrap', flexShrink: 0 }}>
-          — {linkMode ? 'click' : 'Shift-click'} the successor task
+          — click the successor task
         </Typography>
       )}
 

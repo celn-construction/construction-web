@@ -401,6 +401,10 @@ body {
     transparent 100%
   ) !important;
   transform: translateX(-100%);
+  /* Hidden at rest via opacity (not just clipping) so the parked band never
+     shows when the bar flips to overflow:visible for dependency terminals.
+     The keyframes turn opacity on only during the sweep. */
+  opacity: 0;
   pointer-events: none !important;
 }
 
@@ -414,8 +418,8 @@ body {
 }
 
 @keyframes gantt-task-sheen {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% { transform: translateX(-100%); opacity: 1; }
+  100% { transform: translateX(100%); opacity: 1; }
 }
 
 /* Task bar hover — slight lift, plus an inset right-edge cue so users know
