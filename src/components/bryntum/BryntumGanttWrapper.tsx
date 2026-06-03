@@ -602,7 +602,14 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   // the details popover. Linking is an edit op, so it's gated on editingUnlocked.
   const onTaskClick = useCallback(
     (payload: TaskClickEventPayload) => {
-      const wantsLink = editingUnlocked && (linkMode || !!payload.event?.shiftKey);
+      // Route to linking when: Link mode is on, this click holds Shift, OR a
+      // link selection is already in progress. The last case means only the
+      // FIRST task needs Shift — every subsequent plain click continues the
+      // chain (and re-clicking a picked task deselects it) instead of opening
+      // the details popover, which is what made the second pick hard to land.
+      const wantsLink =
+        editingUnlocked &&
+        (linkMode || !!payload.event?.shiftKey || linkSelection.length > 0);
       if (wantsLink) {
         closeTaskPopover();
         handleLinkClick(payload);
@@ -610,7 +617,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
       }
       handleTaskClick(payload);
     },
-    [editingUnlocked, linkMode, closeTaskPopover, handleLinkClick, handleTaskClick],
+    [editingUnlocked, linkMode, linkSelection.length, closeTaskPopover, handleLinkClick, handleTaskClick],
   );
 
   // Attach the taskClick listener on the Bryntum instance (not in the static config)
@@ -1027,7 +1034,6 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
 
         <TaskLinkingBar
           selection={linkSelection}
-          linkMode={linkMode}
           onLink={commitLinks}
           onClear={clearLinkSelection}
         />
