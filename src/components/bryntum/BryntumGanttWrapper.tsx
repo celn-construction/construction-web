@@ -138,6 +138,9 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   const canEditChart = canManageProjects(currentOrg?.role ?? '');
   const [isEditMode, setIsEditMode] = useState(false);
   const editingUnlocked = canEditChart && isEditMode;
+  // True while the Shift key is held (tracked only when editing is unlocked) so
+  // the toolbar's Link button can light up during a Shift-click link gesture.
+  const [shiftHeld, setShiftHeld] = useState(false);
 
   // Bryntum's CrudManager "added"/"removed" bags can drop records when the
   // scheduling engine commits state between cycles. We shadow-track IDs from
@@ -163,6 +166,11 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     clearSelection: clearLinkSelection,
     commitLinks,
   } = useTaskLinking(getGanttInstance as unknown as () => BryntumGanttInstance | null);
+
+  // Visual "linking is happening" state for the toolbar Link button: the
+  // persistent Link-mode toggle, a held Shift key, or a chain already in
+  // progress (users release Shift after the first pick but keep linking).
+  const linkActive = linkMode || shiftHeld || linkSelection.length > 0;
 
   useBryntumThemeAssets();
 
@@ -650,6 +658,27 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [linkSelection.length, linkMode, clearLinkSelection, setLinkMode]);
 
+  // Track the Shift key so the Link button lights up during a Shift-click link
+  // gesture. Only listen while editing is unlocked (linking is gated on it),
+  // and reset on blur so a Shift released off-window doesn't get stuck on.
+  useEffect(() => {
+    if (!editingUnlocked) {
+      setShiftHeld(false);
+      return;
+    }
+    const onDown = (e: KeyboardEvent) => { if (e.key === 'Shift') setShiftHeld(true); };
+    const onUp = (e: KeyboardEvent) => { if (e.key === 'Shift') setShiftHeld(false); };
+    const onBlur = () => setShiftHeld(false);
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onDown);
+      window.removeEventListener('keyup', onUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [editingUnlocked]);
+
   // Open task info dialog on double-click of a task bar (replaces Bryntum's built-in task editor).
   // Only attach the listener when editing is unlocked — the dialog is an edit surface.
   useEffect(() => {
@@ -797,6 +826,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         isEditMode={editingUnlocked}
         onToggleEditMode={() => setIsEditMode((prev) => !prev)}
         linkMode={linkMode}
+        linkActive={linkActive}
         onToggleLinkMode={toggleLinkMode}
         onColumnsClick={(e) => setColumnsAnchor(e.currentTarget)}
       />

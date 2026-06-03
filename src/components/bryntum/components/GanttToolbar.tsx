@@ -168,6 +168,10 @@ type GanttToolbarProps = {
   onToggleEditMode?: () => void;
   /** Whether dependency-link mode is active (plain click selects tasks to link). */
   linkMode?: boolean;
+  /** Whether linking is visually active — Link mode on, Shift held, or a link
+   *  selection in progress. Drives the button's colorful state + "Linking"
+   *  label independently of the persistent `linkMode` toggle. */
+  linkActive?: boolean;
   onToggleLinkMode?: () => void;
 };
 
@@ -191,6 +195,7 @@ export default function GanttToolbar({
   isEditMode = false,
   onToggleEditMode,
   linkMode = false,
+  linkActive = false,
   onToggleLinkMode,
 }: GanttToolbarProps) {
   const editingActive = canEditChart && isEditMode;
@@ -637,7 +642,7 @@ export default function GanttToolbar({
                 'background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease',
               '&:active': { transform: 'scale(0.96)' },
               '@container gantt-toolbar (max-width: 720px)': { px: 0, gap: 0, width: 34 },
-              ...(linkMode
+              ...(linkActive
                 ? {
                     bgcolor: 'var(--accent-primary, #2563eb)',
                     color: 'var(--accent-contrast, #fff)',
@@ -659,7 +664,7 @@ export default function GanttToolbar({
               component="span"
               sx={{ '@container gantt-toolbar (max-width: 720px)': { display: 'none' } }}
             >
-              {linkMode ? 'Linking' : 'Link'}
+              {linkActive ? 'Linking' : 'Link'}
             </Box>
           </Box>
         </Tooltip>
