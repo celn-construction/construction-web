@@ -277,7 +277,7 @@ export default function GanttToolbar({
     },
   });
 
-  const hasRightControls = onExport || onColumnsClick || onMoreClick;
+  const hasRightControls = onExport || onMoreClick;
 
   return (
     <Stack
@@ -297,6 +297,21 @@ export default function GanttToolbar({
         containerName: 'gantt-toolbar',
       }}
     >
+      {/* ── Columns config — first control, left of the time-scale picker ── */}
+      {onColumnsClick && (
+        <Box sx={cardContainerSx}>
+          <Box
+            component="button"
+            sx={{ ...cardItemSx, gap: 0.5, px: 1.5 }}
+            onClick={onColumnsClick}
+            title="Configure columns"
+          >
+            <Columns size={12} weight="bold" />
+            Columns
+          </Box>
+        </Box>
+      )}
+
       {/* ── View Preset Picker — segmented (hidden ≤560px) ──────────────── */}
       <Box
         ref={segmentTrackRef}
@@ -415,7 +430,10 @@ export default function GanttToolbar({
         ))}
       </Select>
 
-      {/* ── Zoom + Nav Controls ──────────────────────────────────────────── */}
+      {/* ── Zoom group — scale controls (− + Fit) ──────────────────────────
+         Split from the time-pan group below: a gap between the two pills
+         signals "different function," while the dividers inside each signal
+         "related buttons." Matches the toolbar's grouped-pill rhythm. */}
       <Box
         sx={{
           ...cardContainerSx,
@@ -457,7 +475,21 @@ export default function GanttToolbar({
             <Box component="span">Fit</Box>
           </Box>
         </ToolbarPulseButton>
-        <Box sx={cardDividerSx} />
+      </Box>
+
+      {/* ── Time-pan group — move through the calendar (« ») ──────────────── */}
+      <Box
+        sx={{
+          ...cardContainerSx,
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          '&:hover': {
+            borderColor: 'var(--border-color)',
+            boxShadow:
+              '0 2px 6px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
+          },
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+        }}
+      >
         <ToolbarPulseButton
           ariaLabel="Previous time span"
           tooltip="Previous time span"
@@ -511,19 +543,7 @@ export default function GanttToolbar({
               <DownloadSimple size={12} weight="bold" />
             </Box>
           )}
-          {onExport && (onColumnsClick || onMoreClick) && <Box sx={cardDividerSx} />}
-          {onColumnsClick && (
-            <Box
-              component="button"
-              sx={{ ...cardItemSx, gap: 0.5, px: 1.5 }}
-              onClick={onColumnsClick}
-              title="Configure columns"
-            >
-              <Columns size={12} weight="bold" />
-              Columns
-            </Box>
-          )}
-          {onColumnsClick && onMoreClick && <Box sx={cardDividerSx} />}
+          {onExport && onMoreClick && <Box sx={cardDividerSx} />}
           {onMoreClick && (
             <Box component="button" sx={cardItemSx} onClick={onMoreClick} title="More options">
               <DotsThreeVertical size={12} weight="bold" />

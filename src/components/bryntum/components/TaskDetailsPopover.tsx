@@ -301,6 +301,73 @@ export function TaskDetailsPopover({
   const submittalsCurrent = submittalsCounts.approved;
   const inspectionsCurrent = inspectionsCounts.approved;
 
+  // ── Live Gantt bar / badge refresh ───────────────────────────────────────
+  // The task-bar completion chip (requirementsFilled/Total) and the orange
+  // "needs review" badge (needsReviewCount, with parent rollups) are painted
+  // from Bryntum record fields populated ONLY by /api/gantt/load — not by the
+  // tRPC caches the approval flow invalidates. So approving a submittal here (or
+  // uploading to a slot, or changing a required count) updates this popover but
+  // leaves the bar/badge stale until a manual refresh. Fix: when the requirement
+  // counts this popover sees actually change, fire ONE silent gantt.project.load()
+  // so the server recomputes leaf + parent rollups authoritatively and Bryntum
+  // merges in place (preserving scroll/selection/expanded — the popover stays
+  // open). A short trailing debounce coalesces the two refetches a single
+  // approval triggers (taskDetail + countByTask settle a few ms apart).
+  const prevReqSigRef = useRef<string | null>(null);
+  const reqReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Re-baseline when the popover switches tasks or closes, so reopening a task
+  // never fires a reload off the previous task's signature.
+  useEffect(() => {
+    prevReqSigRef.current = null;
+  }, [taskId, open]);
+
+  useEffect(() => {
+    if (!open || !ganttInstance?.project || !taskId) return;
+    // Wait until both queries resolve so the signature is meaningful.
+    if (!taskDetail || !counts) return;
+
+    const sig = [
+      submittalsCurrent,
+      inspectionsCurrent,
+      submittalsCounts.pending,
+      inspectionsCounts.pending,
+      taskDetail.requiredSubmittals ?? 0,
+      taskDetail.requiredInspections ?? 0,
+    ].join('|');
+
+    // First resolved value establishes the baseline — no reload.
+    if (prevReqSigRef.current === null) {
+      prevReqSigRef.current = sig;
+      return;
+    }
+    if (prevReqSigRef.current === sig) return;
+    prevReqSigRef.current = sig;
+
+    if (reqReloadTimerRef.current) clearTimeout(reqReloadTimerRef.current);
+    reqReloadTimerRef.current = setTimeout(() => {
+      void ganttInstance.project.load();
+    }, 300);
+  }, [
+    open,
+    ganttInstance,
+    taskId,
+    taskDetail,
+    counts,
+    submittalsCurrent,
+    inspectionsCurrent,
+    submittalsCounts.pending,
+    inspectionsCounts.pending,
+  ]);
+
+  // Clear a pending reload timer on unmount.
+  useEffect(
+    () => () => {
+      if (reqReloadTimerRef.current) clearTimeout(reqReloadTimerRef.current);
+    },
+    [],
+  );
+
   const coverImageUrl = taskDetail?.coverImageUrl ?? null;
   const hasRightPanel = rightPanel !== null;
   const previewDoc = rightPanel?.type === 'preview' ? rightPanel.doc : null;

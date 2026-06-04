@@ -231,8 +231,11 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     gantt.columns.on('change', onColumnChange);
     return () => {
+      // `columns` is undefined once the gantt is destroyed (unmount / hot-reload
+      // remount), so optional-chain like the other listener cleanups below —
+      // an unguarded .un() here threw into the ErrorBoundary and reset the chart.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.columns.un('change', onColumnChange);
+      gantt.columns?.un('change', onColumnChange);
     };
   }, [isLoading, getGanttInstance]);
 
@@ -599,15 +602,27 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   // created exactly once and never recreated on re-render.  A new config reference
   // would make the React wrapper re-initialise the Bryntum instance (including
   // autoLoad), which wipes locally-added tasks.
+  // Show the full-screen loader only on the FIRST load. Subsequent loads — the
+  // approval-driven silent reload (TaskDetailsPopover) and the visibility
+  // stale-refresh — merge in place with no overlay flash. Bryntum's own masks
+  // are disabled (loadMask/syncMask: null), so suppressing our overlay is silent.
+  const hasLoadedOnceRef = useRef(false);
+
   const [ganttConfig] = useState(() => createGanttConfig(projectId, {
     onLoadStart: () => {
+      if (hasLoadedOnceRef.current) return;
       setIsLoading(true);
       setLoadError(null);
     },
     onLoadComplete: () => {
+      hasLoadedOnceRef.current = true;
       setIsLoading(false);
     },
     onLoadError: (error: string) => {
+      // Only surface the blocking error overlay on the initial load. A failed
+      // background reload leaves the working chart in place (the bar may stay
+      // stale) rather than blanking a view the user is actively using.
+      if (hasLoadedOnceRef.current) return;
       setIsLoading(false);
       setLoadError(error);
     },

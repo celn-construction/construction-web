@@ -252,7 +252,16 @@ export function createGanttConfig(
       dependencies: true,
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
+    // Zoom ladder — ordered coarsest → finest (matches Bryntum's own default
+    // order), so zoomOut() steps toward monthAndYear and zoomIn() toward
+    // hourAndDay. `zoomLevel` is an INDEX into this array; the previous config
+    // had a single preset, so zoomIn/zoomOut had no other level to step to and
+    // were silent no-ops. IDs match the toolbar's view-preset picker so the
+    // dropdown and the zoom buttons stay in sync. The custom compact week
+    // preset (MM/DD headers) is the initial rung.
     presets: [
+      { id: 'monthAndYear', base: 'monthAndYear' },
+      { id: 'weekAndMonth', base: 'weekAndMonth' },
       {
         id: 'weekAndDayLetterCompact',
         base: 'weekAndDayLetter',
@@ -262,10 +271,17 @@ export function createGanttConfig(
           { unit: 'day', dateFormat: 'DD' },
         ],
       },
+      { id: 'hourAndDay', base: 'hourAndDay' },
     ],
     viewPreset: 'weekAndDayLetterCompact',
     startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
+    // Hard paging limits for the time axis. startDate/endDate are only the
+    // INITIAL span — without min/max, the axis end sat exactly at endDate, so
+    // shiftNext() had nowhere to extend and was a no-op (while shiftPrevious()
+    // worked). These give generous room to page in both directions.
+    minDate: new Date(new Date().getFullYear() - 2, new Date().getMonth(), 1),
+    maxDate: new Date(new Date().getFullYear() + 5, new Date().getMonth(), 1),
     barMargin: 10,
 
     // Differentiate parent bars from child bars.

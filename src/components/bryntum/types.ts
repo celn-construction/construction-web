@@ -159,6 +159,10 @@ export interface BryntumGanttInstance {
     allRecords: BryntumDependencyRecord[];
   };
   project: {
+    /** Reload from the configured transport — an in-place CrudManager merge
+     *  that preserves scroll, selection, and expanded state. Used for silent
+     *  background refreshes (visibility stale-refresh + approval-driven bar/badge update). */
+    load(): Promise<unknown>;
     taskStore: {
       getById(id: string | number): BryntumTaskRecord | null;
       allRecords: BryntumTaskRecord[];
@@ -272,6 +276,10 @@ export type GanttConfig = {
   }>;
   startDate?: Date;
   endDate?: Date;
+  // Hard paging limits for the time axis (startDate/endDate are the initial
+  // span). Needed so shiftPrevious/shiftNext have room to extend the axis.
+  minDate?: Date;
+  maxDate?: Date;
   barMargin: number;
   taskRenderer?: (detail: {
     taskRecord: TaskModel;
