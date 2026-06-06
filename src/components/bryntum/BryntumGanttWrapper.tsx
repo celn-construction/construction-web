@@ -9,6 +9,7 @@ import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { canManageProjects } from '@/lib/permissions';
 import { createGanttConfig } from './config/ganttConfig';
 import GanttToolbar from './components/GanttToolbar';
+import ProjectStartCard from './components/ProjectStartCard';
 import ColumnPickerPopover, { TOGGLEABLE_COLUMNS, type ColumnId } from './components/ColumnPickerPopover';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
 import TaskInfoDialog from './components/TaskInfoDialog';
@@ -852,6 +853,13 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
             transformOrigin: 'left',
             animation: 'gantt-edit-strip-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
           }}
+        />
+      )}
+      {projectId && (
+        <ProjectStartCard
+          projectId={projectId}
+          canEdit={canEditChart}
+          getGanttInstance={getGanttInstance}
         />
       )}
       <GanttToolbar

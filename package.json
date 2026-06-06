@@ -34,6 +34,7 @@
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
     "@mui/material-nextjs": "^7.3.7",
+    "@mui/x-date-pickers": "^8.29.0",
     "@mui/x-tree-view": "^8.27.0",
     "@paralleldrive/cuid2": "^3.3.0",
     "@phosphor-icons/react": "^2.1.10",

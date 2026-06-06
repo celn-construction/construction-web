@@ -47,7 +47,7 @@ export default async function ProjectLayout({
         slug: projectSlug,
       },
     },
-    select: { id: true, slug: true, name: true, icon: true, imageUrl: true, location: true, organizationId: true },
+    select: { id: true, slug: true, name: true, icon: true, imageUrl: true, location: true, organizationId: true, startDate: true },
   });
 
   if (!rawProject) {
@@ -73,6 +73,7 @@ export default async function ProjectLayout({
         projectIcon: project.icon,
         projectImageUrl: project.imageUrl,
         projectLocation: project.location,
+        projectStartDate: project.startDate ? project.startDate.toISOString() : null,
         organizationId: project.organizationId,
       }}
     >

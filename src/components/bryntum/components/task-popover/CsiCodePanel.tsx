@@ -13,44 +13,49 @@ import {
 import { Box, Typography, IconButton, InputBase, Divider } from '@mui/material';
 import { useSnackbar } from '@/hooks/useSnackbar';
 import {
-  CSI_MASTERFORMAT,
+  CSI_TREE,
   CSI_SUBDIVISION_MAP,
-  type CsiSubdivision,
+  type CsiSection,
 } from '@/lib/constants/csiCodes';
 import type { BryntumGanttInstance } from '../../types';
 
-// ─── Subdivision row ────────────────────────────────────────────────
-interface SubdivisionItemProps {
-  sub: CsiSubdivision;
+// Caps applied only while searching (the tree is force-expanded then, so an
+// unbounded query like a single letter would otherwise render thousands of rows).
+const MAX_GROUPS_PER_DIV = 25;
+const MAX_SECTIONS_PER_GROUP = 12;
+
+// ─── Level-3 section row ────────────────────────────────────────────────
+interface SectionItemProps {
+  section: CsiSection;
   isSelected: boolean;
   onSelect: (code: string) => void;
 }
 
-const SubdivisionItem = memo(function SubdivisionItem({
-  sub,
+const SectionItem = memo(function SectionItem({
+  section,
   isSelected,
   onSelect,
-}: SubdivisionItemProps) {
+}: SectionItemProps) {
   return (
     <Box
       component="div"
       role="option"
       aria-selected={isSelected}
       tabIndex={0}
-      onClick={() => onSelect(sub.code)}
+      onClick={() => onSelect(section.code)}
       onKeyDown={(e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onSelect(sub.code);
+          onSelect(section.code);
         }
       }}
       sx={{
         display: 'flex',
         alignItems: 'center',
         gap: 0.75,
-        pl: 4.5,
+        pl: 6,
         pr: 2,
-        py: '6px',
+        py: '5px',
         cursor: 'pointer',
         position: 'relative',
         transition: 'background-color 0.1s',
@@ -85,7 +90,7 @@ const SubdivisionItem = memo(function SubdivisionItem({
           letterSpacing: '0.02em',
         }}
       >
-        {sub.code}
+        {section.code}
       </Typography>
       <Typography
         component="span"
@@ -100,7 +105,7 @@ const SubdivisionItem = memo(function SubdivisionItem({
           minWidth: 0,
         }}
       >
-        {sub.name}
+        {section.name}
       </Typography>
       {isSelected && (
         <Check
@@ -114,7 +119,22 @@ const SubdivisionItem = memo(function SubdivisionItem({
   );
 });
 
-// ─── Main panel ─────────────────────────────────────────────────────
+// ─── Filtering helpers ──────────────────────────────────────────────────
+interface GroupView {
+  code: string;
+  name: string;
+  sections: CsiSection[]; // sections to render for the current view
+  hasChildren: boolean; // group has any Level-3 children at all (controls caret)
+}
+
+interface DivisionView {
+  code: string;
+  name: string;
+  groups: GroupView[];
+  leafCount: number; // selectable codes shown (groups + sections)
+}
+
+// ─── Main panel ─────────────────────────────────────────────────────────
 interface CsiCodePanelProps {
   csiCode: string | null | undefined;
   taskId: string;
@@ -138,6 +158,7 @@ export default function CsiCodePanel({
   const { showSnackbar } = useSnackbar();
   const [search, setSearch] = useState('');
   const [expandedDivision, setExpandedDivision] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [optimisticCode, setOptimisticCode] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
@@ -148,40 +169,97 @@ export default function CsiCodePanel({
 
   const displayCode = optimisticCode !== undefined ? optimisticCode : csiCode;
 
-  // Auto-expand the division containing the current code
+  // Auto-expand the division — and the Level-2 group — containing the current
+  // code so the selected row is visible when the panel opens.
   useEffect(() => {
-    if (displayCode) {
-      const subEntry = CSI_SUBDIVISION_MAP.get(displayCode);
-      if (subEntry) {
-        setExpandedDivision(subEntry.division.code);
-      }
+    if (!displayCode) return;
+    const subEntry = CSI_SUBDIVISION_MAP.get(displayCode);
+    if (!subEntry) return;
+    setExpandedDivision(subEntry.division.code);
+    const yy = displayCode.split(' ')[1] ?? '00';
+    const isGroupPair = yy === '00' || yy[0] === '0' || yy[1] === '0';
+    if (!isGroupPair) {
+      // Level-3 code — expand its parent Level-2 heading.
+      const parentCode = `${subEntry.division.code} ${yy[0]}0 00`;
+      setExpandedGroups((prev) => {
+        if (prev.has(parentCode)) return prev;
+        const next = new Set(prev);
+        next.add(parentCode);
+        return next;
+      });
     }
   }, [displayCode]);
 
   const query = search.toLowerCase();
   const isSearching = query.length > 0;
 
-  const displayDivisions = useMemo(() => {
-    const filtered = CSI_MASTERFORMAT.map((div) => {
+  const displayDivisions = useMemo<DivisionView[]>(() => {
+    const result: DivisionView[] = [];
+
+    for (const div of CSI_TREE) {
       const divMatches =
         !query || div.code.includes(query) || div.nameLower.includes(query);
-      const matchingSubs = div.subdivisions.filter(
-        (sub) =>
-          !query || sub.code.includes(query) || sub.nameLower.includes(query),
-      );
 
-      if (!query) return { div, matchingSubs: div.subdivisions, show: true };
-      if (divMatches) return { div, matchingSubs: div.subdivisions, show: true };
-      if (matchingSubs.length > 0) return { div, matchingSubs, show: true };
-      return { div, matchingSubs: [], show: false };
-    }).filter((entry) => entry.show);
+      const groupViews: GroupView[] = [];
+      let leafCount = 0;
 
-    return isSearching
-      ? filtered.map((entry) => ({
-          ...entry,
-          matchingSubs: entry.matchingSubs.slice(0, 15),
-        }))
-      : filtered;
+      for (const group of div.groups) {
+        const hasChildren = group.sections.length > 0;
+
+        if (!query || divMatches) {
+          // Show the whole group (heading + all its sections).
+          const sections = isSearching
+            ? group.sections.slice(0, MAX_SECTIONS_PER_GROUP)
+            : group.sections;
+          groupViews.push({
+            code: group.code,
+            name: group.name,
+            sections,
+            hasChildren,
+          });
+          leafCount += 1 + sections.length;
+          continue;
+        }
+
+        const groupSelfMatch =
+          group.code.includes(query) || group.nameLower.includes(query);
+        const matchingSections = group.sections.filter(
+          (s) => s.code.includes(query) || s.nameLower.includes(query),
+        );
+
+        if (groupSelfMatch) {
+          const sections = group.sections.slice(0, MAX_SECTIONS_PER_GROUP);
+          groupViews.push({
+            code: group.code,
+            name: group.name,
+            sections,
+            hasChildren,
+          });
+          leafCount += 1 + sections.length;
+        } else if (matchingSections.length > 0) {
+          const sections = matchingSections.slice(0, MAX_SECTIONS_PER_GROUP);
+          groupViews.push({
+            code: group.code,
+            name: group.name,
+            sections,
+            hasChildren,
+          });
+          leafCount += sections.length;
+        }
+      }
+
+      const show = !query || divMatches || groupViews.length > 0;
+      if (!show) continue;
+
+      result.push({
+        code: div.code,
+        name: div.name,
+        groups: isSearching ? groupViews.slice(0, MAX_GROUPS_PER_DIV) : groupViews,
+        leafCount,
+      });
+    }
+
+    return result;
   }, [query, isSearching]);
 
   // Mutate the Bryntum task record directly. autoSync flushes the change to
@@ -203,7 +281,8 @@ export default function CsiCodePanel({
     [ganttInstance, taskId, showSnackbar],
   );
 
-  const handleSelectSubdivision = useCallback(
+  // Selecting any code (Level-2 heading or Level-3 detail) saves and closes.
+  const handleSelect = useCallback(
     (code: string) => {
       setOptimisticCode(code);
       const ok = writeCsiCode(code);
@@ -216,6 +295,15 @@ export default function CsiCodePanel({
     },
     [writeCsiCode, onCodeChange, onClose],
   );
+
+  const toggleGroup = useCallback((code: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  }, []);
 
   // Removal keeps the panel open so the user can pick a replacement; the chip
   // still reflects the cleared state via onCodeChange.
@@ -414,12 +502,12 @@ export default function CsiCodePanel({
         role="listbox"
         sx={{ listStyle: 'none', m: 0, p: 0, overflowY: 'auto', flex: 1 }}
       >
-        {displayDivisions.map(({ div, matchingSubs }, idx) => {
-          const isExpanded = isSearching || expandedDivision === div.code;
+        {displayDivisions.map((div, idx) => {
+          const isDivExpanded = isSearching || expandedDivision === div.code;
 
           return (
             <Box component="li" key={div.code} sx={{ listStyle: 'none' }}>
-              {/* Division header */}
+              {/* Division header (expand-only) */}
               <Box
                 role="button"
                 tabIndex={isSearching ? -1 : 0}
@@ -450,7 +538,7 @@ export default function CsiCodePanel({
                   },
                 }}
               >
-                {isSearching || isExpanded ? (
+                {isDivExpanded ? (
                   <CaretDown size={11} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
                 ) : (
                   <CaretRight size={11} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
@@ -506,20 +594,147 @@ export default function CsiCodePanel({
                     fontVariantNumeric: 'tabular-nums',
                   }}
                 >
-                  {matchingSubs.length}
+                  {div.leafCount}
                 </Typography>
               </Box>
 
-              {/* Subdivision items */}
-              {isExpanded &&
-                matchingSubs.map((sub) => (
-                  <SubdivisionItem
-                    key={sub.code}
-                    sub={sub}
-                    isSelected={displayCode === sub.code}
-                    onSelect={handleSelectSubdivision}
-                  />
-                ))}
+              {/* Level-2 groups + Level-3 sections */}
+              {isDivExpanded &&
+                div.groups.map((group) => {
+                  const isGroupSelected = displayCode === group.code;
+                  const isGroupExpanded = isSearching || expandedGroups.has(group.code);
+
+                  return (
+                    <Box key={group.code}>
+                      {/* Level-2 heading row — selectable, with optional caret */}
+                      <Box
+                        role="option"
+                        aria-selected={isGroupSelected}
+                        tabIndex={0}
+                        onClick={() => handleSelect(group.code)}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleSelect(group.code);
+                          }
+                        }}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.5,
+                          pl: 2.5,
+                          pr: 2,
+                          py: '6px',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          transition: 'background-color 0.1s',
+                          bgcolor: isGroupSelected ? 'action.selected' : 'transparent',
+                          '&:hover': {
+                            bgcolor: isGroupSelected ? 'action.selected' : 'action.hover',
+                          },
+                          '&::before': isGroupSelected
+                            ? {
+                                content: '""',
+                                position: 'absolute',
+                                left: 0,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                width: '2.5px',
+                                height: 16,
+                                borderRadius: '0 2px 2px 0',
+                                bgcolor: 'sidebar.indicator',
+                              }
+                            : undefined,
+                        }}
+                      >
+                        {group.hasChildren ? (
+                          <Box
+                            component="button"
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation();
+                              if (isSearching) return;
+                              toggleGroup(group.code);
+                            }}
+                            aria-label={isGroupExpanded ? 'Collapse section' : 'Expand section'}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: 18,
+                              height: 18,
+                              p: 0,
+                              border: 'none',
+                              borderRadius: '4px',
+                              bgcolor: 'transparent',
+                              cursor: isSearching ? 'default' : 'pointer',
+                              color: 'text.secondary',
+                              flexShrink: 0,
+                              '&:hover': {
+                                bgcolor: isSearching ? 'transparent' : 'action.hover',
+                              },
+                            }}
+                          >
+                            {isGroupExpanded ? (
+                              <CaretDown size={10} />
+                            ) : (
+                              <CaretRight size={10} />
+                            )}
+                          </Box>
+                        ) : (
+                          <Box sx={{ width: 18, flexShrink: 0 }} />
+                        )}
+                        <Typography
+                          component="span"
+                          sx={{
+                            fontSize: '0.6875rem',
+                            fontWeight: 600,
+                            color: isGroupSelected ? 'text.primary' : 'text.secondary',
+                            minWidth: 52,
+                            flexShrink: 0,
+                            fontVariantNumeric: 'tabular-nums',
+                            letterSpacing: '0.02em',
+                          }}
+                        >
+                          {group.code}
+                        </Typography>
+                        <Typography
+                          component="span"
+                          sx={{
+                            fontSize: '0.75rem',
+                            fontWeight: isGroupSelected ? 600 : 550,
+                            color: 'text.primary',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          {group.name}
+                        </Typography>
+                        {isGroupSelected && (
+                          <Check
+                            size={12}
+                            weight="bold"
+                            color="var(--sidebar-indicator)"
+                            style={{ flexShrink: 0 }}
+                          />
+                        )}
+                      </Box>
+
+                      {/* Level-3 sections */}
+                      {isGroupExpanded &&
+                        group.sections.map((section) => (
+                          <SectionItem
+                            key={section.code}
+                            section={section}
+                            isSelected={displayCode === section.code}
+                            onSelect={handleSelect}
+                          />
+                        ))}
+                    </Box>
+                  );
+                })}
             </Box>
           );
         })}

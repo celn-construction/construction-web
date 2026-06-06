@@ -1,8 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, Popover, useTheme } from '@mui/material';
+import { Box, Typography, Popover, TextField, MenuItem, useTheme } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { format } from 'date-fns';
 import { X, SlidersHorizontal, Check } from 'lucide-react';
+import { api } from '@/trpc/react';
+import { formatCsiCode } from '@/lib/constants/csiCodes';
 
 const FOLDER_FILTERS = [
   { value: 'rfi', label: 'RFI' },
@@ -19,34 +23,63 @@ const LINK_FILTERS = [
 
 export type LinkFilter = 'all' | 'linked' | 'unlinked';
 
+export interface AdvancedFilters {
+  taskId: string | null;
+  csiCode: string | null;
+  dateFrom: string | null; // yyyy-MM-dd
+  dateTo: string | null; // yyyy-MM-dd
+}
+
+export const EMPTY_ADVANCED_FILTERS: AdvancedFilters = {
+  taskId: null,
+  csiCode: null,
+  dateFrom: null,
+  dateTo: null,
+};
+
 export interface DocumentFilterPopupProps {
   open: boolean;
   anchorEl: HTMLElement | null;
+  organizationId: string;
+  projectId: string;
   selectedTypes: string[];
   linkFilter: LinkFilter;
+  advanced: AdvancedFilters;
   onClose: () => void;
-  onApply: (types: string[], link: LinkFilter) => void;
+  onApply: (types: string[], link: LinkFilter, advanced: AdvancedFilters) => void;
 }
 
 export default function DocumentFilterPopup({
   open,
   anchorEl,
+  organizationId,
+  projectId,
   selectedTypes,
   linkFilter,
+  advanced,
   onClose,
   onApply,
 }: DocumentFilterPopupProps) {
   const theme = useTheme();
   const [pendingTypes, setPendingTypes] = useState<string[]>(selectedTypes);
   const [pendingLink, setPendingLink] = useState<LinkFilter>(linkFilter);
+  const [pendingAdvanced, setPendingAdvanced] = useState<AdvancedFilters>(advanced);
+
+  const { data: filterOptions } = api.document.filterOptions.useQuery(
+    { organizationId, projectId },
+    { enabled: open && !!organizationId && !!projectId, staleTime: 30_000 },
+  );
+  const taskOptions = filterOptions?.tasks ?? [];
+  const csiOptions = filterOptions?.csiCodes ?? [];
 
   // Sync pending state when popup opens
   useEffect(() => {
     if (open) {
       setPendingTypes(selectedTypes);
       setPendingLink(linkFilter);
+      setPendingAdvanced(advanced);
     }
-  }, [open, selectedTypes, linkFilter]);
+  }, [open, selectedTypes, linkFilter, advanced]);
 
   const toggleType = (value: string) => {
     if (value === 'all') {
@@ -66,10 +99,11 @@ export default function DocumentFilterPopup({
   const handleClearAll = () => {
     setPendingTypes([]);
     setPendingLink('all');
+    setPendingAdvanced(EMPTY_ADVANCED_FILTERS);
   };
 
   const handleApply = () => {
-    onApply(pendingTypes, pendingLink);
+    onApply(pendingTypes, pendingLink, pendingAdvanced);
     onClose();
   };
 
@@ -113,7 +147,7 @@ export default function DocumentFilterPopup({
       slotProps={{
         paper: {
           sx: {
-            width: 320,
+            width: 340,
             borderRadius: '12px',
             border: '1px solid',
             borderColor: 'divider',
@@ -261,6 +295,129 @@ export default function DocumentFilterPopup({
               </Box>
             );
           })}
+        </Box>
+      </Box>
+
+      <Box sx={{ height: '1px', bgcolor: 'divider', flexShrink: 0 }} />
+
+      {/* Task */}
+      <Box sx={{ px: 2, py: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <Typography
+          sx={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'text.secondary',
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+          }}
+        >
+          Task
+        </Typography>
+        <TextField
+          select
+          size="small"
+          fullWidth
+          value={pendingAdvanced.taskId ?? ''}
+          onChange={(e) =>
+            setPendingAdvanced((p) => ({ ...p, taskId: e.target.value || null }))
+          }
+          slotProps={{ select: { displayEmpty: true } }}
+          sx={{ '& .MuiInputBase-input': { fontSize: 13 } }}
+        >
+          <MenuItem value="" sx={{ fontSize: 13 }}>
+            All tasks
+          </MenuItem>
+          {taskOptions.map((t) => (
+            <MenuItem key={t.id} value={t.id} sx={{ fontSize: 13 }}>
+              {t.name}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
+      <Box sx={{ height: '1px', bgcolor: 'divider', flexShrink: 0 }} />
+
+      {/* CSI Code */}
+      <Box sx={{ px: 2, py: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <Typography
+          sx={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'text.secondary',
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+          }}
+        >
+          CSI Code
+        </Typography>
+        <TextField
+          select
+          size="small"
+          fullWidth
+          value={pendingAdvanced.csiCode ?? ''}
+          onChange={(e) =>
+            setPendingAdvanced((p) => ({ ...p, csiCode: e.target.value || null }))
+          }
+          slotProps={{ select: { displayEmpty: true } }}
+          sx={{ '& .MuiInputBase-input': { fontSize: 13 } }}
+        >
+          <MenuItem value="" sx={{ fontSize: 13 }}>
+            All codes
+          </MenuItem>
+          {csiOptions.map((code) => (
+            <MenuItem key={code} value={code} sx={{ fontSize: 13 }}>
+              {formatCsiCode(code)}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
+      <Box sx={{ height: '1px', bgcolor: 'divider', flexShrink: 0 }} />
+
+      {/* Date Uploaded */}
+      <Box sx={{ px: 2, py: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <Typography
+          sx={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'text.secondary',
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+          }}
+        >
+          Date Uploaded
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <DatePicker
+            label="From"
+            value={pendingAdvanced.dateFrom ? new Date(pendingAdvanced.dateFrom) : null}
+            maxDate={pendingAdvanced.dateTo ? new Date(pendingAdvanced.dateTo) : undefined}
+            onChange={(d) =>
+              setPendingAdvanced((p) => ({
+                ...p,
+                dateFrom: d ? format(d, 'yyyy-MM-dd') : null,
+              }))
+            }
+            slotProps={{
+              textField: { size: 'small', fullWidth: true },
+              field: { clearable: true },
+            }}
+          />
+          <DatePicker
+            label="To"
+            value={pendingAdvanced.dateTo ? new Date(pendingAdvanced.dateTo) : null}
+            minDate={pendingAdvanced.dateFrom ? new Date(pendingAdvanced.dateFrom) : undefined}
+            onChange={(d) =>
+              setPendingAdvanced((p) => ({
+                ...p,
+                dateTo: d ? format(d, 'yyyy-MM-dd') : null,
+              }))
+            }
+            slotProps={{
+              textField: { size: 'small', fullWidth: true },
+              field: { clearable: true },
+            }}
+          />
         </Box>
       </Box>
 

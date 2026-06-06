@@ -14,6 +14,9 @@ import {
   IconButton, Tooltip,
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { format } from 'date-fns';
+import DatePickerMaxHint from '@/components/ui/DatePickerMaxHint';
 import Script from 'next/script';
 import { useRouter, useParams } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
@@ -125,7 +128,27 @@ function ProjectSettingsForm({
   const params = useParams<{ orgSlug: string; projectSlug: string }>();
   const utils = api.useUtils();
   const { showSnackbar } = useSnackbar();
-  const { projectName, projectIcon, projectImageUrl, projectLocation } = useProjectContext();
+  const { projectName, projectIcon, projectImageUrl, projectLocation, projectStartDate } = useProjectContext();
+
+  // Earliest scheduled task caps how late the project start may be set (a
+  // project can't start after its first task). Drives the date picker `max`.
+  const { data: earliestTask } = api.project.earliestTaskStart.useQuery(
+    { projectId },
+    { retry: false, enabled: !!projectId },
+  );
+  // Derive the cap from the earliest task's UTC calendar day rebuilt as a local
+  // date, so the picker's day boundary matches what the server accepts (it
+  // parses the picked yyyy-MM-dd as UTC midnight). Avoids an off-by-one when the
+  // stored task timestamp has a time component that crosses local midnight.
+  const startMax = (() => {
+    if (!earliestTask?.date) return null;
+    const d = new Date(earliestTask.date);
+    if (Number.isNaN(d.getTime())) return null;
+    const local = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    return { date: local, label: format(local, 'MMM d, yyyy') };
+  })();
+  const startMaxDate = startMax?.date;
+  const startLimitLabel = startMax?.label ?? null;
 
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [pickerMode, setPickerMode] = useState<'icon' | 'photo'>(projectImageUrl ? 'photo' : 'icon');
@@ -135,7 +158,7 @@ function ProjectSettingsForm({
   const uploadedUrlRef = useRef<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const { control, handleSubmit, watch, setValue, formState: { errors, isDirty } } =
+  const { control, handleSubmit, watch, setValue, formState: { errors, isDirty, dirtyFields } } =
     useForm<UpdateProjectInput>({
       resolver: zodResolver(updateProjectSchema),
       defaultValues: {
@@ -143,6 +166,8 @@ function ProjectSettingsForm({
         location: projectLocation,
         icon: (projectIcon ?? 'building') as UpdateProjectInput['icon'],
         imageUrl: projectImageUrl ?? undefined,
+        // ISO from context → yyyy-MM-dd for the native date input
+        startDate: projectStartDate ? projectStartDate.slice(0, 10) : '',
       },
     });
 
@@ -193,6 +218,7 @@ function ProjectSettingsForm({
       void utils.project.list.invalidate();
       void utils.project.getActive.invalidate();
       void utils.project.getBySlug.invalidate();
+      void utils.project.getById.invalidate();
       if (updated.slug !== params.projectSlug) {
         router.replace(`/${params.orgSlug}/projects/${updated.slug}/settings`);
       }
@@ -203,7 +229,14 @@ function ProjectSettingsForm({
   });
 
   const onSubmit = (data: UpdateProjectInput) => {
-    updateMutation.mutate({ ...data, projectId });
+    // Only send startDate if the user actually edited it here. The default is
+    // seeded from the (server-rendered) project context, which can be stale if
+    // the start date was changed via the Gantt's ProjectStartCard. Omitting an
+    // untouched field prevents an unrelated edit (e.g. name) from clobbering it.
+    const { startDate, ...rest } = data;
+    const payload: UpdateProjectInput & { projectId: string } = { ...rest, projectId };
+    if (dirtyFields.startDate) payload.startDate = startDate;
+    updateMutation.mutate(payload);
   };
 
   const handlePhotoDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -551,6 +584,33 @@ function ProjectSettingsForm({
                   error={!!errors.location} helperText={errors.location?.message} />
               )
             } />
+
+            {/* Project start date — the Gantt scheduling floor. Dates after the
+                earliest task are disabled (a project can't start after its
+                first task); an info tooltip explains the cap. The form value is
+                a yyyy-MM-dd string (wire format); the picker works in Dates, so
+                convert at the boundary. */}
+            <Controller name="startDate" control={control} render={({ field }) => (
+              <DatePicker
+                label="Project start date"
+                value={field.value ? new Date(field.value) : null}
+                onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}
+                maxDate={startMaxDate}
+                slots={startLimitLabel ? { actionBar: () => <DatePickerMaxHint limitLabel={startLimitLabel} /> } : undefined}
+                slotProps={{
+                  textField: {
+                    id: 'settings-start-date-input',
+                    fullWidth: true,
+                    error: !!errors.startDate,
+                    helperText:
+                      errors.startDate?.message ??
+                      (startLimitLabel
+                        ? `Must be on or before your earliest task (${startLimitLabel})`
+                        : 'Earliest date tasks can be scheduled on the Gantt'),
+                  },
+                }}
+              />
+            )} />
           </Box>
         </Box>
       </Box>

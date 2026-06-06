@@ -202,8 +202,19 @@ export default function DocumentCardGallery({ doc, organizationId }: DocumentCar
             >
               {doc.name}
             </Typography>
-            <Typography sx={{ fontSize: 10, lineHeight: 1.3, color: 'rgba(255,255,255,0.7)', mt: '2px' }}>
+            <Typography
+              sx={{
+                fontSize: 10,
+                lineHeight: 1.3,
+                color: 'rgba(255,255,255,0.7)',
+                mt: '2px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {formatFileSize(doc.size)}
+              {doc.task ? ` · ${doc.task.name}` : ''}
             </Typography>
           </Box>
         </Box>

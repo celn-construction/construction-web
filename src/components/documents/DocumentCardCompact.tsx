@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Typography, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Tooltip, useTheme, alpha } from '@mui/material';
 import {
   DownloadSimple,
   Trash,
@@ -155,12 +155,24 @@ export default function DocumentCardCompact({ doc, organizationId }: DocumentCar
           )}
           <Typography sx={{ fontSize: 11, lineHeight: 1, color: 'text.disabled' }}>·</Typography>
           {doc.taskId ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <CheckSquare size={10} color={theme.palette.docExplorer.linkedGreen} />
-              <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'docExplorer.linkedGreen' }}>
-                Linked
-              </Typography>
-            </Box>
+            <Tooltip title={doc.task?.name ?? 'Linked to a task'} placement="top" arrow>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px', minWidth: 0, maxWidth: 180 }}>
+                <CheckSquare size={10} color={theme.palette.docExplorer.linkedGreen} style={{ flexShrink: 0 }} />
+                <Typography
+                  sx={{
+                    fontSize: 11,
+                    fontWeight: 500,
+                    lineHeight: 1,
+                    color: 'docExplorer.linkedGreen',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {doc.task?.name ?? 'Linked'}
+                </Typography>
+              </Box>
+            </Tooltip>
           ) : (
             <Box
               sx={{

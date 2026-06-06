@@ -318,6 +318,18 @@ export const projectRouter = createTRPCRouter({
       return project ? withProxyImageUrl(project) : null;
     }),
 
+  // Earliest scheduled task start for the project — the latest date the project
+  // start may be set to (a project can't start after its first task). Drives the
+  // `max` on the start-date pickers (Gantt card + Settings) and their tooltips.
+  earliestTaskStart: projectProcedure.query(async ({ ctx }) => {
+    const earliest = await ctx.db.ganttTask.findFirst({
+      where: { projectId: ctx.project.id, startDate: { not: null } },
+      orderBy: { startDate: "asc" },
+      select: { startDate: true },
+    });
+    return { date: earliest?.startDate ? earliest.startDate.toISOString() : null };
+  }),
+
   getActive: protectedProcedure
     .input(z.object({ organizationId: z.string().optional() }).optional())
     .query(async ({ ctx, input }) => {
@@ -458,6 +470,32 @@ export const projectRouter = createTRPCRouter({
           }
         }
         data.imageUrl = input.imageUrl || null;
+      }
+
+      // Project start date is the Gantt scheduling floor. Reject a start that
+      // sits AFTER the earliest task — otherwise the engine would shove those
+      // earlier tasks forward. An empty string / null clears the floor.
+      if (input.startDate !== undefined) {
+        const parsedStart = input.startDate ? new Date(input.startDate) : null;
+        if (parsedStart) {
+          const earliest = await ctx.db.ganttTask.findFirst({
+            where: { projectId: ctx.project.id, startDate: { not: null } },
+            orderBy: { startDate: "asc" },
+            select: { startDate: true },
+          });
+          if (earliest?.startDate && parsedStart > earliest.startDate) {
+            const limit = earliest.startDate.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Project start date must be on or before your earliest task (${limit}).`,
+            });
+          }
+        }
+        data.startDate = parsedStart;
       }
 
       if (Object.keys(data).length === 0) {

@@ -297,27 +297,32 @@ export default function GanttToolbar({
         containerName: 'gantt-toolbar',
       }}
     >
-      {/* ── Columns config — first control, left of the time-scale picker ── */}
+      {/* ── Columns config — first control, left of the time-scale picker.
+         In edit mode the left view-tools yield to protect the edit actions
+         (Link / Add Task / Edit) on the right, so Columns collapses to its
+         icon and the scale picker becomes the compact dropdown below. ── */}
       {onColumnsClick && (
         <Box sx={cardContainerSx}>
           <Box
             component="button"
-            sx={{ ...cardItemSx, gap: 0.5, px: 1.5 }}
+            sx={{ ...cardItemSx, gap: 0.5, px: editingActive ? 1.25 : 1.5 }}
             onClick={onColumnsClick}
             title="Configure columns"
+            aria-label="Configure columns"
           >
             <Columns size={12} weight="bold" />
-            Columns
+            {!editingActive && 'Columns'}
           </Box>
         </Box>
       )}
 
-      {/* ── View Preset Picker — segmented (hidden ≤560px) ──────────────── */}
+      {/* ── View Preset Picker — segmented (hidden ≤560px, and in edit mode
+         where the compact dropdown takes over to free horizontal room) ── */}
       <Box
         ref={segmentTrackRef}
         sx={{
           position: 'relative',
-          display: 'flex',
+          display: editingActive ? 'none' : 'flex',
           alignItems: 'center',
           height: 32,
           bgcolor: 'action.selected',
@@ -398,14 +403,15 @@ export default function GanttToolbar({
         })}
       </Box>
 
-      {/* ── View Preset Picker — select fallback (shown ≤560px) ─────────── */}
+      {/* ── View Preset Picker — select fallback (shown ≤560px, and in edit
+         mode at any width so the segmented control's footprint is reclaimed) ── */}
       <Select
         value={activePreset}
         onChange={(e) => handlePresetClick(e.target.value as string)}
         size="small"
         aria-label="Time scale"
         sx={{
-          display: 'none',
+          display: editingActive ? 'inline-flex' : 'none',
           flexShrink: 0,
           height: 32,
           fontSize: '12px',

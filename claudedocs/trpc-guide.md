@@ -109,7 +109,7 @@ throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "..." });
 - Same schema shared between tRPC router `.input()` and React Hook Form `zodResolver()`
 - Export `z.infer<>` type aliases — never write type shapes manually
 - Use `.trim()` on all string fields
-- Use `.strict()` on API input schemas to reject unknown keys
+- Use `.strict()` on API input schemas to reject unknown keys — **but NOT on a schema passed to `orgProcedure` / `projectProcedure`**. Those procedures add their own `.input(z.object({ organizationId | projectId }))`, and tRPC runs each input parser against the **full** raw input. A `.strict()` schema then rejects the injected key with `Unrecognized key(s): 'projectId'` and every call fails. Leave such schemas non-strict (Zod strips unknown keys by default); reserve `.strict()` for schemas whose every key is its own (e.g. `publicProcedure`/`protectedProcedure` inputs, or where the id is declared in the schema itself).
 - Compose update schemas from create schemas via `.partial()` / `.extend()` / `.pick()`
 - Do NOT include `organizationId` or `projectId` in schemas used with `orgProcedure` / `projectProcedure` — those are injected by the procedure middleware
 

@@ -202,6 +202,7 @@ export type GanttConfig = {
     autoSyncTimeout?: number;
     taskModelClass?: typeof TaskModel;
     resetUndoRedoQueuesAfterLoad?: boolean;
+    autoSetConstraints?: boolean;
     stm?: {
       autoRecord?: boolean;
       autoRecordTransactionStopTimeout?: number;

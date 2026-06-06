@@ -71,6 +71,13 @@ export function createGanttConfig(
       autoSyncTimeout: 500,
       taskModelClass: AppTaskModel,
       resetUndoRedoQueuesAfterLoad: true,
+      // Pin each task at its own date with an implicit `startnoearlier`
+      // constraint instead of rescheduling unconstrained tasks to the project
+      // start. This lets the project start date (the scheduling floor) be set
+      // EARLIER than existing tasks — moving the left wall without yanking the
+      // bars onto it. Without this, lowering project.startDate would collapse
+      // unconstrained tasks back to the new start on load.
+      autoSetConstraints: true,
 
       stm: {
         autoRecord: true,
@@ -286,7 +293,7 @@ export function createGanttConfig(
 
     // Differentiate parent bars from child bars.
     // Adds 'gantt-parent-bar' class to parent tasks for CSS targeting.
-    // Parent bars show no text (name is in the tree column).
+    // Parent bars show the task name (same as the tree column).
     // Leaf bars show the task name plus a donut-in-chip indicator carrying
     // both the visual progress (mini SVG donut) and the count (e.g. 1/2) when
     // the task has any requirements set (requirementsTotal > 0).
@@ -298,7 +305,7 @@ export function createGanttConfig(
         if (typeof renderData.cls !== 'string') {
           renderData.cls.add('gantt-parent-bar');
         }
-        return '';
+        return taskRecord.name ?? '';
       }
 
       const total = Number(taskRecord.get('requirementsTotal') ?? 0);

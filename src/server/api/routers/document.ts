@@ -1,10 +1,106 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { del } from "@vercel/blob";
+import type { PrismaClient, Prisma } from "../../../../generated/prisma";
 import { createTRPCRouter, orgProcedure } from "@/server/api/trpc";
 import { embedQuery, toVectorSql } from "@/server/services/embeddings";
 import { expandAcronyms } from "@/lib/constants/constructionAcronyms";
 import { documentProxyUrl } from "@/lib/blobProxy";
+
+interface LinkedTask {
+  id: string;
+  name: string;
+  csiCode: string | null;
+}
+
+/**
+ * Document.taskId references GanttTask without a Prisma relation, so we resolve
+ * the linked task name + CSI code with a single batched lookup and attach it to
+ * each result. Used by both the fuzzy and AI search paths so the explorer cards
+ * can show "linked to <task>" and the CSI filter has something to read from.
+ */
+async function attachTasks<T extends { taskId: string | null }>(
+  db: PrismaClient,
+  projectId: string,
+  results: T[],
+): Promise<(T & { task: LinkedTask | null })[]> {
+  const taskIds = [
+    ...new Set(results.map((r) => r.taskId).filter((id): id is string => !!id)),
+  ];
+  if (taskIds.length === 0) {
+    return results.map((r) => ({ ...r, task: null }));
+  }
+  const tasks = await db.ganttTask.findMany({
+    where: { id: { in: taskIds }, projectId },
+    select: { id: true, name: true, csiCode: true },
+  });
+  const byId = new Map<string, LinkedTask>(tasks.map((t) => [t.id, t]));
+  return results.map((r) => ({
+    ...r,
+    task: r.taskId ? (byId.get(r.taskId) ?? null) : null,
+  }));
+}
+
+const advancedFilterSchema = {
+  taskId: z.string().optional(),
+  csiCode: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+};
+
+type AdvancedFilterInput = {
+  taskId?: string;
+  csiCode?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+/**
+ * Builds the Prisma `where` fragment for the Task / CSI code / Date-uploaded
+ * filters. CSI code lives on GanttTask, so it resolves matching task ids first
+ * and filters documents by `taskId IN (...)`. A sentinel id guarantees an empty
+ * result when a CSI code matches no tasks (rather than silently dropping it).
+ */
+async function buildAdvancedFilters(
+  db: PrismaClient,
+  projectId: string,
+  input: AdvancedFilterInput,
+): Promise<Prisma.DocumentWhereInput> {
+  const where: Prisma.DocumentWhereInput = {};
+
+  if (input.dateFrom || input.dateTo) {
+    const createdAt: Prisma.DateTimeFilter = {};
+    if (input.dateFrom) createdAt.gte = new Date(input.dateFrom);
+    if (input.dateTo) {
+      const end = new Date(input.dateTo);
+      end.setHours(23, 59, 59, 999);
+      createdAt.lte = end;
+    }
+    where.createdAt = createdAt;
+  }
+
+  if (input.csiCode) {
+    const tasks = await db.ganttTask.findMany({
+      where: { projectId, csiCode: input.csiCode },
+      select: { id: true },
+    });
+    const csiTaskIds = tasks.map((t) => t.id);
+    if (input.taskId) {
+      // Both Task and CSI selected: keep the task only if it carries the code.
+      where.taskId = csiTaskIds.includes(input.taskId) ? input.taskId : "__none__";
+    } else {
+      where.taskId = { in: csiTaskIds.length ? csiTaskIds : ["__none__"] };
+    }
+  } else if (input.taskId) {
+    where.taskId = input.taskId;
+  }
+
+  return where;
+}
+
+function hasAdvancedFilters(input: AdvancedFilterInput): boolean {
+  return !!(input.taskId || input.csiCode || input.dateFrom || input.dateTo);
+}
 
 interface RawDocumentRow {
   id: string;
@@ -242,6 +338,7 @@ export const documentRouter = createTRPCRouter({
         folderIds: z.array(z.string()).optional(),
         linkFilter: linkFilterSchema,
         sortBy: sortBySchema,
+        ...advancedFilterSchema,
       })
     )
     .query(async ({ ctx, input }) => {
@@ -261,37 +358,20 @@ export const documentRouter = createTRPCRouter({
         ? { folderId: { in: input.folderIds } }
         : {};
       const linkCondition = buildLinkCondition(input.linkFilter);
+      const advanced = await buildAdvancedFilters(ctx.db, input.projectId, input);
       const orderBy = buildOrderBy(input.sortBy);
 
-      // Empty query: return recent documents
-      if (!trimmed) {
-        const where = { projectId: input.projectId, ...folderFilter, ...linkCondition };
-        const [results, total] = await Promise.all([
-          ctx.db.document.findMany({
-            where,
-            include: {
-              uploadedBy: {
-                select: { id: true, name: true, email: true },
-              },
-              approvedBy: {
-                select: { id: true, name: true, email: true },
-              },
-            },
-            orderBy,
-            take: input.limit,
-            skip: input.offset,
-          }),
-          ctx.db.document.count({ where }),
-        ]);
-        return { results: results.map(toClientBlobUrl), total };
-      }
+      // Case-insensitive contains match on document name (skipped when empty)
+      const nameFilter = trimmed
+        ? { name: { contains: trimmed, mode: "insensitive" as const } }
+        : {};
 
-      // Case-insensitive contains match on document name
       const where = {
         projectId: input.projectId,
-        name: { contains: trimmed, mode: "insensitive" as const },
+        ...nameFilter,
         ...folderFilter,
         ...linkCondition,
+        ...advanced,
       };
 
       const [results, total] = await Promise.all([
@@ -312,7 +392,10 @@ export const documentRouter = createTRPCRouter({
         ctx.db.document.count({ where }),
       ]);
 
-      return { results: results.map(toClientBlobUrl), total };
+      return {
+        results: await attachTasks(ctx.db, input.projectId, results.map(toClientBlobUrl)),
+        total,
+      };
     }),
 
   aiSearch: orgProcedure
@@ -325,6 +408,7 @@ export const documentRouter = createTRPCRouter({
         folderIds: z.array(z.string()).optional(),
         linkFilter: linkFilterSchema,
         sortBy: sortBySchema,
+        ...advancedFilterSchema,
       })
     )
     .query(async ({ ctx, input }) => {
@@ -333,16 +417,24 @@ export const documentRouter = createTRPCRouter({
       });
       if (!project) return { results: [], total: 0 };
 
-      // Non-relevance sort: fall back to standard Prisma query (avoids modifying the SQL function)
-      if (input.sortBy !== "relevance" && input.sortBy !== "createdAt_desc") {
+      // The hybrid SQL function doesn't understand non-default sorts or the
+      // Task/CSI/Date filters, so fall back to a standard Prisma query in those
+      // cases (avoids modifying the SQL function / a migration).
+      const needsFallback =
+        (input.sortBy !== "relevance" && input.sortBy !== "createdAt_desc") ||
+        hasAdvancedFilters(input);
+
+      if (needsFallback) {
         const folderFilter = input.folderIds?.length
           ? { folderId: { in: input.folderIds } }
           : {};
         const linkCondition = buildLinkCondition(input.linkFilter);
+        const advanced = await buildAdvancedFilters(ctx.db, input.projectId, input);
         const where = {
           projectId: input.projectId,
           ...folderFilter,
           ...linkCondition,
+          ...advanced,
           OR: [
             { name: { contains: input.query, mode: "insensitive" as const } },
             { description: { contains: input.query, mode: "insensitive" as const } },
@@ -361,7 +453,10 @@ export const documentRouter = createTRPCRouter({
           }),
           ctx.db.document.count({ where }),
         ]);
-        return { results: results.map(toClientBlobUrl), total };
+        return {
+          results: await attachTasks(ctx.db, input.projectId, results.map(toClientBlobUrl)),
+          total,
+        };
       }
 
       const queryEmbedding = await embedQuery(input.query);
@@ -381,7 +476,48 @@ export const documentRouter = createTRPCRouter({
       `;
 
       const total = Number(rows[0]?.total_count ?? 0);
-      return { results: shapeResults(rows), total };
+      return {
+        results: await attachTasks(ctx.db, input.projectId, shapeResults(rows)),
+        total,
+      };
+    }),
+
+  // Options for the Task / CSI-code filter dropdowns: only tasks that actually
+  // have at least one document, so the filters never offer an empty result.
+  filterOptions: orgProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const project = await ctx.db.project.findFirst({
+        where: { id: input.projectId, organizationId: ctx.organization.id },
+        select: { id: true },
+      });
+      if (!project) return { tasks: [], csiCodes: [] };
+
+      const grouped = await ctx.db.document.groupBy({
+        by: ["taskId"],
+        where: { projectId: input.projectId, taskId: { not: null } },
+      });
+      const taskIds = grouped
+        .map((g) => g.taskId)
+        .filter((id): id is string => !!id);
+
+      if (taskIds.length === 0) return { tasks: [], csiCodes: [] };
+
+      const tasks = await ctx.db.ganttTask.findMany({
+        where: { id: { in: taskIds }, projectId: input.projectId },
+        select: { id: true, name: true, csiCode: true },
+        orderBy: { name: "asc" },
+      });
+
+      const csiCodes = [
+        ...new Set(
+          tasks
+            .map((t) => t.csiCode)
+            .filter((c): c is string => !!c),
+        ),
+      ].sort();
+
+      return { tasks, csiCodes };
     }),
 
   countUnassigned: orgProcedure

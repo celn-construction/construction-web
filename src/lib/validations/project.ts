@@ -18,8 +18,26 @@ export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export const updateProjectSchema = createProjectSchema
   .pick({ name: true, location: true, latitude: true, longitude: true, icon: true, color: true, imageUrl: true })
   .partial()
-  .extend({ location: z.string().max(200).trim().optional() })
-  .strict();
+  .extend({
+    location: z.string().max(200).trim().optional(),
+    // Project start date = the Gantt scheduling floor. Wire format is the native
+    // date input's "yyyy-MM-dd" string (or "" / null to clear); the update
+    // handler parses it to a Date. Keeping the wire type a string avoids the
+    // Date-vs-string friction between react-hook-form and z.coerce.date().
+    startDate: z
+      .string()
+      .trim()
+      .nullable()
+      .optional()
+      .refine((v) => v == null || v === "" || !Number.isNaN(Date.parse(v)), {
+        message: "Invalid date",
+      }),
+  });
+// NOTE: do NOT add `.strict()` here. This schema is the `.input()` of a
+// `projectProcedure`, which separately injects `{ projectId }`. tRPC runs each
+// input parser against the full raw input, so a strict schema would reject the
+// injected `projectId` with "Unrecognized key(s): 'projectId'". Unknown keys
+// are stripped by Zod's default behavior, which is what we want here.
 
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 
