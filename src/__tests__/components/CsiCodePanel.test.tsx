@@ -118,6 +118,14 @@ describe("CsiCodePanel — spec document banner", () => {
     expect(screen.getByLabelText("Contains attached documents")).toBeInTheDocument();
   });
 
+  it("does not flag prefix-sharing sibling codes that have no document", () => {
+    // Regression: 00 51/52/54/55 00 are orphan Level-2 leaves sharing the "00 5"
+    // prefix. Only 00 52 00 has a doc, so only it should show the indicator.
+    mocks.listForProjectData = ["00 52 00"];
+    renderPanel({ csiCode: "00 52 00" }); // selecting it expands division 00
+    expect(screen.getAllByLabelText("Has attached document")).toHaveLength(1);
+  });
+
   it("shows a loading spinner while removing the document", async () => {
     mocks.getForCodeData = specDoc;
     renderPanel({ canManage: true });

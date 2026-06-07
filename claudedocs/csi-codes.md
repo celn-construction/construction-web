@@ -84,13 +84,22 @@ attached document opens it in the popover's in-app `DocumentPreviewDialog`.
 - **Tree indicators**: `csiSpec.listForProject` returns every code in the project that has a
   doc; the picker shows a paperclip on each such code (group/section) and a roll-up paperclip
   on **collapsed** division/group rows whose branch contains one (so docs are discoverable
-  without expanding all 35 divisions). `attach`/`detach` invalidate this list too.
+  without expanding all 35 divisions). Roll-ups are computed from the **tree structure**
+  (`docRollup`: a division rolls up if any of its codes has a doc; a group only if one of its
+  own `sections` does) — **never from code prefixes**, since orphan Level-2 leaves (e.g.
+  `00 51/52/54/55 00`) share a `slice(0,4)` prefix and a prefix check would falsely flag the
+  siblings. While a code is attaching, its indicator flickers and shows a spinner. `attach`/
+  `detach` invalidate this list too.
 - **Loading state**: while adding or removing, the banner shows a spinner row ("Attaching
   document…" / "Removing document…"). Busy state is tracked **per CSI code** (`pendingByCode`
   map) and operations capture their target code, so switching codes mid-upload never bleeds the
   spinner onto the wrong code and `attach`/`detach` always invalidate the code they targeted.
   The viewed code's spinner clears only once its refetched `getForCode` settles (no pre-change
   flash); codes switched away from clear in the mutation callbacks.
+- **Freshness**: both `getForCode` and `listForProject` use `staleTime: 0` +
+  `refetchOnMount: 'always'`, overriding the global 30s `staleTime` (`src/trpc/query-client.ts`).
+  Without this, the banner could show a stale "no document" for a code that actually has one
+  (cache held a `null` fetched before the doc was attached).
 - **Replace is non-destructive**: `attach` deletes the prior `(projectId, csiCode)` link (and
   any prior link for the new document) inside a transaction, then creates the new link; the
   previously linked `Document` remains in the Explorer as unassigned.

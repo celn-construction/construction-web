@@ -31,17 +31,33 @@ const MAX_GROUPS_PER_DIV = 25;
 const MAX_SECTIONS_PER_GROUP = 12;
 
 // Small "this code has a spec document" indicator (also used as a roll-up on
-// collapsed division/group rows).
-function DocIndicator({ label }: { label: string }) {
+// collapsed division/group rows). While a doc is attaching it flickers and
+// shows a spinner instead of the paperclip.
+function DocIndicator({ label, loading }: { label: string; loading?: boolean }) {
   return (
     <Box
       component="span"
       role="img"
-      aria-label={label}
-      title={label}
-      sx={{ display: 'inline-flex', flexShrink: 0, color: 'sidebar.indicator' }}
+      aria-label={loading ? 'Attaching document' : label}
+      title={loading ? 'Attaching document' : label}
+      sx={{
+        display: 'inline-flex',
+        flexShrink: 0,
+        color: 'sidebar.indicator',
+        ...(loading && {
+          animation: 'docFlicker 1.1s ease-in-out infinite',
+          '@keyframes docFlicker': {
+            '0%, 100%': { opacity: 1 },
+            '50%': { opacity: 0.3 },
+          },
+        }),
+      }}
     >
-      <Paperclip size={11} weight="bold" />
+      {loading ? (
+        <CircularProgress size={11} thickness={6} sx={{ color: 'sidebar.indicator' }} />
+      ) : (
+        <Paperclip size={11} weight="bold" />
+      )}
     </Box>
   );
 }
@@ -51,6 +67,7 @@ interface SectionItemProps {
   section: CsiSection;
   isSelected: boolean;
   hasDoc: boolean;
+  loading: boolean;
   onSelect: (code: string) => void;
 }
 
@@ -58,6 +75,7 @@ const SectionItem = memo(function SectionItem({
   section,
   isSelected,
   hasDoc,
+  loading,
   onSelect,
 }: SectionItemProps) {
   return (
@@ -131,7 +149,9 @@ const SectionItem = memo(function SectionItem({
       >
         {section.name}
       </Typography>
-      {hasDoc && <DocIndicator label="Has attached document" />}
+      {(hasDoc || loading) && (
+        <DocIndicator label="Has attached document" loading={loading} />
+      )}
       {isSelected && (
         <Check
           size={12}
@@ -350,9 +370,12 @@ export default function CsiCodePanel({
 
   // ─── Per-code spec document (project + CSI code → one Document) ───────
   const utils = api.useUtils();
+  // Always refetch on mount/selection: the global 30s staleTime would otherwise
+  // let the banner show a stale "no document" while the tree indicator (and DB)
+  // say otherwise.
   const specDocQuery = api.csiSpec.getForCode.useQuery(
     { projectId, csiCode: displayCode ?? '' },
-    { enabled: hasCode, retry: false },
+    { enabled: hasCode, retry: false, staleTime: 0, refetchOnMount: 'always' },
   );
   const specDoc = specDocQuery.data ?? null;
 
@@ -360,22 +383,32 @@ export default function CsiCodePanel({
   // indicators (and roll-ups on collapsed division/group rows).
   const codesWithDocQuery = api.csiSpec.listForProject.useQuery(
     { projectId },
-    { retry: false },
+    { retry: false, staleTime: 0, refetchOnMount: 'always' },
   );
   const docCodes = useMemo(
     () => new Set(codesWithDocQuery.data ?? []),
     [codesWithDocQuery.data],
   );
-  // Roll-up sets for collapsed rows: division prefix ("03") and group prefix
-  // ("03 3") of every code that has a doc.
+  // Roll-up sets for collapsed rows, computed from the actual tree structure
+  // (NOT code prefixes — orphan Level-2 leaves share prefixes with siblings and
+  // would otherwise all light up when only one has a doc). A division rolls up
+  // if any of its codes has a doc; a group rolls up only if one of its own
+  // section children has a doc.
   const docRollup = useMemo(() => {
     const divisions = new Set<string>();
-    const groups = new Set<string>();
-    for (const code of docCodes) {
-      divisions.add(code.slice(0, 2));
-      groups.add(code.slice(0, 4));
+    const groupsWithChildDoc = new Set<string>();
+    for (const div of CSI_TREE) {
+      let divHasDoc = false;
+      for (const group of div.groups) {
+        if (docCodes.has(group.code)) divHasDoc = true;
+        if (group.sections.some((s) => docCodes.has(s.code))) {
+          divHasDoc = true;
+          groupsWithChildDoc.add(group.code);
+        }
+      }
+      if (divHasDoc) divisions.add(div.code);
     }
-    return { divisions, groups };
+    return { divisions, groupsWithChildDoc };
   }, [docCodes]);
 
   // Per-code in-flight add/remove, keyed by CSI code. Keying by code (not a
@@ -904,7 +937,8 @@ export default function CsiCodePanel({
                   const groupRollup =
                     !groupHasOwnDoc &&
                     !isGroupExpanded &&
-                    docRollup.groups.has(group.code.slice(0, 4));
+                    docRollup.groupsWithChildDoc.has(group.code);
+                  const groupLoading = pendingByCode.get(group.code) === 'add';
 
                   return (
                     <Box key={group.code}>
@@ -1014,8 +1048,13 @@ export default function CsiCodePanel({
                         >
                           {group.name}
                         </Typography>
-                        {groupHasOwnDoc && <DocIndicator label="Has attached document" />}
-                        {groupRollup && <DocIndicator label="Contains attached documents" />}
+                        {groupLoading ? (
+                          <DocIndicator label="Attaching document" loading />
+                        ) : groupHasOwnDoc ? (
+                          <DocIndicator label="Has attached document" />
+                        ) : groupRollup ? (
+                          <DocIndicator label="Contains attached documents" />
+                        ) : null}
                         {isGroupSelected && (
                           <Check
                             size={12}
@@ -1034,6 +1073,7 @@ export default function CsiCodePanel({
                             section={section}
                             isSelected={displayCode === section.code}
                             hasDoc={docCodes.has(section.code)}
+                            loading={pendingByCode.get(section.code) === 'add'}
                             onSelect={handleSelect}
                           />
                         ))}
