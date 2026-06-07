@@ -230,6 +230,24 @@ The inline popover stepper still uses `gantt.setSlotCount` (immediate); only the
 
 ---
 
+### Upsert-by-natural-key mapping (`csiSpec` router)
+
+`src/server/api/routers/csiSpec.ts` links one `Document` to a `(projectId, csiCode)` pair via
+the `CsiSpecDocument` mapping table (native `@@unique([projectId, csiCode])`, unique
+`documentId`). All `projectProcedure` (projectId injected). It illustrates a clean
+"replace-by-natural-key" pattern:
+
+- **`attach`** runs in a `$transaction`: `deleteMany` any row matching `(projectId, csiCode)`
+  **or** the incoming `documentId`, then `create` the new mapping — so neither unique
+  constraint can collide on replace. The previously linked `Document` is left intact (it stays
+  in the Explorer); only the *link* is replaced.
+- **`getForCode`** reads via the compound unique (`where: { projectId_csiCode: { … } }`) and
+  shapes the joined `Document` into the client `PreviewDoc` form (blobUrl → `documentProxyUrl`).
+- Mutations gate on `canManageProjects(ctx.projectMember.role)`; the document upload itself
+  reuses `POST /api/upload` (creates the real `Document`), so the router only owns the link.
+
+---
+
 ### Aggregating with parallel queries (`project.list` shape)
 
 `project.list` returns each project enriched with task stats AND a top-5 member preview. Three parallel queries (`groupBy` task stats × 2, `findMany` for members) are batched into a single `Promise.all` and grouped in JS — preferred over `groupBy + findMany` per project (which would do a query per project).

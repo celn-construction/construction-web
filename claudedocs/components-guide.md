@@ -317,7 +317,7 @@ bryntum/
       PhotosFolderContent.tsx
       TrackableFolderContent.tsx
       RequirementCounter.tsx
-      FilePreviewPanel.tsx
+      DocumentPreviewDialog.tsx   ← centered popup viewer (images inline, PDFs in an iframe)
       CsiCodePanel.tsx
   hooks/
     useTaskPopover.ts

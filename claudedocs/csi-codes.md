@@ -56,8 +56,9 @@ The final JSON was validated against the AGC Austin PDF (official MasterFormat 2
 | `src/lib/constants/csiCodes.json` | Raw **flat** data: `[{ code, name, subdivisions: [{ code, name }] }]` |
 | `src/lib/constants/csiCodes.ts` | TypeScript layer: exports `CSI_TREE` (derived 3-tier hierarchy, types `CsiDivisionTree`/`CsiGroup`/`CsiSection`), `CSI_DIVISIONS`, `CSI_DIVISION_MAP`, `CSI_SUBDIVISION_MAP`, `formatCsiCode()`. Lookup maps are built straight from the flat JSON so validation/display never depend on the grouping logic. |
 | `src/components/bryntum/components/task-popover/TaskHeader.tsx` | Inline CSI chip in the popover meta row (code + truncated name when set, dashed "+ CSI code" when empty); calls `onOpenCsiPanel` to open the panel |
-| `src/components/bryntum/components/task-popover/CsiCodePanel.tsx` | Slide-in panel: 3-tier accordion (Division → Level-2 heading → Level-3 detail) with search, optimistic updates, code selection. Level-2 headings are both selectable and expandable; Level-3 details are selectable leaves. |
+| `src/components/bryntum/components/task-popover/CsiCodePanel.tsx` | Slide-in panel: 3-tier accordion (Division → Level-2 heading → Level-3 detail) with search, optimistic updates, code selection. Level-2 headings are both selectable and expandable; Level-3 details are selectable leaves. The current-selection **banner** also hosts the per-(project, code) spec document (upload/open/remove). |
 | `src/lib/validations/gantt.ts` | Zod `.refine()` validation for `csiCode` on the shared `gantt.sync` task schema |
+| `src/server/api/routers/csiSpec.ts` + `src/lib/validations/csiSpec.ts` | tRPC router (`getForCode` / `attach` / `detach`) and Zod schemas for the per-(project, code) spec document. See "Spec document attachment" below. |
 
 ### Data flow
 
@@ -66,6 +67,39 @@ The final JSON was validated against the AGC Austin PDF (official MasterFormat 2
 3. **Selection**: `CsiCodePanel` reads from `CSI_TREE`, filters client-side across all three tiers, and shows a 3-tier accordion (division → Level-2 heading → Level-3 detail). Selecting either a heading or a detail saves; the division/group containing the current code auto-expands on open
 4. **Save**: User selects code -> optimistic update -> panel writes `record.csiCode = next` on the Bryntum task record -> Bryntum's `autoSync` flushes the change to `gantt.sync`, where the shared task Zod schema validates the code against `CSI_SUBDIVISION_MAP` / `CSI_DIVISION_MAP` and persists to `GanttTask.csiCode` (last-write-wins)
 5. **Display**: `formatCsiCode(code)` resolves `"03 30 00"` -> `"03 30 00 - Cast-in-Place Concrete"`
+
+### Spec document attachment (per project + CSI code)
+
+The CSI panel's current-selection banner lets a user attach **one spec document per
+`(projectId, csiCode)`**, shared by every task in the project carrying that code. Clicking the
+attached document opens it in the popover's in-app `DocumentPreviewDialog`.
+
+- **Model**: `CsiSpecDocument` (mapping table) — `@@unique([projectId, csiCode])` and a unique
+  `documentId`. The linked row is a **real `Document`** (shows in the Document Explorer + AI
+  search); deleting it from the Explorer cascades the link away.
+- **Upload**: reuses `POST /api/upload` (file + `projectId` → unassigned `Document` with blob +
+  AI tags + embedding) via `trackUpload` (global upload chip). The returned `documentId` is
+  then linked with `csiSpec.attach`. Gated on `canManageProjects` (client `canManage` prop +
+  server check).
+- **Tree indicators**: `csiSpec.listForProject` returns every code in the project that has a
+  doc; the picker shows a paperclip on each such code (group/section) and a roll-up paperclip
+  on **collapsed** division/group rows whose branch contains one (so docs are discoverable
+  without expanding all 35 divisions). `attach`/`detach` invalidate this list too.
+- **Loading state**: while adding or removing, the banner shows a spinner row ("Attaching
+  document…" / "Removing document…"). Busy state is tracked **per CSI code** (`pendingByCode`
+  map) and operations capture their target code, so switching codes mid-upload never bleeds the
+  spinner onto the wrong code and `attach`/`detach` always invalidate the code they targeted.
+  The viewed code's spinner clears only once its refetched `getForCode` settles (no pre-change
+  flash); codes switched away from clear in the mutation callbacks.
+- **Replace is non-destructive**: `attach` deletes the prior `(projectId, csiCode)` link (and
+  any prior link for the new document) inside a transaction, then creates the new link; the
+  previously linked `Document` remains in the Explorer as unassigned.
+- **Read/open**: `csiSpec.getForCode` returns the linked doc shaped as a `PreviewDoc` (blobUrl
+  rewritten via `documentProxyUrl`); the banner opens it through the popover's `openPreview`,
+  which shows the file in `DocumentPreviewDialog` (a centered popup — images inline, PDFs in an
+  iframe via the same-origin blob proxy). Viewing is open to any project member (the
+  `/api/blob/[documentId]` proxy enforces tenancy); `detach` (manager-only) unlinks but keeps
+  the document.
 
 ### Why static JSON (not database)
 

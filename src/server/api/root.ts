@@ -10,6 +10,7 @@ import { documentRouter } from "@/server/api/routers/document";
 import { approvalRouter } from "@/server/api/routers/approval";
 import { notificationRouter } from "@/server/api/routers/notification";
 import { ganttRouter } from "@/server/api/routers/gantt";
+import { csiSpecRouter } from "@/server/api/routers/csiSpec";
 import { betaRouter } from "@/server/api/routers/beta";
 import { weatherRouter } from "@/server/api/routers/weather";
 
@@ -30,6 +31,7 @@ export const appRouter = createTRPCRouter({
   approval: approvalRouter,
   notification: notificationRouter,
   gantt: ganttRouter,
+  csiSpec: csiSpecRouter,
   beta: betaRouter,
   weather: weatherRouter,
 });

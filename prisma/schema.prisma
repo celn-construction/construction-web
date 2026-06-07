@@ -149,6 +149,7 @@ model Project {
     ganttResources  GanttResource[]
     ganttAssignments GanttAssignment[]
     ganttTimeRanges GanttTimeRange[]
+    csiSpecDocuments CsiSpecDocument[]
     activeUsers     User[]           @relation("ActiveProject")
 
     @@unique([organizationId, slug])
@@ -181,11 +182,29 @@ model Document {
     approvedBy    User?                @relation("ApprovedByUser", fields: [approvedById], references: [id], onDelete: SetNull)
     slot          TaskRequirementSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
     coverForTasks GanttTask[]          @relation("TaskCoverDocument")
+    csiSpec       CsiSpecDocument?
 
     @@index([projectId, taskId, folderId])
     @@index([projectId])
     @@index([projectId, approvalStatus])
     @@index([slotId])
+}
+
+// Links a single Document to a (project, CSI code) pair so every task carrying
+// that code surfaces the same spec document in its CSI panel banner. One doc
+// per code per project (DB-enforced); deleting the Document clears the link.
+model CsiSpecDocument {
+    id         String   @id @default(cuid())
+    projectId  String
+    csiCode    String
+    documentId String   @unique
+    createdAt  DateTime @default(now())
+
+    project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+    @@unique([projectId, csiCode])
+    @@index([projectId])
 }
 
 model Membership {

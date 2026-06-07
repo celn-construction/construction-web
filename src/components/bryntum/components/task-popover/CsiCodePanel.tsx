@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, memo, useCallback } from 'react';
+import { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
 import {
   Tag,
   CaretDown,
@@ -9,31 +9,55 @@ import {
   Check,
   X,
   Prohibit,
+  Paperclip,
+  UploadSimple,
+  Trash,
 } from '@phosphor-icons/react';
-import { Box, Typography, IconButton, InputBase, Divider } from '@mui/material';
+import { Box, Typography, IconButton, InputBase, Divider, CircularProgress } from '@mui/material';
 import { useSnackbar } from '@/hooks/useSnackbar';
+import { api } from '@/trpc/react';
+import { trackUpload } from '@/store/uploadStatusStore';
 import {
   CSI_TREE,
   CSI_SUBDIVISION_MAP,
   type CsiSection,
 } from '@/lib/constants/csiCodes';
 import type { BryntumGanttInstance } from '../../types';
+import type { PreviewDoc } from './types';
 
 // Caps applied only while searching (the tree is force-expanded then, so an
 // unbounded query like a single letter would otherwise render thousands of rows).
 const MAX_GROUPS_PER_DIV = 25;
 const MAX_SECTIONS_PER_GROUP = 12;
 
+// Small "this code has a spec document" indicator (also used as a roll-up on
+// collapsed division/group rows).
+function DocIndicator({ label }: { label: string }) {
+  return (
+    <Box
+      component="span"
+      role="img"
+      aria-label={label}
+      title={label}
+      sx={{ display: 'inline-flex', flexShrink: 0, color: 'sidebar.indicator' }}
+    >
+      <Paperclip size={11} weight="bold" />
+    </Box>
+  );
+}
+
 // ─── Level-3 section row ────────────────────────────────────────────────
 interface SectionItemProps {
   section: CsiSection;
   isSelected: boolean;
+  hasDoc: boolean;
   onSelect: (code: string) => void;
 }
 
 const SectionItem = memo(function SectionItem({
   section,
   isSelected,
+  hasDoc,
   onSelect,
 }: SectionItemProps) {
   return (
@@ -107,6 +131,7 @@ const SectionItem = memo(function SectionItem({
       >
         {section.name}
       </Typography>
+      {hasDoc && <DocIndicator label="Has attached document" />}
       {isSelected && (
         <Check
           size={12}
@@ -139,6 +164,12 @@ interface CsiCodePanelProps {
   csiCode: string | null | undefined;
   taskId: string;
   ganttInstance: BryntumGanttInstance | null;
+  /** Project the task belongs to — scopes the per-code spec document. */
+  projectId: string;
+  /** Whether the current user can upload/replace/remove the spec document. */
+  canManage: boolean;
+  /** Open the attached spec document in the popover's file preview panel. */
+  onOpenDocument: (doc: PreviewDoc) => void;
   /**
    * Called with the newly-written code the moment it's set on the Bryntum
    * record, so the parent can show an optimistic + saving state on the chip
@@ -152,6 +183,9 @@ export default function CsiCodePanel({
   csiCode,
   taskId,
   ganttInstance,
+  projectId,
+  canManage,
+  onOpenDocument,
   onCodeChange,
   onClose,
 }: CsiCodePanelProps) {
@@ -281,19 +315,17 @@ export default function CsiCodePanel({
     [ganttInstance, taskId, showSnackbar],
   );
 
-  // Selecting any code (Level-2 heading or Level-3 detail) saves and closes.
+  // Selecting any code (Level-2 heading or Level-3 detail) saves but keeps the
+  // panel open, so the user can view or attach the document for the new code.
   const handleSelect = useCallback(
     (code: string) => {
       setOptimisticCode(code);
       const ok = writeCsiCode(code);
-      // Notify the parent so the chip shows the new code with a saving spinner,
-      // then slide the panel away — no manual close needed.
-      if (ok) {
-        onCodeChange?.(code);
-        onClose();
-      }
+      // Notify the parent so the chip reflects the new code (with a saving
+      // spinner) while autoSync persists it. The panel stays open.
+      if (ok) onCodeChange?.(code);
     },
-    [writeCsiCode, onCodeChange, onClose],
+    [writeCsiCode, onCodeChange],
   );
 
   const toggleGroup = useCallback((code: string) => {
@@ -315,6 +347,138 @@ export default function CsiCodePanel({
 
   const hasCode = !!displayCode;
   const subEntry = hasCode ? CSI_SUBDIVISION_MAP.get(displayCode!) : null;
+
+  // ─── Per-code spec document (project + CSI code → one Document) ───────
+  const utils = api.useUtils();
+  const specDocQuery = api.csiSpec.getForCode.useQuery(
+    { projectId, csiCode: displayCode ?? '' },
+    { enabled: hasCode, retry: false },
+  );
+  const specDoc = specDocQuery.data ?? null;
+
+  // All codes in the project that have a doc — drives the tree "has document"
+  // indicators (and roll-ups on collapsed division/group rows).
+  const codesWithDocQuery = api.csiSpec.listForProject.useQuery(
+    { projectId },
+    { retry: false },
+  );
+  const docCodes = useMemo(
+    () => new Set(codesWithDocQuery.data ?? []),
+    [codesWithDocQuery.data],
+  );
+  // Roll-up sets for collapsed rows: division prefix ("03") and group prefix
+  // ("03 3") of every code that has a doc.
+  const docRollup = useMemo(() => {
+    const divisions = new Set<string>();
+    const groups = new Set<string>();
+    for (const code of docCodes) {
+      divisions.add(code.slice(0, 2));
+      groups.add(code.slice(0, 4));
+    }
+    return { divisions, groups };
+  }, [docCodes]);
+
+  // Per-code in-flight add/remove, keyed by CSI code. Keying by code (not a
+  // single panel-wide flag) is what stops the spinner/state from bleeding onto
+  // the wrong code when the user switches codes mid-upload.
+  const [pendingByCode, setPendingByCode] = useState<Map<string, 'add' | 'remove'>>(
+    () => new Map(),
+  );
+  const setPending = useCallback((code: string, action: 'add' | 'remove') => {
+    setPendingByCode((prev) => new Map(prev).set(code, action));
+  }, []);
+  const clearPending = useCallback((code: string) => {
+    setPendingByCode((prev) => {
+      if (!prev.has(code)) return prev;
+      const next = new Map(prev);
+      next.delete(code);
+      return next;
+    });
+  }, []);
+
+  // Latest displayCode, read inside async mutation callbacks without capturing a
+  // stale value from the render that started the operation.
+  const displayCodeRef = useRef(displayCode);
+  useEffect(() => {
+    displayCodeRef.current = displayCode;
+  }, [displayCode]);
+
+  // The spinner only shows for the code currently in view.
+  const docBusy = displayCode ? pendingByCode.get(displayCode) ?? null : null;
+
+  // Clear the *viewed* code's pending only once its refetched query settles, so
+  // the row never flashes the pre-change UI. Codes switched away from are cleared
+  // in the mutation callbacks below (where there's no row to flash).
+  useEffect(() => {
+    if (!displayCode) return;
+    const action = pendingByCode.get(displayCode);
+    if (!action) return;
+    if (action === 'add' && specDoc) clearPending(displayCode);
+    else if (action === 'remove' && !specDoc && !specDocQuery.isFetching) {
+      clearPending(displayCode);
+    }
+  }, [pendingByCode, displayCode, specDoc, specDocQuery.isFetching, clearPending]);
+
+  const settleMutation = useCallback(
+    (code: string) => {
+      void utils.csiSpec.listForProject.invalidate({ projectId });
+      void utils.csiSpec.getForCode.invalidate({ projectId, csiCode: code });
+      // If we've navigated away from the target code, clear here — the settle
+      // effect above only observes the currently-viewed code.
+      if (code !== displayCodeRef.current) clearPending(code);
+    },
+    [utils, projectId, clearPending],
+  );
+
+  const attachMutation = api.csiSpec.attach.useMutation({
+    onSuccess: (_data, variables) => settleMutation(variables.csiCode),
+    onError: (e, variables) => {
+      clearPending(variables.csiCode);
+      showSnackbar(e.message || 'Failed to attach document', 'error');
+    },
+  });
+  const detachMutation = api.csiSpec.detach.useMutation({
+    onSuccess: (_data, variables) => settleMutation(variables.csiCode),
+    onError: (e, variables) => {
+      clearPending(variables.csiCode);
+      showSnackbar(e.message || 'Failed to remove document', 'error');
+    },
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFilePicked = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = ''; // allow re-picking the same file
+      const targetCode = displayCode; // bind to the code the upload started on
+      if (!file || !targetCode) return;
+      setPending(targetCode, 'add');
+      const result = await trackUpload<{ id: string }>(
+        file,
+        () => {
+          const fd = new FormData();
+          fd.append('file', file);
+          fd.append('projectId', projectId);
+          return fetch('/api/upload', { method: 'POST', body: fd });
+        },
+        { doneLabel: 'Spec document ready' },
+      );
+      if (result.ok && result.data?.id) {
+        attachMutation.mutate({ projectId, csiCode: targetCode, documentId: result.data.id });
+      } else {
+        clearPending(targetCode); // upload failed — the global chip shows the error
+      }
+    },
+    [displayCode, projectId, attachMutation, setPending, clearPending],
+  );
+
+  const handleDetachDoc = useCallback(() => {
+    const targetCode = displayCode;
+    if (!targetCode) return;
+    setPending(targetCode, 'remove');
+    detachMutation.mutate({ projectId, csiCode: targetCode });
+  }, [displayCode, projectId, detachMutation, setPending]);
 
   return (
     <Box
@@ -377,70 +541,200 @@ export default function CsiCodePanel({
             border: '1px solid',
             borderColor: 'divider',
             display: 'flex',
-            alignItems: 'flex-start',
+            flexDirection: 'column',
             gap: 1,
           }}
         >
-          <Check size={13} weight="bold" color="var(--sidebar-indicator)" style={{ flexShrink: 0, marginTop: 1 }} />
-          <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            <Typography
+          {/* Code + name + remove-classification */}
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+            <Check size={13} weight="bold" color="var(--sidebar-indicator)" style={{ flexShrink: 0, marginTop: 1 }} />
+            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <Typography
+                sx={{
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                  color: 'text.primary',
+                  lineHeight: 1,
+                  fontVariantNumeric: 'tabular-nums',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {displayCode}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: 'text.secondary',
+                  lineHeight: 1.3,
+                }}
+              >
+                {subEntry.subdivision.name}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.5625rem',
+                  fontWeight: 500,
+                  color: 'text.secondary',
+                  lineHeight: 1,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  mt: '1px',
+                }}
+              >
+                {subEntry.division.name}
+              </Typography>
+            </Box>
+            <Box
+              component="button"
+              onClick={handleRemoveCode}
               sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 700,
-                color: 'text.primary',
-                lineHeight: 1,
-                fontVariantNumeric: 'tabular-nums',
-                letterSpacing: '0.02em',
-              }}
-            >
-              {displayCode}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.75rem',
-                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 22,
+                height: 22,
+                borderRadius: '5px',
+                border: 'none',
+                bgcolor: 'transparent',
+                cursor: 'pointer',
                 color: 'text.secondary',
-                lineHeight: 1.3,
+                flexShrink: 0,
+                '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                transition: 'background-color 0.15s, color 0.15s',
               }}
+              aria-label="Remove classification"
             >
-              {subEntry.subdivision.name}
-            </Typography>
-            <Typography
+              <Prohibit size={12} weight="bold" />
+            </Box>
+          </Box>
+
+          {/* Spec document: open the attached doc, or upload one */}
+          {docBusy ? (
+            <Box
+              data-testid="doc-loading"
+              aria-busy="true"
+              aria-label={docBusy === 'add' ? 'Attaching document' : 'Removing document'}
               sx={{
-                fontSize: '0.5625rem',
-                fontWeight: 500,
-                color: 'text.secondary',
-                lineHeight: 1,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                mt: '1px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0.875,
+                px: 1,
+                py: 0.75,
+                borderRadius: '6px',
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
               }}
             >
-              {subEntry.division.name}
-            </Typography>
-          </Box>
-          <Box
-            component="button"
-            onClick={handleRemoveCode}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 22,
-              height: 22,
-              borderRadius: '5px',
-              border: 'none',
-              bgcolor: 'transparent',
-              cursor: 'pointer',
-              color: 'text.secondary',
-              flexShrink: 0,
-              '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
-              transition: 'background-color 0.15s, color 0.15s',
-            }}
-            aria-label="Remove classification"
-          >
-            <Prohibit size={12} weight="bold" />
-          </Box>
+              <CircularProgress size={13} thickness={5} sx={{ color: 'text.secondary' }} />
+              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary' }}>
+                {docBusy === 'add' ? 'Attaching document…' : 'Removing document…'}
+              </Typography>
+            </Box>
+          ) : specDoc ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box
+                component="button"
+                onClick={() => onOpenDocument(specDoc)}
+                title={`Open ${specDoc.name}`}
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.625,
+                  px: 0.875,
+                  py: 0.625,
+                  borderRadius: '6px',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'background.paper',
+                  cursor: 'pointer',
+                  color: 'text.primary',
+                  '&:hover': { bgcolor: 'action.hover' },
+                  transition: 'background-color 0.15s',
+                }}
+              >
+                <Paperclip size={12} weight="bold" style={{ flexShrink: 0 }} />
+                <Typography
+                  sx={{
+                    fontSize: '0.6875rem',
+                    fontWeight: 500,
+                    color: 'inherit',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    flex: 1,
+                    minWidth: 0,
+                    textAlign: 'left',
+                  }}
+                >
+                  {specDoc.name}
+                </Typography>
+                <CaretRight size={9} style={{ flexShrink: 0 }} />
+              </Box>
+              {canManage && (
+                <Box
+                  component="button"
+                  onClick={handleDetachDoc}
+                  disabled={detachMutation.isPending}
+                  aria-label="Remove spec document"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 26,
+                    height: 26,
+                    borderRadius: '5px',
+                    border: 'none',
+                    bgcolor: 'transparent',
+                    cursor: 'pointer',
+                    color: 'text.secondary',
+                    flexShrink: 0,
+                    '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                    transition: 'background-color 0.15s, color 0.15s',
+                  }}
+                >
+                  <Trash size={11} weight="bold" />
+                </Box>
+              )}
+            </Box>
+          ) : canManage ? (
+            <Box
+              component="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={attachMutation.isPending}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0.625,
+                px: 1,
+                py: 0.75,
+                borderRadius: '6px',
+                border: '1px dashed',
+                borderColor: 'divider',
+                bgcolor: 'transparent',
+                cursor: 'pointer',
+                color: 'text.secondary',
+                '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                transition: 'background-color 0.15s, color 0.15s',
+              }}
+            >
+              <UploadSimple size={12} weight="bold" />
+              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'inherit' }}>
+                Attach spec document
+              </Typography>
+            </Box>
+          ) : null}
+          <input
+            ref={fileInputRef}
+            type="file"
+            hidden
+            onChange={handleFilePicked}
+          />
         </Box>
       )}
 
@@ -583,19 +877,22 @@ export default function CsiCodePanel({
                 >
                   {div.name}
                 </Typography>
-                <Typography
-                  component="span"
-                  sx={{
-                    fontSize: '0.5625rem',
-                    fontWeight: 500,
-                    color: 'text.secondary',
-                    ml: 'auto',
-                    flexShrink: 0,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {div.leafCount}
-                </Typography>
+                <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                  {!isDivExpanded && docRollup.divisions.has(div.code) && (
+                    <DocIndicator label="Contains attached documents" />
+                  )}
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: '0.5625rem',
+                      fontWeight: 500,
+                      color: 'text.secondary',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {div.leafCount}
+                  </Typography>
+                </Box>
               </Box>
 
               {/* Level-2 groups + Level-3 sections */}
@@ -603,6 +900,11 @@ export default function CsiCodePanel({
                 div.groups.map((group) => {
                   const isGroupSelected = displayCode === group.code;
                   const isGroupExpanded = isSearching || expandedGroups.has(group.code);
+                  const groupHasOwnDoc = docCodes.has(group.code);
+                  const groupRollup =
+                    !groupHasOwnDoc &&
+                    !isGroupExpanded &&
+                    docRollup.groups.has(group.code.slice(0, 4));
 
                   return (
                     <Box key={group.code}>
@@ -712,6 +1014,8 @@ export default function CsiCodePanel({
                         >
                           {group.name}
                         </Typography>
+                        {groupHasOwnDoc && <DocIndicator label="Has attached document" />}
+                        {groupRollup && <DocIndicator label="Contains attached documents" />}
                         {isGroupSelected && (
                           <Check
                             size={12}
@@ -729,6 +1033,7 @@ export default function CsiCodePanel({
                             key={section.code}
                             section={section}
                             isSelected={displayCode === section.code}
+                            hasDoc={docCodes.has(section.code)}
                             onSelect={handleSelect}
                           />
                         ))}

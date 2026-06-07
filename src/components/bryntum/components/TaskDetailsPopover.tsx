@@ -18,13 +18,13 @@ import { ArrowsInSimple, ArrowsOutSimple, CheckCircle } from '@phosphor-icons/re
 import TaskHeader from './task-popover/TaskHeader';
 import CoverImageBanner from './task-popover/CoverImageBanner';
 import FolderRow from './task-popover/FolderRow';
-import FilePreviewPanel from './task-popover/FilePreviewPanel';
+import DocumentPreviewDialog from './task-popover/DocumentPreviewDialog';
 import CsiCodePanel from './task-popover/CsiCodePanel';
 import SubmittalDrawer from './SubmittalDrawer';
 import { canApproveDocuments, canManageProjects } from '@/lib/permissions';
 import type { SlotKind } from '@/lib/validations/gantt';
 
-type RightPanel = { type: 'preview'; doc: PreviewDoc } | { type: 'csi' } | null;
+type RightPanel = { type: 'csi' } | null;
 
 type TaskDetailsPopoverProps = {
   open: boolean;
@@ -52,6 +52,8 @@ export function TaskDetailsPopover({
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [uploadTarget, setUploadTarget] = useState<{ folder: { id: string; name: string }; slotId?: string } | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
+  // Document preview opens as a centered popup (over the popover), not the side panel.
+  const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
   const [drawerKind, setDrawerKind] = useState<SlotKind | null>(null);
   // Transient confirmation shown on the popover after the drawer saves + closes.
   const [savedNotice, setSavedNotice] = useState<{ kind: SlotKind; count: number } | null>(null);
@@ -160,7 +162,7 @@ export function TaskDetailsPopover({
 
   // ── Right panel helpers ──
   const openPreview = useCallback((doc: PreviewDoc) => {
-    setRightPanel({ type: 'preview', doc });
+    setPreviewDoc(doc);
   }, []);
 
   const openCsiPanel = useCallback(() => {
@@ -259,6 +261,7 @@ export function TaskDetailsPopover({
   const handleClose = () => {
     setExpandedFolders(new Set());
     setRightPanel(null);
+    setPreviewDoc(null);
     onClose();
   };
 
@@ -370,7 +373,6 @@ export function TaskDetailsPopover({
 
   const coverImageUrl = taskDetail?.coverImageUrl ?? null;
   const hasRightPanel = rightPanel !== null;
-  const previewDoc = rightPanel?.type === 'preview' ? rightPanel.doc : null;
   const selectedDocId = previewDoc?.id ?? null;
 
   return (
@@ -606,28 +608,31 @@ export function TaskDetailsPopover({
             </Box>
           </Box>
 
-          {/* ── RIGHT PANEL ── */}
-          {rightPanel && (
+          {/* ── RIGHT PANEL (CSI classification) ── */}
+          {rightPanel?.type === 'csi' && (
             <>
               <Divider orientation="vertical" flexItem />
-              {rightPanel.type === 'preview' ? (
-                <FilePreviewPanel
-                  previewDoc={rightPanel.doc}
-                  onClose={closeRightPanel}
-                />
-              ) : (
-                <CsiCodePanel
-                  csiCode={effectiveCsiCode}
-                  taskId={taskId!}
-                  ganttInstance={ganttInstance}
-                  onCodeChange={setPendingCsiCode}
-                  onClose={closeRightPanel}
-                />
-              )}
+              <CsiCodePanel
+                csiCode={effectiveCsiCode}
+                taskId={taskId!}
+                ganttInstance={ganttInstance}
+                projectId={projectId}
+                canManage={canManageCover}
+                onOpenDocument={openPreview}
+                onCodeChange={setPendingCsiCode}
+                onClose={closeRightPanel}
+              />
             </>
           )}
         </Box>
       </Popover>
+
+      {/* Document preview popup (opens over the popover) */}
+      <DocumentPreviewDialog
+        open={previewDoc !== null}
+        doc={previewDoc}
+        onClose={() => setPreviewDoc(null)}
+      />
 
       {/* Upload dialog */}
       {uploadTarget && taskId && (() => {
