@@ -219,7 +219,10 @@ export function createGanttConfig(
       },
       // Show the proposed end date in a tooltip while the user drags the
       // end-side resize handle. Bryntum's TaskResize is end-only by design;
-      // this gives live feedback during the drag.
+      // this gives live feedback during the drag. Kept here in the STATIC
+      // config (created once via useState) — moving it to a per-render
+      // `taskResizeFeature` prop made the wrapper re-run feature.setConfig and
+      // destabilized the resize handles.
       taskResize: {
         showTooltip: true,
         tooltipTemplate: ({ endDate }) => {

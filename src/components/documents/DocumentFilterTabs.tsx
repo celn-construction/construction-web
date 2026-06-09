@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { api } from '@/trpc/react';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { formatCsiCode } from '@/lib/constants/csiCodes';
+import { parseLocalDate } from '@/lib/utils/date';
 import type { LinkFilter, AdvancedFilters } from '@/components/documents/DocumentFilterPopup';
 
 const FOLDER_LABELS: Record<string, string> = {
@@ -17,7 +18,7 @@ const FOLDER_LABELS: Record<string, string> = {
 };
 
 function formatDateRange(dateFrom: string | null, dateTo: string | null): string {
-  const fmt = (s: string) => format(new Date(s), 'MMM d, yyyy');
+  const fmt = (s: string) => format(parseLocalDate(s), 'MMM d, yyyy');
   if (dateFrom && dateTo) return `${fmt(dateFrom)} – ${fmt(dateTo)}`;
   if (dateFrom) return `After ${fmt(dateFrom)}`;
   if (dateTo) return `Before ${fmt(dateTo)}`;

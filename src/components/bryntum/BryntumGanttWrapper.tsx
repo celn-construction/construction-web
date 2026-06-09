@@ -99,6 +99,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     handleZoomToFit,
     handleShiftPrevious,
     handleShiftNext,
+    handleScrollToToday,
     handlePresetChange,
     handleUndo,
     handleRedo,
@@ -870,6 +871,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         onZoomToFit={handleZoomToFit}
         onShiftPrevious={handleShiftPrevious}
         onShiftNext={handleShiftNext}
+        onScrollToToday={handleScrollToToday}
         onUndo={handleUndo}
         onRedo={handleRedo}
         canUndo={canUndo}
@@ -1075,6 +1077,19 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
             // it's automatically off when the chart is locked or for non-admins.
             // New order persists via the `orderedParentIndex` field → orderIndex.
             rowReorderFeature={{ showGrip: true, gripOnly: true, dropOnLeaf: false }}
+            // Current-date line — the TimeRanges feature's "now" indicator, a
+            // vertical line marking today on the time axis. Passed as a
+            // per-feature prop (NOT via `features.timeRanges` in ganttConfig):
+            // the React wrapper only applies props whose names are in
+            // BryntumGantt.configNames/featureNames, and bare `features` is not
+            // one of them, so nested feature config there is silently dropped
+            // (same reason cellEdit/taskMenu/rowReorder are passed this way).
+            // `showCurrentTimeLine` with a TimeSpan config object both enables
+            // the feature and labels the line. The empty timeRangeStore means
+            // only the "now" line renders. Styling comes from the Bryntum theme
+            // (.b-sch-current-time), so it adapts to light/dark automatically.
+            // Docs: https://bryntum.com/products/gantt/docs/api/Scheduler/feature/TimeRanges
+            timeRangesFeature={{ showCurrentTimeLine: { name: 'Today' } }}
           />
         </div>
 

@@ -68,14 +68,13 @@ async function buildAdvancedFilters(
 ): Promise<Prisma.DocumentWhereInput> {
   const where: Prisma.DocumentWhereInput = {};
 
+  // dateFrom/dateTo arrive as UTC instants (start / end of the viewer's local
+  // day, converted client-side), so they're used directly — no server-local
+  // setHours, which would re-introduce a timezone-dependent day boundary.
   if (input.dateFrom || input.dateTo) {
     const createdAt: Prisma.DateTimeFilter = {};
     if (input.dateFrom) createdAt.gte = new Date(input.dateFrom);
-    if (input.dateTo) {
-      const end = new Date(input.dateTo);
-      end.setHours(23, 59, 59, 999);
-      createdAt.lte = end;
-    }
+    if (input.dateTo) createdAt.lte = new Date(input.dateTo);
     where.createdAt = createdAt;
   }
 

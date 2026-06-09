@@ -8,6 +8,7 @@ import {
   ArrowUUpLeft,
   ArrowUUpRight,
   ArrowsOutSimple,
+  CalendarDot,
   CaretDoubleLeft,
   CaretDoubleRight,
   DownloadSimple,
@@ -154,6 +155,8 @@ type GanttToolbarProps = {
   onZoomToFit?: () => void;
   onShiftPrevious?: () => void;
   onShiftNext?: () => void;
+  /** Scroll the timeline so today's date is centered in view. */
+  onScrollToToday?: () => void;
   onExport?: () => void;
   onColumnsClick?: (event: MouseEvent<HTMLElement>) => void;
   onMoreClick?: () => void;
@@ -184,6 +187,7 @@ export default function GanttToolbar({
   onZoomToFit,
   onShiftPrevious,
   onShiftNext,
+  onScrollToToday,
   onExport,
   onColumnsClick,
   onMoreClick,
@@ -504,6 +508,22 @@ export default function GanttToolbar({
         >
           <CaretDoubleLeft size={12} weight="bold" />
         </ToolbarPulseButton>
+        {onScrollToToday && (
+          <>
+            <Box sx={cardDividerSx} />
+            <ToolbarPulseButton
+              ariaLabel="Scroll to today"
+              tooltip="Scroll to today"
+              pulseVariant="wobble"
+              onClick={onScrollToToday}
+            >
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                <CalendarDot size={12} weight="bold" />
+                <Box component="span">Today</Box>
+              </Box>
+            </ToolbarPulseButton>
+          </>
+        )}
         <Box sx={cardDividerSx} />
         <ToolbarPulseButton
           ariaLabel="Next time span"

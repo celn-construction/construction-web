@@ -18,7 +18,7 @@ import {
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
 import type { Folder } from '@/lib/folders';
-import type { DocumentItem, PreviewDoc, FolderContentProps } from './types';
+import type { DocumentItem, PreviewDoc, PreviewNav, FolderContentProps } from './types';
 import BaseFolderContent from './BaseFolderContent';
 import PhotosFolderContent from './PhotosFolderContent';
 import TrackableFolderContent from './TrackableFolderContent';
@@ -48,7 +48,7 @@ interface FolderRowProps {
    * per-slot drag-and-drop on trackable folders.
    */
   onUploadFile?: (folderId: string, slotId: string, file: File) => void;
-  onSelectDoc: (doc: PreviewDoc) => void;
+  onSelectDoc: (doc: PreviewDoc, nav?: PreviewNav) => void;
   selectedDocId: string | null;
   // Tracking props (only used for trackable folders)
   required?: number | null;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDrag } from '@use-gesture/react';
 import { Box, Popover, Typography, Divider } from '@mui/material';
 
@@ -12,7 +12,7 @@ import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
 import { trackUpload } from '@/store/uploadStatusStore';
 import type { PopoverPlacement, BryntumGanttInstance } from '../types';
-import type { PreviewDoc, DocumentItem } from './task-popover/types';
+import type { PreviewDoc, PreviewNav, DocumentItem } from './task-popover/types';
 
 import { ArrowsInSimple, ArrowsOutSimple, CheckCircle } from '@phosphor-icons/react';
 import TaskHeader from './task-popover/TaskHeader';
@@ -52,8 +52,11 @@ export function TaskDetailsPopover({
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [uploadTarget, setUploadTarget] = useState<{ folder: { id: string; name: string }; slotId?: string } | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
-  // Document preview opens as a centered popup (over the popover), not the side panel.
-  const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
+  // Document preview opens as a centered popup (over the popover). It carries an
+  // ordered navigation set (the siblings of the clicked doc) + the active index
+  // so the dialog can step ‹ / › (and ←/→) without closing. `approvable` shows
+  // the in-header approve toggle (trackable submittal/inspection docs only).
+  const [preview, setPreview] = useState<{ docs: PreviewDoc[]; index: number; approvable: boolean } | null>(null);
   const [drawerKind, setDrawerKind] = useState<SlotKind | null>(null);
   // Transient confirmation shown on the popover after the drawer saves + closes.
   const [savedNotice, setSavedNotice] = useState<{ kind: SlotKind; count: number } | null>(null);
@@ -161,8 +164,19 @@ export function TaskDetailsPopover({
   );
 
   // ── Right panel helpers ──
-  const openPreview = useCallback((doc: PreviewDoc) => {
-    setPreviewDoc(doc);
+  const openPreview = useCallback((doc: PreviewDoc, nav?: PreviewNav) => {
+    const siblings = nav?.siblings && nav.siblings.length > 0 ? nav.siblings : [doc];
+    const index = Math.max(0, siblings.findIndex((d) => d.id === doc.id));
+    setPreview({ docs: siblings, index, approvable: nav?.approvable ?? false });
+  }, []);
+
+  const stepPreview = useCallback((delta: number) => {
+    setPreview((p) => {
+      if (!p) return p;
+      const next = p.index + delta;
+      if (next < 0 || next >= p.docs.length) return p;
+      return { ...p, index: next };
+    });
   }, []);
 
   const openCsiPanel = useCallback(() => {
@@ -261,7 +275,7 @@ export function TaskDetailsPopover({
   const handleClose = () => {
     setExpandedFolders(new Set());
     setRightPanel(null);
-    setPreviewDoc(null);
+    setPreview(null);
     onClose();
   };
 
@@ -373,7 +387,20 @@ export function TaskDetailsPopover({
 
   const coverImageUrl = taskDetail?.coverImageUrl ?? null;
   const hasRightPanel = rightPanel !== null;
-  const selectedDocId = previewDoc?.id ?? null;
+
+  // The nav set is a snapshot frozen at click time; overlay the current doc's
+  // live approval state from listByTask (which the approve toggle invalidates)
+  // so stepping away and back never shows a stale approved/pending badge.
+  const currentPreviewDoc = useMemo<PreviewDoc | null>(() => {
+    if (!preview) return null;
+    const snap = preview.docs[preview.index];
+    if (!snap) return null;
+    const live = ((allDocs ?? []) as DocumentItem[]).find((d) => d.id === snap.id);
+    return live
+      ? { ...snap, approvalStatus: live.approvalStatus, approvedAt: live.approvedAt, approvedBy: live.approvedBy }
+      : snap;
+  }, [preview, allDocs]);
+  const selectedDocId = currentPreviewDoc?.id ?? null;
 
   return (
     <>
@@ -629,9 +656,15 @@ export function TaskDetailsPopover({
 
       {/* Document preview popup (opens over the popover) */}
       <DocumentPreviewDialog
-        open={previewDoc !== null}
-        doc={previewDoc}
-        onClose={() => setPreviewDoc(null)}
+        open={preview !== null && currentPreviewDoc !== null}
+        doc={currentPreviewDoc}
+        index={preview?.index ?? 0}
+        total={preview?.docs.length ?? 0}
+        onStep={stepPreview}
+        onClose={() => setPreview(null)}
+        approvable={preview?.approvable ?? false}
+        organizationId={organizationId}
+        memberRole={memberRole}
       />
 
       {/* Upload dialog */}

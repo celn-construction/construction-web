@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Box, Typography, alpha, useTheme } from '@mui/material';
-import { FileText, CheckCircle } from '@phosphor-icons/react';
+import { FileText, CheckCircle, Eye } from '@phosphor-icons/react';
 import type { FolderContentProps, PreviewDoc } from './types';
 import { api } from '@/trpc/react';
 import type { SlotKind } from '@/lib/validations/gantt';
@@ -93,6 +93,32 @@ function TrackableFolderContentInner({
 
   const singularName = folderName.replace(/s$/i, '');
 
+  // Ordered nav set for the preview dialog: every filled slot's doc, in slot
+  // order. Lets ‹ / › (and ←/→) step through this folder's submittals/inspections
+  // without closing the modal.
+  const filledPreviews = useMemo<PreviewDoc[]>(
+    () =>
+      slots
+        .filter((s) => !!s.document)
+        .map((s) => {
+          const d = s.document!;
+          return {
+            id: d.id,
+            name: d.name,
+            blobUrl: d.blobUrl,
+            mimeType: d.mimeType,
+            size: d.size,
+            createdAt: d.createdAt,
+            uploadedBy: d.uploadedBy ?? null,
+            folderId: d.folderId ?? '',
+            approvalStatus: d.approvalStatus,
+            approvedAt: d.approvedAt,
+            approvedBy: d.approvedBy,
+          };
+        }),
+    [slots],
+  );
+
   return (
     <Box sx={{ pl: '20px', display: 'flex', flexDirection: 'column', gap: '4px', py: 0.75 }}>
       {slots.map((slot) => {
@@ -120,7 +146,7 @@ function TrackableFolderContentInner({
           return (
             <Box
               key={slot.id}
-              onClick={() => onSelectDoc(preview)}
+              onClick={() => onSelectDoc(preview, { siblings: filledPreviews, approvable: canShowApproval })}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -133,6 +159,11 @@ function TrackableFolderContentInner({
                 bgcolor: isSelected ? 'action.selected' : 'transparent',
                 '&:hover': { bgcolor: isSelected ? 'action.selected' : 'action.hover' },
                 transition: 'background-color 0.15s',
+                // "Click to view" microinteraction: leading icon cross-fades to an
+                // eye and the filename shifts to the accent color on row hover.
+                '&:hover .tfc-file-icon': { opacity: 0 },
+                '&:hover .tfc-eye-icon': { opacity: 1 },
+                '&:hover .tfc-doc-name': { color: 'var(--accent-primary)' },
               }}
             >
               {/* Slot number badge — green when approved, folder-colored otherwise */}
@@ -156,12 +187,31 @@ function TrackableFolderContentInner({
                 />
               </Box>
 
-              <FileText
-                size={14}
-                color={isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)'}
-                style={{ flexShrink: 0 }}
-              />
+              {/* Both icons share one grid cell so they cross-fade in place. */}
+              <Box
+                sx={{
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                  '& > *': { gridArea: '1 / 1' },
+                }}
+              >
+                <FileText
+                  className="tfc-file-icon"
+                  size={14}
+                  color={isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)'}
+                  style={{ transition: 'opacity 0.15s ease' }}
+                />
+                <Eye
+                  className="tfc-eye-icon"
+                  size={14}
+                  weight="bold"
+                  color="var(--accent-primary)"
+                  style={{ opacity: 0, transition: 'opacity 0.15s ease' }}
+                />
+              </Box>
               <Typography
+                className="tfc-doc-name"
                 sx={{
                   fontSize: 12,
                   fontWeight: isSelected ? 500 : 400,
@@ -171,6 +221,7 @@ function TrackableFolderContentInner({
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                   minWidth: 0,
+                  transition: 'color 0.15s ease',
                 }}
               >
                 {doc.name}

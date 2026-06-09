@@ -45,6 +45,7 @@ Pure, reusable utility functions live in `src/lib/utils/`. Current modules:
 | `slug.ts` | Slug generation |
 | `files.tsx` | `getFileIcon(mimeType)` — returns Lucide icon for a file type |
 | `formatting.ts` | `formatRole(role)`, `formatFileSize(bytes)` — display formatting helpers |
+| `date.ts` | `parseLocalDate(yyyyMmDd)` — parse a `yyyy-MM-dd` string as a LOCAL date (not UTC) so date-picker round-trips and chips don't shift a day in negative-UTC timezones |
 
 ---
 
@@ -317,7 +318,7 @@ bryntum/
       PhotosFolderContent.tsx
       TrackableFolderContent.tsx
       RequirementCounter.tsx
-      DocumentPreviewDialog.tsx   ← centered popup viewer (images inline, PDFs in an iframe)
+      DocumentPreviewDialog.tsx   ← centered popup viewer (images inline, PDFs in an iframe). Steps through the clicked doc's sibling set via ‹ / › + ←/→ ("N / M" counter, edge hovers); the parent overlays live approval state so the in-header approve toggle (trackable submittal/inspection docs only) stays correct while navigating
       CsiCodePanel.tsx
   hooks/
     useTaskPopover.ts

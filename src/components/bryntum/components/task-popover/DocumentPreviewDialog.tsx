@@ -1,29 +1,74 @@
 'use client';
 
-import { Dialog, Box, Typography } from '@mui/material';
+import { useEffect } from 'react';
+import { Dialog, Box, Typography, Tooltip } from '@mui/material';
 import {
   ImageSquare,
   FileText,
   ArrowSquareOut,
   DownloadSimple,
+  CaretLeft,
+  CaretRight,
   X,
 } from '@phosphor-icons/react';
 import { formatFileSize } from '@/lib/utils/formatting';
+import ApprovalToggleSwitch from './ApprovalToggleSwitch';
 import type { PreviewDoc } from './types';
 
 interface DocumentPreviewDialogProps {
   open: boolean;
+  /** Current doc to display. The parent overlays live approval state onto it. */
   doc: PreviewDoc | null;
+  /** 0-based position of `doc` within the navigation set. */
+  index: number;
+  /** Size of the navigation set. `total <= 1` hides the prev/next controls. */
+  total: number;
+  /** Step the navigation by `delta` (-1 prev, +1 next). Parent clamps bounds. */
+  onStep: (delta: number) => void;
   onClose: () => void;
+  /** Show the in-header approve toggle (trackable submittal/inspection docs). */
+  approvable?: boolean;
+  organizationId?: string;
+  memberRole?: string;
 }
 
 export default function DocumentPreviewDialog({
   open,
   doc,
+  index,
+  total,
+  onStep,
   onClose,
+  approvable = false,
+  organizationId,
+  memberRole,
 }: DocumentPreviewDialogProps) {
   const isImage = doc?.mimeType.startsWith('image/') ?? false;
   const isPdf = doc?.mimeType === 'application/pdf';
+
+  const hasNav = total > 1;
+  const canPrev = hasNav && index > 0;
+  const canNext = hasNav && index < total - 1;
+
+  // ←/→ step through the navigation set while the dialog is open. Ignored when a
+  // text input is focused so typing elsewhere is unaffected.
+  useEffect(() => {
+    if (!open || !hasNav) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      if (e.key === 'ArrowLeft' && index > 0) {
+        e.preventDefault();
+        onStep(-1);
+      } else if (e.key === 'ArrowRight' && index < total - 1) {
+        e.preventDefault();
+        onStep(1);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, hasNav, index, total, onStep]);
 
   const dateLabel = doc
     ? new Date(doc.createdAt).toLocaleDateString('en-US', {
@@ -62,7 +107,6 @@ export default function DocumentPreviewDialog({
             sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
               gap: 1,
               px: 2,
               py: 1.25,
@@ -71,7 +115,33 @@ export default function DocumentPreviewDialog({
               flexShrink: 0,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+            {/* Left — prev/next + counter (only when there's a set to step through) */}
+            {hasNav && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                <NavButton label="Previous (←)" disabled={!canPrev} onClick={() => onStep(-1)}>
+                  <CaretLeft size={15} weight="bold" />
+                </NavButton>
+                <Typography
+                  sx={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    minWidth: 44,
+                    textAlign: 'center',
+                    fontVariantNumeric: 'tabular-nums',
+                    userSelect: 'none',
+                  }}
+                >
+                  {index + 1} / {total}
+                </Typography>
+                <NavButton label="Next (→)" disabled={!canNext} onClick={() => onStep(1)}>
+                  <CaretRight size={15} weight="bold" />
+                </NavButton>
+              </Box>
+            )}
+
+            {/* Center — file icon + name */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: 1 }}>
               {isImage ? (
                 <ImageSquare size={16} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
               ) : (
@@ -81,7 +151,22 @@ export default function DocumentPreviewDialog({
                 {doc.name}
               </Typography>
             </Box>
+
+            {/* Right — approve toggle (trackable) + open-in-tab + close */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+              {approvable && organizationId && memberRole && (
+                <Box sx={{ mr: 0.5 }}>
+                  <ApprovalToggleSwitch
+                    documentId={doc.id}
+                    documentName={doc.name}
+                    approvalStatus={doc.approvalStatus}
+                    approvedBy={doc.approvedBy}
+                    organizationId={organizationId}
+                    memberRole={memberRole}
+                    size="md"
+                  />
+                </Box>
+              )}
               {[
                 {
                   icon: ArrowSquareOut,
@@ -126,8 +211,17 @@ export default function DocumentPreviewDialog({
               alignItems: 'center',
               justifyContent: 'center',
               overflow: 'hidden',
+              position: 'relative',
             }}
           >
+            {/* Edge step affordances over the document */}
+            {hasNav && (
+              <>
+                <EdgeNav side="left" label="Previous (←)" disabled={!canPrev} onClick={() => onStep(-1)} />
+                <EdgeNav side="right" label="Next (→)" disabled={!canNext} onClick={() => onStep(1)} />
+              </>
+            )}
+
             {isImage ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
@@ -207,6 +301,108 @@ export default function DocumentPreviewDialog({
         </>
       )}
     </Dialog>
+  );
+}
+
+function NavButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip title={disabled ? '' : label} arrow disableInteractive>
+      <Box
+        component="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={label}
+        sx={{
+          width: 30,
+          height: 30,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: '6px',
+          border: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          cursor: disabled ? 'default' : 'pointer',
+          color: disabled ? 'text.disabled' : 'text.primary',
+          opacity: disabled ? 0.5 : 1,
+          '&:hover': disabled ? {} : { bgcolor: 'action.hover', borderColor: 'text.secondary' },
+          transition: 'background-color 0.15s, border-color 0.15s, color 0.15s',
+        }}
+      >
+        {children}
+      </Box>
+    </Tooltip>
+  );
+}
+
+// Large, low-emphasis step targets layered over the document edges. Hidden when
+// the step would go out of bounds so the ends feel like ends.
+function EdgeNav({
+  side,
+  label,
+  disabled,
+  onClick,
+}: {
+  side: 'left' | 'right';
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  if (disabled) return null;
+  return (
+    <Box
+      component="button"
+      onClick={onClick}
+      aria-label={label}
+      sx={{
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        [side]: 0,
+        width: 56,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: side === 'left' ? 'flex-start' : 'flex-end',
+        px: 1,
+        border: 'none',
+        cursor: 'pointer',
+        zIndex: 1,
+        color: 'text.secondary',
+        background:
+          side === 'left'
+            ? 'linear-gradient(90deg, rgba(15,23,42,0.06), transparent)'
+            : 'linear-gradient(270deg, rgba(15,23,42,0.06), transparent)',
+        opacity: 0,
+        transition: 'opacity 0.15s',
+        '&:hover': { opacity: 1 },
+      }}
+    >
+      <Box
+        sx={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          bgcolor: 'background.paper',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'text.primary',
+        }}
+      >
+        {side === 'left' ? <CaretLeft size={16} weight="bold" /> : <CaretRight size={16} weight="bold" />}
+      </Box>
+    </Box>
   );
 }
 

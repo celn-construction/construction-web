@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { X, SlidersHorizontal, Check } from 'lucide-react';
 import { api } from '@/trpc/react';
 import { formatCsiCode } from '@/lib/constants/csiCodes';
+import { parseLocalDate } from '@/lib/utils/date';
 
 const FOLDER_FILTERS = [
   { value: 'rfi', label: 'RFI' },
@@ -390,8 +391,8 @@ export default function DocumentFilterPopup({
         <Box sx={{ display: 'flex', gap: 1 }}>
           <DatePicker
             label="From"
-            value={pendingAdvanced.dateFrom ? new Date(pendingAdvanced.dateFrom) : null}
-            maxDate={pendingAdvanced.dateTo ? new Date(pendingAdvanced.dateTo) : undefined}
+            value={pendingAdvanced.dateFrom ? parseLocalDate(pendingAdvanced.dateFrom) : null}
+            maxDate={pendingAdvanced.dateTo ? parseLocalDate(pendingAdvanced.dateTo) : undefined}
             onChange={(d) =>
               setPendingAdvanced((p) => ({
                 ...p,
@@ -405,8 +406,8 @@ export default function DocumentFilterPopup({
           />
           <DatePicker
             label="To"
-            value={pendingAdvanced.dateTo ? new Date(pendingAdvanced.dateTo) : null}
-            minDate={pendingAdvanced.dateFrom ? new Date(pendingAdvanced.dateFrom) : undefined}
+            value={pendingAdvanced.dateTo ? parseLocalDate(pendingAdvanced.dateTo) : null}
+            minDate={pendingAdvanced.dateFrom ? parseLocalDate(pendingAdvanced.dateFrom) : undefined}
             onChange={(d) =>
               setPendingAdvanced((p) => ({
                 ...p,

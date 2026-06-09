@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { SquaresFour, List, FileText, Plus } from '@phosphor-icons/react';
 import type { FolderContentProps, PreviewDoc } from './types';
@@ -71,6 +71,9 @@ function PhotosFolderContentInner({
     approvedBy: doc.approvedBy,
   });
 
+  // Ordered nav set so ‹ / › (and ←/→) step through this folder's photos.
+  const previews = useMemo<PreviewDoc[]>(() => docs.map(makePreview), [docs]);
+
   return (
     <Box sx={{ pt: 1, pl: '20px' }}>
       {/* View toggle + date */}
@@ -127,7 +130,7 @@ function PhotosFolderContentInner({
             return (
               <Box
                 key={doc.id}
-                onClick={() => onSelectDoc(makePreview(doc))}
+                onClick={() => onSelectDoc(makePreview(doc), { siblings: previews })}
                 sx={{
                   position: 'relative',
                   height: 70,
@@ -166,7 +169,7 @@ function PhotosFolderContentInner({
           {docs.map((doc) => (
             <Box
               key={doc.id}
-              onClick={() => onSelectDoc(makePreview(doc))}
+              onClick={() => onSelectDoc(makePreview(doc), { siblings: previews })}
               sx={{
                 display: 'flex',
                 alignItems: 'center',

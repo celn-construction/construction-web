@@ -6,7 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/documents/Pagination';
 import { FileText, ChevronDown, Sparkles, Search, AlignJustify, Table2, LayoutGrid } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
+import { endOfDay } from 'date-fns';
 import { api } from '@/trpc/react';
+import { parseLocalDate } from '@/lib/utils/date';
 import { authClient } from '@/lib/auth-client';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
@@ -229,12 +231,15 @@ export default function DocumentExplorerPage() {
   };
 
   // Advanced filter args shared by every search query. Nulls become `undefined`
-  // so they drop out of the tRPC input rather than being sent as null.
+  // so they drop out of the tRPC input rather than being sent as null. The
+  // picked LOCAL calendar days are converted to UTC instants HERE (the client
+  // owns this — the server can't know the viewer's timezone) so the server's
+  // createdAt window matches the locally-displayed upload dates.
   const advancedArgs = {
     taskId: advanced.taskId ?? undefined,
     csiCode: advanced.csiCode ?? undefined,
-    dateFrom: advanced.dateFrom ?? undefined,
-    dateTo: advanced.dateTo ?? undefined,
+    dateFrom: advanced.dateFrom ? parseLocalDate(advanced.dateFrom).toISOString() : undefined,
+    dateTo: advanced.dateTo ? endOfDay(parseLocalDate(advanced.dateTo)).toISOString() : undefined,
   };
 
   const handleRemoveType = (type: string) => {
