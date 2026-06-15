@@ -1,8 +1,13 @@
 'use client';
 
 import { Box, Typography, alpha, useTheme } from '@mui/material';
-import { SlidersHorizontal, X, SquareCheck, CircleDashed } from 'lucide-react';
-import type { LinkFilter } from '@/components/documents/DocumentFilterPopup';
+import { SlidersHorizontal, X, SquareCheck, CircleDashed, CheckSquare, Hash, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
+import { api } from '@/trpc/react';
+import { useProjectContext } from '@/components/providers/ProjectProvider';
+import { formatCsiCode } from '@/lib/constants/csiCodes';
+import { parseLocalDate } from '@/lib/utils/date';
+import type { LinkFilter, AdvancedFilters } from '@/components/documents/DocumentFilterPopup';
 
 const FOLDER_LABELS: Record<string, string> = {
   rfi: 'RFI',
@@ -12,13 +17,25 @@ const FOLDER_LABELS: Record<string, string> = {
   inspections: 'Inspections',
 };
 
+function formatDateRange(dateFrom: string | null, dateTo: string | null): string {
+  const fmt = (s: string) => format(parseLocalDate(s), 'MMM d, yyyy');
+  if (dateFrom && dateTo) return `${fmt(dateFrom)} – ${fmt(dateTo)}`;
+  if (dateFrom) return `After ${fmt(dateFrom)}`;
+  if (dateTo) return `Before ${fmt(dateTo)}`;
+  return '';
+}
+
 interface DocumentFilterTabsProps {
   selectedTypes: string[];
   linkFilter: LinkFilter;
+  advanced: AdvancedFilters;
   unassignedCount?: number;
   onOpenPopup: (e: React.MouseEvent<HTMLElement>) => void;
   onRemoveType: (type: string) => void;
   onRemoveLinkFilter: () => void;
+  onRemoveTask: () => void;
+  onRemoveCsi: () => void;
+  onRemoveDate: () => void;
   onToggleUnassigned?: () => void;
   isLoading?: boolean;
 }
@@ -26,17 +43,37 @@ interface DocumentFilterTabsProps {
 export default function DocumentFilterTabs({
   selectedTypes,
   linkFilter,
+  advanced,
   unassignedCount = 0,
   onOpenPopup,
   onRemoveType,
   onRemoveLinkFilter,
+  onRemoveTask,
+  onRemoveCsi,
+  onRemoveDate,
   onToggleUnassigned,
   isLoading,
 }: DocumentFilterTabsProps) {
   const theme = useTheme();
-  const activeCount = selectedTypes.length + (linkFilter !== 'all' ? 1 : 0);
+  const { organizationId, projectId } = useProjectContext();
+
+  const hasDate = !!(advanced.dateFrom || advanced.dateTo);
+  const activeCount =
+    selectedTypes.length +
+    (linkFilter !== 'all' ? 1 : 0) +
+    (advanced.taskId ? 1 : 0) +
+    (advanced.csiCode ? 1 : 0) +
+    (hasDate ? 1 : 0);
   const isUnassignedActive = linkFilter === 'unlinked';
   const showUnassignedChip = unassignedCount > 0 || isUnassignedActive;
+
+  // Resolve the selected task's name for its chip label (cached with the popup's query).
+  const { data: filterOptions } = api.document.filterOptions.useQuery(
+    { organizationId, projectId },
+    { enabled: !!advanced.taskId && !!organizationId && !!projectId, staleTime: 30_000 },
+  );
+  const taskName =
+    filterOptions?.tasks.find((t) => t.id === advanced.taskId)?.name ?? 'Task';
 
   if (isLoading) {
     return <Box sx={{ mb: 2 }} />;
@@ -51,6 +88,17 @@ export default function DocumentFilterTabs({
     py: '6px',
     gap: '6px',
     bgcolor: 'secondary.main',
+  } as const;
+
+  const removeBtnSx = {
+    display: 'flex',
+    alignItems: 'center',
+    border: 'none',
+    bgcolor: 'transparent',
+    cursor: 'pointer',
+    p: 0,
+    color: 'text.secondary',
+    '&:hover': { color: 'text.primary' },
   } as const;
 
   return (
@@ -200,6 +248,65 @@ export default function DocumentFilterTabs({
               '&:hover': { color: 'text.primary' },
             }}
           >
+            <X style={{ width: 12, height: 12 }} />
+          </Box>
+        </Box>
+      )}
+
+      {/* Task filter chip */}
+      {advanced.taskId && (
+        <Box sx={activeChipSx}>
+          <CheckSquare style={{ width: 12, height: 12, color: theme.palette.docExplorer.linkedGreen, flexShrink: 0 }} />
+          <Typography
+            sx={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: 'text.primary',
+              maxWidth: 160,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {taskName}
+          </Typography>
+          <Box component="button" onClick={onRemoveTask} sx={removeBtnSx}>
+            <X style={{ width: 12, height: 12 }} />
+          </Box>
+        </Box>
+      )}
+
+      {/* CSI code filter chip */}
+      {advanced.csiCode && (
+        <Box sx={activeChipSx}>
+          <Hash style={{ width: 12, height: 12, color: theme.palette.text.secondary, flexShrink: 0 }} />
+          <Typography
+            sx={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: 'text.primary',
+              maxWidth: 200,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {formatCsiCode(advanced.csiCode)}
+          </Typography>
+          <Box component="button" onClick={onRemoveCsi} sx={removeBtnSx}>
+            <X style={{ width: 12, height: 12 }} />
+          </Box>
+        </Box>
+      )}
+
+      {/* Date uploaded filter chip */}
+      {hasDate && (
+        <Box sx={activeChipSx}>
+          <Calendar style={{ width: 12, height: 12, color: theme.palette.text.secondary, flexShrink: 0 }} />
+          <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'text.primary', whiteSpace: 'nowrap' }}>
+            {formatDateRange(advanced.dateFrom, advanced.dateTo)}
+          </Typography>
+          <Box component="button" onClick={onRemoveDate} sx={removeBtnSx}>
             <X style={{ width: 12, height: 12 }} />
           </Box>
         </Box>

@@ -67,6 +67,12 @@ function makeCtx(dbOverrides: Record<string, unknown> = {}) {
         findFirst: vi.fn(),
       },
       $queryRaw: vi.fn(),
+      // Search results are post-processed by attachTasks(), which batches a
+      // GanttTask lookup to resolve each doc's linked task. Default to no linked
+      // tasks; override per-test when asserting task attachment.
+      ganttTask: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       ...dbOverrides,
     },
     organization: { id: "org-1" },

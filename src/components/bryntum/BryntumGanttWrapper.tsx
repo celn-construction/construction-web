@@ -9,6 +9,7 @@ import { useOrgFromUrl } from '@/hooks/useOrgFromUrl';
 import { canManageProjects } from '@/lib/permissions';
 import { createGanttConfig } from './config/ganttConfig';
 import GanttToolbar from './components/GanttToolbar';
+import ProjectStartCard from './components/ProjectStartCard';
 import ColumnPickerPopover, { TOGGLEABLE_COLUMNS, type ColumnId } from './components/ColumnPickerPopover';
 import { TaskDetailsPopover } from './components/TaskDetailsPopover';
 import TaskInfoDialog from './components/TaskInfoDialog';
@@ -22,12 +23,23 @@ import type { BryntumTaskRecord, BryntumGanttInstance, TaskClickEventPayload } f
 import { IBeamLoader } from '@/components/ui/IBeamLoader';
 
 const WRAPPER_STYLE: CSSProperties = {
+  position: 'relative',
   display: 'flex',
   flexDirection: 'column',
   height: '100%',
   borderRadius: '12px',
   backgroundColor: 'var(--bg-card)',
   overflow: 'clip',
+  transition: 'box-shadow 0.28s ease',
+};
+
+// Edit mode makes the whole card "pop" — an accent ring + soft elevation so it
+// reads as the active, mutable surface (Direction 1 / Option A+C). Uses
+// box-shadow (not border) so toggling causes no layout shift. The accent ring
+// flips to near-white in dark mode via --accent-primary.
+const EDITING_CARD_STYLE: CSSProperties = {
+  boxShadow:
+    '0 0 0 1.5px var(--accent-primary), 0 16px 40px rgba(43,45,66,0.18), 0 4px 14px rgba(43,45,66,0.10)',
 };
 
 const GANTT_CONTENT_STYLE: CSSProperties = {
@@ -87,6 +99,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     handleZoomToFit,
     handleShiftPrevious,
     handleShiftNext,
+    handleScrollToToday,
     handlePresetChange,
     handleUndo,
     handleRedo,
@@ -220,8 +233,11 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     gantt.columns.on('change', onColumnChange);
     return () => {
+      // `columns` is undefined once the gantt is destroyed (unmount / hot-reload
+      // remount), so optional-chain like the other listener cleanups below —
+      // an unguarded .un() here threw into the ErrorBoundary and reset the chart.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      gantt.columns.un('change', onColumnChange);
+      gantt.columns?.un('change', onColumnChange);
     };
   }, [isLoading, getGanttInstance]);
 
@@ -588,15 +604,27 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   // created exactly once and never recreated on re-render.  A new config reference
   // would make the React wrapper re-initialise the Bryntum instance (including
   // autoLoad), which wipes locally-added tasks.
+  // Show the full-screen loader only on the FIRST load. Subsequent loads — the
+  // approval-driven silent reload (TaskDetailsPopover) and the visibility
+  // stale-refresh — merge in place with no overlay flash. Bryntum's own masks
+  // are disabled (loadMask/syncMask: null), so suppressing our overlay is silent.
+  const hasLoadedOnceRef = useRef(false);
+
   const [ganttConfig] = useState(() => createGanttConfig(projectId, {
     onLoadStart: () => {
+      if (hasLoadedOnceRef.current) return;
       setIsLoading(true);
       setLoadError(null);
     },
     onLoadComplete: () => {
+      hasLoadedOnceRef.current = true;
       setIsLoading(false);
     },
     onLoadError: (error: string) => {
+      // Only surface the blocking error overlay on the initial load. A failed
+      // background reload leaves the working chart in place (the bar may stay
+      // stale) rather than blanking a view the user is actively using.
+      if (hasLoadedOnceRef.current) return;
       setIsLoading(false);
       setLoadError(error);
     },
@@ -809,7 +837,32 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
   }), [getGanttInstance, startLinkingFrom]);
 
   return (
-    <div style={WRAPPER_STYLE}>
+    <div style={editingUnlocked ? { ...WRAPPER_STYLE, ...EDITING_CARD_STYLE } : WRAPPER_STYLE}>
+      {/* Accent strip across the top edge while editing — a peripheral cue that
+          pairs with the card's ring/elevation and the toolbar's warm wash. */}
+      {editingUnlocked && (
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            backgroundColor: 'var(--accent-primary)',
+            zIndex: 5,
+            transformOrigin: 'left',
+            animation: 'gantt-edit-strip-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
+          }}
+        />
+      )}
+      {projectId && (
+        <ProjectStartCard
+          projectId={projectId}
+          canEdit={canEditChart}
+          getGanttInstance={getGanttInstance}
+        />
+      )}
       <GanttToolbar
         onAddTask={handleAddTask}
         onPresetChange={handlePresetChange}
@@ -818,6 +871,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         onZoomToFit={handleZoomToFit}
         onShiftPrevious={handleShiftPrevious}
         onShiftNext={handleShiftNext}
+        onScrollToToday={handleScrollToToday}
         onUndo={handleUndo}
         onRedo={handleRedo}
         canUndo={canUndo}
@@ -998,6 +1052,7 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         style={GANTT_CONTENT_STYLE}
         className="bryntum-gantt-container"
         data-locked={editingUnlocked ? 'false' : 'true'}
+        data-editing={editingUnlocked ? 'true' : 'false'}
         data-can-reorder={canEditChart ? 'true' : 'false'}
       >
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -1022,6 +1077,19 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
             // it's automatically off when the chart is locked or for non-admins.
             // New order persists via the `orderedParentIndex` field → orderIndex.
             rowReorderFeature={{ showGrip: true, gripOnly: true, dropOnLeaf: false }}
+            // Current-date line — the TimeRanges feature's "now" indicator, a
+            // vertical line marking today on the time axis. Passed as a
+            // per-feature prop (NOT via `features.timeRanges` in ganttConfig):
+            // the React wrapper only applies props whose names are in
+            // BryntumGantt.configNames/featureNames, and bare `features` is not
+            // one of them, so nested feature config there is silently dropped
+            // (same reason cellEdit/taskMenu/rowReorder are passed this way).
+            // `showCurrentTimeLine` with a TimeSpan config object both enables
+            // the feature and labels the line. The empty timeRangeStore means
+            // only the "now" line renders. Styling comes from the Bryntum theme
+            // (.b-sch-current-time), so it adapts to light/dark automatically.
+            // Docs: https://bryntum.com/products/gantt/docs/api/Scheduler/feature/TimeRanges
+            timeRangesFeature={{ showCurrentTimeLine: { name: 'Today' } }}
           />
         </div>
 

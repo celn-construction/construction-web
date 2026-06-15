@@ -45,6 +45,7 @@ Pure, reusable utility functions live in `src/lib/utils/`. Current modules:
 | `slug.ts` | Slug generation |
 | `files.tsx` | `getFileIcon(mimeType)` — returns Lucide icon for a file type |
 | `formatting.ts` | `formatRole(role)`, `formatFileSize(bytes)` — display formatting helpers |
+| `date.ts` | `parseLocalDate(yyyyMmDd)` — parse a `yyyy-MM-dd` string as a LOCAL date (not UTC) so date-picker round-trips and chips don't shift a day in negative-UTC timezones |
 
 ---
 
@@ -281,9 +282,13 @@ Providers wrap context around the app. They are initialized in `src/app/(app)/la
 - `OrgProvider` — exposes `useOrg()` for current organization
 - `ProjectProvider` — exposes `useProject()` for active project
 - `LoadingProvider` — global loading overlay (`useLoading()` → `showLoading` / `hideLoading`)
-- `ThemeRegistry` — MUI emotion SSR setup
+- `ThemeRegistry` — MUI emotion SSR setup. Also mounts MUI X's `LocalizationProvider` (`dateAdapter={AdapterDateFns}`, date-fns v4) so any `DatePicker` works app-wide and inherits the light/dark MUI theme.
 
 Do not create new providers for feature-scoped state — use Zustand stores in `src/store/` instead.
+
+### Date inputs — use MUI X `DatePicker`
+
+For date fields, use `DatePicker` from `@mui/x-date-pickers/DatePicker` (MUI X v8) — **not** a native `<input type="date">`. It renders a modern, theme-consistent calendar and supports `maxDate`/`minDate` to disable out-of-range days. The picker works in `Date` objects; when the form/wire value is a `yyyy-MM-dd` string, convert at the boundary (`value={s ? new Date(s) : null}`, `onChange={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')}`). See `ProjectStartCard.tsx` (Gantt) and the project Settings page for working examples. `LocalizationProvider` is already global (in `ThemeRegistry`) — do not mount another.
 
 ---
 
@@ -302,6 +307,7 @@ bryntum/
     TaskDetailsPopover.tsx
     SubmittalDrawer.tsx       ← right-side drawer for managing per-slot submittals/inspections. Draft editor: count/name/due-date edits stay local until the user clicks Save (commits the whole list via gantt.saveSlots), with a Save/Discard bar, a discard guard on close/tab-switch, and uploads disabled on unsaved draft slots. On Save it flashes "Saved ✓", then fires onSaved → the popover auto-closes the drawer and shows a transient confirmation banner (RequirementsSavedBanner in TaskDetailsPopover)
     BryntumPanelHeader.tsx
+    ProjectStartCard.tsx      ← banner above the toolbar showing the project start date (the Gantt scheduling floor). Owners/admins can edit it inline (read-only for members). Saves via `project.update`; on success it sets `gantt.project.startDate` live so bars can immediately slide to the new floor. See "Project start date" note below.
     TaskLinkingBar.tsx        ← floating confirm toast for Shift-click/Link-mode dependency creation
     task-popover/             ← extracted sub-components for TaskDetailsPopover
       types.ts
@@ -312,7 +318,7 @@ bryntum/
       PhotosFolderContent.tsx
       TrackableFolderContent.tsx
       RequirementCounter.tsx
-      FilePreviewPanel.tsx
+      DocumentPreviewDialog.tsx   ← centered popup viewer (images inline, PDFs in an iframe). Steps through the clicked doc's sibling set via ‹ / › + ←/→ ("N / M" counter, edge hovers); the parent overlays live approval state so the in-header approve toggle (trackable submittal/inspection docs only) stays correct while navigating
       CsiCodePanel.tsx
   hooks/
     useTaskPopover.ts
@@ -328,6 +334,12 @@ Follow this sub-structure if adding more Gantt-related code. Do not add Gantt lo
 - API docs: https://bryntum.com/products/gantt/docs/api/
 - Forum: https://forum.bryntum.com/
 - Support issues: https://github.com/bryntum/support/issues
+
+### Project start date = the scheduling floor
+
+`Project.startDate` (nullable) is sent to Bryntum as the project's start date (`gantt.ts` load route, only when set). In Bryntum, **the project start date is the lower scheduling boundary** for auto-scheduled tasks — bars cannot be dragged earlier than it. When it's null, Bryntum derives the floor from the **earliest task**, which is why bars "snapped back" before this field existed.
+
+The field is editable in two places, both writing through the same `project.update` mutation (gated by `canManageProjects`): the **Settings** page and the **`ProjectStartCard`** banner above the Gantt toolbar. `project.update` rejects a start date later than the earliest task (it would shove earlier tasks forward). The Gantt project config sets **`autoSetConstraints: true`** so that lowering the start date pins each task at its own date (implicit `startnoearlier` constraint) instead of collapsing unconstrained tasks onto the new floor. After a successful save the card sets `gantt.project.startDate` on the live instance so the floor moves without a page reload. The wire format is a `yyyy-MM-dd` string (or `""`/null to clear); the mutation parses it to a `Date`.
 
 ---
 

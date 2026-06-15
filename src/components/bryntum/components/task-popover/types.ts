@@ -32,9 +32,20 @@ export interface DocumentItem {
   approvedBy: ApprovedByUser | null;
 }
 
+/**
+ * Navigation context passed alongside a selected doc so the preview dialog can
+ * step through siblings (‹ / ›, ←/→) without closing. `siblings` is the ordered
+ * set the clicked doc belongs to (and includes it); `approvable` shows the
+ * in-header approve toggle (trackable submittal/inspection folders only).
+ */
+export interface PreviewNav {
+  siblings: PreviewDoc[];
+  approvable?: boolean;
+}
+
 export interface FolderContentProps {
   docs: DocumentItem[];
-  onSelectDoc: (doc: PreviewDoc) => void;
+  onSelectDoc: (doc: PreviewDoc, nav?: PreviewNav) => void;
   selectedDocId: string | null;
   /**
    * Open the upload dialog for this folder. Pass a `slotId` to bind the

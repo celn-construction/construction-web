@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { ThemeProvider, CssBaseline } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { darkTheme, lightTheme } from '@/theme/theme';
 
 export type ThemeMode = 'light' | 'dark';
@@ -75,7 +77,9 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
       <ThemeModeContext.Provider value={value}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          {children}
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            {children}
+          </LocalizationProvider>
         </ThemeProvider>
       </ThemeModeContext.Provider>
     </AppRouterCacheProvider>

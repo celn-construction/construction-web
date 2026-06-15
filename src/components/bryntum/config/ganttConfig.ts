@@ -71,6 +71,13 @@ export function createGanttConfig(
       autoSyncTimeout: 500,
       taskModelClass: AppTaskModel,
       resetUndoRedoQueuesAfterLoad: true,
+      // Pin each task at its own date with an implicit `startnoearlier`
+      // constraint instead of rescheduling unconstrained tasks to the project
+      // start. This lets the project start date (the scheduling floor) be set
+      // EARLIER than existing tasks — moving the left wall without yanking the
+      // bars onto it. Without this, lowering project.startDate would collapse
+      // unconstrained tasks back to the new start on load.
+      autoSetConstraints: true,
 
       stm: {
         autoRecord: true,
@@ -212,7 +219,10 @@ export function createGanttConfig(
       },
       // Show the proposed end date in a tooltip while the user drags the
       // end-side resize handle. Bryntum's TaskResize is end-only by design;
-      // this gives live feedback during the drag.
+      // this gives live feedback during the drag. Kept here in the STATIC
+      // config (created once via useState) — moving it to a per-render
+      // `taskResizeFeature` prop made the wrapper re-run feature.setConfig and
+      // destabilized the resize handles.
       taskResize: {
         showTooltip: true,
         tooltipTemplate: ({ endDate }) => {
@@ -252,7 +262,16 @@ export function createGanttConfig(
       dependencies: true,
     },
     emptyText: 'No tasks yet — click "+ Add Task" above or double-click here to get started',
+    // Zoom ladder — ordered coarsest → finest (matches Bryntum's own default
+    // order), so zoomOut() steps toward monthAndYear and zoomIn() toward
+    // hourAndDay. `zoomLevel` is an INDEX into this array; the previous config
+    // had a single preset, so zoomIn/zoomOut had no other level to step to and
+    // were silent no-ops. IDs match the toolbar's view-preset picker so the
+    // dropdown and the zoom buttons stay in sync. The custom compact week
+    // preset (MM/DD headers) is the initial rung.
     presets: [
+      { id: 'monthAndYear', base: 'monthAndYear' },
+      { id: 'weekAndMonth', base: 'weekAndMonth' },
       {
         id: 'weekAndDayLetterCompact',
         base: 'weekAndDayLetter',
@@ -262,15 +281,22 @@ export function createGanttConfig(
           { unit: 'day', dateFormat: 'DD' },
         ],
       },
+      { id: 'hourAndDay', base: 'hourAndDay' },
     ],
     viewPreset: 'weekAndDayLetterCompact',
     startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 24, 1),
+    // Hard paging limits for the time axis. startDate/endDate are only the
+    // INITIAL span — without min/max, the axis end sat exactly at endDate, so
+    // shiftNext() had nowhere to extend and was a no-op (while shiftPrevious()
+    // worked). These give generous room to page in both directions.
+    minDate: new Date(new Date().getFullYear() - 2, new Date().getMonth(), 1),
+    maxDate: new Date(new Date().getFullYear() + 5, new Date().getMonth(), 1),
     barMargin: 10,
 
     // Differentiate parent bars from child bars.
     // Adds 'gantt-parent-bar' class to parent tasks for CSS targeting.
-    // Parent bars show no text (name is in the tree column).
+    // Parent bars show the task name (same as the tree column).
     // Leaf bars show the task name plus a donut-in-chip indicator carrying
     // both the visual progress (mini SVG donut) and the count (e.g. 1/2) when
     // the task has any requirements set (requirementsTotal > 0).
@@ -282,7 +308,7 @@ export function createGanttConfig(
         if (typeof renderData.cls !== 'string') {
           renderData.cls.add('gantt-parent-bar');
         }
-        return '';
+        return taskRecord.name ?? '';
       }
 
       const total = Number(taskRecord.get('requirementsTotal') ?? 0);

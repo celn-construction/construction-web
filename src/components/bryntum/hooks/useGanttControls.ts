@@ -98,6 +98,16 @@ export function useGanttControls() {
     () => getGanttInstance()?.shiftNext(),
     [getGanttInstance]
   );
+  // Scroll the timeline so today is centered. Uses scrollToDate — the
+  // proven-safe scroll path in this codebase (handleAddTask + the "Scroll to
+  // item" task menu both use it). scrollTaskIntoView is the one that corrupts
+  // the time-axis header virtual renderer; scrollToDate does not.
+  const handleScrollToToday = useCallback(() => {
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    gantt.scrollToDate?.(new Date(), { block: 'center', animate: 300 });
+  }, [getGanttInstance]);
   const handlePresetChange = useCallback(
     (preset: string) => {
       const gantt = getGanttInstance();
@@ -189,6 +199,7 @@ export function useGanttControls() {
     handleZoomToFit,
     handleShiftPrevious,
     handleShiftNext,
+    handleScrollToToday,
     handlePresetChange,
     handleUndo,
     handleRedo,

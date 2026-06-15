@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Clock,
+  CalendarBlank,
   Sun,
   Moon,
   Cloud,
@@ -30,6 +31,17 @@ function getLocalTime(timezoneOffset: number): string {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
+  });
+}
+
+function getLocalDate(timezoneOffset: number): string {
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60_000;
+  const localDate = new Date(utcMs + timezoneOffset * 1000);
+  return localDate.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
   });
 }
 
@@ -109,20 +121,24 @@ export default function LocationWeather({ location, organizationId }: LocationWe
   );
 
   const [localTime, setLocalTime] = useState<string | null>(null);
+  const [localDate, setLocalDate] = useState<string | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const chipRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (weather?.timezoneOffset == null) {
       setLocalTime(null);
+      setLocalDate(null);
       return;
     }
 
-    setLocalTime(getLocalTime(weather.timezoneOffset));
-
-    const interval = setInterval(() => {
+    const update = () => {
       setLocalTime(getLocalTime(weather.timezoneOffset));
-    }, 60_000);
+      setLocalDate(getLocalDate(weather.timezoneOffset));
+    };
+    update();
+
+    const interval = setInterval(update, 60_000);
 
     return () => clearInterval(interval);
   }, [weather?.timezoneOffset]);
@@ -199,6 +215,30 @@ export default function LocationWeather({ location, organizationId }: LocationWe
             />
           )}
         </ButtonBase>
+      )}
+
+      {/* Date chip — in the project's local timezone */}
+      {localDate && (
+        <Box
+          sx={{
+            ...chipSx,
+            '@keyframes fadeIn': {
+              from: { opacity: 0 },
+              to: { opacity: 1 },
+            },
+            animation: 'fadeIn 0.3s ease',
+          }}
+        >
+          <CalendarBlank size={12} weight="bold" style={{ flexShrink: 0, opacity: 0.5 }} />
+          <Typography
+            sx={{
+              ...labelSx,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {localDate}
+          </Typography>
+        </Box>
       )}
 
       {/* Time chip */}

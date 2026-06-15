@@ -201,7 +201,7 @@ function Stepper({
             {dot.state === 'done' ? (
               <Check size={11} weight="bold" />
             ) : (
-              dot.index
+              String(dot.index)
             )}
           </StepDot>
           {idx < dots.length - 1 && (

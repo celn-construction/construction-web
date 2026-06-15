@@ -165,6 +165,130 @@ describe("ApprovalToggleSwitch (admin)", () => {
   });
 });
 
+describe("ApprovalToggleSwitch (event isolation)", () => {
+  beforeEach(() => {
+    mocks.mutate.mockReset();
+    mocks.invalidate.mockReset();
+    mocks.isPending = false;
+  });
+
+  // The switch is rendered inside a clickable document row. MUI's confirm
+  // Popover renders in a portal that is still a React-tree descendant of that
+  // row, so clicks inside it must not bubble to the row's onClick (which would
+  // wrongly open the document preview dialog).
+  const renderInRow = (status: "approved" | "unapproved") => {
+    const rowClick = vi.fn();
+    render(
+      <div onClick={rowClick} data-testid="doc-row">
+        <ApprovalToggleSwitch
+          {...baseProps}
+          approvalStatus={status}
+          memberRole="admin"
+        />
+      </div>,
+    );
+    return rowClick;
+  };
+
+  it("clicking the switch does not trigger the row click", async () => {
+    const user = userEvent.setup();
+    const rowClick = renderInRow("unapproved");
+
+    await user.click(screen.getByRole("switch"));
+
+    expect(rowClick).not.toHaveBeenCalled();
+    expect(screen.getByText("Approve this submittal?")).toBeInTheDocument();
+  });
+
+  it("confirming approval does not trigger the row click", async () => {
+    const user = userEvent.setup();
+    const rowClick = renderInRow("unapproved");
+
+    await user.click(screen.getByRole("switch"));
+    await user.click(screen.getByRole("button", { name: /^approve$/i }));
+
+    expect(mocks.mutate).toHaveBeenCalledWith({
+      documentId: "doc-1",
+      organizationId: "org-1",
+      approved: true,
+    });
+    expect(rowClick).not.toHaveBeenCalled();
+  });
+
+  it("cancelling the confirm does not trigger the row click", async () => {
+    const user = userEvent.setup();
+    const rowClick = renderInRow("unapproved");
+
+    await user.click(screen.getByRole("switch"));
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(mocks.mutate).not.toHaveBeenCalled();
+    expect(rowClick).not.toHaveBeenCalled();
+  });
+
+  it("one-click un-approve does not trigger the row click", async () => {
+    const user = userEvent.setup();
+    const rowClick = renderInRow("approved");
+
+    await user.click(screen.getByRole("switch"));
+
+    expect(mocks.mutate).toHaveBeenCalledWith({
+      documentId: "doc-1",
+      organizationId: "org-1",
+      approved: false,
+    });
+    expect(rowClick).not.toHaveBeenCalled();
+  });
+});
+
+describe("ApprovalToggleSwitch (optimistic reconcile)", () => {
+  beforeEach(() => {
+    mocks.mutate.mockReset();
+    mocks.invalidate.mockReset();
+    mocks.isPending = false;
+  });
+
+  // The optimistic override must not permanently mask the server prop. Once the
+  // refetched approvalStatus catches up, a later change from another source
+  // (the same doc's toggle in the drawer, the Review Queue, another admin) must
+  // be reflected rather than ignored.
+  it("stops masking the prop once the server status catches up to the optimistic value", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ApprovalToggleSwitch
+        {...baseProps}
+        approvalStatus="unapproved"
+        memberRole="admin"
+      />,
+    );
+
+    // Optimistically approve
+    await user.click(screen.getByRole("switch"));
+    await user.click(screen.getByRole("button", { name: /^approve$/i }));
+    expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "true");
+
+    // Server refetch confirms 'approved' — the optimistic override clears.
+    rerender(
+      <ApprovalToggleSwitch
+        {...baseProps}
+        approvalStatus="approved"
+        memberRole="admin"
+      />,
+    );
+    expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "true");
+
+    // A later external change to 'unapproved' must now show through, not be masked.
+    rerender(
+      <ApprovalToggleSwitch
+        {...baseProps}
+        approvalStatus="unapproved"
+        memberRole="admin"
+      />,
+    );
+    expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "false");
+  });
+});
+
 describe("ApprovalToggleSwitch (employee)", () => {
   beforeEach(() => {
     mocks.mutate.mockReset();

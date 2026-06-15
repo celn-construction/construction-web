@@ -7,6 +7,11 @@ export interface DocumentResult {
   tags: string[];
   description: string;
   taskId: string | null;
+  task: {
+    id: string;
+    name: string;
+    csiCode: string | null;
+  } | null;
   folderId: string | null;
   projectId: string;
   uploadedById: string;

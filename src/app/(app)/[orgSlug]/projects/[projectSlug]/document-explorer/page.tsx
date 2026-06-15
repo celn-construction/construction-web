@@ -6,7 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/documents/Pagination';
 import { FileText, ChevronDown, Sparkles, Search, AlignJustify, Table2, LayoutGrid } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
+import { endOfDay } from 'date-fns';
 import { api } from '@/trpc/react';
+import { parseLocalDate } from '@/lib/utils/date';
 import { authClient } from '@/lib/auth-client';
 import { useProjectContext } from '@/components/providers/ProjectProvider';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
@@ -14,8 +16,8 @@ import { expandFolderIds } from '@/lib/folders';
 import { DOCUMENT_AI_SEARCH_EXAMPLES } from '@/lib/constants/documentSearchExamples';
 import DocumentToolbar from '@/components/documents/DocumentToolbar';
 import DocumentFilterTabs from '@/components/documents/DocumentFilterTabs';
-import DocumentFilterPopup from '@/components/documents/DocumentFilterPopup';
-import type { LinkFilter } from '@/components/documents/DocumentFilterPopup';
+import DocumentFilterPopup, { EMPTY_ADVANCED_FILTERS } from '@/components/documents/DocumentFilterPopup';
+import type { LinkFilter, AdvancedFilters } from '@/components/documents/DocumentFilterPopup';
 import DocumentCardCompact from '@/components/documents/DocumentCardCompact';
 import DocumentCardDetail from '@/components/documents/DocumentCardDetail';
 import DocumentCardGallery from '@/components/documents/DocumentCardGallery';
@@ -57,6 +59,7 @@ export default function DocumentExplorerPage() {
   // Filter state
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [linkFilter, setLinkFilter] = useState<LinkFilter>('all');
+  const [advanced, setAdvanced] = useState<AdvancedFilters>(EMPTY_ADVANCED_FILTERS);
   const [filterAnchorEl, setFilterAnchorEl] = useState<HTMLElement | null>(null);
 
   // Unassigned chip count — refreshed alongside search results.
@@ -205,10 +208,38 @@ export default function DocumentExplorerPage() {
     addRecent(trimmed, false);
   };
 
-  const handleFilterApply = (types: string[], link: LinkFilter) => {
+  const handleFilterApply = (types: string[], link: LinkFilter, adv: AdvancedFilters) => {
     setSelectedTypes(types);
     setLinkFilter(link);
+    setAdvanced(adv);
     setPage(1);
+  };
+
+  const handleRemoveTask = () => {
+    setAdvanced((prev) => ({ ...prev, taskId: null }));
+    setPage(1);
+  };
+
+  const handleRemoveCsi = () => {
+    setAdvanced((prev) => ({ ...prev, csiCode: null }));
+    setPage(1);
+  };
+
+  const handleRemoveDate = () => {
+    setAdvanced((prev) => ({ ...prev, dateFrom: null, dateTo: null }));
+    setPage(1);
+  };
+
+  // Advanced filter args shared by every search query. Nulls become `undefined`
+  // so they drop out of the tRPC input rather than being sent as null. The
+  // picked LOCAL calendar days are converted to UTC instants HERE (the client
+  // owns this — the server can't know the viewer's timezone) so the server's
+  // createdAt window matches the locally-displayed upload dates.
+  const advancedArgs = {
+    taskId: advanced.taskId ?? undefined,
+    csiCode: advanced.csiCode ?? undefined,
+    dateFrom: advanced.dateFrom ? parseLocalDate(advanced.dateFrom).toISOString() : undefined,
+    dateTo: advanced.dateTo ? endOfDay(parseLocalDate(advanced.dateTo)).toISOString() : undefined,
   };
 
   const handleRemoveType = (type: string) => {
@@ -223,19 +254,19 @@ export default function DocumentExplorerPage() {
 
   // Fuzzy search (AI OFF)
   const fuzzyQuery = api.document.search.useQuery(
-    { organizationId, projectId, query: debouncedQuery, limit: LIMIT, offset, folderIds, linkFilter, sortBy },
+    { organizationId, projectId, query: debouncedQuery, limit: LIMIT, offset, folderIds, linkFilter, sortBy, ...advancedArgs },
     { enabled: !aiEnabled && !!organizationId && !!projectId, placeholderData: keepPreviousData },
   );
 
   // AI semantic search (AI ON + query submitted)
   const aiQuery = api.document.aiSearch.useQuery(
-    { organizationId, projectId, query: aiSearchQuery, limit: LIMIT, offset, folderIds, linkFilter, sortBy },
+    { organizationId, projectId, query: aiSearchQuery, limit: LIMIT, offset, folderIds, linkFilter, sortBy, ...advancedArgs },
     { enabled: aiEnabled && !!aiSearchQuery && !!organizationId && !!projectId, staleTime: 60_000, retry: 1 },
   );
 
   // All docs fallback (AI ON, no search submitted)
   const allDocsQuery = api.document.search.useQuery(
-    { organizationId, projectId, query: '', limit: LIMIT, offset, folderIds, linkFilter, sortBy },
+    { organizationId, projectId, query: '', limit: LIMIT, offset, folderIds, linkFilter, sortBy, ...advancedArgs },
     { enabled: aiEnabled && !aiSearchQuery && !!organizationId && !!projectId, placeholderData: keepPreviousData },
   );
 
@@ -286,10 +317,14 @@ export default function DocumentExplorerPage() {
       <DocumentFilterTabs
         selectedTypes={selectedTypes}
         linkFilter={linkFilter}
+        advanced={advanced}
         unassignedCount={unassignedCount}
         onOpenPopup={(e) => setFilterAnchorEl(e.currentTarget)}
         onRemoveType={handleRemoveType}
         onRemoveLinkFilter={handleRemoveLinkFilter}
+        onRemoveTask={handleRemoveTask}
+        onRemoveCsi={handleRemoveCsi}
+        onRemoveDate={handleRemoveDate}
         onToggleUnassigned={handleToggleUnassigned}
         isLoading={isLoading}
       />
@@ -297,8 +332,11 @@ export default function DocumentExplorerPage() {
       <DocumentFilterPopup
         open={Boolean(filterAnchorEl)}
         anchorEl={filterAnchorEl}
+        organizationId={organizationId}
+        projectId={projectId}
         selectedTypes={selectedTypes}
         linkFilter={linkFilter}
+        advanced={advanced}
         onClose={() => setFilterAnchorEl(null)}
         onApply={handleFilterApply}
       />

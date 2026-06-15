@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDrag } from '@use-gesture/react';
 import { Box, Popover, Typography, Divider } from '@mui/material';
 
@@ -12,19 +12,19 @@ import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
 import { trackUpload } from '@/store/uploadStatusStore';
 import type { PopoverPlacement, BryntumGanttInstance } from '../types';
-import type { PreviewDoc, DocumentItem } from './task-popover/types';
+import type { PreviewDoc, PreviewNav, DocumentItem } from './task-popover/types';
 
 import { ArrowsInSimple, ArrowsOutSimple, CheckCircle } from '@phosphor-icons/react';
 import TaskHeader from './task-popover/TaskHeader';
 import CoverImageBanner from './task-popover/CoverImageBanner';
 import FolderRow from './task-popover/FolderRow';
-import FilePreviewPanel from './task-popover/FilePreviewPanel';
+import DocumentPreviewDialog from './task-popover/DocumentPreviewDialog';
 import CsiCodePanel from './task-popover/CsiCodePanel';
 import SubmittalDrawer from './SubmittalDrawer';
 import { canApproveDocuments, canManageProjects } from '@/lib/permissions';
 import type { SlotKind } from '@/lib/validations/gantt';
 
-type RightPanel = { type: 'preview'; doc: PreviewDoc } | { type: 'csi' } | null;
+type RightPanel = { type: 'csi' } | null;
 
 type TaskDetailsPopoverProps = {
   open: boolean;
@@ -52,6 +52,11 @@ export function TaskDetailsPopover({
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [uploadTarget, setUploadTarget] = useState<{ folder: { id: string; name: string }; slotId?: string } | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
+  // Document preview opens as a centered popup (over the popover). It carries an
+  // ordered navigation set (the siblings of the clicked doc) + the active index
+  // so the dialog can step ‹ / › (and ←/→) without closing. `approvable` shows
+  // the in-header approve toggle (trackable submittal/inspection docs only).
+  const [preview, setPreview] = useState<{ docs: PreviewDoc[]; index: number; approvable: boolean } | null>(null);
   const [drawerKind, setDrawerKind] = useState<SlotKind | null>(null);
   // Transient confirmation shown on the popover after the drawer saves + closes.
   const [savedNotice, setSavedNotice] = useState<{ kind: SlotKind; count: number } | null>(null);
@@ -159,8 +164,19 @@ export function TaskDetailsPopover({
   );
 
   // ── Right panel helpers ──
-  const openPreview = useCallback((doc: PreviewDoc) => {
-    setRightPanel({ type: 'preview', doc });
+  const openPreview = useCallback((doc: PreviewDoc, nav?: PreviewNav) => {
+    const siblings = nav?.siblings && nav.siblings.length > 0 ? nav.siblings : [doc];
+    const index = Math.max(0, siblings.findIndex((d) => d.id === doc.id));
+    setPreview({ docs: siblings, index, approvable: nav?.approvable ?? false });
+  }, []);
+
+  const stepPreview = useCallback((delta: number) => {
+    setPreview((p) => {
+      if (!p) return p;
+      const next = p.index + delta;
+      if (next < 0 || next >= p.docs.length) return p;
+      return { ...p, index: next };
+    });
   }, []);
 
   const openCsiPanel = useCallback(() => {
@@ -259,6 +275,7 @@ export function TaskDetailsPopover({
   const handleClose = () => {
     setExpandedFolders(new Set());
     setRightPanel(null);
+    setPreview(null);
     onClose();
   };
 
@@ -301,10 +318,89 @@ export function TaskDetailsPopover({
   const submittalsCurrent = submittalsCounts.approved;
   const inspectionsCurrent = inspectionsCounts.approved;
 
+  // ── Live Gantt bar / badge refresh ───────────────────────────────────────
+  // The task-bar completion chip (requirementsFilled/Total) and the orange
+  // "needs review" badge (needsReviewCount, with parent rollups) are painted
+  // from Bryntum record fields populated ONLY by /api/gantt/load — not by the
+  // tRPC caches the approval flow invalidates. So approving a submittal here (or
+  // uploading to a slot, or changing a required count) updates this popover but
+  // leaves the bar/badge stale until a manual refresh. Fix: when the requirement
+  // counts this popover sees actually change, fire ONE silent gantt.project.load()
+  // so the server recomputes leaf + parent rollups authoritatively and Bryntum
+  // merges in place (preserving scroll/selection/expanded — the popover stays
+  // open). A short trailing debounce coalesces the two refetches a single
+  // approval triggers (taskDetail + countByTask settle a few ms apart).
+  const prevReqSigRef = useRef<string | null>(null);
+  const reqReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Re-baseline when the popover switches tasks or closes, so reopening a task
+  // never fires a reload off the previous task's signature.
+  useEffect(() => {
+    prevReqSigRef.current = null;
+  }, [taskId, open]);
+
+  useEffect(() => {
+    if (!open || !ganttInstance?.project || !taskId) return;
+    // Wait until both queries resolve so the signature is meaningful.
+    if (!taskDetail || !counts) return;
+
+    const sig = [
+      submittalsCurrent,
+      inspectionsCurrent,
+      submittalsCounts.pending,
+      inspectionsCounts.pending,
+      taskDetail.requiredSubmittals ?? 0,
+      taskDetail.requiredInspections ?? 0,
+    ].join('|');
+
+    // First resolved value establishes the baseline — no reload.
+    if (prevReqSigRef.current === null) {
+      prevReqSigRef.current = sig;
+      return;
+    }
+    if (prevReqSigRef.current === sig) return;
+    prevReqSigRef.current = sig;
+
+    if (reqReloadTimerRef.current) clearTimeout(reqReloadTimerRef.current);
+    reqReloadTimerRef.current = setTimeout(() => {
+      void ganttInstance.project.load();
+    }, 300);
+  }, [
+    open,
+    ganttInstance,
+    taskId,
+    taskDetail,
+    counts,
+    submittalsCurrent,
+    inspectionsCurrent,
+    submittalsCounts.pending,
+    inspectionsCounts.pending,
+  ]);
+
+  // Clear a pending reload timer on unmount.
+  useEffect(
+    () => () => {
+      if (reqReloadTimerRef.current) clearTimeout(reqReloadTimerRef.current);
+    },
+    [],
+  );
+
   const coverImageUrl = taskDetail?.coverImageUrl ?? null;
   const hasRightPanel = rightPanel !== null;
-  const previewDoc = rightPanel?.type === 'preview' ? rightPanel.doc : null;
-  const selectedDocId = previewDoc?.id ?? null;
+
+  // The nav set is a snapshot frozen at click time; overlay the current doc's
+  // live approval state from listByTask (which the approve toggle invalidates)
+  // so stepping away and back never shows a stale approved/pending badge.
+  const currentPreviewDoc = useMemo<PreviewDoc | null>(() => {
+    if (!preview) return null;
+    const snap = preview.docs[preview.index];
+    if (!snap) return null;
+    const live = ((allDocs ?? []) as DocumentItem[]).find((d) => d.id === snap.id);
+    return live
+      ? { ...snap, approvalStatus: live.approvalStatus, approvedAt: live.approvedAt, approvedBy: live.approvedBy }
+      : snap;
+  }, [preview, allDocs]);
+  const selectedDocId = currentPreviewDoc?.id ?? null;
 
   return (
     <>
@@ -539,28 +635,37 @@ export function TaskDetailsPopover({
             </Box>
           </Box>
 
-          {/* ── RIGHT PANEL ── */}
-          {rightPanel && (
+          {/* ── RIGHT PANEL (CSI classification) ── */}
+          {rightPanel?.type === 'csi' && (
             <>
               <Divider orientation="vertical" flexItem />
-              {rightPanel.type === 'preview' ? (
-                <FilePreviewPanel
-                  previewDoc={rightPanel.doc}
-                  onClose={closeRightPanel}
-                />
-              ) : (
-                <CsiCodePanel
-                  csiCode={effectiveCsiCode}
-                  taskId={taskId!}
-                  ganttInstance={ganttInstance}
-                  onCodeChange={setPendingCsiCode}
-                  onClose={closeRightPanel}
-                />
-              )}
+              <CsiCodePanel
+                csiCode={effectiveCsiCode}
+                taskId={taskId!}
+                ganttInstance={ganttInstance}
+                projectId={projectId}
+                canManage={canManageCover}
+                onOpenDocument={openPreview}
+                onCodeChange={setPendingCsiCode}
+                onClose={closeRightPanel}
+              />
             </>
           )}
         </Box>
       </Popover>
+
+      {/* Document preview popup (opens over the popover) */}
+      <DocumentPreviewDialog
+        open={preview !== null && currentPreviewDoc !== null}
+        doc={currentPreviewDoc}
+        index={preview?.index ?? 0}
+        total={preview?.docs.length ?? 0}
+        onStep={stepPreview}
+        onClose={() => setPreview(null)}
+        approvable={preview?.approvable ?? false}
+        organizationId={organizationId}
+        memberRole={memberRole}
+      />
 
       {/* Upload dialog */}
       {uploadTarget && taskId && (() => {

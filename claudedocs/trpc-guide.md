@@ -109,7 +109,7 @@ throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "..." });
 - Same schema shared between tRPC router `.input()` and React Hook Form `zodResolver()`
 - Export `z.infer<>` type aliases — never write type shapes manually
 - Use `.trim()` on all string fields
-- Use `.strict()` on API input schemas to reject unknown keys
+- Use `.strict()` on API input schemas to reject unknown keys — **but NOT on a schema passed to `orgProcedure` / `projectProcedure`**. Those procedures add their own `.input(z.object({ organizationId | projectId }))`, and tRPC runs each input parser against the **full** raw input. A `.strict()` schema then rejects the injected key with `Unrecognized key(s): 'projectId'` and every call fails. Leave such schemas non-strict (Zod strips unknown keys by default); reserve `.strict()` for schemas whose every key is its own (e.g. `publicProcedure`/`protectedProcedure` inputs, or where the id is declared in the schema itself).
 - Compose update schemas from create schemas via `.partial()` / `.extend()` / `.pick()`
 - Do NOT include `organizationId` or `projectId` in schemas used with `orgProcedure` / `projectProcedure` — those are injected by the procedure middleware
 
@@ -227,6 +227,24 @@ The requirements drawer (`SubmittalDrawer`) is a **draft editor**: count, names,
 - The legacy count column is synced to the list length (same invariant as `setSlotCount`), so popover readers stay in step.
 
 The inline popover stepper still uses `gantt.setSlotCount` (immediate); only the drawer defers to `saveSlots`. Both keep the legacy column in sync, so the two surfaces interoperate.
+
+---
+
+### Upsert-by-natural-key mapping (`csiSpec` router)
+
+`src/server/api/routers/csiSpec.ts` links one `Document` to a `(projectId, csiCode)` pair via
+the `CsiSpecDocument` mapping table (native `@@unique([projectId, csiCode])`, unique
+`documentId`). All `projectProcedure` (projectId injected). It illustrates a clean
+"replace-by-natural-key" pattern:
+
+- **`attach`** runs in a `$transaction`: `deleteMany` any row matching `(projectId, csiCode)`
+  **or** the incoming `documentId`, then `create` the new mapping — so neither unique
+  constraint can collide on replace. The previously linked `Document` is left intact (it stays
+  in the Explorer); only the *link* is replaced.
+- **`getForCode`** reads via the compound unique (`where: { projectId_csiCode: { … } }`) and
+  shapes the joined `Document` into the client `PreviewDoc` form (blobUrl → `documentProxyUrl`).
+- Mutations gate on `canManageProjects(ctx.projectMember.role)`; the document upload itself
+  reuses `POST /api/upload` (creates the real `Document`), so the router only owns the link.
 
 ---
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Typography, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Tooltip, useTheme, alpha } from '@mui/material';
 import {
   DownloadSimple,
   Trash,
@@ -154,7 +154,7 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
         ))}
 
         {/* Task row */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
           {doc.taskId ? (
             <CheckSquare size={12} color={theme.palette.docExplorer.linkedGreen} />
           ) : (
@@ -164,9 +164,22 @@ export default function DocumentCardDetail({ doc, organizationId }: DocumentCard
             Task
           </Typography>
           {doc.taskId ? (
-            <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'docExplorer.linkedGreen' }}>
-              Linked
-            </Typography>
+            <Tooltip title={doc.task?.name ?? 'Linked to a task'} placement="top" arrow>
+              <Typography
+                sx={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  lineHeight: 1.2,
+                  color: 'docExplorer.linkedGreen',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  minWidth: 0,
+                }}
+              >
+                {doc.task?.name ?? 'Linked'}
+              </Typography>
+            </Tooltip>
           ) : (
             <Box
               sx={{

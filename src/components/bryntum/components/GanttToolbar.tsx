@@ -8,6 +8,7 @@ import {
   ArrowUUpLeft,
   ArrowUUpRight,
   ArrowsOutSimple,
+  CalendarDot,
   CaretDoubleLeft,
   CaretDoubleRight,
   DownloadSimple,
@@ -154,6 +155,8 @@ type GanttToolbarProps = {
   onZoomToFit?: () => void;
   onShiftPrevious?: () => void;
   onShiftNext?: () => void;
+  /** Scroll the timeline so today's date is centered in view. */
+  onScrollToToday?: () => void;
   onExport?: () => void;
   onColumnsClick?: (event: MouseEvent<HTMLElement>) => void;
   onMoreClick?: () => void;
@@ -184,6 +187,7 @@ export default function GanttToolbar({
   onZoomToFit,
   onShiftPrevious,
   onShiftNext,
+  onScrollToToday,
   onExport,
   onColumnsClick,
   onMoreClick,
@@ -277,7 +281,7 @@ export default function GanttToolbar({
     },
   });
 
-  const hasRightControls = onExport || onColumnsClick || onMoreClick;
+  const hasRightControls = onExport || onMoreClick;
 
   return (
     <Stack
@@ -289,17 +293,40 @@ export default function GanttToolbar({
         py: 1,
         borderBottom: '1px solid var(--border-color)',
         flexShrink: 0,
-        bgcolor: 'var(--gantt-toolbar-bg)',
+        // Warm the toolbar with a faint accent wash while editing — part of the
+        // "edit mode the whole card announces" treatment (Direction 1).
+        bgcolor: editingActive ? 'var(--accent-subtle)' : 'var(--gantt-toolbar-bg)',
+        transition: 'background-color 0.28s ease',
         containerType: 'inline-size',
         containerName: 'gantt-toolbar',
       }}
     >
-      {/* ── View Preset Picker — segmented (hidden ≤560px) ──────────────── */}
+      {/* ── Columns config — first control, left of the time-scale picker.
+         In edit mode the left view-tools yield to protect the edit actions
+         (Link / Add Task / Edit) on the right, so Columns collapses to its
+         icon and the scale picker becomes the compact dropdown below. ── */}
+      {onColumnsClick && (
+        <Box sx={cardContainerSx}>
+          <Box
+            component="button"
+            sx={{ ...cardItemSx, gap: 0.5, px: editingActive ? 1.25 : 1.5 }}
+            onClick={onColumnsClick}
+            title="Configure columns"
+            aria-label="Configure columns"
+          >
+            <Columns size={12} weight="bold" />
+            {!editingActive && 'Columns'}
+          </Box>
+        </Box>
+      )}
+
+      {/* ── View Preset Picker — segmented (hidden ≤560px, and in edit mode
+         where the compact dropdown takes over to free horizontal room) ── */}
       <Box
         ref={segmentTrackRef}
         sx={{
           position: 'relative',
-          display: 'flex',
+          display: editingActive ? 'none' : 'flex',
           alignItems: 'center',
           height: 32,
           bgcolor: 'action.selected',
@@ -380,14 +407,15 @@ export default function GanttToolbar({
         })}
       </Box>
 
-      {/* ── View Preset Picker — select fallback (shown ≤560px) ─────────── */}
+      {/* ── View Preset Picker — select fallback (shown ≤560px, and in edit
+         mode at any width so the segmented control's footprint is reclaimed) ── */}
       <Select
         value={activePreset}
         onChange={(e) => handlePresetClick(e.target.value as string)}
         size="small"
         aria-label="Time scale"
         sx={{
-          display: 'none',
+          display: editingActive ? 'inline-flex' : 'none',
           flexShrink: 0,
           height: 32,
           fontSize: '12px',
@@ -412,7 +440,10 @@ export default function GanttToolbar({
         ))}
       </Select>
 
-      {/* ── Zoom + Nav Controls ──────────────────────────────────────────── */}
+      {/* ── Zoom group — scale controls (− + Fit) ──────────────────────────
+         Split from the time-pan group below: a gap between the two pills
+         signals "different function," while the dividers inside each signal
+         "related buttons." Matches the toolbar's grouped-pill rhythm. */}
       <Box
         sx={{
           ...cardContainerSx,
@@ -454,7 +485,21 @@ export default function GanttToolbar({
             <Box component="span">Fit</Box>
           </Box>
         </ToolbarPulseButton>
-        <Box sx={cardDividerSx} />
+      </Box>
+
+      {/* ── Time-pan group — move through the calendar (« ») ──────────────── */}
+      <Box
+        sx={{
+          ...cardContainerSx,
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          '&:hover': {
+            borderColor: 'var(--border-color)',
+            boxShadow:
+              '0 2px 6px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
+          },
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+        }}
+      >
         <ToolbarPulseButton
           ariaLabel="Previous time span"
           tooltip="Previous time span"
@@ -463,6 +508,22 @@ export default function GanttToolbar({
         >
           <CaretDoubleLeft size={12} weight="bold" />
         </ToolbarPulseButton>
+        {onScrollToToday && (
+          <>
+            <Box sx={cardDividerSx} />
+            <ToolbarPulseButton
+              ariaLabel="Scroll to today"
+              tooltip="Scroll to today"
+              pulseVariant="wobble"
+              onClick={onScrollToToday}
+            >
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                <CalendarDot size={12} weight="bold" />
+                <Box component="span">Today</Box>
+              </Box>
+            </ToolbarPulseButton>
+          </>
+        )}
         <Box sx={cardDividerSx} />
         <ToolbarPulseButton
           ariaLabel="Next time span"
@@ -508,19 +569,7 @@ export default function GanttToolbar({
               <DownloadSimple size={12} weight="bold" />
             </Box>
           )}
-          {onExport && (onColumnsClick || onMoreClick) && <Box sx={cardDividerSx} />}
-          {onColumnsClick && (
-            <Box
-              component="button"
-              sx={{ ...cardItemSx, gap: 0.5, px: 1.5 }}
-              onClick={onColumnsClick}
-              title="Configure columns"
-            >
-              <Columns size={12} weight="bold" />
-              Columns
-            </Box>
-          )}
-          {onColumnsClick && onMoreClick && <Box sx={cardDividerSx} />}
+          {onExport && onMoreClick && <Box sx={cardDividerSx} />}
           {onMoreClick && (
             <Box component="button" sx={cardItemSx} onClick={onMoreClick} title="More options">
               <DotsThreeVertical size={12} weight="bold" />
@@ -529,82 +578,8 @@ export default function GanttToolbar({
         </Box>
       )}
 
-      {/* ── Edit / Lock toggle (admin-level users only) ────────────────── */}
-      {canEditChart && (
-        <Box
-          component="button"
-          onClick={onToggleEditMode}
-          title={editingActive ? 'Lock chart (exit edit mode)' : 'Edit chart'}
-          aria-label={editingActive ? 'Lock chart' : 'Edit chart'}
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 0.75,
-            height: 34,
-            px: '14px',
-            borderRadius: '10px',
-            fontSize: '12px',
-            fontWeight: 600,
-            fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
-            letterSpacing: '-0.01em',
-            cursor: 'pointer',
-            flexShrink: 0,
-            whiteSpace: 'nowrap',
-            transition:
-              'background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease',
-            '&:active': { transform: 'scale(0.96)' },
-            '@container gantt-toolbar (max-width: 720px)': {
-              px: 0,
-              gap: 0,
-              width: 34,
-            },
-            ...(editingActive
-              ? {
-                  bgcolor: 'var(--accent-primary, #2563eb)',
-                  color: 'var(--accent-contrast, #fff)',
-                  border: '1px solid var(--accent-primary, #2563eb)',
-                  boxShadow: '0 0 0 4px rgba(37, 99, 235, 0.14)',
-                  '&:hover': { filter: 'brightness(0.9)' },
-                }
-              : {
-                  bgcolor: 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color)',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
-                  '&:hover': { bgcolor: 'action.hover' },
-                }),
-          }}
-        >
-          <Box
-            key={editingActive ? 'unlocked' : 'locked'}
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              animation: 'gantt-icon-swap 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
-            }}
-          >
-            {editingActive ? (
-              <LockOpen size={13} weight="bold" />
-            ) : (
-              <Lock size={13} weight="bold" />
-            )}
-          </Box>
-          <Box
-            component="span"
-            sx={{
-              '@container gantt-toolbar (max-width: 720px)': {
-                display: 'none',
-              },
-            }}
-          >
-            {editingActive ? 'Editing' : 'Edit'}
-          </Box>
-        </Box>
-      )}
-
-      {/* ── Link tasks toggle (only active in edit mode) ───────────────── */}
+      {/* ── Link toggle (appears in edit mode, to the LEFT of the pinned Edit
+         switch so revealing it never shifts Edit). Lit while linking. ─────── */}
       {onToggleLinkMode && editingActive && (
         <Tooltip
           title={
@@ -644,11 +619,11 @@ export default function GanttToolbar({
               '@container gantt-toolbar (max-width: 720px)': { px: 0, gap: 0, width: 34 },
               ...(linkActive
                 ? {
-                    bgcolor: 'var(--accent-primary, #2563eb)',
-                    color: 'var(--accent-contrast, #fff)',
-                    border: '1px solid var(--accent-primary, #2563eb)',
-                    boxShadow: '0 0 0 4px rgba(37, 99, 235, 0.14)',
-                    '&:hover': { filter: 'brightness(0.9)' },
+                    bgcolor: 'action.selected',
+                    color: 'var(--accent-primary, #2B2D42)',
+                    border: '1px solid var(--accent-primary, #2B2D42)',
+                    boxShadow: 'none',
+                    '&:hover': { bgcolor: 'action.selected', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
                   }
                 : {
                     bgcolor: 'var(--bg-card)',
@@ -686,16 +661,22 @@ export default function GanttToolbar({
             fontWeight: 600,
             fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
             textTransform: 'none',
-            borderRadius: '8px',
-            backgroundColor: 'var(--accent-primary, #2563eb)',
+            borderRadius: '10px',
+            backgroundColor: 'var(--accent-primary, #2B2D42)',
             color: 'var(--accent-contrast, #fff)',
             flexShrink: 0,
             whiteSpace: 'nowrap',
+            // Subtle elevation marks this as the sole primary action — toggles
+            // are flat/tinted, so the lift reinforces the hierarchy.
+            boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
+            transition: 'filter 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease',
             animation: 'gantt-tool-pop-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
             '&:hover': {
-              backgroundColor: 'var(--accent-primary, #2563eb)',
-              filter: 'brightness(0.9)',
+              backgroundColor: 'var(--accent-primary, #2B2D42)',
+              filter: 'brightness(0.92)',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.16)',
             },
+            '&:active': { transform: 'scale(0.97)' },
             '@container gantt-toolbar (max-width: 720px)': {
               minWidth: 0,
               width: 34,
@@ -718,6 +699,100 @@ export default function GanttToolbar({
         </Button>
       )}
 
+      {/* ── Edit mode switch — the lock icon rides the sliding knob ──────────
+         Pinned as the RIGHTMOST control with a FIXED width, so revealing Link /
+         Add Task to its left never shifts it. Off → knob left (locked); on →
+         knob slides right, lock opens, track fills accent. */}
+      {canEditChart && (
+        <Tooltip
+          title={editingActive ? 'Lock chart (exit edit mode)' : 'Edit chart — unlock to make changes'}
+          placement="bottom"
+          enterDelay={400}
+          arrow
+        >
+          <Box
+            component="button"
+            type="button"
+            role="switch"
+            aria-checked={editingActive}
+            aria-label="Edit mode"
+            onClick={onToggleEditMode}
+            sx={{
+              position: 'relative',
+              flexShrink: 0,
+              width: 104,
+              height: 34,
+              p: 0,
+              borderRadius: '999px',
+              border: '1px solid',
+              borderColor: editingActive ? 'var(--accent-primary, #2B2D42)' : 'var(--border-color)',
+              bgcolor: editingActive ? 'var(--accent-primary, #2B2D42)' : 'var(--bg-input)',
+              cursor: 'pointer',
+              transition: 'background-color 0.28s ease, border-color 0.28s ease, transform 0.12s ease',
+              '&:active': { transform: 'scale(0.97)' },
+              '@container gantt-toolbar (max-width: 720px)': { width: 34 },
+            }}
+          >
+            {/* Label — sits opposite the knob; crossfades on flip, hidden when collapsed */}
+            <Box
+              component="span"
+              key={editingActive ? 'on' : 'off'}
+              sx={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                left: editingActive ? '12px' : '34px',
+                right: editingActive ? '34px' : '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 600,
+                letterSpacing: '-0.01em',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                color: editingActive ? 'var(--accent-contrast, #fff)' : 'var(--text-secondary)',
+                animation: 'gantt-label-fade 0.28s ease both',
+                '@container gantt-toolbar (max-width: 720px)': { display: 'none' },
+              }}
+            >
+              {editingActive ? 'Editing' : 'Edit'}
+            </Box>
+
+            {/* Knob — slides L↔R; the lock icon rides it and pops on flip */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 2,
+                left: 2,
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                bgcolor: 'var(--bg-card)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: editingActive ? 'var(--accent-primary, #2B2D42)' : 'var(--text-secondary)',
+                transform: editingActive ? 'translateX(70px)' : 'translateX(0)',
+                transition: 'transform 0.34s cubic-bezier(0.16, 1, 0.3, 1), color 0.28s ease',
+                '@container gantt-toolbar (max-width: 720px)': { transform: 'translateX(0)' },
+              }}
+            >
+              <Box
+                key={editingActive ? 'open' : 'closed'}
+                sx={{
+                  display: 'inline-flex',
+                  animation: 'gantt-lock-pop 0.34s cubic-bezier(0.16, 1, 0.3, 1) both',
+                }}
+              >
+                {editingActive ? <LockOpen size={15} weight="bold" /> : <Lock size={15} weight="bold" />}
+              </Box>
+            </Box>
+          </Box>
+        </Tooltip>
+      )}
+
       {/* Keyframes for the toolbar micro-animations — scoped via a global <style>. */}
       <Box
         component="style"
@@ -728,10 +803,13 @@ export default function GanttToolbar({
               0%   { opacity: 0; transform: scale(0.9) translateY(2px); }
               100% { opacity: 1; transform: scale(1) translateY(0); }
             }
-            @keyframes gantt-icon-swap {
-              0%   { opacity: 0; transform: rotate(-35deg) scale(0.7); }
-              60%  { opacity: 1; transform: rotate(6deg) scale(1.08); }
-              100% { opacity: 1; transform: rotate(0) scale(1); }
+            @keyframes gantt-lock-pop {
+              0%   { opacity: 0; transform: translateY(2px) scale(0.94); }
+              100% { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            @keyframes gantt-label-fade {
+              from { opacity: 0; }
+              to   { opacity: 1; }
             }
             @keyframes gantt-segment-pulse {
               0%   { opacity: 0.55; transform: scale(1); }
@@ -765,7 +843,8 @@ export default function GanttToolbar({
             }
             @media (prefers-reduced-motion: reduce) {
               @keyframes gantt-tool-pop-in       { from, to { opacity: 1; transform: none; } }
-              @keyframes gantt-icon-swap         { from, to { opacity: 1; transform: none; } }
+              @keyframes gantt-lock-pop          { from, to { opacity: 1; transform: none; } }
+              @keyframes gantt-label-fade        { from, to { opacity: 1; } }
               @keyframes gantt-segment-pulse     { from, to { opacity: 0; transform: none; } }
               @keyframes gantt-pulse-scale-out   { from, to { transform: none; } }
               @keyframes gantt-pulse-scale-in    { from, to { transform: none; } }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Box, Popover, Tooltip, Typography, CircularProgress, Button } from '@mui/material';
 import { Check } from '@phosphor-icons/react';
 import { api } from '@/trpc/react';
@@ -59,6 +59,18 @@ export default function ApprovalToggleSwitch({
 
   const effectiveStatus = optimistic ?? approvalStatus;
   const isApproved = effectiveStatus === 'approved';
+
+  // Drop the optimistic override once the server prop catches up to it, so the
+  // prop becomes authoritative again. Without this, `optimistic` (set on every
+  // toggle, cleared only on error) would permanently mask later `approvalStatus`
+  // changes for this instance — e.g. the same doc's toggle in the SubmittalDrawer
+  // or a change from the Review Queue would be ignored. Mirrors the pendingCsiCode
+  // reconcile in TaskDetailsPopover.
+  useEffect(() => {
+    if (optimistic !== null && approvalStatus === optimistic) {
+      setOptimistic(null);
+    }
+  }, [approvalStatus, optimistic]);
   const isPending = setStatusMutation.isPending;
   const dims = SIZES[size];
 
@@ -218,6 +230,11 @@ export default function ApprovalToggleSwitch({
         open={!!confirmAnchor}
         anchorEl={confirmAnchor}
         onClose={handleCancel}
+        // The Popover renders in a portal that is a React-tree descendant of the
+        // clickable document row, so without this, clicks inside the confirm
+        // (Approve, Cancel, or backdrop-dismiss) bubble up to the row's onClick
+        // and wrongly open the document preview dialog.
+        onClick={(e) => e.stopPropagation()}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         slotProps={{

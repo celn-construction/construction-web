@@ -356,6 +356,35 @@ body {
   background-color: rgba(43, 45, 66, 0.05) !important;
 }
 
+/* ── Edit mode treatment ─────────────────────────────────────────
+   When the chart is unlocked (data-editing="true", set in BryntumGanttWrapper),
+   the surface itself signals "live & mutable" without touching the bars'
+   semantic colors:
+   1. Canvas wash — a faint accent tint behind the rows (the grid body shows
+      through the transparent even rows; bars sit opaque on top, unaffected).
+   2. Intensity nudge — bars keep their exact hue but get a small saturation /
+      brightness bump so they read as active (filter transition gives the ramp).
+   The accent wash flips with dark mode via --accent-subtle. */
+.bryntum-gantt-container[data-editing="true"] .b-grid-body-container {
+  background-color: var(--accent-subtle) !important;
+  transition: background-color 0.4s ease;
+}
+.bryntum-gantt-container .b-grid-body-container {
+  transition: background-color 0.4s ease;
+}
+.bryntum-gantt-container[data-editing="true"] .b-gantt-task {
+  filter: saturate(1.12) brightness(1.04);
+}
+
+/* Edit-mode entrance: the accent top strip draws in left → right. */
+@keyframes gantt-edit-strip-in {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes gantt-edit-strip-in { from, to { transform: scaleX(1); } }
+}
+
 /* ── Task Bars ───────────────────────────────────────────────── */
 
 /* Refined with subtle shadow and rounded corners */
@@ -367,7 +396,7 @@ body {
   border-width: 1px !important;
   border-style: solid !important;
   overflow: hidden !important;
-  transition: box-shadow 0.15s ease, transform 0.1s ease !important;
+  transition: box-shadow 0.15s ease, transform 0.1s ease, filter 0.3s ease !important;
 }
 
 /* Frosted glass gradient overlay */
@@ -422,10 +451,10 @@ body {
   100% { transform: translateX(100%); opacity: 1; }
 }
 
-/* Task bar hover — slight lift, plus an inset right-edge cue so users know
-   the end of the bar is grabbable as soon as they hover (before reaching the
-   14px handle zone). The crisp white pill from .b-over-end-handle (further
-   below) covers this hint once the cursor enters the handle. */
+/* Task bar hover — slight lift, plus an inset right-edge line emphasizing the
+   grabbable end of the bar. It pairs with the resize grip (see "Task Resize
+   Handles" below), which now also fades in on hover and brightens to a crisp
+   white pill once the cursor reaches the 16px handle zone. */
 .bryntum-gantt-container .b-gantt-task:hover {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset -3px 0 0 rgba(255, 255, 255, 0.4) !important;
   transform: translateY(-1px) !important;
@@ -454,14 +483,28 @@ body {
   opacity: 0.85 !important;
 }
 
-/* Parent/summary tasks — light translucent navy to differentiate from solid child tasks.
-   Uses .gantt-parent-bar class added by taskRenderer for reliable targeting. */
+/* Parent/summary tasks — translucent green to differentiate from solid child tasks.
+   Uses .gantt-parent-bar class added by taskRenderer for reliable targeting.
+   The clip-path gives the bar the classic summary silhouette: downward "feet"
+   at each end with a raised middle. Because the bar now also shows the parent's
+   name, this distinctive shape (not just color) keeps it readable as a summary
+   row at a glance. Foot width is a fixed px; body height is a % so the shape
+   holds at any zoom. Bar height is 25px (rowHeight 45 − 2·barMargin 10), so the
+   74% body leaves ample room for the 11px name. */
 .bryntum-gantt-container .b-gantt-task.gantt-parent-bar,
 .bryntum-gantt-container .b-gantt-task.b-gantt-task-parent {
   background-color: var(--gantt-summary-bg) !important;
   border-color: var(--gantt-summary-border) !important;
   border-radius: 4px !important;
   box-shadow: none !important;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 100%,
+    calc(100% - 10px) 74%,
+    10px 74%,
+    0 100%
+  ) !important;
 }
 
 .bryntum-gantt-container .b-gantt-task.gantt-parent-bar::before,
@@ -497,20 +540,44 @@ body {
 
 /* ── Task Resize Handles ────────────────────────────────────── */
 
-/* Widen the invisible hit zone from 6px → 14px so handles are easy to grab,
-   and keep it wide on hover (default would shrink it). The handle is
-   transparent at rest, then shows a crisp white indicator once the cursor
-   enters the zone so users immediately see the grabbable area.
-   Handles are ::before/::after on .b-gantt-task-wrap (no conflict with the
-   frosted glass ::before on .b-gantt-task). */
+/* Make the end-resize handle easy to find AND easy to grab. In a Gantt you
+   change a task's duration by dragging its RIGHT edge (Bryntum's TaskResize is
+   end-only — the start is governed by the scheduler/dependencies), so this is
+   the one handle that matters. Bryntum's default is a 6px zone that stays
+   invisible until the cursor lands exactly on the edge — hard to discover.
+   Two changes fix that:
+     1. Widen the hit zone to 16px (the var doubles as the grab area) so the
+        edge is forgiving to grab.
+     2. Show a faint white grip as soon as the bar is hovered (was
+        `transparent`), then brighten it to a crisp pill once the cursor is on
+        the handle, with a slight height grow as a "grab me" cue.
+   This is automatically scoped to leaf bars in edit mode: Bryntum nulls the
+   handle content when the chart is read-only (locked view) and never renders a
+   handle on parent/summary bars, so the grip only appears where a resize is
+   actually possible. The handle is the ::after on the end-resizable wrap; no
+   conflict with the frosted-glass ::before on .b-gantt-task. */
 .bryntum-gantt-container .b-gantt.b-task-resize {
-  --b-event-resize-handle-other-size: 14px;
-  --b-event-resize-handle-hover-other-size: 14px;
-  --b-event-resize-handle-size: 70%;
-  --b-event-resize-handle-hover-size: 80%;
-  --b-event-resize-handle-background: transparent;
-  --b-event-resize-handle-hover-background: rgba(255, 255, 255, 0.9);
+  --b-event-resize-handle-other-size: 16px;
+  --b-event-resize-handle-hover-other-size: 16px;
+  --b-event-resize-handle-size: 64%;
+  --b-event-resize-handle-hover-size: 84%;
+  --b-event-resize-handle-background: rgba(255, 255, 255, 0.4);
+  --b-event-resize-handle-hover-background: rgba(255, 255, 255, 0.95);
   --b-event-resize-handle-border-radius: 3px;
+}
+
+/* Always-on resize grip. Bryntum only renders its handle on hover, so a resting
+   bar gives no hint it's resizable. In edit mode we paint a persistent white
+   grip on the right edge of every resizable (leaf) bar so it reads as
+   draggable at a glance. Drawn as an inset box-shadow on .b-gantt-task (its
+   ::before/::after are the frosted/sheen layers — untouched here), kept above
+   the base shadow. Scoped to [data-editing="true"] because resize only works
+   in edit mode, and excludes parent/summary bars (Bryntum derives their
+   duration from children, so they aren't user-resizable). Bryntum's brighter
+   hover pill still appears on top once the cursor reaches the edge. */
+.bryntum-gantt-container[data-editing="true"]
+  .b-gantt-task:not(.gantt-parent-bar):not(.b-gantt-task-parent):not(.b-milestone) {
+  box-shadow: var(--gantt-task-shadow), inset -3px 0 0 rgba(255, 255, 255, 0.5) !important;
 }
 
 /* Ensure ew-resize cursor shows on task bar when over a handle */

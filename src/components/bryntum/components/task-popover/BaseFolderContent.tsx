@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { FileText, CloudArrowUp } from '@phosphor-icons/react';
 import type { FolderContentProps, PreviewDoc } from './types';
@@ -65,28 +65,36 @@ function BaseFolderContentInner({
     );
   }
 
+  // Ordered nav set for the preview dialog so ‹ / › (and ←/→) step through this
+  // folder's files without closing the modal.
+  const previews = useMemo<PreviewDoc[]>(
+    () =>
+      docs.map((doc) => ({
+        id: doc.id,
+        name: doc.name,
+        blobUrl: doc.blobUrl,
+        mimeType: doc.mimeType,
+        size: doc.size,
+        createdAt: doc.createdAt,
+        uploadedBy: doc.uploadedBy ?? null,
+        folderId: doc.folderId,
+        approvalStatus: doc.approvalStatus,
+        approvedAt: doc.approvedAt,
+        approvedBy: doc.approvedBy,
+      })),
+    [docs],
+  );
+
   return (
     <Box sx={{ pl: '20px', display: 'flex', flexDirection: 'column', gap: 0.125 }}>
-      {docs.map((doc) => {
+      {docs.map((doc, i) => {
         const isSelected = selectedDocId === doc.id;
-        const preview: PreviewDoc = {
-          id: doc.id,
-          name: doc.name,
-          blobUrl: doc.blobUrl,
-          mimeType: doc.mimeType,
-          size: doc.size,
-          createdAt: doc.createdAt,
-          uploadedBy: doc.uploadedBy ?? null,
-          folderId: doc.folderId,
-          approvalStatus: doc.approvalStatus,
-          approvedAt: doc.approvedAt,
-          approvedBy: doc.approvedBy,
-        };
+        const preview = previews[i]!;
 
         return (
           <Box
             key={doc.id}
-            onClick={() => onSelectDoc(preview)}
+            onClick={() => onSelectDoc(preview, { siblings: previews })}
             sx={{
               display: 'flex',
               alignItems: 'center',

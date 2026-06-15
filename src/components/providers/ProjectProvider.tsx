@@ -9,6 +9,7 @@ interface ProjectContextValue {
   projectIcon: string;
   projectImageUrl: string | null;
   projectLocation: string;
+  projectStartDate: string | null;
   organizationId: string;
 }
 
