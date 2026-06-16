@@ -11,7 +11,7 @@ import { useOrgContext } from '@/components/providers/OrgProvider';
 import UploadDialog from '@/components/documents/UploadDialog';
 import { api } from '@/trpc/react';
 import { trackUpload } from '@/store/uploadStatusStore';
-import type { PopoverPlacement, BryntumGanttInstance } from '../types';
+import type { PopoverPlacement, BryntumGanttInstance, BryntumTaskRecord } from '../types';
 import type { PreviewDoc, PreviewNav, DocumentItem } from './task-popover/types';
 
 import { ArrowsInSimple, ArrowsOutSimple, CheckCircle } from '@phosphor-icons/react';
@@ -321,15 +321,20 @@ export function TaskDetailsPopover({
   // ── Live Gantt bar / badge refresh ───────────────────────────────────────
   // The task-bar completion chip (requirementsFilled/Total) and the orange
   // "needs review" badge (needsReviewCount, with parent rollups) are painted
-  // from Bryntum record fields populated ONLY by /api/gantt/load — not by the
-  // tRPC caches the approval flow invalidates. So approving a submittal here (or
-  // uploading to a slot, or changing a required count) updates this popover but
-  // leaves the bar/badge stale until a manual refresh. Fix: when the requirement
-  // counts this popover sees actually change, fire ONE silent gantt.project.load()
-  // so the server recomputes leaf + parent rollups authoritatively and Bryntum
-  // merges in place (preserving scroll/selection/expanded — the popover stays
-  // open). A short trailing debounce coalesces the two refetches a single
-  // approval triggers (taskDetail + countByTask settle a few ms apart).
+  // from Bryntum record fields populated by /api/gantt/load. So approving a
+  // submittal here (or uploading to a slot, or changing a required count)
+  // updates this popover but leaves the bar/badge stale until a refresh. We fix
+  // it by writing the fresh counts straight onto the open task's record (and its
+  // ancestors for the rolled-up badge) — those fields are display-only
+  // (persist:false), so the row re-renders without a sync round-trip.
+  //
+  // We do NOT call gantt.project.load() for this: a full CrudManager reload
+  // re-renders the time axis / replaces the store while the popover is open,
+  // which blanked the timeline (tasks disappeared) after every requirement or
+  // upload change. The in-place write is surgical and non-destructive.
+  //
+  // A short trailing debounce coalesces the two refetches a single approval
+  // triggers (taskDetail + countByTask settle a few ms apart).
   const prevReqSigRef = useRef<string | null>(null);
   const reqReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -363,7 +368,40 @@ export function TaskDetailsPopover({
 
     if (reqReloadTimerRef.current) clearTimeout(reqReloadTimerRef.current);
     reqReloadTimerRef.current = setTimeout(() => {
-      void ganttInstance.project.load();
+      const record = ganttInstance.project.taskStore.getById(taskId);
+      if (!record) return;
+
+      // Mirror the server's load math (gantt.ts): each kind's filled count is
+      // capped at its required count separately, then summed and capped at total.
+      const reqSub = taskDetail.requiredSubmittals ?? 0;
+      const reqInsp = taskDetail.requiredInspections ?? 0;
+      const total = reqSub + reqInsp;
+      const filled = Math.min(
+        Math.min(submittalsCurrent, reqSub) + Math.min(inspectionsCurrent, reqInsp),
+        total,
+      );
+      const pending = submittalsCounts.pending + inspectionsCounts.pending;
+
+      // needsReviewCount rolls up to parents (matching buildTaskTree). The popover
+      // only targets leaf tasks, so the record's stored value is its own count;
+      // apply the delta up the ancestor chain so parent badges stay correct.
+      const prevPending = Number(record.get('needsReviewCount') ?? 0);
+      const delta = pending - prevPending;
+
+      record.set({
+        requirementsTotal: total,
+        requirementsFilled: filled,
+        needsReviewCount: pending,
+      });
+
+      if (delta !== 0) {
+        let ancestor = (record as unknown as { parent?: BryntumTaskRecord | null }).parent;
+        while (ancestor && !(ancestor as unknown as { isRoot?: boolean }).isRoot) {
+          const current = Number(ancestor.get('needsReviewCount') ?? 0);
+          ancestor.set('needsReviewCount', Math.max(0, current + delta));
+          ancestor = (ancestor as unknown as { parent?: BryntumTaskRecord | null }).parent;
+        }
+      }
     }, 300);
   }, [
     open,
