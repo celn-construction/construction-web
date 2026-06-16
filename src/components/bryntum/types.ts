@@ -160,8 +160,10 @@ export interface BryntumGanttInstance {
   };
   project: {
     /** Reload from the configured transport — an in-place CrudManager merge
-     *  that preserves scroll, selection, and expanded state. Used for silent
-     *  background refreshes (visibility stale-refresh + approval-driven bar/badge update). */
+     *  that preserves scroll, selection, and expanded state. Used for the
+     *  visibility stale-refresh only. Do NOT use it to refresh task-bar
+     *  requirement badges while the popover is open — a full reload blanks the
+     *  timeline; write the display-only record fields in place instead. */
     load(): Promise<unknown>;
     taskStore: {
       getById(id: string | number): BryntumTaskRecord | null;

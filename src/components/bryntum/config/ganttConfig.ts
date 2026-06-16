@@ -7,6 +7,11 @@ import type { GanttConfig, ColumnRendererData } from '../types';
 // in the name column. `requirementsTotal` / `requirementsFilled` drive the
 // submittal+inspection completion % shown on each task bar.
 //
+// These three are display-only — the server computes them in /api/gantt/load and
+// they are never written back. `persist: false` keeps them out of the sync pack
+// so updating them in place (e.g. TaskDetailsPopover's live bar/badge refresh)
+// re-renders the row WITHOUT scheduling an autoSync round-trip.
+//
 // `parentIndex` / `orderedParentIndex` are Bryntum's built-in calculated tree
 // fields (a node's position among its siblings). We re-declare them ONLY to add
 // `persist: true` — so a drag-reorder includes the new position in the sync pack
@@ -16,9 +21,9 @@ import type { GanttConfig, ColumnRendererData } from '../types';
 class AppTaskModel extends TaskModel {
   static override get fields() {
     return [
-      { name: 'needsReviewCount', type: 'int', defaultValue: 0 },
-      { name: 'requirementsTotal', type: 'int', defaultValue: 0 },
-      { name: 'requirementsFilled', type: 'int', defaultValue: 0 },
+      { name: 'needsReviewCount', type: 'int', defaultValue: 0, persist: false },
+      { name: 'requirementsTotal', type: 'int', defaultValue: 0, persist: false },
+      { name: 'requirementsFilled', type: 'int', defaultValue: 0, persist: false },
       { name: 'parentIndex', persist: true },
       { name: 'orderedParentIndex', persist: true },
     ];

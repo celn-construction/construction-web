@@ -7,6 +7,7 @@ export function useGanttControls() {
   const ganttRef = useRef<BryntumGantt>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [allCollapsed, setAllCollapsed] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getGanttInstance = useCallback((): any => {
@@ -118,6 +119,22 @@ export function useGanttControls() {
     [getGanttInstance]
   );
 
+  // Collapse/expand every parent task. collapseAll()/expandAll() are surfaced
+  // on the Gantt instance by the Tree feature. We track collapsed state locally
+  // so a single toolbar button can toggle between the two.
+  const handleToggleCollapseAll = useCallback(() => {
+    const gantt = getGanttInstance();
+    if (!gantt) return;
+    setAllCollapsed((prev) => {
+      const next = !prev;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      if (next) gantt.collapseAll();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      else gantt.expandAll();
+      return next;
+    });
+  }, [getGanttInstance]);
+
   /** Refresh canUndo/canRedo from STM state */
   const updateUndoRedoState = useCallback(() => {
     const gantt = getGanttInstance();
@@ -201,6 +218,8 @@ export function useGanttControls() {
     handleShiftNext,
     handleScrollToToday,
     handlePresetChange,
+    handleToggleCollapseAll,
+    allCollapsed,
     handleUndo,
     handleRedo,
     canUndo,
