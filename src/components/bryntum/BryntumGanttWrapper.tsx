@@ -101,6 +101,8 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
     handleShiftNext,
     handleScrollToToday,
     handlePresetChange,
+    handleToggleCollapseAll,
+    allCollapsed,
     handleUndo,
     handleRedo,
     canUndo,
@@ -872,6 +874,8 @@ function BryntumGanttCore({ projectId, isVisible = true, ganttControls }: Bryntu
         onShiftPrevious={handleShiftPrevious}
         onShiftNext={handleShiftNext}
         onScrollToToday={handleScrollToToday}
+        onToggleCollapseAll={handleToggleCollapseAll}
+        allCollapsed={allCollapsed}
         onUndo={handleUndo}
         onRedo={handleRedo}
         canUndo={canUndo}

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import {
   ArrowUUpLeft,
   ArrowUUpRight,
+  ArrowsInLineVertical,
+  ArrowsOutLineVertical,
   ArrowsOutSimple,
   CalendarDot,
   CaretDoubleLeft,
@@ -157,6 +159,10 @@ type GanttToolbarProps = {
   onShiftNext?: () => void;
   /** Scroll the timeline so today's date is centered in view. */
   onScrollToToday?: () => void;
+  /** Collapse all parent tasks, or expand them again if already collapsed. */
+  onToggleCollapseAll?: () => void;
+  /** Whether all parent tasks are currently collapsed (drives icon + label). */
+  allCollapsed?: boolean;
   onExport?: () => void;
   onColumnsClick?: (event: MouseEvent<HTMLElement>) => void;
   onMoreClick?: () => void;
@@ -188,6 +194,8 @@ export default function GanttToolbar({
   onShiftPrevious,
   onShiftNext,
   onScrollToToday,
+  onToggleCollapseAll,
+  allCollapsed = false,
   onExport,
   onColumnsClick,
   onMoreClick,
@@ -534,6 +542,26 @@ export default function GanttToolbar({
           <CaretDoubleRight size={12} weight="bold" />
         </ToolbarPulseButton>
       </Box>
+
+      {/* ── Collapse / expand all parent tasks — one button toggles the
+         whole tree. Lets users flatten a deep project to scan top-level
+         phases, then expand back. ─────────────────────────────────────── */}
+      {onToggleCollapseAll && (
+        <Box sx={cardContainerSx}>
+          <ToolbarPulseButton
+            ariaLabel={allCollapsed ? 'Expand all tasks' : 'Collapse all tasks'}
+            tooltip={allCollapsed ? 'Expand all tasks' : 'Collapse all tasks'}
+            pulseVariant="wobble"
+            onClick={onToggleCollapseAll}
+          >
+            {allCollapsed ? (
+              <ArrowsOutLineVertical size={12} weight="bold" />
+            ) : (
+              <ArrowsInLineVertical size={12} weight="bold" />
+            )}
+          </ToolbarPulseButton>
+        </Box>
+      )}
 
       {/* ── Undo / Redo (only active in edit mode) ───────────────────── */}
       {editingActive && (
