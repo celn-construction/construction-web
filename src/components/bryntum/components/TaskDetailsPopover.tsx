@@ -321,88 +321,54 @@ export function TaskDetailsPopover({
   // ── Live Gantt bar / badge refresh ───────────────────────────────────────
   // The task-bar completion chip (requirementsFilled/Total) and the orange
   // "needs review" badge (needsReviewCount, with parent rollups) are painted
-  // from Bryntum record fields populated by /api/gantt/load. So approving a
-  // submittal here (or uploading to a slot, or changing a required count)
-  // updates this popover but leaves the bar/badge stale until a refresh. We fix
-  // it by writing the fresh counts straight onto the open task's record (and its
+  // from Bryntum record fields populated only by /api/gantt/load. So approving a
+  // submittal here (or uploading to a slot, or changing a required count) updates
+  // this popover but leaves the bar/badge stale until a refresh. We fix it by
+  // writing the fresh counts straight onto the open task's record (and its
   // ancestors for the rolled-up badge) — those fields are display-only
   // (persist:false), so the row re-renders without a sync round-trip.
   //
-  // We do NOT call gantt.project.load() for this: a full CrudManager reload
-  // re-renders the time axis / replaces the store while the popover is open,
-  // which blanked the timeline (tasks disappeared) after every requirement or
-  // upload change. The in-place write is surgical and non-destructive.
+  // We do NOT call gantt.project.load(): a full CrudManager reload re-renders the
+  // time axis / replaces the store while the popover is open, which blanked the
+  // timeline (tasks disappeared) after every requirement or upload change.
   //
-  // A short trailing debounce coalesces the two refetches a single approval
-  // triggers (taskDetail + countByTask settle a few ms apart).
-  const prevReqSigRef = useRef<string | null>(null);
-  const reqReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Re-baseline when the popover switches tasks or closes, so reopening a task
-  // never fires a reload off the previous task's signature.
+  // The write is idempotent — setting a field to its current value is a Bryntum
+  // no-op, and the ancestor delta reads back from the record — so it needs no
+  // change-signature guard or debounce: the first run after load is a no-op, and
+  // re-runs (taskDetail + counts settling a few ms apart) simply converge.
   useEffect(() => {
-    prevReqSigRef.current = null;
-  }, [taskId, open]);
+    if (!open || !ganttInstance?.project || !taskId || !taskDetail || !counts) return;
 
-  useEffect(() => {
-    if (!open || !ganttInstance?.project || !taskId) return;
-    // Wait until both queries resolve so the signature is meaningful.
-    if (!taskDetail || !counts) return;
+    const record = ganttInstance.project.taskStore.getById(taskId);
+    if (!record) return;
 
-    const sig = [
-      submittalsCurrent,
-      inspectionsCurrent,
-      submittalsCounts.pending,
-      inspectionsCounts.pending,
-      taskDetail.requiredSubmittals ?? 0,
-      taskDetail.requiredInspections ?? 0,
-    ].join('|');
+    // Mirror the server's load math (gantt.ts): each kind's filled count is
+    // capped at its required count separately, then summed.
+    const reqSub = taskDetail.requiredSubmittals ?? 0;
+    const reqInsp = taskDetail.requiredInspections ?? 0;
+    const total = reqSub + reqInsp;
+    const filled = Math.min(submittalsCurrent, reqSub) + Math.min(inspectionsCurrent, reqInsp);
+    const pending = submittalsCounts.pending + inspectionsCounts.pending;
 
-    // First resolved value establishes the baseline — no reload.
-    if (prevReqSigRef.current === null) {
-      prevReqSigRef.current = sig;
-      return;
-    }
-    if (prevReqSigRef.current === sig) return;
-    prevReqSigRef.current = sig;
+    // needsReviewCount rolls up to parents (matching buildTaskTree); push the
+    // delta up the ancestor chain so parent badges stay correct. requirementsTotal
+    // / requirementsFilled are per-task (leaf only — never rolled up).
+    const delta = pending - Number(record.get('needsReviewCount') ?? 0);
 
-    if (reqReloadTimerRef.current) clearTimeout(reqReloadTimerRef.current);
-    reqReloadTimerRef.current = setTimeout(() => {
-      const record = ganttInstance.project.taskStore.getById(taskId);
-      if (!record) return;
+    record.set({
+      requirementsTotal: total,
+      requirementsFilled: filled,
+      needsReviewCount: pending,
+    });
 
-      // Mirror the server's load math (gantt.ts): each kind's filled count is
-      // capped at its required count separately, then summed and capped at total.
-      const reqSub = taskDetail.requiredSubmittals ?? 0;
-      const reqInsp = taskDetail.requiredInspections ?? 0;
-      const total = reqSub + reqInsp;
-      const filled = Math.min(
-        Math.min(submittalsCurrent, reqSub) + Math.min(inspectionsCurrent, reqInsp),
-        total,
-      );
-      const pending = submittalsCounts.pending + inspectionsCounts.pending;
-
-      // needsReviewCount rolls up to parents (matching buildTaskTree). The popover
-      // only targets leaf tasks, so the record's stored value is its own count;
-      // apply the delta up the ancestor chain so parent badges stay correct.
-      const prevPending = Number(record.get('needsReviewCount') ?? 0);
-      const delta = pending - prevPending;
-
-      record.set({
-        requirementsTotal: total,
-        requirementsFilled: filled,
-        needsReviewCount: pending,
-      });
-
-      if (delta !== 0) {
-        let ancestor = (record as unknown as { parent?: BryntumTaskRecord | null }).parent;
-        while (ancestor && !(ancestor as unknown as { isRoot?: boolean }).isRoot) {
-          const current = Number(ancestor.get('needsReviewCount') ?? 0);
-          ancestor.set('needsReviewCount', Math.max(0, current + delta));
-          ancestor = (ancestor as unknown as { parent?: BryntumTaskRecord | null }).parent;
-        }
+    if (delta !== 0) {
+      let ancestor = (record as unknown as { parent?: BryntumTaskRecord | null }).parent;
+      while (ancestor && !(ancestor as unknown as { isRoot?: boolean }).isRoot) {
+        const current = Number(ancestor.get('needsReviewCount') ?? 0);
+        ancestor.set('needsReviewCount', Math.max(0, current + delta));
+        ancestor = (ancestor as unknown as { parent?: BryntumTaskRecord | null }).parent;
       }
-    }, 300);
+    }
   }, [
     open,
     ganttInstance,
@@ -414,14 +380,6 @@ export function TaskDetailsPopover({
     submittalsCounts.pending,
     inspectionsCounts.pending,
   ]);
-
-  // Clear a pending reload timer on unmount.
-  useEffect(
-    () => () => {
-      if (reqReloadTimerRef.current) clearTimeout(reqReloadTimerRef.current);
-    },
-    [],
-  );
 
   const coverImageUrl = taskDetail?.coverImageUrl ?? null;
   const hasRightPanel = rightPanel !== null;
